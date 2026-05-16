@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\DailyClosingController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\ExpenseRequestController as AdminExpenseRequestController;
+use App\Http\Controllers\Admin\Inventory\InventoryBillController;
 use App\Http\Controllers\Admin\Inventory\InventoryCategoryController;
 use App\Http\Controllers\Admin\Inventory\InventoryItemController;
 use App\Http\Controllers\Admin\Inventory\StockAlertController;
@@ -108,6 +109,15 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'role.ad
         Route::get('alerts', [StockAlertController::class, 'index'])->name('alerts.index');
         Route::patch('alerts/{alert}/resolve', [StockAlertController::class, 'resolve'])->name('alerts.resolve');
         Route::patch('alerts/resolve-all', [StockAlertController::class, 'resolveAll'])->name('alerts.resolve-all');
+
+        // Bill uploads (OCR invoice scanning)
+        Route::get('bills',                          [InventoryBillController::class, 'index'])->name('bills.index');
+        Route::post('bills',                         [InventoryBillController::class, 'store'])->name('bills.store');
+        Route::get('bills/{bill}',                   [InventoryBillController::class, 'show'])->name('bills.show');
+        Route::put('bills/{bill}',                   [InventoryBillController::class, 'update'])->name('bills.update');
+        Route::post('bills/{bill}/import',           [InventoryBillController::class, 'import'])->name('bills.import');
+        Route::get('bills/{bill}/file',              [InventoryBillController::class, 'file'])->name('bills.file');
+        Route::delete('bills/{bill}',                [InventoryBillController::class, 'destroy'])->name('bills.destroy');
     });
 
     // Purchase Plans
@@ -131,7 +141,20 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'role.ad
     Route::get('daily-closings/create', [DailyClosingController::class, 'create'])->name('daily-closings.create');
     Route::post('daily-closings', [DailyClosingController::class, 'store'])->name('daily-closings.store');
     Route::get('daily-closings/{dailyClosing}', [DailyClosingController::class, 'show'])->name('daily-closings.show');
+    Route::get('daily-closings/{dailyClosing}/edit', [DailyClosingController::class, 'edit'])->name('daily-closings.edit');
+    Route::put('daily-closings/{dailyClosing}', [DailyClosingController::class, 'update'])->name('daily-closings.update');
     Route::patch('daily-closings/{dailyClosing}/verify', [DailyClosingController::class, 'verify'])->name('daily-closings.verify');
+    Route::patch('daily-closings/{dailyClosing}/recalculate', [DailyClosingController::class, 'recalculate'])->name('daily-closings.recalculate');
+    Route::delete('daily-closings/{dailyClosing}', [DailyClosingController::class, 'destroy'])->name('daily-closings.destroy');
+    Route::patch('daily-closings/{dailyClosing}/finalize', [DailyClosingController::class, 'finalize'])->name('daily-closings.finalize');
+    Route::get('daily-closings/{dailyClosing}/preview', [DailyClosingController::class, 'preview'])->name('daily-closings.preview');
+    Route::patch('daily-closings/{dailyClosing}/snapshot', [DailyClosingController::class, 'captureSnapshot'])->name('daily-closings.snapshot');
+    Route::post('daily-closings/{dailyClosing}/expenses', [DailyClosingController::class, 'storeExpense'])->name('daily-closings.expenses.store');
+    Route::put('daily-closings/{dailyClosing}/expenses/{expense}', [DailyClosingController::class, 'updateExpense'])->name('daily-closings.expenses.update');
+    Route::patch('daily-closings/{dailyClosing}/expenses/{expense}/remove', [DailyClosingController::class, 'removeExpense'])->name('daily-closings.expenses.remove');
+    Route::patch('daily-closings/{dailyClosing}/expenses/{expense}/restore', [DailyClosingController::class, 'restoreExpense'])->name('daily-closings.expenses.restore');
+    Route::post('daily-closings/{dailyClosing}/adjustments', [DailyClosingController::class, 'storeAdjustment'])->name('daily-closings.adjustments.store');
+    Route::delete('daily-closings/{dailyClosing}/adjustments/{adjustment}', [DailyClosingController::class, 'destroyAdjustment'])->name('daily-closings.adjustments.destroy');
 
     // Settings
     Route::get('settings', [SettingController::class, 'index'])->name('settings.index');

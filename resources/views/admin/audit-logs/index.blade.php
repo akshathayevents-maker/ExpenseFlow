@@ -13,7 +13,7 @@
                 <select name="module" class="form-select form-select-sm">
                     <option value="">All Modules</option>
                     @foreach($modules as $mod)
-                    <option value="{{ $mod }}" {{ $filters['module'] === $mod ? 'selected' : '' }}>{{ ucfirst($mod) }}</option>
+                    <option value="{{ $mod }}" {{ ($filters['module'] ?? '') === $mod ? 'selected' : '' }}>{{ ucfirst($mod) }}</option>
                     @endforeach
                 </select>
             </div>
@@ -22,7 +22,7 @@
                 <select name="action" class="form-select form-select-sm">
                     <option value="">All Actions</option>
                     @foreach($actions as $act)
-                    <option value="{{ $act }}" {{ $filters['action'] === $act ? 'selected' : '' }}>{{ ucfirst($act) }}</option>
+                    <option value="{{ $act }}" {{ ($filters['action'] ?? '') === $act ? 'selected' : '' }}>{{ ucfirst($act) }}</option>
                     @endforeach
                 </select>
             </div>
@@ -31,20 +31,23 @@
                 <select name="user_id" class="form-select form-select-sm">
                     <option value="">All Users</option>
                     @foreach($users as $user)
-                    <option value="{{ $user->id }}" {{ $filters['user_id'] == $user->id ? 'selected' : '' }}>{{ $user->name }}</option>
+                    <option value="{{ $user->id }}" {{ ($filters['user_id'] ?? '') == $user->id ? 'selected' : '' }}>{{ $user->name }}</option>
                     @endforeach
                 </select>
             </div>
             <div class="col-md-2">
                 <label class="form-label small mb-1">From</label>
-                <input type="date" name="from" class="form-control form-control-sm" value="{{ $filters['from'] }}">
+                <input type="date" name="from" class="form-control form-control-sm" value="{{ $filters['from'] ?? '' }}">
             </div>
             <div class="col-md-2">
                 <label class="form-label small mb-1">To</label>
-                <input type="date" name="to" class="form-control form-control-sm" value="{{ $filters['to'] }}">
+                <input type="date" name="to" class="form-control form-control-sm" value="{{ $filters['to'] ?? '' }}">
             </div>
-            <div class="col-md-2">
-                <button class="btn btn-sm btn-primary w-100">Filter</button>
+            <div class="col-md-2 d-flex gap-1">
+                <button type="submit" class="btn btn-sm btn-primary flex-grow-1">Filter</button>
+                <a href="{{ route('admin.audit-logs.index') }}" class="btn btn-sm btn-outline-secondary" title="Reset">
+                    <i class="bi bi-x-lg"></i>
+                </a>
             </div>
         </form>
     </div>

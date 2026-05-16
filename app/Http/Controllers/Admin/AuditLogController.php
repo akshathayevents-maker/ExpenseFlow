@@ -12,7 +12,13 @@ class AuditLogController extends Controller
 {
     public function index(Request $request): View
     {
-        $filters = $request->only(['module', 'action', 'user_id', 'from', 'to']);
+        $filters = [
+            'module'  => $request->input('module', ''),
+            'action'  => $request->input('action', ''),
+            'user_id' => $request->input('user_id', ''),
+            'from'    => $request->input('from', ''),
+            'to'      => $request->input('to', ''),
+        ];
 
         $logs = AuditLog::with('user')
             ->when($filters['module']  ?? null, fn ($q, $v) => $q->where('module', $v))

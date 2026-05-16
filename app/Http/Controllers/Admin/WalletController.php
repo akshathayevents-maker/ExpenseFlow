@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
 use App\Services\WalletService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -53,7 +54,7 @@ class WalletController extends Controller
         return view('admin.wallets.show', compact('wallet', 'transactions'));
     }
 
-    public function transact(WalletTransactionRequest $request, User $user): RedirectResponse
+    public function transact(WalletTransactionRequest $request, User $user): RedirectResponse|JsonResponse
     {
         $wallet = $this->walletService->getOrCreate($user);
         $data   = $request->validated();
@@ -65,9 +66,22 @@ class WalletController extends Controller
                 'adjustment' => $this->walletService->adjust($wallet, $data['amount'], $data['notes'], auth()->user()),
             };
 
-            $label = ucfirst($data['type']);
-            return back()->with('success', "{$label} of ₹{$data['amount']} recorded successfully.");
+            $wallet->refresh();
+            $label   = ucfirst($data['type']);
+            $message = "{$label} of ₹" . number_format((float) $data['amount'], 2) . " recorded successfully.";
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'balance' => (float) $wallet->balance,
+                    'message' => $message,
+                ]);
+            }
+
+            return back()->with('success', $message);
         } catch (\RuntimeException $e) {
+            if ($request->wantsJson()) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
             return back()->with('error', $e->getMessage());
         }
     }

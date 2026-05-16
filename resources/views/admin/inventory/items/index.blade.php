@@ -11,11 +11,19 @@
                 {{ $lowStockCount + $outOfStock }} Alert(s)
             </a>
         @endif
+        <a href="{{ route('admin.inventory.bills.index') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-clock-history me-1"></i> Bill History
+        </a>
+        <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#uploadModal">
+            <i class="bi bi-cloud-upload me-1"></i> Upload Bill
+        </button>
         <a href="{{ route('admin.inventory.items.create') }}" class="btn btn-primary btn-sm">
             <i class="bi bi-plus-lg me-1"></i> Add Item
         </a>
     </div>
 </div>
+
+@include('admin.inventory.bills._upload-modal')
 
 {{-- Quick stats --}}
 <div class="row g-3 mb-3">
