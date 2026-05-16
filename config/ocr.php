@@ -8,19 +8,18 @@ return [
     'python_bin' => env('OCR_PYTHON_BIN', 'python3'),
 
     /*
-     | PaddleOCR language model.
-     | 'en'  — English (also extracts printed numbers from any script)
-     | 'ta'  — Tamil
-     | 'ch'  — Simplified Chinese (works for dense scripts)
-     | For Tamil+English mixed bills 'en' is a good starting point.
-     | Set OCR_LANGUAGE=ta in .env for Tamil-primary bills.
+     | Tesseract language.
+     | 'en'    — English
+     | 'ta'    — Tamil
+     | 'ta+en' — Tamil + English (mixed bills)
+     | Requires: sudo apt install tesseract-ocr-tam for Tamil support.
      */
     'language' => env('OCR_LANGUAGE', 'en'),
 
     /*
      | Max seconds to wait for the OCR process before killing it.
      */
-    'timeout' => (int) env('OCR_TIMEOUT', 120),
+    'timeout' => (int) env('OCR_TIMEOUT', 60),
 
     /*
      | Path to the Python extraction script.

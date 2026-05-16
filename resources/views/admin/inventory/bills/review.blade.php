@@ -334,6 +334,51 @@
     </div>
 </div>
 
+{{-- Debug Panel --}}
+@if ($bill->extracted_json)
+<div class="mt-3">
+    <div class="accordion accordion-flush border rounded" id="debugAccordion">
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed py-2 small text-muted" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#debugBody">
+                    <i class="bi bi-bug me-2"></i>OCR Debug Info
+                    @if ($confidence !== null)
+                        &nbsp;— {{ $bill->ocr_provider ?? 'tesseract' }}, {{ $confPct }}% confidence
+                    @endif
+                </button>
+            </h2>
+            <div id="debugBody" class="accordion-collapse collapse">
+                <div class="accordion-body py-2 px-3">
+                    @php $json = $bill->extracted_json; @endphp
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <p class="mb-1 small fw-semibold text-muted">Extracted Invoice Fields</p>
+                            <pre class="bg-light rounded p-2 small" style="font-size:.75rem;max-height:250px;overflow:auto">{{ json_encode([
+                                'vendor_name'    => $json['vendor_name']    ?? null,
+                                'invoice_number' => $json['invoice_number'] ?? null,
+                                'invoice_date'   => $json['invoice_date']   ?? null,
+                                'gst_number'     => $json['gst_number']     ?? null,
+                                'subtotal'       => $json['subtotal']       ?? 0,
+                                'tax_amount'     => $json['tax_amount']     ?? 0,
+                                'total_amount'   => $json['total_amount']   ?? 0,
+                                'ocr_provider'   => $json['ocr_provider']   ?? null,
+                                'ocr_confidence' => $json['ocr_confidence'] ?? null,
+                                'item_count'     => count($json['items']    ?? []),
+                            ], JSON_PRETTY_PRINT) }}</pre>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-1 small fw-semibold text-muted">OCR Raw Text</p>
+                            <pre class="bg-light rounded p-2 small" style="font-size:.72rem;max-height:250px;overflow:auto;white-space:pre-wrap">{{ $json['full_text'] ?? '(not stored)' }}</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
 {{-- Import Confirmation Modal --}}
 <div class="modal fade" id="importModal" tabindex="-1">
     <div class="modal-dialog">

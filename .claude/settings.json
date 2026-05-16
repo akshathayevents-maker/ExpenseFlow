@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c ' *)",
+      "Bash(python3 -c \"import easyocr; print\\('easyocr ok'\\)\")",
+      "Bash(python3 -c \"import pytesseract; print\\('tesseract ok'\\)\")",
+      "Bash(python3 -c \"import rapidocr_onnxruntime; print\\('rapidocr ok'\\)\")",
+      "Bash(tesseract --version)",
+      "Bash(tesseract --list-langs)",
+      "Bash(python3 storage/app/ocr/invoice_ocr.py storage/app/private/inventory-bills/60SdpvUpKhBXKUNWLusqBUtPIPHqghM0TwFYbJ6W.png en)"
+    ]
+  }
+}
