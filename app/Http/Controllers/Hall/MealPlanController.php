@@ -12,8 +12,23 @@ class MealPlanController extends Controller
 {
     public function index(): View
     {
-        $plans = MealPlan::orderBy('category')->orderBy('name')->paginate(20);
-        return view('hall.meal-plans.index', compact('plans'));
+        $plans = MealPlan::withCount('bookings')
+            ->orderBy('category')
+            ->orderBy('name')
+            ->paginate(20);
+
+        $topPlan  = MealPlan::withCount('bookings')->orderByDesc('bookings_count')->first();
+        $active   = MealPlan::active()->get();
+
+        $stats = [
+            'total'   => MealPlan::count(),
+            'active'  => $active->count(),
+            'premium' => MealPlan::where('category', 'premium')->count(),
+            'avg_price' => (int) round($active->avg('price_per_person') ?? 0),
+            'top_plan'  => $topPlan,
+        ];
+
+        return view('hall.meal-plans.index', compact('plans', 'stats'));
     }
 
     public function create(): View
@@ -40,6 +55,7 @@ class MealPlanController extends Controller
 
     public function edit(MealPlan $mealPlan): View
     {
+        $mealPlan->loadCount('bookings');
         return view('hall.meal-plans.edit', compact('mealPlan'));
     }
 

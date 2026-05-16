@@ -18,7 +18,11 @@
       "Bash(command -v nginx)",
       "Bash(nginx -t -c /home/qc7107-l/Projects/ExpenseFlow/deployment/nginx.conf)",
       "Bash(composer require *)",
-      "Bash(php -r 'require '\\\\''vendor/autoload.php'\\\\''; $app = require '\\\\''bootstrap/app.php'\\\\''; echo '\\\\''Controller OK'\\\\'';')"
+      "Bash(php -r 'require '\\\\''vendor/autoload.php'\\\\''; $app = require '\\\\''bootstrap/app.php'\\\\''; echo '\\\\''Controller OK'\\\\'';')",
+      "Bash(php artisan *)",
+      "Bash(php -r \"require 'vendor/autoload.php'; echo 'PHP OK';\")",
+      "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/app/Http/Controllers/Admin/AuditLogController.php)",
+      "Bash(npm run *)"
     ]
   }
 }

@@ -14,19 +14,34 @@ class EmployeeController extends Controller
 {
     public function index(Request $request): View
     {
-        $query = User::whereIn('role', ['employee', 'manager']);
+        $search = $request->get('search', '');
+        $role   = $request->get('role', '');
+        $status = $request->get('status', '');
 
-        if ($search = $request->get('search')) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'ilike', "%{$search}%")
-                  ->orWhere('email', 'ilike', "%{$search}%")
-                  ->orWhere('phone', 'ilike', "%{$search}%");
-            });
-        }
+        $employees = User::whereIn('role', ['employee', 'manager'])
+            ->when($search, fn ($q) => $q->where(fn ($q) => $q
+                ->where('name',  'ilike', "%{$search}%")
+                ->orWhere('email', 'ilike', "%{$search}%")
+                ->orWhere('phone', 'ilike', "%{$search}%")
+            ))
+            ->when($role,   fn ($q, $v) => $q->where('role', $v))
+            ->when($status !== '', fn ($q) => $q->where('is_active', $status === 'active'))
+            ->orderBy('name')
+            ->paginate(20)
+            ->withQueryString();
 
-        $employees = $query->orderBy('name')->paginate(15)->withQueryString();
+        // Global workforce stats (unfiltered — always reflects full picture)
+        $stats = [
+            'total'    => User::whereIn('role', ['employee', 'manager'])->count(),
+            'managers' => User::where('role', 'manager')->count(),
+            'active'   => User::whereIn('role', ['employee', 'manager'])->where('is_active', true)->count(),
+            'inactive' => User::whereIn('role', ['employee', 'manager'])->where('is_active', false)->count(),
+            'recent'   => User::whereIn('role', ['employee', 'manager'])
+                              ->where('created_at', '>=', now()->subDays(30))->count(),
+        ];
 
-        return view('admin.employees.index', compact('employees', 'search'));
+        return view('admin.employees.index',
+            compact('employees', 'search', 'role', 'status', 'stats'));
     }
 
     public function create(): View

@@ -30,26 +30,34 @@ class DailyClosingController extends Controller
 
     public function index(Request $request): View
     {
-        $query = DailyClosing::with(['creator', 'verifier', 'updater'])->latest('date');
+        $filtered = fn () => DailyClosing::query()
+            ->when($request->get('from'),       fn ($q, $v) => $q->whereDate('date', '>=', $v))
+            ->when($request->get('to'),         fn ($q, $v) => $q->whereDate('date', '<=', $v))
+            ->when($request->get('status'),     fn ($q, $v) => $q->where('status', $v))
+            ->when($request->get('created_by'), fn ($q, $v) => $q->where('created_by', $v));
 
-        if ($from = $request->get('from')) {
-            $query->whereDate('date', '>=', $from);
-        }
-        if ($to = $request->get('to')) {
-            $query->whereDate('date', '<=', $to);
-        }
-        if ($status = $request->get('status')) {
-            $query->where('status', $status);
-        }
-        if ($createdBy = $request->get('created_by')) {
-            $query->where('created_by', $createdBy);
-        }
+        $closings = $filtered()
+            ->with(['creator', 'verifier', 'updater'])
+            ->latest('date')
+            ->paginate(20)
+            ->withQueryString();
 
-        $closings    = $query->paginate(20)->withQueryString();
+        $expenseTotal  = (float) $filtered()->sum('expense_total');
+        $paymentTotal  = (float) $filtered()->sum('payment_total');
+        $summary = [
+            'expense_total'  => $expenseTotal,
+            'payment_total'  => $paymentTotal,
+            'variance'       => $expenseTotal - $paymentTotal,
+            'total_count'    => $filtered()->count(),
+            'draft_count'    => $filtered()->where('status', 'draft')->count(),
+            'verified_count' => $filtered()->where('status', 'verified')->count(),
+            'closed_count'   => $filtered()->where('status', 'closed')->count(),
+        ];
+
         $todayClosed = DailyClosing::whereDate('date', today())->exists();
         $adminUsers  = User::whereIn('role', ['admin'])->orderBy('name')->get();
 
-        return view('admin.daily-closings.index', compact('closings', 'todayClosed', 'adminUsers'));
+        return view('admin.daily-closings.index', compact('closings', 'todayClosed', 'adminUsers', 'summary'));
     }
 
     // ─── Create ──────────────────────────────────────────────────────────────

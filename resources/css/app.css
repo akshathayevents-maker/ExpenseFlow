@@ -20,6 +20,10 @@
     --ef-ease: cubic-bezier(.2, .7, .2, 1);
 }
 
+html {
+    overflow-x: hidden;
+}
+
 body {
     background:
         radial-gradient(circle at 80% 0%, rgba(169, 131, 56, .045), transparent 26rem),
@@ -27,6 +31,7 @@ body {
     color: var(--ef-ink);
     font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     letter-spacing: 0;
+    overflow-x: hidden;
 }
 
 .ef-page {
@@ -456,7 +461,7 @@ body {
 @media (max-width: 1199.98px) {
     .ef-grid-main,
     .ef-hero {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .ef-hero-finance {
@@ -467,18 +472,36 @@ body {
 
 @media (max-width: 767.98px) {
     .ef-page {
+        max-width: 100%;
+        overflow-x: hidden;
         padding-bottom: 88px;
     }
 
     .ef-hero-main,
-    .ef-hero-finance,
+    .ef-hero-finance {
+        padding: 20px;
+    }
+
     .ef-card-body {
-        padding: 24px;
+        padding: 20px;
+    }
+
+    .ef-hero,
+    .ef-grid-main,
+    .ef-card {
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    /* ── General heading typography ─────────────────────────────── */
+    .ef-title {
+        font-size: clamp(1.55rem, 6vw, 2.2rem);
+        line-height: 1.05;
     }
 
     .ef-info-grid,
     .ef-metric-row {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .ef-metric,
@@ -2051,6 +2074,8 @@ body {
 .ef-event-strip {
     display: flex;
     gap: 12px;
+    max-width: 100%;
+    min-width: 0;
     overflow-x: auto;
     padding-bottom: 4px;
     scroll-snap-type: x proximity;
@@ -2099,7 +2124,7 @@ body {
     .ef-dash-grid,
     .ef-dash-hero,
     .ef-command-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .ef-dash-hero-side {
@@ -2112,26 +2137,63 @@ body {
 
 @media (max-width: 767.98px) {
     .ef-dashboard {
+        max-width: 100%;
+        overflow-x: hidden;
         padding-bottom: 92px;
     }
 
+    /* ── Containment: every card/grid is width-safe ────────────── */
+    .ef-today-command,
+    .ef-card,
+    .ef-dash-hero,
+    .ef-command-grid,
+    .ef-dash-metrics {
+        max-width: 100%;
+        min-width: 0;
+    }
+
     .ef-dash-hero-main,
-    .ef-dash-hero-side,
+    .ef-dash-hero-side {
+        padding: 20px;
+    }
+
     .ef-card-body {
-        padding: 24px;
+        padding: 20px;
+    }
+
+    /* ── Heading typography: safe mobile sizes ─────────────────── */
+    .ef-command-title {
+        font-size: clamp(1.55rem, 6vw, 2.1rem);
+        line-height: 1.05;
+    }
+
+    .ef-dash-title {
+        font-size: clamp(1.55rem, 6vw, 2.1rem);
+        line-height: 1.05;
+    }
+
+    /* ── Today command: override high-specificity desktop padding ── */
+    .ef-today-command .ef-card-body {
+        padding: 20px;
+    }
+
+    /* ── Today command pulse: match 20px card padding ──────────── */
+    .ef-command-pulse {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin: 20px -20px -20px;
     }
 
     .ef-dash-metrics {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .ef-command-pulse,
     .ef-kitchen-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     .ef-moment {
-        grid-template-columns: 62px 12px minmax(0, 1fr);
+        gap: 12px;
+        grid-template-columns: 58px 10px minmax(0, 1fr);
     }
 
     .ef-moment .ef-chip {
@@ -2150,7 +2212,22 @@ body {
 
     .ef-hall-grid,
     .ef-quick-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* ── Feed items: prevent amount column overflow ─────────────── */
+    .ef-feed-item {
+        gap: 10px;
+    }
+
+    .ef-feed-amount {
+        font-size: .85rem;
+        min-width: 0;
+    }
+
+    /* ── Occupancy bars: safe column sizing ─────────────────────── */
+    .ef-occ-row {
+        grid-template-columns: 48px minmax(0, 1fr) 36px;
     }
 
     .ef-mobile-dash-actions {

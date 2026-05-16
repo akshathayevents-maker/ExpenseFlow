@@ -20,7 +20,7 @@ class HallBookingController extends Controller
 {
     public function index(Request $request): View
     {
-        $query = HallBooking::with(['hall', 'creator'])
+        $query = HallBooking::with(['hall', 'mealPlan', 'creator'])
             ->orderByDesc('booking_date')
             ->orderByDesc('created_at');
 
@@ -47,7 +47,23 @@ class HallBookingController extends Controller
         $bookings = $query->paginate(15)->withQueryString();
         $halls    = Hall::active()->orderBy('name')->get();
 
-        return view('hall.bookings.index', compact('bookings', 'halls'));
+        $monthOccupied = HallBooking::whereMonth('booking_date', now()->month)
+            ->whereYear('booking_date', now()->year)
+            ->where('status', '!=', 'cancelled')
+            ->distinct('booking_date')
+            ->count('booking_date');
+
+        $stats = [
+            'today'       => HallBooking::whereDate('booking_date', today())->where('status', '!=', 'cancelled')->count(),
+            'upcoming'    => HallBooking::whereDate('booking_date', '>=', today())->where('status', '!=', 'cancelled')->count(),
+            'pending_pay' => HallBooking::where('payment_status', 'pending')->where('status', '!=', 'cancelled')->count(),
+            'month_occ'   => now()->daysInMonth > 0 ? round($monthOccupied / now()->daysInMonth * 100) : 0,
+            'week_guests' => HallBooking::whereBetween('booking_date', [now()->startOfWeek()->toDateString(), now()->endOfWeek()->toDateString()])
+                ->where('status', '!=', 'cancelled')
+                ->sum('number_of_people'),
+        ];
+
+        return view('hall.bookings.index', compact('bookings', 'halls', 'stats'));
     }
 
     public function create(): View

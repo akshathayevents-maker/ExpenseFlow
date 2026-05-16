@@ -134,6 +134,7 @@
             margin-left: var(--sb-width);
             margin-top: var(--tb-height);
             min-height: calc(100vh - var(--tb-height));
+            overflow-x: hidden;
             padding: 32px;
         }
 
@@ -141,7 +142,7 @@
         @media (max-width: 991.98px) {
             #sidebar { transform: translateX(-100%); }
             #sidebar.show { transform: translateX(0); }
-            #main-content { margin-left: 0; padding: 20px; }
+            #main-content { margin-left: 0; overflow-x: hidden; padding: 16px; }
             #topbar .brand { width: auto; }
         }
         #sidebar-overlay {
