@@ -36,24 +36,62 @@ class HallReportController extends Controller
             $query->where('status', $request->status);
         }
 
-        $bookings = $query->get();
+        $bookings  = $query->get();
+        $active    = $bookings->where('status', '!=', 'cancelled');
+        $collected = $bookings->flatMap->payments->sum('amount');
+        $revenue   = $active->sum('total_amount');
 
         $summary = [
             'total_bookings'  => $bookings->count(),
-            'total_revenue'   => $bookings->where('status', '!=', 'cancelled')->sum('total_amount'),
-            'total_collected' => $bookings->flatMap->payments->sum('amount'),
-            'total_balance'   => $bookings->where('status', '!=', 'cancelled')->sum('total_amount') - $bookings->flatMap->payments->sum('amount'),
-            'by_hall'         => $bookings->where('status', '!=', 'cancelled')->groupBy('hall_id')->map(fn($g) => [
+            'active_bookings' => $active->count(),
+            'cancelled'       => $bookings->where('status', 'cancelled')->count(),
+            'total_revenue'   => $revenue,
+            'total_collected' => $collected,
+            'total_balance'   => max(0, $revenue - $collected),
+            'avg_revenue'     => $active->count() > 0 ? (int) round($revenue / $active->count()) : 0,
+            'total_people'    => $active->sum('number_of_people'),
+            'collection_rate' => $revenue > 0 ? min(100, (int) round($collected / $revenue * 100)) : 0,
+            'by_hall'  => $active->groupBy('hall_id')->map(fn($g) => [
                 'name'    => $g->first()->hall->name,
                 'count'   => $g->count(),
                 'revenue' => $g->sum('total_amount'),
-            ]),
-            'by_event'        => $bookings->where('status', '!=', 'cancelled')->groupBy('event_type')->map(fn($g) => [
+                'people'  => $g->sum('number_of_people'),
+            ])->sortByDesc('revenue'),
+            'by_event' => $active->groupBy('event_type')->map(fn($g) => [
+                'label'   => \App\Models\HallBooking::eventTypes()[$g->first()->event_type]
+                             ?? ucwords(str_replace('_', ' ', $g->first()->event_type)),
                 'count'   => $g->count(),
                 'revenue' => $g->sum('total_amount'),
-            ]),
+            ])->sortByDesc('revenue'),
+            'pay_paid'    => $active->where('payment_status', 'paid')->count(),
+            'pay_partial' => $active->where('payment_status', 'partial')->count(),
+            'pay_pending' => $active->where('payment_status', 'pending')->count(),
         ];
 
-        return view('hall.reports.index', compact('bookings', 'halls', 'summary'));
+        // Last 6 months revenue trend — always global, unaffected by filters
+        $trendMonths = collect();
+        for ($i = 5; $i >= 0; $i--) {
+            $m = now()->subMonths($i);
+            $trendMonths[$m->format('Y-m')] = [
+                'label'   => $m->format("M 'y"),
+                'revenue' => 0,
+                'count'   => 0,
+            ];
+        }
+
+        HallBooking::where('status', '!=', 'cancelled')
+            ->where('booking_date', '>=', now()->subMonths(5)->startOfMonth()->toDateString())
+            ->get(['booking_date', 'total_amount'])
+            ->groupBy(fn($b) => $b->booking_date->format('Y-m'))
+            ->each(function ($g, $key) use (&$trendMonths) {
+                if (isset($trendMonths[$key])) {
+                    $trendMonths[$key]['revenue'] = (int) $g->sum('total_amount');
+                    $trendMonths[$key]['count']   = $g->count();
+                }
+            });
+
+        $monthlyTrend = $trendMonths->values();
+
+        return view('hall.reports.index', compact('bookings', 'halls', 'summary', 'monthlyTrend'));
     }
 }
