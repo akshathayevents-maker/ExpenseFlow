@@ -207,7 +207,29 @@ class HallBookingController extends Controller
     public function calendar(): View
     {
         $halls = Hall::active()->orderBy('name')->get();
-        return view('hall.bookings.calendar', compact('halls'));
+        $monthStart = now()->startOfMonth();
+        $monthEnd = now()->endOfMonth();
+
+        $monthBookings = HallBooking::with(['hall', 'payments'])
+            ->whereBetween('booking_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
+            ->where('status', '!=', 'cancelled')
+            ->get();
+
+        $occupiedDates = $monthBookings->pluck('booking_date')
+            ->map(fn ($date) => $date->toDateString())
+            ->unique()
+            ->count();
+
+        $summary = [
+            'total_bookings' => $monthBookings->count(),
+            'upcoming_events' => $monthBookings->where('booking_date', '>=', today())->count(),
+            'revenue' => $monthBookings->sum('total_amount'),
+            'occupancy' => $monthEnd->day > 0 ? round(($occupiedDates / $monthEnd->day) * 100) : 0,
+            'pending_payments' => $monthBookings->where('payment_status', '!=', 'paid')->count(),
+            'catering_load' => $monthBookings->sum('number_of_people'),
+        ];
+
+        return view('hall.bookings.calendar', compact('halls', 'summary'));
     }
 
     public function calendarEvents(Request $request): JsonResponse
@@ -225,22 +247,40 @@ class HallBookingController extends Controller
             $query->where('hall_id', $request->hall_id);
         }
 
-        $colors = ['confirmed' => '#16a34a', 'completed' => '#2563eb', 'cancelled' => '#dc2626'];
-
-        $events = $query->get()->map(fn($b) => [
+        $events = $query->with(['hall', 'mealPlan', 'payments'])->get()->map(fn($b) => [
             'id'    => $b->id,
-            'title' => $b->customer_name . ' — ' . $b->hall->name,
+            'title' => $b->customer_name,
             'start' => $b->booking_date->toDateString() . 'T' . $b->start_time,
             'end'   => $b->booking_date->toDateString() . 'T' . $b->end_time,
-            'color' => $colors[$b->status] ?? '#64748b',
+            'classNames' => [
+                'ef-cal-event',
+                'is-' . $b->status,
+                'pay-' . $b->payment_status,
+            ],
             'extendedProps' => [
                 'customer'     => $b->customer_name,
                 'hall'         => $b->hall->name,
-                'event_type'   => $b->event_type,
+                'event_type'   => \App\Models\HallBooking::eventTypes()[$b->event_type] ?? str($b->event_type)->headline()->toString(),
                 'people'       => $b->number_of_people,
                 'status'       => $b->status,
+                'status_label' => \App\Models\HallBooking::statuses()[$b->status] ?? str($b->status)->headline()->toString(),
+                'payment_status' => $b->payment_status,
+                'payment_status_label' => \App\Models\HallBooking::paymentStatuses()[$b->payment_status] ?? str($b->payment_status)->headline()->toString(),
                 'amount'       => $b->total_amount,
+                'paid'         => $b->total_paid,
+                'balance'      => max(0, $b->balance_amount),
+                'meal_plan'    => $b->mealPlan?->name,
+                'meals'        => collect([
+                    'Breakfast' => $b->has_breakfast,
+                    'Lunch' => $b->has_lunch,
+                    'Dinner' => $b->has_dinner,
+                ])->filter()->keys()->values(),
+                'start_time'   => \Carbon\Carbon::parse($b->start_time)->format('h:i A'),
+                'end_time'     => \Carbon\Carbon::parse($b->end_time)->format('h:i A'),
+                'date'         => $b->booking_date->format('d M Y'),
                 'url'          => route('hall.bookings.show', $b),
+                'payment_url'  => route('hall.bookings.show', $b) . '#record-payment',
+                'whatsapp_url' => 'https://wa.me/91' . preg_replace('/\D/', '', $b->customer_mobile),
             ],
         ]);
 
