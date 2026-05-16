@@ -9,11 +9,34 @@
             </ol>
         </nav>
     </div>
-    <div class="d-flex gap-2 flex-wrap">
-        @php $statusColor = \App\Models\InventoryBillUpload::statuses()[$bill->status] ?? 'secondary'; @endphp
-        <span class="badge bg-{{ $statusColor }} fs-6 align-self-center">
+    <div class="d-flex gap-2 flex-wrap align-items-center">
+        @php
+            $statusColor = \App\Models\InventoryBillUpload::statuses()[$bill->status] ?? 'secondary';
+            $confidence  = $bill->extracted_json['ocr_confidence'] ?? null;
+        @endphp
+        <span class="badge bg-{{ $statusColor }} fs-6">
             {{ \App\Models\InventoryBillUpload::statusLabels()[$bill->status] ?? ucfirst($bill->status) }}
         </span>
+        @if ($confidence !== null)
+            @php
+                $confPct   = round($confidence * 100);
+                $confColor = $confPct >= 80 ? 'success' : ($confPct >= 60 ? 'warning' : 'danger');
+            @endphp
+            <span class="badge bg-{{ $confColor }}" title="OCR confidence">
+                <i class="bi bi-cpu me-1"></i>{{ $confPct }}% confidence
+            </span>
+        @endif
+        @if (! $bill->isImported())
+            <form method="POST" action="{{ route('admin.inventory.bills.rerun-ocr', $bill) }}"
+                  id="rerunOcrForm" class="d-inline">
+                @csrf
+                <button type="submit" class="btn btn-sm btn-outline-secondary" id="btnRerunOcr"
+                        title="Re-run OCR extraction" data-loading-text="Running OCR…">
+                    <span id="rerunSpinner" class="spinner-border spinner-border-sm d-none me-1"></span>
+                    <i class="bi bi-arrow-repeat me-1" id="rerunIcon"></i>Re-run OCR
+                </button>
+            </form>
+        @endif
         @if ($bill->canImport())
             <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#importModal">
                 <i class="bi bi-box-arrow-in-down me-1"></i>Import to Inventory
@@ -90,8 +113,12 @@
                 @endif
             </div>
             <div class="card-footer bg-transparent py-2 small text-muted">
-                OCR provider: <strong>{{ $bill->ocr_provider ?? 'manual' }}</strong> &nbsp;|&nbsp;
-                Uploaded {{ $bill->created_at->diffForHumans() }} by {{ optional($bill->uploader)->name }}
+                <i class="bi bi-cpu me-1"></i><strong>{{ $bill->ocr_provider ?? 'manual' }}</strong>
+                @if ($confidence !== null)
+                    &nbsp;·&nbsp;
+                    <span class="text-{{ $confColor ?? 'muted' }}">{{ $confPct ?? '—' }}% confidence</span>
+                @endif
+                &nbsp;·&nbsp; Uploaded {{ $bill->created_at->diffForHumans() }} by {{ optional($bill->uploader)->name }}
             </div>
         </div>
     </div>
@@ -339,6 +366,17 @@
 @push('scripts')
 <script>
 (function () {
+    // Re-run OCR button spinner
+    document.getElementById('rerunOcrForm')?.addEventListener('submit', function () {
+        const btn    = document.getElementById('btnRerunOcr');
+        const icon   = document.getElementById('rerunIcon');
+        const spinner = document.getElementById('rerunSpinner');
+        if (btn)    btn.disabled = true;
+        if (icon)   icon.classList.add('d-none');
+        if (spinner) spinner.classList.remove('d-none');
+        if (btn)    btn.childNodes[btn.childNodes.length - 1].textContent = ' Running OCR…';
+    });
+
     let rowIndex = {{ $bill->items->count() }};
 
     const inventoryOptions = `@foreach ($inventoryItems as $inv)

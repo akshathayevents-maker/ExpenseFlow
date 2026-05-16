@@ -116,6 +116,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'role.ad
         Route::get('bills/{bill}',                   [InventoryBillController::class, 'show'])->name('bills.show');
         Route::put('bills/{bill}',                   [InventoryBillController::class, 'update'])->name('bills.update');
         Route::post('bills/{bill}/import',           [InventoryBillController::class, 'import'])->name('bills.import');
+        Route::post('bills/{bill}/rerun-ocr',        [InventoryBillController::class, 'rerunOcr'])->name('bills.rerun-ocr');
         Route::get('bills/{bill}/file',              [InventoryBillController::class, 'file'])->name('bills.file');
         Route::delete('bills/{bill}',                [InventoryBillController::class, 'destroy'])->name('bills.destroy');
     });

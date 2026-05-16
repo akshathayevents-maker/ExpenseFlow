@@ -283,6 +283,55 @@ class InventoryBillController extends Controller
             ->with('success', "{$imported} item(s) imported to inventory. {$created} new item(s) created.");
     }
 
+    // ─── Re-run OCR ───────────────────────────────────────────────────────────
+
+    public function rerunOcr(InventoryBillUpload $bill): RedirectResponse
+    {
+        if ($bill->isImported()) {
+            return back()->with('error', 'Cannot re-run OCR on an already-imported bill.');
+        }
+
+        $bill->update(['status' => 'processing']);
+        $extracted = $this->ocr->extract($bill);
+
+        DB::transaction(function () use ($bill, $extracted) {
+            $bill->update([
+                'vendor_name'    => $extracted['vendor_name'],
+                'invoice_number' => $extracted['invoice_number'],
+                'invoice_date'   => $extracted['invoice_date'],
+                'gst_number'     => $extracted['gst_number'],
+                'subtotal'       => $extracted['subtotal'],
+                'tax_amount'     => $extracted['tax_amount'],
+                'total_amount'   => $extracted['total_amount'],
+                'extracted_json' => $extracted,
+                'ocr_provider'   => $extracted['ocr_provider'],
+                'status'         => 'review_pending',
+            ]);
+
+            $bill->items()->where('imported', false)->delete();
+
+            foreach ($extracted['items'] as $row) {
+                if (empty($row['item_name'])) continue;
+                InventoryBillItem::create([
+                    'bill_upload_id' => $bill->id,
+                    'item_name'      => $row['item_name'],
+                    'quantity'       => $row['quantity']    ?? 0,
+                    'unit'           => $row['unit']        ?? null,
+                    'unit_price'     => $row['unit_price']  ?? 0,
+                    'tax_percent'    => $row['tax_percent'] ?? 0,
+                    'total'          => $row['total']       ?? 0,
+                ]);
+            }
+        });
+
+        $msg = $extracted['ocr_message']
+            ? 'OCR re-run complete. ' . $extracted['ocr_message']
+            : 'OCR re-run complete. Please review the updated data below.';
+
+        return redirect()->route('admin.inventory.bills.show', $bill)
+            ->with('success', $msg);
+    }
+
     // ─── Serve file ───────────────────────────────────────────────────────────
 
     public function file(InventoryBillUpload $bill): Response

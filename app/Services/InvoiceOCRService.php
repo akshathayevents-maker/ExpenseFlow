@@ -43,7 +43,7 @@ class InvoiceOCRService
      */
     public function extract(InventoryBillUpload $bill): array
     {
-        // ── Step 1: Run PaddleOCR ──────────────────────────────────────────
+        // ── Step 1: Run PaddleOCR (Python) ────────────────────────────────
         $ocrResult = $this->paddle->extractText($bill);
 
         if (! ($ocrResult['success'] ?? false)) {
@@ -52,29 +52,58 @@ class InvoiceOCRService
             return $this->emptyExtraction($msg);
         }
 
-        // ── Step 2: Parse raw OCR lines into structured data ───────────────
-        $parsed = $this->parser->parse($ocrResult);
+        // ── Step 2: Prefer Python-parsed invoice object, fallback to PHP ──
+        if (! empty($ocrResult['invoice'])) {
+            $inv = $ocrResult['invoice'];
+            $structured = [
+                'vendor_name'    => $inv['vendor_name']    ?? null,
+                'invoice_number' => $inv['invoice_number'] ?? null,
+                'invoice_date'   => $inv['invoice_date']   ?? null,
+                'gst_number'     => $inv['gst_number']     ?? null,
+                'subtotal'       => (float) ($inv['subtotal']    ?? 0),
+                'tax_amount'     => (float) ($inv['tax_amount']  ?? 0),
+                'total_amount'   => (float) ($inv['grand_total'] ?? 0),
+                'items'          => $this->normaliseItems($inv['items'] ?? []),
+            ];
+        } else {
+            $parsed = $this->parser->parse($ocrResult);
+            $structured = [
+                'vendor_name'    => $parsed['vendor_name'],
+                'invoice_number' => $parsed['invoice_number'],
+                'invoice_date'   => $parsed['invoice_date'],
+                'gst_number'     => $parsed['gst_number'],
+                'subtotal'       => $parsed['subtotal'],
+                'tax_amount'     => $parsed['tax_amount'],
+                'total_amount'   => $parsed['total_amount'],
+                'items'          => $parsed['items'],
+            ];
+        }
 
         Log::info('InvoiceOCRService: extraction complete', [
             'bill_id'    => $bill->id,
-            'vendor'     => $parsed['vendor_name'],
-            'total'      => $parsed['total_amount'],
-            'item_count' => count($parsed['items']),
+            'vendor'     => $structured['vendor_name'],
+            'total'      => $structured['total_amount'],
+            'item_count' => count($structured['items']),
             'confidence' => $ocrResult['confidence'] ?? 0,
         ]);
 
-        return [
-            'vendor_name'    => $parsed['vendor_name'],
-            'invoice_number' => $parsed['invoice_number'],
-            'invoice_date'   => $parsed['invoice_date'],
-            'gst_number'     => $parsed['gst_number'],
-            'subtotal'       => $parsed['subtotal'],
-            'tax_amount'     => $parsed['tax_amount'],
-            'total_amount'   => $parsed['total_amount'],
-            'items'          => $parsed['items'],
-            'ocr_provider'   => 'paddleocr',
+        return array_merge($structured, [
+            'ocr_provider'   => $ocrResult['provider'] ?? 'paddleocr',
+            'ocr_confidence' => $ocrResult['confidence'] ?? 0,
             'ocr_message'    => null,
-        ];
+        ]);
+    }
+
+    private function normaliseItems(array $items): array
+    {
+        return array_map(fn($i) => [
+            'item_name'   => $i['item_name']   ?? 'Item (please edit)',
+            'quantity'    => (float) ($i['quantity']    ?? 1),
+            'unit'        => $i['unit']        ?? null,
+            'unit_price'  => (float) ($i['unit_price']  ?? 0),
+            'tax_percent' => (float) ($i['tax_percent'] ?? 0),
+            'total'       => (float) ($i['total']       ?? 0),
+        ], $items);
     }
 
     // ── Private ────────────────────────────────────────────────────────────────
