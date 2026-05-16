@@ -14,25 +14,22 @@ class ExpenseRequestService
         private AuditLogService $auditLogService,
     ) {}
 
-    public function create(array $data, array $files, User $requester): ExpenseRequest
+    public function create(array $data, User $requester, ?\Illuminate\Http\UploadedFile $qrFile = null): ExpenseRequest
     {
-        return DB::transaction(function () use ($data, $files, $requester) {
-            $request = ExpenseRequest::create([
-                'title'               => $data['title'],
-                'expense_category_id' => $data['expense_category_id'],
-                'vendor_id'           => $data['vendor_id'] ?? null,
-                'requested_by'        => $requester->id,
-                'amount'              => $data['amount'],
-                'notes'               => $data['notes'] ?? null,
-                'priority'            => $data['priority'],
-                'status'              => 'pending',
-            ]);
-
-            if (! empty($files)) {
-                $this->fileUploadService->storeBills($files, $request, $requester);
+        return DB::transaction(function () use ($data, $requester, $qrFile) {
+            $qrPath = null;
+            if ($qrFile) {
+                $qrPath = $qrFile->store('temp-qr', 'public');
             }
 
-            return $request;
+            return ExpenseRequest::create([
+                'title'        => $data['title'],
+                'requested_by' => $requester->id,
+                'amount'       => $data['amount'],
+                'notes'        => $data['notes'] ?? null,
+                'qr_file_path' => $qrPath,
+                'status'       => 'pending_payment',
+            ]);
         });
     }
 

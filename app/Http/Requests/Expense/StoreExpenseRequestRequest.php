@@ -14,22 +14,19 @@ class StoreExpenseRequestRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'title'               => ['required', 'string', 'max:255'],
-            'expense_category_id' => ['required', 'exists:expense_categories,id'],
-            'vendor_id'           => ['nullable', 'exists:vendors,id'],
-            'amount'              => ['required', 'numeric', 'min:0.01', 'max:9999999.99'],
-            'priority'            => ['required', 'in:low,medium,high,urgent'],
-            'notes'               => ['nullable', 'string', 'max:2000'],
-            'bills'               => ['nullable', 'array', 'max:5'],
-            'bills.*'             => ['file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+            'title'  => ['required', 'string', 'max:255'],
+            'amount' => ['required', 'numeric', 'min:0.01', 'max:9999999.99'],
+            'notes'  => ['nullable', 'string', 'max:2000'],
+            'qr'     => ['required', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:10240'],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'bills.*.max'   => 'Each bill must be under 5MB.',
-            'bills.*.mimes' => 'Bills must be JPG, PNG, or PDF.',
+            'qr.required' => 'Please upload a payment QR image.',
+            'qr.mimes'    => 'QR must be a JPG, PNG, or PDF file.',
+            'qr.max'      => 'QR file must be under 10MB.',
         ];
     }
 }

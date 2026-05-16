@@ -16,3 +16,6 @@ Schedule::command('app:daily-summary')->dailyAt('21:00');
 
 // Remind about pending approvals at 10 AM and 4 PM
 Schedule::command('app:remind-pending')->twiceDaily(10, 16);
+
+// Delete temp QR files older than 24 hours — runs every hour
+Schedule::command('app:cleanup-temp-qr')->hourly();

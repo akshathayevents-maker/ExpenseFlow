@@ -22,6 +22,10 @@ use App\Http\Controllers\Employee\ExpenseRequestController as EmployeeExpenseReq
 use App\Http\Controllers\Employee\WalletController as EmployeeWalletController;
 use App\Http\Controllers\Manager\DashboardController as ManagerDashboardController;
 use App\Http\Controllers\Manager\ExpenseRequestController as ManagerExpenseRequestController;
+use App\Http\Controllers\Hall\HallBookingController;
+use App\Http\Controllers\Hall\HallDashboardController;
+use App\Http\Controllers\Hall\HallReportController;
+use App\Http\Controllers\Hall\MealPlanController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -179,9 +183,41 @@ Route::prefix('employee')->name('employee.')->middleware(['auth', 'verified'])->
     Route::get('expense-requests', [EmployeeExpenseRequestController::class, 'index'])->name('expense-requests.index');
     Route::get('expense-requests/create', [EmployeeExpenseRequestController::class, 'create'])->name('expense-requests.create');
     Route::post('expense-requests', [EmployeeExpenseRequestController::class, 'store'])->name('expense-requests.store');
+    Route::get('expense-requests/{expenseRequest}/success', [EmployeeExpenseRequestController::class, 'success'])->name('expense-requests.success');
     Route::get('expense-requests/{expenseRequest}', [EmployeeExpenseRequestController::class, 'show'])->name('expense-requests.show');
 
     Route::get('wallet', [EmployeeWalletController::class, 'show'])->name('wallet.show');
+});
+
+// ── Hall Management (admin + manager) ────────────────────────────────────────
+Route::prefix('hall')->name('hall.')->middleware(['auth', 'verified', 'role.hall'])->group(function () {
+    Route::get('dashboard', [HallDashboardController::class, 'index'])->name('dashboard');
+
+    // Bookings
+    Route::get('bookings',                              [HallBookingController::class, 'index'])->name('bookings.index');
+    Route::get('bookings/create',                       [HallBookingController::class, 'create'])->name('bookings.create');
+    Route::post('bookings',                             [HallBookingController::class, 'store'])->name('bookings.store');
+    Route::get('bookings/calendar',                     [HallBookingController::class, 'calendar'])->name('bookings.calendar');
+    Route::get('bookings/calendar-events',              [HallBookingController::class, 'calendarEvents'])->name('bookings.calendar-events');
+    Route::get('bookings/check-availability',           [HallBookingController::class, 'checkAvailability'])->name('bookings.check-availability');
+    Route::get('bookings/kitchen',                      [HallBookingController::class, 'kitchen'])->name('bookings.kitchen');
+    Route::get('bookings/{booking}',                    [HallBookingController::class, 'show'])->name('bookings.show');
+    Route::get('bookings/{booking}/edit',               [HallBookingController::class, 'edit'])->name('bookings.edit');
+    Route::put('bookings/{booking}',                    [HallBookingController::class, 'update'])->name('bookings.update');
+    Route::delete('bookings/{booking}',                 [HallBookingController::class, 'destroy'])->name('bookings.destroy');
+    Route::post('bookings/{booking}/payments',          [HallBookingController::class, 'addPayment'])->name('bookings.payments.add');
+
+    // Meal Plans
+    Route::get('meal-plans',                            [MealPlanController::class, 'index'])->name('meal-plans.index');
+    Route::get('meal-plans/create',                     [MealPlanController::class, 'create'])->name('meal-plans.create');
+    Route::post('meal-plans',                           [MealPlanController::class, 'store'])->name('meal-plans.store');
+    Route::get('meal-plans/{mealPlan}/edit',            [MealPlanController::class, 'edit'])->name('meal-plans.edit');
+    Route::put('meal-plans/{mealPlan}',                 [MealPlanController::class, 'update'])->name('meal-plans.update');
+    Route::delete('meal-plans/{mealPlan}',              [MealPlanController::class, 'destroy'])->name('meal-plans.destroy');
+    Route::patch('meal-plans/{mealPlan}/toggle-status', [MealPlanController::class, 'toggleStatus'])->name('meal-plans.toggle-status');
+
+    // Reports
+    Route::get('reports',                               [HallReportController::class, 'index'])->name('reports.index');
 });
 
 // ── Notifications (all authenticated users) ───────────────────────────────────

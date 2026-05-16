@@ -22,13 +22,7 @@
                         <option value="{{ $s }}" {{ ($filters['status'] ?? '') === $s ? 'selected' : '' }}>{{ ucfirst($s) }}</option>
                     @endforeach
                 </select>
-                <select name="priority" class="form-select form-select-sm" style="max-width:120px">
-                    <option value="">All Priority</option>
-                    @foreach(['low','medium','high','urgent'] as $p)
-                        <option value="{{ $p }}" {{ ($filters['priority'] ?? '') === $p ? 'selected' : '' }}>{{ ucfirst($p) }}</option>
-                    @endforeach
-                </select>
-                <button class="btn btn-sm btn-outline-primary px-3">Filter</button>
+<button class="btn btn-sm btn-outline-primary px-3">Filter</button>
                 @if(array_filter($filters))
                     <a href="{{ route('employee.expense-requests.index') }}" class="btn btn-sm btn-outline-secondary px-3">Clear</a>
                 @endif
@@ -46,7 +40,6 @@
                             <th>Title</th>
                             <th class="d-none d-sm-table-cell">Category</th>
                             <th>Amount</th>
-                            <th>Priority</th>
                             <th>Status</th>
                             <th class="d-none d-md-table-cell">Date</th>
                             <th></th>
@@ -62,9 +55,8 @@
                                         <small class="text-muted"><i class="bi bi-shop"></i> {{ $req->vendor->name }}</small>
                                     @endif
                                 </td>
-                                <td class="d-none d-sm-table-cell small text-muted">{{ $req->category->name }}</td>
+                                <td class="d-none d-sm-table-cell small text-muted">{{ $req->category?->name ?? '—' }}</td>
                                 <td class="fw-semibold">₹{{ number_format($req->amount, 2) }}</td>
-                                <td><x-priority-badge :priority="$req->priority" /></td>
                                 <td><x-status-badge :status="$req->status" /></td>
                                 <td class="d-none d-md-table-cell text-muted small">{{ $req->created_at->format('d M Y') }}</td>
                                 <td>
@@ -76,7 +68,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="text-center text-muted py-5">
+                                <td colspan="7" class="text-center text-muted py-5">
                                     <i class="bi bi-file-earmark-text fs-2 d-block mb-2"></i>
                                     No requests yet.
                                     <a href="{{ route('employee.expense-requests.create') }}" class="d-block mt-2">Submit your first request</a>

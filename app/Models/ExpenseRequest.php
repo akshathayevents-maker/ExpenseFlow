@@ -17,18 +17,21 @@ class ExpenseRequest extends Model
         'approved_by',
         'amount',
         'notes',
+        'qr_file_path',
         'priority',
         'status',
         'rejection_reason',
         'settlement_type',
         'approved_at',
+        'whatsapp_sent_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'amount'      => 'decimal:2',
-            'approved_at' => 'datetime',
+            'amount'           => 'decimal:2',
+            'approved_at'      => 'datetime',
+            'whatsapp_sent_at' => 'datetime',
         ];
     }
 
@@ -69,6 +72,7 @@ class ExpenseRequest extends Model
 
     // Status helpers
     public function isPending(): bool              { return $this->status === 'pending'; }
+    public function isPendingPayment(): bool        { return $this->status === 'pending_payment'; }
     public function isApproved(): bool             { return $this->status === 'approved'; }
     public function isRejected(): bool             { return $this->status === 'rejected'; }
     public function isPaid(): bool                 { return $this->status === 'paid'; }
@@ -81,8 +85,36 @@ class ExpenseRequest extends Model
         return in_array($this->status, ['paid', 'reimbursement_pending', 'reimbursed', 'completed']);
     }
 
+    public function qrUrl(): ?string
+    {
+        return $this->qr_file_path
+            ? asset('storage/' . $this->qr_file_path)
+            : null;
+    }
+
+    public function whatsAppUrl(): string
+    {
+        $name   = $this->requester?->name ?? 'Employee';
+        $amount = number_format((float) $this->amount, 2);
+
+        $message = implode("\n", [
+            'New Expense Payment Request',
+            '',
+            "Employee: {$name}",
+            "Title: {$this->title}",
+            "Amount: ₹{$amount}",
+            '',
+            "Request ID: #{$this->id}",
+            '',
+            'Please make payment using attached QR.',
+        ]);
+
+        return 'https://wa.me/9003320332?text=' . rawurlencode($message);
+    }
+
     // Scopes
     public function scopePending($query)              { return $query->where('status', 'pending'); }
+    public function scopePendingPayment($query)       { return $query->where('status', 'pending_payment'); }
     public function scopeApproved($query)             { return $query->where('status', 'approved'); }
     public function scopeRejected($query)             { return $query->where('status', 'rejected'); }
     public function scopeReimbursementPending($query) { return $query->where('status', 'reimbursement_pending'); }
@@ -91,6 +123,7 @@ class ExpenseRequest extends Model
     {
         return [
             'pending'               => 'warning',
+            'pending_payment'       => 'info',
             'approved'              => 'success',
             'rejected'              => 'danger',
             'paid'                  => 'info',

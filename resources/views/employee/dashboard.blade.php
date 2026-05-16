@@ -106,7 +106,7 @@
                                     @foreach($recentRequests as $req)
                                         <tr onclick="window.location='{{ route('employee.expense-requests.show', $req) }}'" style="cursor:pointer">
                                             <td class="fw-semibold small">{{ Str::limit($req->title, 30) }}</td>
-                                            <td class="d-none d-sm-table-cell small text-muted">{{ $req->category->name }}</td>
+                                            <td class="d-none d-sm-table-cell small text-muted">{{ $req->category?->name ?? '—' }}</td>
                                             <td class="small">₹{{ number_format($req->amount, 2) }}</td>
                                             <td><x-status-badge :status="$req->status" /></td>
                                         </tr>

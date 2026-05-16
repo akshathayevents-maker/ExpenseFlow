@@ -35,19 +35,44 @@
             z-index: 1020; transition: transform .3s ease;
         }
         #sidebar .nav-link {
-            color: #94a3b8; padding: .55rem 1.25rem;
-            border-radius: 6px; margin: 2px 8px;
+            color: #94a3b8; padding: .5rem 1.25rem;
+            border-radius: 6px; margin: 1px 8px;
             transition: background .15s, color .15s; font-size: .875rem;
+            display: flex; align-items: center;
         }
         #sidebar .nav-link:hover, #sidebar .nav-link.active {
             background: rgba(255,255,255,.08); color: #fff;
         }
-        #sidebar .nav-link .bi { width: 20px; margin-right: 8px; }
-        #sidebar .sidebar-section {
-            font-size: .7rem; text-transform: uppercase;
-            letter-spacing: 1px; color: #475569;
-            padding: 1rem 1.25rem .25rem; font-weight: 600;
+        #sidebar .nav-link .bi { width: 20px; margin-right: 8px; flex-shrink: 0; }
+
+        /* Accordion group button */
+        .sidebar-group-btn {
+            width: 100%; background: none; border: none; outline: none;
+            color: #475569; font-size: .68rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: .08em;
+            padding: .9rem 1.25rem .3rem;
+            display: flex; align-items: center; justify-content: space-between;
+            cursor: pointer; transition: color .15s;
+            line-height: 1;
         }
+        .sidebar-group-btn:hover { color: #64748b; }
+        .sidebar-group-btn.has-active { color: #94a3b8; }
+        .sidebar-group-btn .sidebar-chevron {
+            font-size: .6rem; transition: transform .2s ease; flex-shrink: 0;
+        }
+        /* Collapsed = rotated left; expanded = upright */
+        .sidebar-group-btn[aria-expanded="false"] .sidebar-chevron {
+            transform: rotate(-90deg);
+        }
+        .sidebar-group-btn[aria-expanded="true"] .sidebar-chevron {
+            transform: rotate(0deg);
+        }
+        /* Indent children inside collapsed groups */
+        .sidebar-group-body .nav-link {
+            padding-left: 2.75rem;
+        }
+        /* Standalone top-level items (Dashboard) */
+        .sidebar-standalone { padding: .15rem 0; }
 
         /* Main */
         #main-content {
@@ -183,103 +208,221 @@
 
 {{-- Sidebar --}}
 <nav id="sidebar">
-    <div class="pt-3 pb-4">
-        <p class="sidebar-section">Main</p>
-        @php $role = auth()->user()->role; @endphp
+@php
+    $role = auth()->user()->role;
 
-        @if($role === 'admin')
-            <a href="{{ route('admin.dashboard') }}"
-               class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
-                <i class="bi bi-speedometer2"></i> Dashboard
-            </a>
-            <p class="sidebar-section mt-2">Management</p>
-            <a href="{{ route('admin.employees.index') }}"
-               class="nav-link {{ request()->routeIs('admin.employees.*') ? 'active' : '' }}">
-                <i class="bi bi-people"></i> Employees
-            </a>
-            <a href="{{ route('admin.categories.index') }}"
-               class="nav-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">
-                <i class="bi bi-tag"></i> Categories
-            </a>
-            <a href="{{ route('admin.vendors.index') }}"
-               class="nav-link {{ request()->routeIs('admin.vendors.*') ? 'active' : '' }}">
-                <i class="bi bi-shop"></i> Vendors
-            </a>
-            <a href="{{ route('admin.expense-requests.index') }}"
-               class="nav-link {{ request()->routeIs('admin.expense-requests.*') ? 'active' : '' }}">
-                <i class="bi bi-file-earmark-text"></i> Expense Requests
-            </a>
-            <a href="{{ route('admin.wallets.index') }}"
-               class="nav-link {{ request()->routeIs('admin.wallets.*') ? 'active' : '' }}">
-                <i class="bi bi-wallet2"></i> Wallets
-            </a>
-            <a href="{{ route('admin.payments.index') }}"
-               class="nav-link {{ request()->routeIs('admin.payments.*') ? 'active' : '' }}">
-                <i class="bi bi-credit-card"></i> Payments
-            </a>
-            <a href="{{ route('admin.inventory.items.index') }}"
-               class="nav-link {{ request()->routeIs('admin.inventory.*') ? 'active' : '' }}">
-                <i class="bi bi-boxes"></i> Inventory
-            </a>
-            <a href="{{ route('admin.purchase-plans.index') }}"
-               class="nav-link {{ request()->routeIs('admin.purchase-plans.*') ? 'active' : '' }}">
-                <i class="bi bi-cart3"></i> Purchase Plans
-            </a>
-            <p class="sidebar-section mt-2">Analytics</p>
-            <a href="{{ route('admin.analytics.index') }}"
-               class="nav-link {{ request()->routeIs('admin.analytics.*') ? 'active' : '' }}">
-                <i class="bi bi-graph-up-arrow"></i> Analytics
-            </a>
-            <a href="{{ route('admin.reports.index') }}"
-               class="nav-link {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}">
-                <i class="bi bi-bar-chart-line"></i> Reports
-            </a>
-            <p class="sidebar-section mt-2">Operations</p>
-            <a href="{{ route('admin.daily-closings.index') }}"
-               class="nav-link {{ request()->routeIs('admin.daily-closings.*') ? 'active' : '' }}">
-                <i class="bi bi-calendar-check"></i> Daily Closing
-            </a>
-            <a href="{{ route('admin.audit-logs.index') }}"
-               class="nav-link {{ request()->routeIs('admin.audit-logs.*') ? 'active' : '' }}">
-                <i class="bi bi-shield-check"></i> Audit Logs
-            </a>
-            <a href="{{ route('admin.settings.index') }}"
-               class="nav-link {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
-                <i class="bi bi-gear"></i> Settings
-            </a>
-        @elseif($role === 'manager')
-            <a href="{{ route('manager.dashboard') }}"
-               class="nav-link {{ request()->routeIs('manager.dashboard') ? 'active' : '' }}">
-                <i class="bi bi-speedometer2"></i> Dashboard
-            </a>
-            <a href="{{ route('manager.expense-requests.index') }}"
-               class="nav-link {{ request()->routeIs('manager.expense-requests.*') ? 'active' : '' }}">
-                <i class="bi bi-file-earmark-text"></i> Expense Requests
-            </a>
-        @else
-            <a href="{{ route('employee.dashboard') }}"
-               class="nav-link {{ request()->routeIs('employee.dashboard') ? 'active' : '' }}">
-                <i class="bi bi-speedometer2"></i> Dashboard
-            </a>
-            <a href="{{ route('employee.expense-requests.create') }}"
-               class="nav-link {{ request()->routeIs('employee.expense-requests.create') ? 'active' : '' }}">
-                <i class="bi bi-plus-circle"></i> New Request
-            </a>
-            <a href="{{ route('employee.expense-requests.index') }}"
-               class="nav-link {{ request()->routeIs('employee.expense-requests.*') && !request()->routeIs('employee.expense-requests.create') ? 'active' : '' }}">
-                <i class="bi bi-list-ul"></i> My Requests
-            </a>
-            <a href="{{ route('employee.wallet.show') }}"
-               class="nav-link {{ request()->routeIs('employee.wallet.*') ? 'active' : '' }}">
-                <i class="bi bi-wallet2"></i> My Wallet
-            </a>
-        @endif
+    // Pre-compute open states server-side — no JS needed, no flicker.
+    $grpMgmt      = request()->routeIs('admin.employees.*','admin.categories.*','admin.vendors.*','admin.expense-requests.*','admin.wallets.*','admin.payments.*','admin.inventory.*','admin.purchase-plans.*');
+    $grpAnalytics = request()->routeIs('admin.analytics.*','admin.reports.*');
+    $grpOps       = request()->routeIs('admin.daily-closings.*','admin.audit-logs.*','admin.settings.*');
+    $grpHall      = request()->routeIs('hall.*');
+@endphp
+<div class="pt-2 pb-4">
 
-        <p class="sidebar-section mt-2">Account</p>
+{{-- ═══ ADMIN ═══ --}}
+@if($role === 'admin')
+
+    {{-- Dashboard (standalone) --}}
+    <div class="sidebar-standalone px-2 pt-2">
+        <a href="{{ route('admin.dashboard') }}"
+           class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+            <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+    </div>
+
+    {{-- Management --}}
+    <button class="sidebar-group-btn {{ $grpMgmt ? 'has-active' : 'collapsed' }}"
+            data-bs-toggle="collapse" data-bs-target="#grp-mgmt"
+            aria-expanded="{{ $grpMgmt ? 'true' : 'false' }}">
+        <span>Management</span>
+        <i class="bi bi-chevron-down sidebar-chevron"></i>
+    </button>
+    <div class="collapse sidebar-group-body {{ $grpMgmt ? 'show' : '' }}" id="grp-mgmt">
+        <a href="{{ route('admin.employees.index') }}"
+           class="nav-link {{ request()->routeIs('admin.employees.*') ? 'active' : '' }}">
+            <i class="bi bi-people"></i> Employees
+        </a>
+        <a href="{{ route('admin.categories.index') }}"
+           class="nav-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">
+            <i class="bi bi-tag"></i> Categories
+        </a>
+        <a href="{{ route('admin.vendors.index') }}"
+           class="nav-link {{ request()->routeIs('admin.vendors.*') ? 'active' : '' }}">
+            <i class="bi bi-shop"></i> Vendors
+        </a>
+        <a href="{{ route('admin.expense-requests.index') }}"
+           class="nav-link {{ request()->routeIs('admin.expense-requests.*') ? 'active' : '' }}">
+            <i class="bi bi-file-earmark-text"></i> Expense Requests
+        </a>
+        <a href="{{ route('admin.wallets.index') }}"
+           class="nav-link {{ request()->routeIs('admin.wallets.*') ? 'active' : '' }}">
+            <i class="bi bi-wallet2"></i> Wallets
+        </a>
+        <a href="{{ route('admin.payments.index') }}"
+           class="nav-link {{ request()->routeIs('admin.payments.*') ? 'active' : '' }}">
+            <i class="bi bi-credit-card"></i> Payments
+        </a>
+        <a href="{{ route('admin.inventory.items.index') }}"
+           class="nav-link {{ request()->routeIs('admin.inventory.*') ? 'active' : '' }}">
+            <i class="bi bi-boxes"></i> Inventory
+        </a>
+        <a href="{{ route('admin.purchase-plans.index') }}"
+           class="nav-link {{ request()->routeIs('admin.purchase-plans.*') ? 'active' : '' }}">
+            <i class="bi bi-cart3"></i> Purchase Plans
+        </a>
+    </div>
+
+    {{-- Analytics --}}
+    <button class="sidebar-group-btn {{ $grpAnalytics ? 'has-active' : 'collapsed' }}"
+            data-bs-toggle="collapse" data-bs-target="#grp-analytics"
+            aria-expanded="{{ $grpAnalytics ? 'true' : 'false' }}">
+        <span>Analytics</span>
+        <i class="bi bi-chevron-down sidebar-chevron"></i>
+    </button>
+    <div class="collapse sidebar-group-body {{ $grpAnalytics ? 'show' : '' }}" id="grp-analytics">
+        <a href="{{ route('admin.analytics.index') }}"
+           class="nav-link {{ request()->routeIs('admin.analytics.*') ? 'active' : '' }}">
+            <i class="bi bi-graph-up-arrow"></i> Analytics
+        </a>
+        <a href="{{ route('admin.reports.index') }}"
+           class="nav-link {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}">
+            <i class="bi bi-bar-chart-line"></i> Reports
+        </a>
+    </div>
+
+    {{-- Operations --}}
+    <button class="sidebar-group-btn {{ $grpOps ? 'has-active' : 'collapsed' }}"
+            data-bs-toggle="collapse" data-bs-target="#grp-ops"
+            aria-expanded="{{ $grpOps ? 'true' : 'false' }}">
+        <span>Operations</span>
+        <i class="bi bi-chevron-down sidebar-chevron"></i>
+    </button>
+    <div class="collapse sidebar-group-body {{ $grpOps ? 'show' : '' }}" id="grp-ops">
+        <a href="{{ route('admin.daily-closings.index') }}"
+           class="nav-link {{ request()->routeIs('admin.daily-closings.*') ? 'active' : '' }}">
+            <i class="bi bi-calendar-check"></i> Daily Closing
+        </a>
+        <a href="{{ route('admin.audit-logs.index') }}"
+           class="nav-link {{ request()->routeIs('admin.audit-logs.*') ? 'active' : '' }}">
+            <i class="bi bi-shield-check"></i> Audit Logs
+        </a>
+        <a href="{{ route('admin.settings.index') }}"
+           class="nav-link {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
+            <i class="bi bi-gear"></i> Settings
+        </a>
+    </div>
+
+    {{-- Hall Management --}}
+    <button class="sidebar-group-btn {{ $grpHall ? 'has-active' : 'collapsed' }}"
+            data-bs-toggle="collapse" data-bs-target="#grp-hall"
+            aria-expanded="{{ $grpHall ? 'true' : 'false' }}">
+        <span>Hall Management</span>
+        <i class="bi bi-chevron-down sidebar-chevron"></i>
+    </button>
+    <div class="collapse sidebar-group-body {{ $grpHall ? 'show' : '' }}" id="grp-hall">
+        <a href="{{ route('hall.dashboard') }}"
+           class="nav-link {{ request()->routeIs('hall.dashboard') ? 'active' : '' }}">
+            <i class="bi bi-building"></i> Dashboard
+        </a>
+        <a href="{{ route('hall.bookings.index') }}"
+           class="nav-link {{ request()->routeIs('hall.bookings.*') && !request()->routeIs('hall.bookings.calendar','hall.bookings.kitchen') ? 'active' : '' }}">
+            <i class="bi bi-calendar2-event"></i> Hall Bookings
+        </a>
+        <a href="{{ route('hall.bookings.calendar') }}"
+           class="nav-link {{ request()->routeIs('hall.bookings.calendar') ? 'active' : '' }}">
+            <i class="bi bi-calendar3"></i> Calendar View
+        </a>
+        <a href="{{ route('hall.meal-plans.index') }}"
+           class="nav-link {{ request()->routeIs('hall.meal-plans.*') ? 'active' : '' }}">
+            <i class="bi bi-egg-fried"></i> Meal Plans
+        </a>
+        <a href="{{ route('hall.reports.index') }}"
+           class="nav-link {{ request()->routeIs('hall.reports.*') ? 'active' : '' }}">
+            <i class="bi bi-file-earmark-bar-graph"></i> Reports
+        </a>
+    </div>
+
+{{-- ═══ MANAGER ═══ --}}
+@elseif($role === 'manager')
+
+    <div class="sidebar-standalone px-2 pt-2">
+        <a href="{{ route('manager.dashboard') }}"
+           class="nav-link {{ request()->routeIs('manager.dashboard') ? 'active' : '' }}">
+            <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+        <a href="{{ route('manager.expense-requests.index') }}"
+           class="nav-link {{ request()->routeIs('manager.expense-requests.*') ? 'active' : '' }}">
+            <i class="bi bi-file-earmark-text"></i> Expense Requests
+        </a>
+    </div>
+
+    {{-- Hall Management --}}
+    <button class="sidebar-group-btn {{ $grpHall ? 'has-active' : 'collapsed' }}"
+            data-bs-toggle="collapse" data-bs-target="#grp-hall"
+            aria-expanded="{{ $grpHall ? 'true' : 'false' }}">
+        <span>Hall Management</span>
+        <i class="bi bi-chevron-down sidebar-chevron"></i>
+    </button>
+    <div class="collapse sidebar-group-body {{ $grpHall ? 'show' : '' }}" id="grp-hall">
+        <a href="{{ route('hall.dashboard') }}"
+           class="nav-link {{ request()->routeIs('hall.dashboard') ? 'active' : '' }}">
+            <i class="bi bi-building"></i> Dashboard
+        </a>
+        <a href="{{ route('hall.bookings.index') }}"
+           class="nav-link {{ request()->routeIs('hall.bookings.*') && !request()->routeIs('hall.bookings.calendar','hall.bookings.kitchen') ? 'active' : '' }}">
+            <i class="bi bi-calendar2-event"></i> Hall Bookings
+        </a>
+        <a href="{{ route('hall.bookings.calendar') }}"
+           class="nav-link {{ request()->routeIs('hall.bookings.calendar') ? 'active' : '' }}">
+            <i class="bi bi-calendar3"></i> Calendar View
+        </a>
+        <a href="{{ route('hall.meal-plans.index') }}"
+           class="nav-link {{ request()->routeIs('hall.meal-plans.*') ? 'active' : '' }}">
+            <i class="bi bi-egg-fried"></i> Meal Plans
+        </a>
+        <a href="{{ route('hall.reports.index') }}"
+           class="nav-link {{ request()->routeIs('hall.reports.*') ? 'active' : '' }}">
+            <i class="bi bi-file-earmark-bar-graph"></i> Reports
+        </a>
+    </div>
+
+{{-- ═══ EMPLOYEE ═══ --}}
+@else
+
+    <div class="sidebar-standalone px-2 pt-2">
+        <a href="{{ route('employee.dashboard') }}"
+           class="nav-link {{ request()->routeIs('employee.dashboard') ? 'active' : '' }}">
+            <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+        <a href="{{ route('employee.expense-requests.create') }}"
+           class="nav-link {{ request()->routeIs('employee.expense-requests.create') ? 'active' : '' }}">
+            <i class="bi bi-plus-circle"></i> New Request
+        </a>
+        <a href="{{ route('employee.expense-requests.index') }}"
+           class="nav-link {{ request()->routeIs('employee.expense-requests.*') && !request()->routeIs('employee.expense-requests.create') ? 'active' : '' }}">
+            <i class="bi bi-list-ul"></i> My Requests
+        </a>
+        <a href="{{ route('employee.wallet.show') }}"
+           class="nav-link {{ request()->routeIs('employee.wallet.*') ? 'active' : '' }}">
+            <i class="bi bi-wallet2"></i> My Wallet
+        </a>
+    </div>
+
+@endif
+
+    {{-- Account (always visible, no accordion) --}}
+    @php $grpAccount = request()->routeIs('notifications.*','profile.*'); @endphp
+    <button class="sidebar-group-btn {{ $grpAccount ? 'has-active' : 'collapsed' }}"
+            data-bs-toggle="collapse" data-bs-target="#grp-account"
+            aria-expanded="{{ $grpAccount ? 'true' : 'false' }}">
+        <span>Account</span>
+        <i class="bi bi-chevron-down sidebar-chevron"></i>
+    </button>
+    <div class="collapse sidebar-group-body {{ request()->routeIs('notifications.*','profile.*') ? 'show' : '' }}" id="grp-account">
+        @php $nc = auth()->user()->hasMany(\App\Models\AppNotification::class)->whereNull('read_at')->count(); @endphp
         <a href="{{ route('notifications.index') }}"
            class="nav-link {{ request()->routeIs('notifications.*') ? 'active' : '' }}">
             <i class="bi bi-bell"></i> Notifications
-            @php $nc = auth()->user()->hasMany(\App\Models\AppNotification::class)->whereNull('read_at')->count(); @endphp
             @if($nc > 0)
                 <span class="badge bg-danger ms-auto" style="font-size:.6rem">{{ $nc }}</span>
             @endif
@@ -289,6 +432,8 @@
             <i class="bi bi-person-gear"></i> Profile
         </a>
     </div>
+
+</div>
 </nav>
 
 {{-- Main content --}}

@@ -98,7 +98,7 @@
                                     @endif
                                 </td>
                                 <td class="d-none d-md-table-cell small text-muted">{{ $req->requester->name }}</td>
-                                <td class="d-none d-sm-table-cell small text-muted">{{ $req->category->name }}</td>
+                                <td class="d-none d-sm-table-cell small text-muted">{{ $req->category?->name ?? '—' }}</td>
                                 <td class="fw-semibold">₹{{ number_format($req->amount, 2) }}</td>
                                 <td><x-priority-badge :priority="$req->priority" /></td>
                                 <td><x-status-badge :status="$req->status" /></td>

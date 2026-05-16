@@ -113,7 +113,7 @@
                                         <tr onclick="window.location='{{ route('admin.expense-requests.show', $req) }}'" style="cursor:pointer">
                                             <td>
                                                 <div class="fw-semibold small">{{ Str::limit($req->title, 30) }}</div>
-                                                <small class="text-muted">{{ $req->category->name }}</small>
+                                                <small class="text-muted">{{ $req->category?->name ?? '—' }}</small>
                                             </td>
                                             <td class="d-none d-md-table-cell small text-muted">{{ $req->requester->name }}</td>
                                             <td class="fw-semibold small">₹{{ number_format($req->amount, 2) }}</td>

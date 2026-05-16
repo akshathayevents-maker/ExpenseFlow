@@ -1,146 +1,218 @@
 <x-admin-layout title="Request #{{ $expenseRequest->id }}">
-    <div class="page-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-        <div class="d-flex align-items-center gap-2">
-            <a href="{{ route('employee.expense-requests.index') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i></a>
-            <div>
-                <h4 class="mb-0 fw-bold">{{ $expenseRequest->title }}</h4>
-                <p class="text-muted mb-0 small">Request #{{ $expenseRequest->id }} · Submitted {{ $expenseRequest->created_at->diffForHumans() }}</p>
-            </div>
-        </div>
-        <div class="d-flex gap-2">
-            <x-status-badge :status="$expenseRequest->status" />
-            <x-priority-badge :priority="$expenseRequest->priority" />
+
+<style>
+.req-card { border-radius: 16px; border: none; box-shadow: 0 2px 16px rgba(0,0,0,.07); }
+.status-pill { font-size: .8rem; font-weight: 700; padding: .4rem .9rem; border-radius: 50px; }
+.detail-label { font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #64748b; margin-bottom: .2rem; }
+.detail-value { font-weight: 600; color: #1e293b; font-size: .95rem; }
+.amount-display { font-size: 2rem; font-weight: 800; color: #16a34a; }
+.qr-thumb {
+    width: 140px; height: 140px;
+    object-fit: contain;
+    border-radius: 12px;
+    border: 2px solid #e2e8f0;
+    background: #f8fafc;
+    cursor: pointer;
+    transition: transform .15s;
+}
+.qr-thumb:hover { transform: scale(1.03); }
+.btn-wa {
+    background: #25D366; color: #fff; border: none;
+    border-radius: 12px; font-weight: 700;
+    padding: .65rem 1.25rem;
+    display: inline-flex; align-items: center; gap: .4rem;
+    text-decoration: none; font-size: .9rem;
+    transition: background .2s;
+}
+.btn-wa:hover { background: #1ebe5d; color: #fff; }
+.timeline-dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    flex-shrink: 0; margin-top: 3px;
+}
+</style>
+
+<div class="page-header d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+    <div class="d-flex align-items-center gap-2">
+        <a href="{{ route('employee.expense-requests.index') }}"
+           class="btn btn-sm btn-outline-secondary rounded-circle"
+           style="width:36px;height:36px;padding:0;display:inline-flex;align-items:center;justify-content:center">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <div>
+            <h5 class="mb-0 fw-bold">{{ $expenseRequest->title }}</h5>
+            <p class="text-muted mb-0" style="font-size:.8rem">
+                Request #{{ $expenseRequest->id }} · {{ $expenseRequest->created_at->diffForHumans() }}
+            </p>
         </div>
     </div>
+    @php $color = \App\Models\ExpenseRequest::statusColors()[$expenseRequest->status] ?? 'secondary'; @endphp
+    <span class="status-pill badge bg-{{ $color }}">
+        {{ ucwords(str_replace('_', ' ', $expenseRequest->status)) }}
+    </span>
+</div>
 
-    <div class="row g-3">
-        <div class="col-lg-8">
-            <div class="card shadow-sm mb-3">
-                <div class="card-header bg-transparent fw-semibold"><i class="bi bi-info-circle me-1 text-primary"></i> Request Details</div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-sm-6">
-                            <p class="text-muted small mb-1">Category</p>
-                            <p class="fw-semibold mb-0">{{ $expenseRequest->category->name }}</p>
-                        </div>
-                        <div class="col-sm-6">
-                            <p class="text-muted small mb-1">Amount</p>
-                            <p class="fw-bold fs-5 mb-0 text-primary">₹{{ number_format($expenseRequest->amount, 2) }}</p>
-                        </div>
-                        @if($expenseRequest->vendor)
-                            <div class="col-sm-6">
-                                <p class="text-muted small mb-1">Vendor</p>
-                                <p class="fw-semibold mb-0">{{ $expenseRequest->vendor->name }}</p>
-                            </div>
-                        @endif
-                        @if($expenseRequest->notes)
-                            <div class="col-12">
-                                <p class="text-muted small mb-1">Notes</p>
-                                <p class="mb-0">{{ $expenseRequest->notes }}</p>
-                            </div>
-                        @endif
+<div class="row g-3 justify-content-center" style="max-width:800px;margin:0 auto">
+
+    {{-- Main card --}}
+    <div class="col-12">
+        <div class="req-card card">
+            <div class="card-body p-4">
+
+                {{-- Amount + title --}}
+                <div class="text-center mb-4 pb-3 border-bottom">
+                    <p class="detail-label mb-1">Amount Requested</p>
+                    <div class="amount-display">₹{{ number_format((float) $expenseRequest->amount, 2) }}</div>
+                    <p class="text-muted small mb-0">{{ $expenseRequest->title }}</p>
+                </div>
+
+                {{-- QR section --}}
+                @if ($expenseRequest->qrUrl())
+                    <div class="text-center mb-4 pb-3 border-bottom">
+                        <p class="detail-label mb-2">Payment QR Code</p>
+                        <img src="{{ $expenseRequest->qrUrl() }}"
+                             alt="Payment QR"
+                             class="qr-thumb"
+                             data-bs-toggle="modal"
+                             data-bs-target="#qrModal">
+                        <p class="small text-muted mt-2 mb-2">Tap to enlarge</p>
+
+                        {{-- WhatsApp resend --}}
+                        <a href="{{ $expenseRequest->whatsAppUrl() }}"
+                           target="_blank" rel="noopener"
+                           class="btn-wa">
+                            <i class="bi bi-whatsapp"></i>
+                            Send to Manager via WhatsApp
+                        </a>
                     </div>
+                @endif
 
-                    @if($expenseRequest->isRejected() && $expenseRequest->rejection_reason)
-                        <div class="alert alert-danger mt-3 mb-0">
-                            <strong><i class="bi bi-x-circle me-1"></i> Rejected:</strong>
-                            {{ $expenseRequest->rejection_reason }}
+                {{-- Details grid --}}
+                <div class="row g-3 mb-3">
+                    <div class="col-6">
+                        <p class="detail-label">Status</p>
+                        <p class="detail-value mb-0">
+                            <span class="badge bg-{{ $color }} rounded-pill px-3">
+                                {{ ucwords(str_replace('_', ' ', $expenseRequest->status)) }}
+                            </span>
+                        </p>
+                    </div>
+                    <div class="col-6">
+                        <p class="detail-label">Submitted</p>
+                        <p class="detail-value mb-0">{{ $expenseRequest->created_at->format('d M Y') }}</p>
+                    </div>
+                    @if ($expenseRequest->notes)
+                        <div class="col-12">
+                            <p class="detail-label">Notes</p>
+                            <p class="detail-value mb-0 fw-normal">{{ $expenseRequest->notes }}</p>
                         </div>
                     @endif
-
-                    @if($expenseRequest->isApproved())
-                        <div class="alert alert-success mt-3 mb-0">
-                            <i class="bi bi-check-circle me-1"></i>
-                            Approved by <strong>{{ $expenseRequest->approver?->name }}</strong>
-                            on {{ $expenseRequest->approved_at?->format('d M Y, h:i A') }}
+                    @if ($expenseRequest->whatsapp_sent_at)
+                        <div class="col-12">
+                            <p class="detail-label">WhatsApp Notified</p>
+                            <p class="detail-value mb-0 fw-normal text-success">
+                                <i class="bi bi-whatsapp me-1"></i>
+                                {{ $expenseRequest->whatsapp_sent_at->format('d M Y, h:i A') }}
+                            </p>
                         </div>
                     @endif
                 </div>
-            </div>
 
-            {{-- Bills --}}
-            @if($expenseRequest->bills->isNotEmpty())
-                <div class="card shadow-sm">
-                    <div class="card-header bg-transparent fw-semibold">
-                        <i class="bi bi-paperclip me-1 text-primary"></i> Bills
-                        <span class="badge bg-secondary ms-1">{{ $expenseRequest->bills->count() }}</span>
+                {{-- Rejection alert --}}
+                @if ($expenseRequest->isRejected() && $expenseRequest->rejection_reason)
+                    <div class="alert alert-danger rounded-3 mb-3">
+                        <i class="bi bi-x-circle me-1"></i>
+                        <strong>Rejected:</strong> {{ $expenseRequest->rejection_reason }}
                     </div>
-                    <div class="card-body">
-                        <div class="row g-2">
-                            @foreach($expenseRequest->bills as $bill)
-                                <div class="col-6 col-sm-4">
-                                    <div class="border rounded overflow-hidden position-relative" style="aspect-ratio:1">
-                                        @if($bill->isImage())
-                                            <img src="{{ $bill->url() }}" class="w-100 h-100" style="object-fit:cover;cursor:pointer"
-                                                 data-bs-toggle="modal" data-bs-target="#billModal{{ $bill->id }}">
-                                        @else
-                                            <div class="d-flex flex-column align-items-center justify-content-center h-100 bg-light">
-                                                <i class="bi bi-file-earmark-pdf fs-2 text-danger"></i>
-                                                <small class="mt-1 text-muted text-center px-1">{{ Str::limit($bill->original_name, 18) }}</small>
-                                            </div>
-                                        @endif
-                                        <div class="position-absolute bottom-0 start-0 end-0 bg-dark bg-opacity-50 text-white px-2 py-1" style="font-size:.65rem">
-                                            {{ $bill->humanSize() }}
-                                        </div>
-                                    </div>
-                                    <a href="{{ $bill->url() }}" target="_blank" class="btn btn-sm btn-outline-secondary w-100 mt-1" style="font-size:.75rem">
-                                        <i class="bi bi-download"></i> Download
-                                    </a>
+                @endif
+
+                {{-- Approval notice --}}
+                @if ($expenseRequest->isApproved() || $expenseRequest->isSettled())
+                    <div class="alert alert-success rounded-3 mb-3">
+                        <i class="bi bi-check-circle me-1"></i>
+                        Approved by <strong>{{ $expenseRequest->approver?->name }}</strong>
+                        @if ($expenseRequest->approved_at)
+                            on {{ $expenseRequest->approved_at->format('d M Y, h:i A') }}
+                        @endif
+                    </div>
+                @endif
+
+                {{-- Timeline --}}
+                <div class="border-top pt-3">
+                    <p class="detail-label mb-3">Timeline</p>
+                    <div class="d-flex flex-column gap-3">
+                        <div class="d-flex gap-3 align-items-start">
+                            <div class="timeline-dot bg-primary"></div>
+                            <div>
+                                <p class="mb-0 fw-semibold small">Submitted</p>
+                                <p class="mb-0 text-muted" style="font-size:.78rem">{{ $expenseRequest->created_at->format('d M Y, h:i A') }}</p>
+                            </div>
+                        </div>
+
+                        @if ($expenseRequest->isPendingPayment())
+                            <div class="d-flex gap-3 align-items-start">
+                                <div class="timeline-dot bg-info"></div>
+                                <div>
+                                    <p class="mb-0 fw-semibold small">Awaiting Payment</p>
+                                    <p class="mb-0 text-muted" style="font-size:.78rem">Manager has been notified via WhatsApp</p>
                                 </div>
-                                @if($bill->isImage())
-                                    <div class="modal fade" id="billModal{{ $bill->id }}" tabindex="-1">
-                                        <div class="modal-dialog modal-lg modal-dialog-centered">
-                                            <div class="modal-content">
-                                                <div class="modal-header">
-                                                    <h6 class="modal-title">{{ $bill->original_name }}</h6>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                </div>
-                                                <div class="modal-body p-2 text-center">
-                                                    <img src="{{ $bill->url() }}" class="img-fluid rounded">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endif
-                            @endforeach
-                        </div>
+                            </div>
+                        @elseif ($expenseRequest->isPending())
+                            <div class="d-flex gap-3 align-items-start">
+                                <div class="timeline-dot bg-warning"></div>
+                                <div>
+                                    <p class="mb-0 fw-semibold small">Awaiting Review</p>
+                                    <p class="mb-0 text-muted" style="font-size:.78rem">Your request is being reviewed</p>
+                                </div>
+                            </div>
+                        @elseif ($expenseRequest->approved_at)
+                            <div class="d-flex gap-3 align-items-start">
+                                <div class="timeline-dot bg-{{ $expenseRequest->isRejected() ? 'danger' : 'success' }}"></div>
+                                <div>
+                                    <p class="mb-0 fw-semibold small">{{ ucfirst($expenseRequest->status) }}</p>
+                                    <p class="mb-0 text-muted" style="font-size:.78rem">{{ $expenseRequest->approved_at->format('d M Y, h:i A') }}</p>
+                                </div>
+                            </div>
+                        @endif
                     </div>
                 </div>
-            @endif
-        </div>
 
-        <div class="col-lg-4">
-            <div class="card shadow-sm">
-                <div class="card-header bg-transparent fw-semibold"><i class="bi bi-clock-history me-1 text-primary"></i> Timeline</div>
-                <div class="card-body">
-                    <div class="d-flex gap-2 mb-3">
-                        <div class="rounded-circle bg-primary flex-shrink-0" style="width:10px;height:10px;margin-top:4px"></div>
-                        <div>
-                            <p class="mb-0 small fw-semibold">Submitted</p>
-                            <p class="mb-0 text-muted" style="font-size:.75rem">{{ $expenseRequest->created_at->format('d M Y, h:i A') }}</p>
-                        </div>
-                    </div>
-
-                    @if($expenseRequest->isPending())
-                        <div class="d-flex gap-2">
-                            <div class="rounded-circle bg-warning flex-shrink-0" style="width:10px;height:10px;margin-top:4px"></div>
-                            <div>
-                                <p class="mb-0 small fw-semibold">Awaiting Review</p>
-                                <p class="mb-0 text-muted" style="font-size:.75rem">Your request is being reviewed</p>
-                            </div>
-                        </div>
-                    @elseif($expenseRequest->approved_at)
-                        <div class="d-flex gap-2">
-                            <div class="rounded-circle flex-shrink-0 bg-{{ $expenseRequest->isRejected() ? 'danger' : 'success' }}"
-                                 style="width:10px;height:10px;margin-top:4px"></div>
-                            <div>
-                                <p class="mb-0 small fw-semibold">{{ ucfirst($expenseRequest->status) }}</p>
-                                <p class="mb-0 text-muted" style="font-size:.75rem">{{ $expenseRequest->approved_at->format('d M Y, h:i A') }}</p>
-                            </div>
-                        </div>
-                    @endif
+                {{-- Action row --}}
+                <div class="d-flex gap-2 flex-wrap mt-4 pt-3 border-top">
+                    <a href="{{ route('employee.expense-requests.index') }}"
+                       class="btn btn-outline-secondary rounded-3 flex-fill">
+                        <i class="bi bi-list-ul me-1"></i>All Requests
+                    </a>
+                    <a href="{{ route('employee.expense-requests.create') }}"
+                       class="btn btn-outline-primary rounded-3 flex-fill">
+                        <i class="bi bi-plus-circle me-1"></i>New Request
+                    </a>
                 </div>
+
             </div>
         </div>
     </div>
+
+</div>
+
+{{-- QR lightbox modal --}}
+@if ($expenseRequest->qrUrl())
+<div class="modal fade" id="qrModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header border-0 pb-0">
+                <span class="fw-bold small">Payment QR — #{{ $expenseRequest->id }}</span>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center px-4 pb-4">
+                <img src="{{ $expenseRequest->qrUrl() }}"
+                     alt="Payment QR"
+                     class="img-fluid rounded-3"
+                     style="max-height:320px;object-fit:contain">
+                <p class="small text-muted mt-2 mb-0">₹{{ number_format((float) $expenseRequest->amount, 2) }} — {{ $expenseRequest->title }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
 </x-admin-layout>

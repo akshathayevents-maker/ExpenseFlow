@@ -7,7 +7,10 @@
       "Bash(python3 -c \"import rapidocr_onnxruntime; print\\('rapidocr ok'\\)\")",
       "Bash(tesseract --version)",
       "Bash(tesseract --list-langs)",
-      "Bash(python3 storage/app/ocr/invoice_ocr.py storage/app/private/inventory-bills/60SdpvUpKhBXKUNWLusqBUtPIPHqghM0TwFYbJ6W.png en)"
+      "Bash(python3 storage/app/ocr/invoice_ocr.py storage/app/private/inventory-bills/60SdpvUpKhBXKUNWLusqBUtPIPHqghM0TwFYbJ6W.png en)",
+      "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/app/Console/Commands/CleanupTempQr.php)",
+      "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/app/Http/Controllers/Employee/ExpenseRequestController.php)",
+      "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/app/Http/Controllers/Hall/*.php /home/qc7107-l/Projects/ExpenseFlow/app/Models/Hall.php /home/qc7107-l/Projects/ExpenseFlow/app/Models/HallBooking.php /home/qc7107-l/Projects/ExpenseFlow/app/Models/MealPlan.php /home/qc7107-l/Projects/ExpenseFlow/app/Models/BookingPayment.php /home/qc7107-l/Projects/ExpenseFlow/app/Models/HallBookingMeal.php)"
     ]
   }
 }
