@@ -1,1 +1,537 @@
-/* ExpenseFlow — custom overrides only. Bootstrap comes from CDN. */
+/* ExpenseFlow premium hospitality interface layer. Bootstrap remains the base reset/grid. */
+:root {
+    --ef-bg: #f6f4ef;
+    --ef-surface: #fffdfa;
+    --ef-surface-2: #f9f7f2;
+    --ef-ink: #141412;
+    --ef-ink-2: #34322e;
+    --ef-muted: #77736a;
+    --ef-faint: #a9a39a;
+    --ef-border: #e7e1d8;
+    --ef-border-strong: #d8d0c4;
+    --ef-gold: #a98338;
+    --ef-emerald: #3d7358;
+    --ef-bluegray: #607080;
+    --ef-danger: #8d4a3c;
+    --ef-radius: 14px;
+    --ef-radius-sm: 10px;
+    --ef-shadow: 0 1px 1px rgba(24, 22, 18, .02), 0 12px 30px rgba(24, 22, 18, .045);
+    --ef-shadow-hover: 0 1px 1px rgba(24, 22, 18, .03), 0 16px 40px rgba(24, 22, 18, .075);
+    --ef-ease: cubic-bezier(.2, .7, .2, 1);
+}
+
+body {
+    background:
+        radial-gradient(circle at 80% 0%, rgba(169, 131, 56, .045), transparent 26rem),
+        var(--ef-bg);
+    color: var(--ef-ink);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    letter-spacing: 0;
+}
+
+.ef-page {
+    max-width: 1480px;
+    margin: 0 auto;
+}
+
+.ef-shell-note {
+    color: var(--ef-muted);
+    font-size: .82rem;
+    line-height: 1.65;
+}
+
+.ef-card {
+    background: rgba(255, 253, 250, .92);
+    border: 1px solid var(--ef-border);
+    border-radius: var(--ef-radius);
+    box-shadow: var(--ef-shadow);
+    transition: border-color .18s var(--ef-ease), box-shadow .18s var(--ef-ease), transform .18s var(--ef-ease);
+}
+
+.ef-card:hover {
+    border-color: var(--ef-border-strong);
+    box-shadow: var(--ef-shadow-hover);
+    transform: translateY(-1px);
+}
+
+.ef-card-body {
+    padding: 24px;
+}
+
+.ef-card-title {
+    color: var(--ef-ink);
+    font-size: .78rem;
+    font-weight: 720;
+    letter-spacing: .13em;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.ef-card-head {
+    align-items: center;
+    border-bottom: 1px solid var(--ef-border);
+    display: flex;
+    justify-content: space-between;
+    margin: -2px 0 20px;
+    padding-bottom: 16px;
+}
+
+.ef-label {
+    color: var(--ef-faint);
+    display: block;
+    font-size: .66rem;
+    font-weight: 720;
+    letter-spacing: .12em;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+}
+
+.ef-value {
+    color: var(--ef-ink-2);
+    display: block;
+    font-size: .9rem;
+    font-weight: 560;
+    line-height: 1.45;
+}
+
+.ef-value-strong {
+    color: var(--ef-ink);
+    font-size: .98rem;
+    font-weight: 700;
+}
+
+.ef-muted {
+    color: var(--ef-muted);
+}
+
+.ef-chip {
+    align-items: center;
+    background: rgba(20, 20, 18, .035);
+    border: 1px solid rgba(20, 20, 18, .08);
+    border-radius: 999px;
+    color: var(--ef-ink-2);
+    display: inline-flex;
+    font-size: .72rem;
+    font-weight: 680;
+    gap: 8px;
+    letter-spacing: .02em;
+    line-height: 1;
+    padding: 7px 10px;
+    white-space: nowrap;
+}
+
+.ef-chip-dot {
+    background: var(--ef-faint);
+    border-radius: 50%;
+    height: 6px;
+    width: 6px;
+}
+
+.ef-chip[data-tone="emerald"] .ef-chip-dot { background: var(--ef-emerald); }
+.ef-chip[data-tone="gold"] .ef-chip-dot { background: var(--ef-gold); }
+.ef-chip[data-tone="bluegray"] .ef-chip-dot { background: var(--ef-bluegray); }
+.ef-chip[data-tone="danger"] .ef-chip-dot { background: var(--ef-danger); }
+
+.ef-btn {
+    align-items: center;
+    border: 1px solid var(--ef-border);
+    border-radius: 10px;
+    color: var(--ef-ink-2);
+    display: inline-flex;
+    font-size: .82rem;
+    font-weight: 680;
+    gap: 8px;
+    justify-content: center;
+    line-height: 1;
+    min-height: 38px;
+    padding: 0 13px;
+    text-decoration: none;
+    transition: background .16s var(--ef-ease), border-color .16s var(--ef-ease), color .16s var(--ef-ease), box-shadow .16s var(--ef-ease), transform .16s var(--ef-ease);
+}
+
+.ef-btn:hover {
+    background: var(--ef-surface);
+    border-color: var(--ef-border-strong);
+    color: var(--ef-ink);
+    box-shadow: 0 6px 18px rgba(24, 22, 18, .06);
+    transform: translateY(-1px);
+}
+
+.ef-btn-dark {
+    background: var(--ef-ink);
+    border-color: var(--ef-ink);
+    color: #fffdfa;
+}
+
+.ef-btn-dark:hover {
+    background: #282622;
+    border-color: #282622;
+    color: #fffdfa;
+}
+
+.ef-btn-icon {
+    width: 38px;
+    padding: 0;
+}
+
+.ef-grid-main {
+    display: grid;
+    gap: 24px;
+    grid-template-columns: minmax(0, 8fr) minmax(320px, 4fr);
+}
+
+.ef-info-grid {
+    display: grid;
+    gap: 24px 32px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ef-form-control {
+    background: #fbfaf7;
+    border: 1px solid var(--ef-border-strong);
+    border-radius: 10px;
+    color: var(--ef-ink);
+    font-size: .9rem;
+    min-height: 42px;
+    padding: 9px 12px;
+    transition: background .16s var(--ef-ease), border-color .16s var(--ef-ease), box-shadow .16s var(--ef-ease);
+    width: 100%;
+}
+
+.ef-form-control:focus {
+    background: #fff;
+    border-color: rgba(20, 20, 18, .55);
+    box-shadow: 0 0 0 4px rgba(20, 20, 18, .055);
+    outline: 0;
+}
+
+.ef-hero {
+    align-items: stretch;
+    background:
+        linear-gradient(135deg, rgba(255, 253, 250, .98), rgba(249, 247, 242, .94));
+    border: 1px solid var(--ef-border);
+    border-radius: 18px;
+    box-shadow: var(--ef-shadow);
+    display: grid;
+    gap: 0;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+    margin-bottom: 24px;
+    overflow: hidden;
+}
+
+.ef-hero-main {
+    padding: 32px;
+}
+
+.ef-hero-finance {
+    background: rgba(20, 20, 18, .025);
+    border-left: 1px solid var(--ef-border);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 32px;
+}
+
+.ef-back {
+    color: var(--ef-muted);
+    display: inline-flex;
+    font-size: .82rem;
+    font-weight: 650;
+    gap: 8px;
+    margin-bottom: 24px;
+    text-decoration: none;
+}
+
+.ef-back:hover {
+    color: var(--ef-ink);
+}
+
+.ef-eyebrow {
+    color: var(--ef-faint);
+    font-size: .68rem;
+    font-weight: 760;
+    letter-spacing: .15em;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+}
+
+.ef-title {
+    color: var(--ef-ink);
+    font-size: clamp(2rem, 4vw, 3.75rem);
+    font-weight: 780;
+    letter-spacing: 0;
+    line-height: .98;
+    margin: 0 0 18px;
+}
+
+.ef-hero-meta {
+    color: var(--ef-muted);
+    display: flex;
+    flex-wrap: wrap;
+    font-size: .92rem;
+    gap: 8px 14px;
+    line-height: 1.45;
+    margin-bottom: 18px;
+}
+
+.ef-amount-label {
+    color: var(--ef-faint);
+    font-size: .68rem;
+    font-weight: 760;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+}
+
+.ef-amount {
+    color: var(--ef-ink);
+    font-size: clamp(1.9rem, 3vw, 2.8rem);
+    font-variant-numeric: tabular-nums;
+    font-weight: 780;
+    letter-spacing: 0;
+    line-height: 1.05;
+    margin-top: 8px;
+}
+
+.ef-balance {
+    color: var(--ef-muted);
+    font-size: .88rem;
+    margin-top: 8px;
+}
+
+.ef-action-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 24px;
+}
+
+.ef-metric-row {
+    display: grid;
+    gap: 1px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin-bottom: 24px;
+    overflow: hidden;
+}
+
+.ef-metric {
+    background: rgba(255, 253, 250, .92);
+    border: 1px solid var(--ef-border);
+    padding: 22px 24px;
+}
+
+.ef-metric:first-child {
+    border-radius: var(--ef-radius) 0 0 var(--ef-radius);
+}
+
+.ef-metric:last-child {
+    border-radius: 0 var(--ef-radius) var(--ef-radius) 0;
+}
+
+.ef-metric-value {
+    color: var(--ef-ink);
+    font-size: 1.28rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 760;
+    line-height: 1;
+}
+
+.ef-metric-caption {
+    color: var(--ef-muted);
+    font-size: .76rem;
+    margin-top: 8px;
+}
+
+.ef-progress-meta {
+    color: var(--ef-muted);
+    display: flex;
+    font-size: .76rem;
+    justify-content: space-between;
+    margin: 18px 0 8px;
+}
+
+.ef-progress {
+    background: rgba(20, 20, 18, .08);
+    border-radius: 999px;
+    height: 6px;
+    overflow: hidden;
+}
+
+.ef-progress-bar {
+    background: linear-gradient(90deg, var(--ef-ink), #615a4d);
+    border-radius: inherit;
+    height: 100%;
+}
+
+.ef-fin-row,
+.ef-contact-row {
+    align-items: baseline;
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+}
+
+.ef-fin-row + .ef-fin-row,
+.ef-contact-row + .ef-contact-row {
+    border-top: 1px solid rgba(20, 20, 18, .07);
+}
+
+.ef-fin-total {
+    border-top: 1px solid var(--ef-border-strong);
+    margin-top: 6px;
+    padding-top: 16px;
+}
+
+.ef-balance-panel {
+    background: rgba(169, 131, 56, .07);
+    border: 1px solid rgba(169, 131, 56, .2);
+    border-radius: 12px;
+    margin-top: 16px;
+    padding: 16px;
+}
+
+.ef-balance-panel[data-clear="true"] {
+    background: rgba(61, 115, 88, .07);
+    border-color: rgba(61, 115, 88, .18);
+}
+
+.ef-meal-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.ef-meal-chip {
+    background: rgba(20, 20, 18, .035);
+    border: 1px solid rgba(20, 20, 18, .085);
+    border-radius: 9px;
+    color: var(--ef-ink-2);
+    display: inline-flex;
+    font-size: .8rem;
+    font-weight: 650;
+    padding: 8px 11px;
+}
+
+.ef-timeline-row {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: 72px minmax(0, 1fr) auto;
+    padding: 18px 0;
+}
+
+.ef-timeline-row + .ef-timeline-row {
+    border-top: 1px solid rgba(20, 20, 18, .07);
+}
+
+.ef-txn-date {
+    color: var(--ef-faint);
+    font-size: .72rem;
+    line-height: 1.4;
+}
+
+.ef-txn-title {
+    color: var(--ef-ink);
+    font-size: .92rem;
+    font-weight: 700;
+}
+
+.ef-txn-meta {
+    color: var(--ef-muted);
+    font-size: .78rem;
+    line-height: 1.55;
+    margin-top: 4px;
+}
+
+.ef-txn-amount {
+    color: var(--ef-ink);
+    font-size: .95rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 760;
+    white-space: nowrap;
+}
+
+.ef-mobile-actions {
+    display: none;
+}
+
+@media (max-width: 1199.98px) {
+    .ef-grid-main,
+    .ef-hero {
+        grid-template-columns: 1fr;
+    }
+
+    .ef-hero-finance {
+        border-left: 0;
+        border-top: 1px solid var(--ef-border);
+    }
+}
+
+@media (max-width: 767.98px) {
+    .ef-page {
+        padding-bottom: 88px;
+    }
+
+    .ef-hero-main,
+    .ef-hero-finance,
+    .ef-card-body {
+        padding: 24px;
+    }
+
+    .ef-info-grid,
+    .ef-metric-row {
+        grid-template-columns: 1fr;
+    }
+
+    .ef-metric,
+    .ef-metric:first-child,
+    .ef-metric:last-child {
+        border-radius: 0;
+    }
+
+    .ef-metric:first-child {
+        border-radius: var(--ef-radius) var(--ef-radius) 0 0;
+    }
+
+    .ef-metric:last-child {
+        border-radius: 0 0 var(--ef-radius) var(--ef-radius);
+    }
+
+    .ef-action-row {
+        display: none;
+    }
+
+    .ef-timeline-row {
+        grid-template-columns: 58px minmax(0, 1fr);
+    }
+
+    .ef-txn-amount {
+        grid-column: 2;
+    }
+
+    .ef-mobile-actions {
+        backdrop-filter: blur(18px) saturate(160%);
+        background: rgba(255, 253, 250, .92);
+        border-top: 1px solid var(--ef-border);
+        bottom: 0;
+        display: grid;
+        gap: 8px;
+        grid-template-columns: repeat(4, 1fr);
+        left: 0;
+        padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+        position: fixed;
+        right: 0;
+        z-index: 1040;
+    }
+
+    .ef-mobile-actions .ef-btn {
+        font-size: .72rem;
+        min-height: 44px;
+        padding: 0 8px;
+    }
+}
+
+@media print {
+    .ef-action-row,
+    .ef-mobile-actions {
+        display: none !important;
+    }
+}

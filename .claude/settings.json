@@ -10,7 +10,15 @@
       "Bash(python3 storage/app/ocr/invoice_ocr.py storage/app/private/inventory-bills/60SdpvUpKhBXKUNWLusqBUtPIPHqghM0TwFYbJ6W.png en)",
       "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/app/Console/Commands/CleanupTempQr.php)",
       "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/app/Http/Controllers/Employee/ExpenseRequestController.php)",
-      "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/app/Http/Controllers/Hall/*.php /home/qc7107-l/Projects/ExpenseFlow/app/Models/Hall.php /home/qc7107-l/Projects/ExpenseFlow/app/Models/HallBooking.php /home/qc7107-l/Projects/ExpenseFlow/app/Models/MealPlan.php /home/qc7107-l/Projects/ExpenseFlow/app/Models/BookingPayment.php /home/qc7107-l/Projects/ExpenseFlow/app/Models/HallBookingMeal.php)"
+      "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/app/Http/Controllers/Hall/*.php /home/qc7107-l/Projects/ExpenseFlow/app/Models/Hall.php /home/qc7107-l/Projects/ExpenseFlow/app/Models/HallBooking.php /home/qc7107-l/Projects/ExpenseFlow/app/Models/MealPlan.php /home/qc7107-l/Projects/ExpenseFlow/app/Models/BookingPayment.php /home/qc7107-l/Projects/ExpenseFlow/app/Models/HallBookingMeal.php)",
+      "Bash(composer show *)",
+      "Bash(chmod +x /home/qc7107-l/Projects/ExpenseFlow/deployment/bootstrap.sh /home/qc7107-l/Projects/ExpenseFlow/deployment/deploy.sh)",
+      "Bash(bash -n /home/qc7107-l/Projects/ExpenseFlow/deployment/bootstrap.sh)",
+      "Bash(bash -n /home/qc7107-l/Projects/ExpenseFlow/deployment/deploy.sh)",
+      "Bash(command -v nginx)",
+      "Bash(nginx -t -c /home/qc7107-l/Projects/ExpenseFlow/deployment/nginx.conf)",
+      "Bash(composer require *)",
+      "Bash(php -r 'require '\\\\''vendor/autoload.php'\\\\''; $app = require '\\\\''bootstrap/app.php'\\\\''; echo '\\\\''Controller OK'\\\\'';')"
     ]
   }
 }

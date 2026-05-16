@@ -10,110 +10,169 @@
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    @php
+        $viteManifestPath = public_path('build/manifest.json');
+        $viteManifest = file_exists($viteManifestPath)
+            ? json_decode(file_get_contents($viteManifestPath), true)
+            : [];
+        $appCss = $viteManifest['resources/css/app.css']['file'] ?? null;
+        $appJs = $viteManifest['resources/js/app.js']['file'] ?? null;
+    @endphp
+    @if($appCss)
+        <link rel="stylesheet" href="{{ asset('build/' . $appCss) }}">
+    @endif
+    @if($appJs)
+        <script type="module" src="{{ asset('build/' . $appJs) }}"></script>
+    @endif
 
     <style>
-        :root { --sidebar-width: 260px; --topbar-height: 56px; }
+        :root {
+            --sb-width:   268px;
+            --tb-height:  58px;
+            --sb-bg:      #10100e;
+            --sb-bg-2:    #151411;
+            --sb-gold:    #a98338;
+            --pg-bg:      var(--ef-bg);
+            --border:     var(--ef-border);
+            --text-primary: #111111;
+            --text-muted:   #737373;
+        }
 
-        body { background: #f0f2f5; font-size: .9rem; }
+        body { background: var(--pg-bg); font-size: .9rem; color: var(--text-primary); }
 
-        /* Topbar */
+        /* ── Topbar ─────────────────────────────────────────────────────── */
         #topbar {
-            height: var(--topbar-height);
-            position: fixed; top: 0; left: 0; right: 0;
-            z-index: 1030; background: #1e293b; color: #fff;
+            height: var(--tb-height);
+            position: fixed; top: 0; left: 0; right: 0; z-index: 1030;
+            background: rgba(16,16,14,.96);
+            backdrop-filter: blur(18px) saturate(160%);
+            border-bottom: 1px solid rgba(255,255,255,.06);
         }
         #topbar .brand {
-            width: var(--sidebar-width); font-weight: 700;
-            font-size: 1.1rem; letter-spacing: .5px; flex-shrink: 0;
+            width: var(--sb-width); font-weight: 720; font-size: .96rem;
+            letter-spacing: .02em; flex-shrink: 0; color: #fff;
         }
+        #topbar .brand .bi { color: var(--sb-gold); }
 
-        /* Sidebar */
+        /* ── Sidebar ─────────────────────────────────────────────────────── */
         #sidebar {
-            position: fixed; top: var(--topbar-height);
-            left: 0; bottom: 0; width: var(--sidebar-width);
-            background: #1e293b; overflow-y: auto;
-            z-index: 1020; transition: transform .3s ease;
+            position: fixed; top: var(--tb-height);
+            left: 0; bottom: 0; width: var(--sb-width);
+            background:
+                radial-gradient(circle at 0% 0%, rgba(169,131,56,.12), transparent 17rem),
+                linear-gradient(180deg, var(--sb-bg-2), var(--sb-bg));
+            border-right: 1px solid rgba(255,255,255,.05);
+            overflow-y: auto; z-index: 1020;
+            transition: transform .28s cubic-bezier(.2,.7,.2,1);
+            scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.08) transparent;
         }
-        #sidebar .nav-link {
-            color: #94a3b8; padding: .5rem 1.25rem;
-            border-radius: 6px; margin: 1px 8px;
-            transition: background .15s, color .15s; font-size: .875rem;
-            display: flex; align-items: center;
-        }
-        #sidebar .nav-link:hover, #sidebar .nav-link.active {
-            background: rgba(255,255,255,.08); color: #fff;
-        }
-        #sidebar .nav-link .bi { width: 20px; margin-right: 8px; flex-shrink: 0; }
+        #sidebar::-webkit-scrollbar { width: 4px; }
+        #sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 2px; }
 
-        /* Accordion group button */
+        #sidebar .nav-link {
+            color: rgba(255,255,255,.46);
+            padding: .58rem .9rem;
+            border-radius: 10px;
+            margin: 2px 10px;
+            border: 1px solid transparent;
+            font-size: .82rem;
+            font-weight: 620;
+            display: flex; align-items: center;
+            transition: background .16s cubic-bezier(.2,.7,.2,1), color .16s cubic-bezier(.2,.7,.2,1), border-color .16s cubic-bezier(.2,.7,.2,1), transform .16s cubic-bezier(.2,.7,.2,1);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        #sidebar .nav-link:hover {
+            background: rgba(255,255,255,.055);
+            color: rgba(255,255,255,.86);
+            transform: translateX(1px);
+        }
+        #sidebar .nav-link.active {
+            background: linear-gradient(90deg, rgba(169,131,56,.16), rgba(255,255,255,.055));
+            border-color: rgba(169,131,56,.2);
+            box-shadow: inset 2px 0 0 var(--sb-gold), 0 10px 28px rgba(0,0,0,.16);
+            color: #ffffff;
+            font-weight: 700;
+        }
+        #sidebar .nav-link .bi {
+            width: 18px; margin-right: 10px; flex-shrink: 0;
+            font-size: .9rem; opacity: .7;
+            text-align: center;
+        }
+        #sidebar .nav-link.active .bi,
+        #sidebar .nav-link:hover .bi { opacity: 1; }
+
+        /* Sidebar section label */
         .sidebar-group-btn {
             width: 100%; background: none; border: none; outline: none;
-            color: #475569; font-size: .68rem; font-weight: 700;
-            text-transform: uppercase; letter-spacing: .08em;
-            padding: .9rem 1.25rem .3rem;
+            color: rgba(255,255,255,.24);
+            font-size: .62rem; font-weight: 760;
+            text-transform: uppercase; letter-spacing: .16em;
+            padding: 1.35rem 1.3rem .5rem;
             display: flex; align-items: center; justify-content: space-between;
-            cursor: pointer; transition: color .15s;
-            line-height: 1;
+            cursor: pointer; line-height: 1;
+            transition: color .12s;
         }
-        .sidebar-group-btn:hover { color: #64748b; }
-        .sidebar-group-btn.has-active { color: #94a3b8; }
+        .sidebar-group-btn:hover  { color: rgba(255,255,255,.38); }
+        .sidebar-group-btn.has-active { color: rgba(255,255,255,.3); }
         .sidebar-group-btn .sidebar-chevron {
-            font-size: .6rem; transition: transform .2s ease; flex-shrink: 0;
+            font-size: .52rem; transition: transform .22s cubic-bezier(.2,.7,.2,1); flex-shrink: 0;
         }
-        /* Collapsed = rotated left; expanded = upright */
-        .sidebar-group-btn[aria-expanded="false"] .sidebar-chevron {
-            transform: rotate(-90deg);
-        }
-        .sidebar-group-btn[aria-expanded="true"] .sidebar-chevron {
-            transform: rotate(0deg);
-        }
-        /* Indent children inside collapsed groups */
-        .sidebar-group-body .nav-link {
-            padding-left: 2.75rem;
-        }
-        /* Standalone top-level items (Dashboard) */
-        .sidebar-standalone { padding: .15rem 0; }
+        .sidebar-group-btn[aria-expanded="false"] .sidebar-chevron { transform: rotate(-90deg); }
+        .sidebar-group-btn[aria-expanded="true"]  .sidebar-chevron { transform: rotate(0deg); }
 
-        /* Main */
+        .sidebar-group-body .nav-link { padding-left: 2.45rem; }
+        .sidebar-standalone { padding: .2rem 0; }
+
+        /* Sidebar top divider */
+        .sb-divider {
+            height: 1px; background: rgba(255,255,255,.06);
+            margin: .5rem 1rem;
+        }
+
+        /* ── Main ────────────────────────────────────────────────────────── */
         #main-content {
-            margin-left: var(--sidebar-width);
-            margin-top: var(--topbar-height);
-            min-height: calc(100vh - var(--topbar-height));
-            padding: 1.5rem;
+            margin-left: var(--sb-width);
+            margin-top: var(--tb-height);
+            min-height: calc(100vh - var(--tb-height));
+            padding: 32px;
         }
 
-        /* Mobile */
+        /* ── Mobile ──────────────────────────────────────────────────────── */
         @media (max-width: 991.98px) {
             #sidebar { transform: translateX(-100%); }
             #sidebar.show { transform: translateX(0); }
-            #main-content { margin-left: 0; }
+            #main-content { margin-left: 0; padding: 20px; }
             #topbar .brand { width: auto; }
         }
         #sidebar-overlay {
             display: none; position: fixed; inset: 0;
-            background: rgba(0,0,0,.4); z-index: 1015;
+            background: rgba(0,0,0,.55); z-index: 1015;
         }
         #sidebar-overlay.show { display: block; }
 
-        /* Components */
-        .stat-card { border: none; border-radius: 12px; transition: box-shadow .2s; }
-        .stat-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.1); }
+        /* ── Shared components ───────────────────────────────────────────── */
+        .stat-card {
+            border: 1px solid var(--border); border-radius: var(--ef-radius-sm);
+            background: var(--ef-surface); transition: box-shadow .18s;
+        }
+        .stat-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.07); }
         .stat-card .icon-box {
-            width: 48px; height: 48px; border-radius: 12px;
+            width: 42px; height: 42px; border-radius: 10px;
             display: flex; align-items: center;
-            justify-content: center; font-size: 1.4rem; flex-shrink: 0;
+            justify-content: center; font-size: 1.25rem; flex-shrink: 0;
         }
         .table thead th {
-            background: #f8fafc; font-weight: 600; font-size: .8rem;
-            text-transform: uppercase; letter-spacing: .5px;
-            color: #64748b; border-bottom: 2px solid #e2e8f0;
+            background: #fafaf9; font-weight: 700; font-size: .7rem;
+            text-transform: uppercase; letter-spacing: .07em;
+            color: var(--text-muted); border-bottom: 1px solid var(--border);
         }
-        .role-badge { font-size: .7rem; text-transform: uppercase; letter-spacing: .5px; }
+        .role-badge { font-size: .65rem; text-transform: uppercase; letter-spacing: .06em; }
         .page-header {
-            margin-bottom: 1.5rem; padding-bottom: 1rem;
-            border-bottom: 1px solid #e2e8f0;
+            margin-bottom: 1.75rem; padding-bottom: 1.25rem;
+            border-bottom: 1px solid var(--border);
         }
     </style>
+    @stack('styles')
 </head>
 <body>
 
@@ -123,7 +182,7 @@
         <button class="btn btn-sm text-white d-lg-none me-1" id="sidebar-toggle">
             <i class="bi bi-list fs-5"></i>
         </button>
-        <i class="bi bi-receipt-cutoff text-primary"></i> ExpenseFlow
+        <i class="bi bi-receipt-cutoff"></i> ExpenseFlow
     </div>
 
     <div class="ms-auto d-flex align-items-center gap-2">

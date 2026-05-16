@@ -52,12 +52,17 @@ class HallBooking extends Model
 
     public function getBalanceAmountAttribute(): float
     {
-        return (float) $this->total_amount - $this->payments()->sum('amount');
+        $paid = $this->relationLoaded('payments')
+            ? $this->payments->sum('amount')
+            : $this->payments()->sum('amount');
+        return (float) $this->total_amount - (float) $paid;
     }
 
     public function getTotalPaidAttribute(): float
     {
-        return (float) $this->payments()->sum('amount');
+        return $this->relationLoaded('payments')
+            ? (float) $this->payments->sum('amount')
+            : (float) $this->payments()->sum('amount');
     }
 
     public function isConfirmed(): bool  { return $this->status === 'confirmed'; }

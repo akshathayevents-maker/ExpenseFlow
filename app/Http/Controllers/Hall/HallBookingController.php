@@ -6,11 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\BookingPayment;
 use App\Models\Hall;
 use App\Models\HallBooking;
-use App\Models\HallBookingMeal;
 use App\Models\MealPlan;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -93,7 +95,7 @@ class HallBookingController extends Controller
         }
 
         DB::transaction(function () use ($data, $request) {
-            $data['created_by']  = auth()->id();
+            $data['created_by']  = Auth::id();
             $data['has_breakfast'] = $request->boolean('has_breakfast');
             $data['has_lunch']     = $request->boolean('has_lunch');
             $data['has_dinner']    = $request->boolean('has_dinner');
@@ -104,7 +106,7 @@ class HallBookingController extends Controller
             if ((float) $data['advance_amount'] > 0) {
                 BookingPayment::create([
                     'hall_booking_id' => $booking->id,
-                    'recorded_by'     => auth()->id(),
+                    'recorded_by'     => Auth::id(),
                     'amount'          => $data['advance_amount'],
                     'payment_method'  => $request->input('payment_method', 'cash'),
                     'payment_type'    => 'advance',
@@ -121,6 +123,25 @@ class HallBookingController extends Controller
     {
         $booking->load(['hall', 'mealPlan', 'creator', 'meals', 'payments.recorder']);
         return view('hall.bookings.show', compact('booking'));
+    }
+
+    public function invoice(HallBooking $booking): View
+    {
+        $booking->load(['hall', 'mealPlan', 'creator', 'meals', 'payments.recorder']);
+        return view('hall.bookings.invoice', compact('booking'));
+    }
+
+    public function downloadPdf(HallBooking $booking): Response
+    {
+        $booking->load(['hall', 'mealPlan', 'creator', 'meals', 'payments.recorder']);
+        $pdf = Pdf::loadView('hall.bookings.invoice', compact('booking'))
+            ->setPaper('a4', 'portrait')
+            ->setOption('margin_top', 12)
+            ->setOption('margin_bottom', 12)
+            ->setOption('margin_left', 12)
+            ->setOption('margin_right', 12)
+            ->setOption('defaultFont', 'sans-serif');
+        return $pdf->download("Akshathay-Booking-{$booking->id}.pdf");
     }
 
     public function edit(HallBooking $booking): View
@@ -273,7 +294,7 @@ class HallBookingController extends Controller
         ]);
 
         $data['hall_booking_id'] = $booking->id;
-        $data['recorded_by']     = auth()->id();
+        $data['recorded_by']     = Auth::id();
 
         BookingPayment::create($data);
 

@@ -206,6 +206,8 @@ Route::prefix('hall')->name('hall.')->middleware(['auth', 'verified', 'role.hall
     Route::put('bookings/{booking}',                    [HallBookingController::class, 'update'])->name('bookings.update');
     Route::delete('bookings/{booking}',                 [HallBookingController::class, 'destroy'])->name('bookings.destroy');
     Route::post('bookings/{booking}/payments',          [HallBookingController::class, 'addPayment'])->name('bookings.payments.add');
+    Route::get('bookings/{booking}/invoice',            [HallBookingController::class, 'invoice'])->name('bookings.invoice');
+    Route::get('bookings/{booking}/invoice/pdf',        [HallBookingController::class, 'downloadPdf'])->name('bookings.invoice.pdf');
 
     // Meal Plans
     Route::get('meal-plans',                            [MealPlanController::class, 'index'])->name('meal-plans.index');
