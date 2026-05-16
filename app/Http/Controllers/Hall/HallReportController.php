@@ -69,7 +69,8 @@ class HallReportController extends Controller
         ];
 
         // Last 6 months revenue trend — always global, unaffected by filters
-        $trendMonths = collect();
+        // Use a plain array so we can safely modify elements inside the closure
+        $trendMonths = [];
         for ($i = 5; $i >= 0; $i--) {
             $m = now()->subMonths($i);
             $trendMonths[$m->format('Y-m')] = [
@@ -90,7 +91,8 @@ class HallReportController extends Controller
                 }
             });
 
-        $monthlyTrend = $trendMonths->values();
+        // Convert array to collection values for the view
+        $monthlyTrend = collect($trendMonths)->values();
 
         return view('hall.reports.index', compact('bookings', 'halls', 'summary', 'monthlyTrend'));
     }
