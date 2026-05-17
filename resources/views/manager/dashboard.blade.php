@@ -9,18 +9,20 @@
 
 /* ── Design tokens ─────────────────────────────────────────────── */
 :root {
-    --mg-emerald:   #059669;
-    --mg-emerald-hi:#10b981;
+    --mg-emerald:   #0F7B5F;
+    --mg-emerald-hi:#0D9E78;
+    --mg-emerald-dk:#0D5C43;
     --mg-teal:      #0d9488;
-    --mg-amber:     #d97706;
-    --mg-danger:    #dc2626;
-    --mg-ink:       #0c1a14;
-    --mg-muted:     #5a7065;
-    --mg-faint:     #e8f5ef;
-    --mg-border:    rgba(5,150,105,.14);
-    --mg-border-s:  rgba(5,150,105,.30);
-    --mg-shadow:    0 1px 3px rgba(5,30,20,.07),0 4px 12px rgba(5,30,20,.05);
-    --mg-shadow-h:  0 4px 16px rgba(5,30,20,.13),0 1px 4px rgba(5,30,20,.08);
+    --mg-gold:      #B8893E;
+    --mg-amber:     #D89A3D;
+    --mg-danger:    #C84B44;
+    --mg-ink:       #101714;
+    --mg-muted:     #6E6A64;
+    --mg-faint:     #EDF5F1;
+    --mg-border:    rgba(15,123,95,.12);
+    --mg-border-s:  rgba(15,123,95,.26);
+    --mg-shadow:    0 1px 3px rgba(16,23,20,.06),0 4px 12px rgba(16,23,20,.05);
+    --mg-shadow-h:  0 8px 30px rgba(16,23,20,.10),0 1px 4px rgba(16,23,20,.06);
     --mg-radius:    14px;
     --mg-ease:      cubic-bezier(.25,.46,.45,.94);
 }

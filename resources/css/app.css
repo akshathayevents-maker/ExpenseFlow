@@ -9,10 +9,14 @@
     --ef-faint: #a9a39a;
     --ef-border: #e7e1d8;
     --ef-border-strong: #d8d0c4;
-    --ef-gold: #a98338;
-    --ef-emerald: #3d7358;
+    --ef-gold: #B8893E;
+    --ef-gold-soft: #D6B97A;
+    --ef-emerald: #0F7B5F;
+    --ef-emerald-dk: #0D5C43;
     --ef-bluegray: #607080;
-    --ef-danger: #8d4a3c;
+    --ef-danger: #C84B44;
+    --ef-warning: #D89A3D;
+    --ef-info: #2F6FED;
     --ef-radius: 14px;
     --ef-radius-sm: 10px;
     --ef-shadow: 0 1px 1px rgba(24, 22, 18, .02), 0 12px 30px rgba(24, 22, 18, .045);

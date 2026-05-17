@@ -87,8 +87,19 @@
     .ef-mob-shell {
         display: flex;
         flex-direction: column;
-        padding-bottom: 84px;
+        overflow-x: hidden;
+        padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
     }
+}
+
+/* ── Overflow prevention ────────────────────────────────────────── */
+@media (max-width: 767.98px) {
+    .ef-cal-shell,
+    .ef-mob-shell,
+    .ef-mob-cal-wrap,
+    .ef-mob-cal-grid { max-width: 100%; overflow-x: hidden; }
+    body { overflow-x: hidden; }
+    .fc, .fc-view, .fc-scroller { overflow-x: hidden !important; max-width: 100%; }
 }
 
 /* ── Mobile header ─────────────────────────────────────────────── */
@@ -158,6 +169,150 @@
     padding: 0 11px;
     text-decoration: none;
 }
+
+/* ── Hall filter select ─────────────────────────────────────────── */
+.ef-mob-select-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+.ef-mob-select-wrap::after {
+    border: 4px solid transparent;
+    border-top-color: var(--ef-ink-2);
+    content: '';
+    pointer-events: none;
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-1px);
+}
+.ef-mob-hall-select {
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(255,253,250,.9);
+    border: 1px solid var(--ef-border);
+    border-radius: 9px;
+    color: var(--ef-ink-2);
+    cursor: pointer;
+    font-size: .73rem;
+    font-weight: 700;
+    height: 32px;
+    max-width: 110px;
+    padding: 0 22px 0 9px;
+    white-space: nowrap;
+}
+.ef-mob-hall-select:focus {
+    border-color: rgba(160,114,56,.5);
+    box-shadow: 0 0 0 3px rgba(160,114,56,.1);
+    outline: none;
+}
+
+/* ── Mobile actions menu button ─────────────────────────────────── */
+.ef-mob-menu-wrap {
+    position: relative;
+}
+.ef-mob-menu-btn {
+    align-items: center;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(255,253,250,.9);
+    border: 1px solid var(--ef-border);
+    border-radius: 9px;
+    color: var(--ef-ink-2);
+    cursor: pointer;
+    display: inline-flex;
+    font-size: 1rem;
+    height: 32px;
+    justify-content: center;
+    padding: 0;
+    transition: background .12s;
+    -webkit-tap-highlight-color: transparent;
+    width: 32px;
+}
+.ef-mob-menu-btn.--open,
+.ef-mob-menu-btn:active { background: rgba(20,20,18,.1); border-color: rgba(20,20,18,.18); }
+
+/* ── Premium dark dropdown ──────────────────────────────────────── */
+.ef-mob-dropdown {
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+    background: rgba(18,16,14,.96);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 16px;
+    box-shadow:
+        0 16px 48px rgba(0,0,0,.42),
+        0 4px 16px rgba(0,0,0,.24),
+        inset 0 1px 0 rgba(255,255,255,.08);
+    max-width: min(260px, calc(100vw - 24px));
+    min-width: 200px;
+    opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    transform: translateY(-10px) scale(.96);
+    transform-origin: top right;
+    transition: opacity .18s cubic-bezier(.16,.84,.44,1), transform .18s cubic-bezier(.16,.84,.44,1);
+    z-index: 9999;
+}
+.ef-mob-dropdown.--open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+}
+
+/* ── Dropdown items ─────────────────────────────────────────────── */
+.ef-mob-dd-item {
+    align-items: center;
+    -webkit-appearance: none;
+    appearance: none;
+    background: none;
+    border: none;
+    color: rgba(255,253,250,.88);
+    cursor: pointer;
+    display: flex;
+    font-size: .84rem;
+    font-weight: 600;
+    gap: 12px;
+    min-height: 44px;
+    padding: 0 16px;
+    text-align: left;
+    text-decoration: none;
+    transition: background .1s, color .1s;
+    width: 100%;
+    -webkit-tap-highlight-color: transparent;
+}
+.ef-mob-dd-item i.dd-icon { color: rgba(255,253,250,.55); font-size: .88rem; flex-shrink: 0; width: 18px; text-align: center; }
+.ef-mob-dd-item span { flex: 1; }
+.ef-mob-dd-item .dd-check { color: #c8a857; font-size: .88rem; opacity: 0; transition: opacity .12s; }
+.ef-mob-dd-item.--checked .dd-check { opacity: 1; }
+.ef-mob-dd-item:active,
+.ef-mob-dd-item:hover { background: rgba(255,255,255,.07); }
+.ef-mob-dd-item:active { background: rgba(255,255,255,.12); }
+.ef-mob-dd-item.--wa { color: #4ade80; }
+.ef-mob-dd-item.--wa i.dd-icon { color: #4ade80; }
+.ef-mob-dd-item.--wa:active { background: rgba(74,222,128,.08); }
+.ef-mob-dd-sep {
+    background: rgba(255,255,255,.09);
+    height: 1px;
+    margin: 2px 0;
+}
+
+/* ── Active view indicator in header ───────────────────────────── */
+.ef-mob-view-badge {
+    background: rgba(160,114,56,.18);
+    border: 1px solid rgba(160,114,56,.3);
+    border-radius: 6px;
+    color: rgba(160,114,56,.95);
+    display: none;
+    font-size: .58rem;
+    font-weight: 760;
+    letter-spacing: .06em;
+    padding: 2px 6px;
+    text-transform: uppercase;
+}
+@media (max-width: 767.98px) { .ef-mob-view-badge { display: inline-block; } }
 
 /* ── Insight strip ─────────────────────────────────────────────── */
 .ef-mob-insights {
@@ -539,10 +694,7 @@
     border-color: rgba(37,211,102,.22);
     color: #1a7a3d;
 }
-.ef-mob-sheet-foot {
-    border-top: 1px solid var(--ef-border);
-    padding: 11px 16px 14px;
-}
+/* ef-mob-sheet-foot defined below with safe-area-inset-bottom */
 .ef-mob-sheet-create {
     align-items: center;
     background: var(--ef-ink);
@@ -559,28 +711,63 @@
 .ef-mob-sheet-create:hover,
 .ef-mob-sheet-create:active { background: var(--ef-ink-2); color: #fffdfa; }
 
-/* ── Premium FAB (circular on mobile) ─────────────────────────── */
+/* ── Day cell booking count badge ───────────────────────────────── */
+.ef-mob-cal-badge {
+    background: rgba(160,114,56,.8);
+    border-radius: 999px;
+    color: #fff;
+    font-size: .47rem;
+    font-weight: 800;
+    letter-spacing: .01em;
+    line-height: 1;
+    min-width: 14px;
+    padding: 2px 4px;
+    text-align: center;
+}
+.ef-mob-cal-day.--occ-3 .ef-mob-cal-badge { background: var(--ef-emerald); }
+
+/* ── Safe-area bottom sheet footer ─────────────────────────────── */
+.ef-mob-sheet-foot {
+    border-top: 1px solid var(--ef-border);
+    padding: 11px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ── Premium full-width pill FAB ────────────────────────────────── */
 @media (max-width: 767.98px) {
-    .ef-mobile-fab {
+    .ef-mobile-fab { display: none !important; }
+    .ef-mob-fab-pill {
         align-items: center;
-        background: var(--ef-ink);
-        border-radius: 50%;
-        bottom: 24px;
-        box-shadow: 0 8px 28px rgba(14,13,12,.28), 0 2px 6px rgba(14,13,12,.14);
-        color: #fffdfa;
-        display: inline-flex;
-        font-size: 1.2rem;
-        height: 54px;
+        background: linear-gradient(135deg, #111111 0%, #2a2a2a 100%);
+        border-radius: 999px;
+        bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+        box-shadow:
+            0 8px 32px rgba(0,0,0,.35),
+            0 2px 8px rgba(0,0,0,.18),
+            inset 0 1px 0 rgba(255,255,255,.08),
+            0 0 0 1px rgba(160,114,56,.32);
+        color: #ffffff;
+        display: flex;
+        font-size: .9rem;
+        font-weight: 760;
+        gap: 8px;
         justify-content: center;
-        padding: 0;
+        left: 16px;
+        letter-spacing: .01em;
+        padding: 16px 24px;
         position: fixed;
-        right: 20px;
+        right: 16px;
         text-decoration: none;
-        width: 54px;
+        transition: transform .1s, box-shadow .1s;
         z-index: 1040;
     }
-    .ef-mobile-fab .ef-mob-fab-label { display: none; }
+    .ef-mob-fab-pill i { color: #c8a857; font-size: 1rem; }
+    .ef-mob-fab-pill:hover { color: #fff; }
+    .ef-mob-fab-pill:active {
+        box-shadow: 0 4px 16px rgba(0,0,0,.28);
+        transform: scale(.98);
+    }
 }
+@media (min-width: 768px) { .ef-mob-fab-pill { display: none !important; } }
 </style>
 @endpush
 
@@ -725,28 +912,63 @@
     {{-- ══ MOBILE CALENDAR SHELL ═══════════════════════════════════ --}}
     <div class="ef-mob-shell" id="mobShell" aria-label="Mobile calendar">
 
-        {{-- Compact header --}}
+        {{-- Single toolbar row: month nav + actions --}}
         <div class="ef-mob-hdr">
             <div class="ef-mob-month-nav">
                 <button type="button" class="ef-mob-nav-btn" id="mobPrev" aria-label="Previous month">
                     <i class="bi bi-chevron-left"></i>
                 </button>
-                <span class="ef-mob-month-label" id="mobMonthLabel">{{ $currentMonth }}</span>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+                    <span class="ef-mob-month-label" id="mobMonthLabel">{{ $currentMonth }}</span>
+                    <span class="ef-mob-view-badge" id="mobViewBadge">Calendar</span>
+                </div>
                 <button type="button" class="ef-mob-nav-btn" id="mobNext" aria-label="Next month">
                     <i class="bi bi-chevron-right"></i>
                 </button>
             </div>
             <div class="ef-mob-hdr-actions">
+                <div class="ef-mob-select-wrap">
+                    <select id="mobHallFilter" class="ef-mob-hall-select" aria-label="Filter hall">
+                        <option value="">All Halls</option>
+                        @foreach($halls as $hall)
+                            <option value="{{ $hall->id }}">{{ $hall->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
                 <button type="button" class="ef-mob-hdr-btn" id="mobTodayBtn">Today</button>
-                <select id="mobHallFilter" class="ef-mob-hdr-btn" aria-label="Filter hall">
-                    <option value="">All</option>
-                    @foreach($halls as $hall)
-                        <option value="{{ $hall->id }}">{{ $hall->name }}</option>
-                    @endforeach
-                </select>
-                <a href="{{ route('hall.bookings.create') }}" class="ef-mob-hdr-btn --new" aria-label="New booking">
-                    <i class="bi bi-plus-lg"></i>
-                </a>
+                {{-- Actions menu --}}
+                <div class="ef-mob-menu-wrap">
+                    <button type="button" class="ef-mob-menu-btn" id="mobMenuBtn" aria-label="Actions" aria-expanded="false">
+                        <i class="bi bi-three-dots-vertical"></i>
+                    </button>
+                    <div class="ef-mob-dropdown" id="mobActionMenu" role="menu">
+                        {{-- View items --}}
+                        <button type="button" class="ef-mob-dd-item --checked" id="ddCalendar" data-mob-view="calendar" role="menuitem">
+                            <i class="bi bi-calendar3 dd-icon"></i>
+                            <span>Calendar</span>
+                            <i class="bi bi-check-lg dd-check"></i>
+                        </button>
+                        <button type="button" class="ef-mob-dd-item" id="ddAgenda" data-mob-view="agenda" role="menuitem">
+                            <i class="bi bi-list-ul dd-icon"></i>
+                            <span>Agenda</span>
+                            <i class="bi bi-check-lg dd-check"></i>
+                        </button>
+                        <div class="ef-mob-dd-sep"></div>
+                        {{-- Kitchen --}}
+                        <a href="{{ route('hall.bookings.kitchen') }}" class="ef-mob-dd-item" role="menuitem">
+                            <i class="bi bi-fire dd-icon"></i>
+                            <span>Kitchen Summary</span>
+                            <i class="bi bi-arrow-right dd-check" style="opacity:.38"></i>
+                        </a>
+                        @if($shareData)
+                        <div class="ef-mob-dd-sep"></div>
+                        <button type="button" class="ef-mob-dd-item --wa" id="ddShare" role="menuitem">
+                            <i class="bi bi-whatsapp dd-icon"></i>
+                            <span>Share Brief</span>
+                        </button>
+                        @endif
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -766,36 +988,47 @@
             </div>
         </div>
 
-        {{-- Custom month grid --}}
-        <div class="ef-mob-cal-wrap">
-            <div class="ef-mob-cal-dow" aria-hidden="true">
-                <div class="ef-mob-cal-dow-cell">Mo</div>
-                <div class="ef-mob-cal-dow-cell">Tu</div>
-                <div class="ef-mob-cal-dow-cell">We</div>
-                <div class="ef-mob-cal-dow-cell">Th</div>
-                <div class="ef-mob-cal-dow-cell">Fr</div>
-                <div class="ef-mob-cal-dow-cell">Sa</div>
-                <div class="ef-mob-cal-dow-cell">Su</div>
+        {{-- Calendar view (default) --}}
+        <div id="mobCalView">
+            {{-- Custom month grid --}}
+            <div class="ef-mob-cal-wrap">
+                <div class="ef-mob-cal-dow" aria-hidden="true">
+                    <div class="ef-mob-cal-dow-cell">Mo</div>
+                    <div class="ef-mob-cal-dow-cell">Tu</div>
+                    <div class="ef-mob-cal-dow-cell">We</div>
+                    <div class="ef-mob-cal-dow-cell">Th</div>
+                    <div class="ef-mob-cal-dow-cell">Fr</div>
+                    <div class="ef-mob-cal-dow-cell">Sa</div>
+                    <div class="ef-mob-cal-dow-cell">Su</div>
+                </div>
+                <div class="ef-mob-cal-grid" id="mobCalGrid" role="grid" aria-label="Calendar dates"></div>
             </div>
-            <div class="ef-mob-cal-grid" id="mobCalGrid" role="grid" aria-label="Calendar dates"></div>
+
+            {{-- Upcoming events (limited, below calendar) --}}
+            <div>
+                <div class="ef-mob-sec-hdr">
+                    <span class="ef-mob-sec-title">Upcoming Bookings</span>
+                    <button type="button" class="ef-mob-sec-action" id="mobToggleAll">See all</button>
+                </div>
+                <div class="ef-mob-upcoming-list" id="mobUpcomingList"></div>
+            </div>
         </div>
 
-        {{-- Upcoming events --}}
-        <div>
-            <div class="ef-mob-sec-hdr">
-                <span class="ef-mob-sec-title">Upcoming Bookings</span>
-                <button type="button" class="ef-mob-sec-action" id="mobToggleAll">See all</button>
+        {{-- Agenda view (hidden by default) --}}
+        <div id="mobAgendaView" style="display:none">
+            <div class="ef-mob-sec-hdr" style="margin-bottom:12px">
+                <span class="ef-mob-sec-title">All Upcoming Bookings</span>
             </div>
-            <div class="ef-mob-upcoming-list" id="mobUpcomingList"></div>
+            <div class="ef-mob-upcoming-list" id="mobAgendaList"></div>
         </div>
 
     </div>
 </div>
 
-{{-- ══ FAB ══════════════════════════════════════════════════════════ --}}
-<a href="{{ route('hall.bookings.create') }}" class="ef-mobile-fab" aria-label="New Booking">
+{{-- ══ PREMIUM PILL FAB (mobile only) ══════════════════════════════ --}}
+<a href="{{ route('hall.bookings.create') }}" class="ef-mob-fab-pill" aria-label="New Booking">
     <i class="bi bi-plus-lg"></i>
-    <span class="ef-mob-fab-label"> Booking</span>
+    New Booking
 </a>
 
 {{-- ══ DESKTOP HOVER PREVIEW ════════════════════════════════════════ --}}
@@ -914,18 +1147,17 @@ document.addEventListener('DOMContentLoaded', function () {
             const dow      = new Date(year, month, d).getDay();
             const isWknd   = dow === 0 || dow === 6;
             const occCls   = count >= 3 ? ' --occ-3' : count === 2 ? ' --occ-2' : count === 1 ? ' --occ-1' : '';
-            const dotCount = Math.min(count, 3);
 
-            let dots = '<div class="ef-mob-cal-dots" aria-hidden="true">';
-            for (let di = 0; di < dotCount; di++) dots += '<span class="ef-mob-cal-dot"></span>';
-            dots += '</div>';
+            const countEl = count > 0
+                ? `<div class="ef-mob-cal-badge">${count > 9 ? '9+' : count}</div>`
+                : '<div style="height:6px"></div>';
 
             const ariaLbl = `${d}${count ? ', ' + count + ' booking' + (count > 1 ? 's' : '') : ''}`;
 
             html += `<div class="ef-mob-cal-day${occCls}${isToday ? ' --today' : ''}${isSel ? ' --selected' : ''}${isWknd ? ' --weekend' : ''}"
                 data-date="${dateStr}" role="gridcell" tabindex="0" aria-label="${ariaLbl}">
                 <span class="ef-mob-cal-num">${d}</span>
-                ${dotCount ? dots : '<div class="ef-mob-cal-dots" aria-hidden="true"></div>'}
+                ${countEl}
             </div>`;
         }
 
@@ -945,21 +1177,14 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     /* ── upcoming list ──────────────────────────────────────────── */
-    function renderUpcoming(events, all = false) {
+    function buildEvRows(events, limit) {
         const todayObj = new Date(); todayObj.setHours(0,0,0,0);
-        const list = document.getElementById('mobUpcomingList');
-
         const rows = events
             .filter(ev => { const d = new Date(ev.start); d.setHours(0,0,0,0); return d >= todayObj; })
             .sort((a, b) => new Date(a.start) - new Date(b.start))
-            .slice(0, all ? 60 : 5);
-
-        if (!rows.length) {
-            list.innerHTML = '<div class="ef-mob-empty">No upcoming bookings</div>';
-            return;
-        }
-
-        list.innerHTML = rows.map(ev => {
+            .slice(0, limit);
+        if (!rows.length) return '<div class="ef-mob-empty">No upcoming bookings</div>';
+        return rows.map(ev => {
             const p   = ev.extendedProps || {};
             const st  = (ev.classNames || []).find(c => c.startsWith('is-'))?.replace('is-', '') || 'confirmed';
             const mls = (p.meals || []).join(' + ') || 'No meals';
@@ -977,6 +1202,91 @@ document.addEventListener('DOMContentLoaded', function () {
         }).join('');
     }
 
+    function renderUpcoming(events, all = false) {
+        const el = document.getElementById('mobUpcomingList');
+        if (el) el.innerHTML = buildEvRows(events, all ? 60 : 5);
+    }
+
+    function renderAgenda(events) {
+        const el = document.getElementById('mobAgendaList');
+        if (el) el.innerHTML = buildEvRows(events, 100);
+    }
+
+    /* ── view mode toggle ───────────────────────────────────────── */
+    let mobViewMode = 'calendar';
+
+    function setMobView(mode) {
+        mobViewMode = mode;
+        const calView    = document.getElementById('mobCalView');
+        const agendaView = document.getElementById('mobAgendaView');
+        const badge      = document.getElementById('mobViewBadge');
+        // update dropdown checkmarks
+        document.querySelectorAll('.ef-mob-dd-item[data-mob-view]').forEach(t => {
+            t.classList.toggle('--checked', t.dataset.mobView === mode);
+        });
+        if (badge) badge.textContent = mode === 'agenda' ? 'Agenda' : 'Calendar';
+        if (mode === 'agenda') {
+            if (calView)    calView.style.display    = 'none';
+            if (agendaView) agendaView.style.display = '';
+            renderAgenda(mobEvents);
+        } else {
+            if (calView)    calView.style.display    = '';
+            if (agendaView) agendaView.style.display = 'none';
+        }
+    }
+
+    /* ── dropdown menu ──────────────────────────────────────────── */
+    const menuBtn = document.getElementById('mobMenuBtn');
+    const menuEl  = document.getElementById('mobActionMenu');
+
+    function openMenu() {
+        menuEl?.classList.add('--open');
+        menuBtn?.classList.add('--open');
+        menuBtn?.setAttribute('aria-expanded', 'true');
+    }
+    function closeMenu() {
+        menuEl?.classList.remove('--open');
+        menuBtn?.classList.remove('--open');
+        menuBtn?.setAttribute('aria-expanded', 'false');
+    }
+    function toggleMenu() {
+        menuEl?.classList.contains('--open') ? closeMenu() : openMenu();
+    }
+
+    menuBtn?.addEventListener('click', e => { e.stopPropagation(); toggleMenu(); });
+
+    // View items in dropdown
+    document.querySelectorAll('.ef-mob-dd-item[data-mob-view]').forEach(item => {
+        item.addEventListener('click', () => {
+            setMobView(item.dataset.mobView);
+            closeMenu();
+        });
+    });
+
+    // Share item in dropdown — trigger Bootstrap modal then close menu
+    const ddShare = document.getElementById('ddShare');
+    if (ddShare) {
+        ddShare.addEventListener('click', () => {
+            closeMenu();
+            const modal = document.getElementById('shareBriefModal');
+            if (modal) bootstrap.Modal.getOrCreateInstance(modal).show();
+        });
+    }
+
+    // Close on outside click / touch
+    document.addEventListener('click', e => {
+        if (menuEl?.classList.contains('--open') &&
+            !menuEl.contains(e.target) &&
+            e.target !== menuBtn) {
+            closeMenu();
+        }
+    });
+
+    // Close on escape key
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') closeMenu();
+    });
+
     /* ── fetch for month ────────────────────────────────────────── */
     function fetchMonth(year, month) {
         const start  = ds(year, month, 1);
@@ -992,6 +1302,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 mobEvents = evs;
                 buildGrid(year, month, countsByDate(evs));
                 renderUpcoming(evs, showAll);
+                if (mobViewMode === 'agenda') renderAgenda(evs);
             })
             .catch(err => console.warn('Mobile calendar fetch failed', err));
     }

@@ -384,7 +384,7 @@ a.ef-wlt-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
 
     $maxBar = 5000; // ₹5000 = full bar
 
-    $healthState = function (Wallet $w): string {
+    $healthState = function (\App\Models\Wallet $w): string {
         if ($w->isNegative()) return 'negative';
         if ($w->balance < 200)  return 'critical';
         if ($w->isLow())        return 'low';

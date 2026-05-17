@@ -36,13 +36,12 @@
 
     <style>
         :root {
-            --sb-width:   268px;
-            --tb-height:  58px;
-            --sb-bg:      #10100e;
-            --sb-bg-2:    #151411;
-            --sb-gold:    #a98338;
-            --pg-bg:      var(--ef-bg);
-            --border:     var(--ef-border);
+            --sb-width:     280px;
+            --tb-height:    58px;
+            --sb-gold:      #B8893E;
+            --sb-gold-soft: #D6B97A;
+            --pg-bg:        var(--ef-bg);
+            --border:       var(--ef-border);
             --text-primary: #111111;
             --text-muted:   #737373;
         }
@@ -53,13 +52,13 @@
         #topbar {
             height: var(--tb-height);
             position: fixed; top: 0; left: 0; right: 0; z-index: 1030;
-            background: rgba(16,16,14,.96);
-            backdrop-filter: blur(18px) saturate(160%);
-            border-bottom: 1px solid rgba(255,255,255,.06);
+            background: rgba(14,15,13,.97);
+            backdrop-filter: blur(20px) saturate(140%);
+            border-bottom: 1px solid rgba(184,137,62,.10);
         }
         #topbar .brand {
             width: var(--sb-width); font-weight: 720; font-size: .96rem;
-            letter-spacing: .02em; flex-shrink: 0; color: #fff;
+            letter-spacing: .02em; flex-shrink: 0; color: rgba(255,255,255,.92);
         }
         #topbar .brand .bi { color: var(--sb-gold); }
 
@@ -67,75 +66,85 @@
         #sidebar {
             position: fixed; top: var(--tb-height);
             left: 0; bottom: 0; width: var(--sb-width);
-            background:
-                radial-gradient(circle at 0% 0%, rgba(169,131,56,.12), transparent 17rem),
-                linear-gradient(180deg, var(--sb-bg-2), var(--sb-bg));
-            border-right: 1px solid rgba(255,255,255,.05);
+            background: linear-gradient(180deg, #111311 0%, #151815 35%, #0e100f 100%);
+            backdrop-filter: blur(18px);
+            border-right: 1px solid rgba(184,137,62,.12);
             overflow-y: auto; z-index: 1020;
             transition: transform .28s cubic-bezier(.2,.7,.2,1);
-            scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.08) transparent;
+            scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.07) transparent;
         }
-        #sidebar::-webkit-scrollbar { width: 4px; }
-        #sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 2px; }
+        #sidebar::-webkit-scrollbar { width: 3px; }
+        #sidebar::-webkit-scrollbar-thumb { background: rgba(184,137,62,.15); border-radius: 2px; }
 
         #sidebar .nav-link {
-            color: rgba(255,255,255,.46);
-            padding: .58rem .9rem;
+            color: rgba(255,255,255,.72);
+            padding: .6rem 1rem;
             border-radius: 10px;
-            margin: 2px 10px;
+            margin: 1px 10px;
             border: 1px solid transparent;
-            font-size: .82rem;
-            font-weight: 620;
+            font-size: .83rem;
+            font-weight: 500;
             display: flex; align-items: center;
-            transition: background .16s cubic-bezier(.2,.7,.2,1), color .16s cubic-bezier(.2,.7,.2,1), border-color .16s cubic-bezier(.2,.7,.2,1), transform .16s cubic-bezier(.2,.7,.2,1);
+            transition: all .22s ease;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            text-decoration: none;
         }
         #sidebar .nav-link:hover {
-            background: rgba(255,255,255,.055);
-            color: rgba(255,255,255,.86);
-            transform: translateX(1px);
+            background: rgba(184,137,62,.08);
+            color: #F5E7C8;
+            transform: translateX(2px);
         }
         #sidebar .nav-link.active {
-            background: linear-gradient(90deg, rgba(169,131,56,.16), rgba(255,255,255,.055));
-            border-color: rgba(169,131,56,.2);
-            box-shadow: inset 2px 0 0 var(--sb-gold), 0 10px 28px rgba(0,0,0,.16);
-            color: #ffffff;
-            font-weight: 700;
+            background: linear-gradient(90deg, rgba(184,137,62,.18), rgba(184,137,62,.05));
+            border-color: rgba(184,137,62,.35);
+            box-shadow: 0 4px 20px rgba(184,137,62,.10);
+            color: #FFF4DA;
+            font-weight: 600;
         }
         #sidebar .nav-link .bi {
-            width: 18px; margin-right: 10px; flex-shrink: 0;
-            font-size: .9rem; opacity: .7;
+            width: 20px; margin-right: 10px; flex-shrink: 0;
+            font-size: 1.05rem;
+            color: rgba(255,255,255,.55);
             text-align: center;
+            transition: color .22s ease;
         }
-        #sidebar .nav-link.active .bi,
-        #sidebar .nav-link:hover .bi { opacity: 1; }
+        #sidebar .nav-link:hover .bi { color: #D6B97A; }
+        #sidebar .nav-link.active .bi { color: #E7C98A; }
 
         /* Sidebar section label */
         .sidebar-group-btn {
             width: 100%; background: none; border: none; outline: none;
-            color: rgba(255,255,255,.24);
-            font-size: .62rem; font-weight: 760;
-            text-transform: uppercase; letter-spacing: .16em;
-            padding: 1.35rem 1.3rem .5rem;
+            color: rgba(214,185,122,.55);
+            font-size: 10px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 2px;
+            padding: 1.5rem 1.3rem .45rem;
             display: flex; align-items: center; justify-content: space-between;
             cursor: pointer; line-height: 1;
-            transition: color .12s;
+            transition: color .18s ease;
         }
-        .sidebar-group-btn:hover  { color: rgba(255,255,255,.38); }
-        .sidebar-group-btn.has-active { color: rgba(255,255,255,.3); }
+        .sidebar-group-btn:hover  { color: rgba(214,185,122,.78); }
+        .sidebar-group-btn.has-active { color: rgba(214,185,122,.72); }
         .sidebar-group-btn .sidebar-chevron {
-            font-size: .52rem; transition: transform .22s cubic-bezier(.2,.7,.2,1); flex-shrink: 0;
+            font-size: .5rem; transition: transform .22s ease; flex-shrink: 0;
+            color: rgba(214,185,122,.4);
         }
         .sidebar-group-btn[aria-expanded="false"] .sidebar-chevron { transform: rotate(-90deg); }
         .sidebar-group-btn[aria-expanded="true"]  .sidebar-chevron { transform: rotate(0deg); }
 
-        .sidebar-group-body .nav-link { padding-left: 2.45rem; }
+        .sidebar-group-body .nav-link { padding-left: 2.6rem; }
         .sidebar-standalone { padding: .2rem 0; }
 
-        /* Sidebar top divider */
+        /* Sidebar divider */
         .sb-divider {
-            height: 1px; background: rgba(255,255,255,.06);
+            height: 1px; background: rgba(255,255,255,.05);
             margin: .5rem 1rem;
+        }
+
+        /* Bottom account section separator */
+        #grp-account-wrap {
+            border-top: 1px solid rgba(255,255,255,.05);
+            margin-top: .5rem;
+            padding-top: .25rem;
         }
 
         /* ── Main ────────────────────────────────────────────────────────── */
@@ -156,7 +165,10 @@
         }
         #sidebar-overlay {
             display: none; position: fixed; inset: 0;
-            background: rgba(0,0,0,.55); z-index: 1015;
+            background: rgba(0,0,0,.45);
+            backdrop-filter: blur(3px);
+            z-index: 1015;
+            transition: opacity .22s ease;
         }
         #sidebar-overlay.show { display: block; }
 
@@ -481,6 +493,7 @@
 
     {{-- Account (always visible, no accordion) --}}
     @php $grpAccount = request()->routeIs('notifications.*','profile.*'); @endphp
+    <div id="grp-account-wrap">
     <button class="sidebar-group-btn {{ $grpAccount ? 'has-active' : 'collapsed' }}"
             data-bs-toggle="collapse" data-bs-target="#grp-account"
             aria-expanded="{{ $grpAccount ? 'true' : 'false' }}">
@@ -501,6 +514,7 @@
             <i class="bi bi-person-gear"></i> Profile
         </a>
     </div>
+    </div>{{-- /grp-account-wrap --}}
 
 </div>
 </nav>
