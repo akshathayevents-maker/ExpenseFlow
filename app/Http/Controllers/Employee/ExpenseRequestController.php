@@ -20,13 +20,15 @@ class ExpenseRequestController extends Controller
 
     public function index(Request $request): View
     {
+        $userId = auth()->id();
+
         $filters = [
             'search' => $request->input('search', ''),
             'status' => $request->input('status', ''),
         ];
 
-        $requests = ExpenseRequest::with(['approver'])
-            ->where('requested_by', auth()->id())
+        $requests = ExpenseRequest::with(['category', 'approver'])
+            ->where('requested_by', $userId)
             ->when($filters['search'], fn ($q, $v) =>
                 $q->where('title', 'ilike', "%{$v}%")
             )
@@ -35,7 +37,17 @@ class ExpenseRequestController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        return view('employee.expense-requests.index', compact('requests', 'filters'));
+        $base = ExpenseRequest::where('requested_by', $userId);
+
+        $summary = [
+            'total'           => (clone $base)->count(),
+            'pending'         => (clone $base)->pending()->count(),
+            'approved_amount' => (clone $base)->approved()->sum('amount'),
+            'paid_amount'     => (clone $base)->whereIn('status', ['paid', 'completed', 'reimbursed'])->sum('amount'),
+            'rejected'        => (clone $base)->rejected()->count(),
+        ];
+
+        return view('employee.expense-requests.index', compact('requests', 'filters', 'summary'));
     }
 
     public function create(): View
