@@ -587,7 +587,48 @@
 @php
     $currentMonth = now()->format('F Y');
     $todayLabel   = now()->format('l, d M Y');
-    $shareText    = "Akshathay Mini Hall schedule for " . now()->format('d M Y') . "\n" . route('hall.bookings.calendar');
+
+    // Build share brief data for the modal
+    $eventTypes   = \App\Models\HallBooking::eventTypes();
+    $shareBooking = $nextBooking ?? null;
+    $shareData    = null;
+
+    if ($shareBooking) {
+        $start       = \Carbon\Carbon::parse($shareBooking->start_time);
+        $end         = \Carbon\Carbon::parse($shareBooking->end_time);
+        $isLive      = now()->between($start, $end);
+        $totalPaid   = $shareBooking->total_paid;
+        $balance     = max(0, $shareBooking->balance_amount);
+        $meals       = array_filter([
+            $shareBooking->has_breakfast ? 'Breakfast' : null,
+            $shareBooking->has_lunch     ? 'Lunch'     : null,
+            $shareBooking->has_dinner    ? 'Dinner'    : null,
+        ]);
+        $otherEvents = $todayBookings
+            ->where('id', '!=', $shareBooking->id)
+            ->map(fn ($b) => ($eventTypes[$b->event_type] ?? ucfirst($b->event_type)) . ' – ' . \Carbon\Carbon::parse($b->start_time)->format('h:i A'))
+            ->values()
+            ->all();
+
+        $shareData = [
+            'is_live'      => $isLive,
+            'hall'         => $shareBooking->hall?->name ?? 'Akshathay Mini Hall',
+            'event'        => $eventTypes[$shareBooking->event_type] ?? ucfirst(str_replace('_', ' ', $shareBooking->event_type)),
+            'customer'     => $shareBooking->customer_name,
+            'phone'        => $shareBooking->customer_mobile,
+            'date'         => $shareBooking->booking_date->format('d M Y'),
+            'time_start'   => $start->format('h:i A'),
+            'time_end'     => $end->format('h:i A'),
+            'guests'       => number_format($shareBooking->number_of_people),
+            'meal_plan'    => $shareBooking->mealPlan?->name ?? null,
+            'meals'        => implode(', ', $meals),
+            'status'       => ucfirst($shareBooking->status),
+            'paid'         => number_format($totalPaid, 0),
+            'balance'      => number_format($balance, 0),
+            'has_balance'  => $balance > 0,
+            'other_events' => $otherEvents,
+        ];
+    }
 @endphp
 
 <div class="ef-cal-shell">
@@ -614,9 +655,10 @@
             <input id="calendarSearch" type="search" class="ef-cal-search" placeholder="Search customer, hall, event">
             <button type="button" class="ef-btn" id="printSchedule"><i class="bi bi-printer"></i> Print</button>
             <button type="button" class="ef-btn" id="exportSchedule"><i class="bi bi-download"></i> Export</button>
-            <a href="https://wa.me/?text={{ rawurlencode($shareText) }}" target="_blank" rel="noopener" class="ef-btn">
+            <button type="button" class="ef-btn" id="shareBriefBtn"
+                    data-bs-toggle="modal" data-bs-target="#shareBriefModal">
                 <i class="bi bi-whatsapp"></i> Share
-            </a>
+            </button>
             <a href="{{ route('hall.bookings.create') }}" class="ef-btn ef-btn-dark">
                 <i class="bi bi-plus-lg"></i> New Booking
             </a>
@@ -1255,4 +1297,346 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 @endpush
+
+{{-- ══ SHARE BRIEF MODAL ═══════════════════════════════════════════ --}}
+<style>
+#shareBriefModal .modal-content {
+    border-radius: 18px;
+    border: none;
+    box-shadow: 0 20px 60px rgba(0,0,0,.18);
+    overflow: hidden;
+}
+#shareBriefModal .modal-header {
+    background: linear-gradient(135deg, #1a1208 0%, #2c1810 100%);
+    border-bottom: none;
+    padding: 20px 24px 16px;
+}
+#shareBriefModal .modal-title {
+    color: #fef9f0;
+    font-size: .95rem;
+    font-weight: 800;
+}
+#shareBriefModal .btn-close { filter: invert(1) opacity(.6); }
+#shareBriefModal .modal-body { padding: 20px 24px; }
+#shareBriefModal .modal-footer { border-top: 1px solid #f1f5f9; padding: 14px 24px; gap: 8px; }
+
+.share-live-badge {
+    background: rgba(220,38,38,.15);
+    border: 1px solid rgba(220,38,38,.3);
+    border-radius: 8px;
+    color: #dc2626;
+    display: inline-flex;
+    align-items: center;
+    font-size: .75rem;
+    font-weight: 760;
+    gap: 5px;
+    padding: 4px 10px;
+    animation: share-pulse 1.6s ease-in-out infinite;
+}
+@keyframes share-pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(220,38,38,.3); }
+    50%      { box-shadow: 0 0 0 4px rgba(220,38,38,0); }
+}
+.share-upcoming-badge {
+    background: rgba(217,119,6,.1);
+    border: 1px solid rgba(217,119,6,.25);
+    border-radius: 8px;
+    color: #d97706;
+    display: inline-flex;
+    align-items: center;
+    font-size: .75rem;
+    font-weight: 760;
+    gap: 5px;
+    padding: 4px 10px;
+}
+
+.share-toggle-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+.share-toggle {
+    align-items: center;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    font-size: .78rem;
+    font-weight: 700;
+    gap: 6px;
+    padding: 6px 12px;
+    transition: all .14s;
+    user-select: none;
+}
+.share-toggle input[type="checkbox"] { accent-color: #d97706; width: 14px; height: 14px; }
+.share-toggle.checked { background: #fffbeb; border-color: #d97706; color: #92400e; }
+
+.share-preview {
+    background: #0d1117;
+    border-radius: 12px;
+    color: #e6edf3;
+    font-family: 'Courier New', monospace;
+    font-size: .76rem;
+    line-height: 1.65;
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 16px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.share-preview::-webkit-scrollbar { width: 4px; }
+.share-preview::-webkit-scrollbar-track { background: transparent; }
+.share-preview::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+
+.share-no-event {
+    background: #fffbeb;
+    border: 1px solid rgba(217,119,6,.2);
+    border-radius: 10px;
+    color: #92400e;
+    font-size: .84rem;
+    padding: 14px 16px;
+    text-align: center;
+}
+
+#shareBriefModal .btn-wa {
+    background: #25D366;
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-size: .84rem;
+    font-weight: 700;
+    padding: 9px 18px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    transition: background .14s;
+}
+#shareBriefModal .btn-wa:hover { background: #1ebe5d; color: #fff; }
+#shareBriefModal .btn-copy {
+    background: #f1f5f9;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    color: #374151;
+    font-size: .84rem;
+    font-weight: 700;
+    padding: 9px 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background .14s;
+}
+#shareBriefModal .btn-copy:hover { background: #e2e8f0; }
+#shareBriefModal .btn-kitchen {
+    background: linear-gradient(135deg, #1a1208, #3d2314);
+    border: none;
+    border-radius: 10px;
+    color: rgba(254,249,240,.85);
+    font-size: .84rem;
+    font-weight: 700;
+    padding: 9px 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    transition: opacity .14s;
+}
+#shareBriefModal .btn-kitchen:hover { opacity: .85; color: #fef9f0; }
+</style>
+
+<div class="modal fade" id="shareBriefModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:500px">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title"><i class="bi bi-whatsapp me-2"></i>Share Event Brief</h5>
+                    @if($shareData)
+                        <div class="mt-2">
+                            @if($shareData['is_live'])
+                                <span class="share-live-badge"><i class="bi bi-record-circle-fill"></i> Live Now</span>
+                            @else
+                                <span class="share-upcoming-badge"><i class="bi bi-clock"></i> Upcoming</span>
+                            @endif
+                            <span style="color:rgba(254,249,240,.5);font-size:.78rem;margin-left:8px">
+                                {{ $shareData['customer'] }} · {{ $shareData['time_start'] }}
+                            </span>
+                        </div>
+                    @endif
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                @if($shareData)
+                    {{-- Toggle options --}}
+                    <div class="share-toggle-row">
+                        <label class="share-toggle checked" id="toggle-phone-label">
+                            <input type="checkbox" id="toggle-phone" checked onchange="rebuildMessage()">
+                            <i class="bi bi-telephone" style="font-size:.75rem"></i> Customer Number
+                        </label>
+                        <label class="share-toggle checked" id="toggle-payment-label">
+                            <input type="checkbox" id="toggle-payment" checked onchange="rebuildMessage()">
+                            <i class="bi bi-wallet2" style="font-size:.75rem"></i> Payment Info
+                        </label>
+                        <label class="share-toggle checked" id="toggle-kitchen-label">
+                            <input type="checkbox" id="toggle-kitchen" checked onchange="rebuildMessage()">
+                            <i class="bi bi-cup-hot" style="font-size:.75rem"></i> Kitchen Summary
+                        </label>
+                    </div>
+
+                    {{-- Message preview --}}
+                    <div class="share-preview" id="sharePreview"></div>
+
+                    {{-- Hidden data for JS --}}
+                    <div id="shareDataEl" style="display:none"
+                         data-share='@json($shareData)'></div>
+                @else
+                    <div class="share-no-event">
+                        <i class="bi bi-calendar-x d-block fs-3 mb-2 opacity-40"></i>
+                        No events scheduled for today.
+                        <br><small>Add a booking to share an event brief.</small>
+                    </div>
+                @endif
+            </div>
+            @if($shareData)
+            <div class="modal-footer">
+                <a id="shareWaBtn" href="#" target="_blank" rel="noopener" class="btn-wa">
+                    <i class="bi bi-whatsapp fs-6"></i> Send via WhatsApp
+                </a>
+                <button type="button" class="btn-copy" id="shareCopyBtn">
+                    <i class="bi bi-clipboard"></i> Copy
+                </button>
+                <a href="{{ route('hall.bookings.kitchen', ['date' => today()->toDateString()]) }}"
+                   class="btn-kitchen ms-auto">
+                    <i class="bi bi-cup-hot"></i> Kitchen
+                </a>
+            </div>
+            @endif
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+(function () {
+    const el = document.getElementById('shareDataEl');
+    if (!el) return;
+
+    const d = JSON.parse(el.dataset.share);
+
+    function sep() { return '━━━━━━━━━━━━━━━'; }
+
+    // Emoji as surrogate-pair \u escapes -- no 4-byte UTF-8 bytes in JS source
+    const E = {
+        live:     '\uD83D\uDD34',
+        party:    '\uD83C\uDF89',
+        hall:     '\uD83C\uDFDB\uFE0F',
+        event:    '\uD83C\uDF8A',
+        person:   '\uD83D\uDC64',
+        phone:    '\uD83D\uDCDE',
+        date:     '\uD83D\uDCC5',
+        clock:    '\u23F0',
+        guests:   '\uD83D\uDC65',
+        meal:     '\uD83C\uDF7D\uFE0F',
+        pin:      '\uD83D\uDCCD',
+        wallet:   '\uD83D\uDCB0',
+        kitchen:  '\uD83D\uDCCC',
+        list:     '\uD83D\uDCCB',
+    };
+
+    function buildMessage() {
+        const inclPhone   = document.getElementById('toggle-phone').checked;
+        const inclPayment = document.getElementById('toggle-payment').checked;
+        const inclKitchen = document.getElementById('toggle-kitchen').checked;
+
+        let msg = '';
+
+        // Header
+        msg += d.is_live
+            ? E.live   + ' *Function Currently Live*\n\n'
+            : E.party  + ' *Upcoming Function Alert*\n\n';
+
+        // Core details
+        msg += E.hall    + ' Hall: '     + d.hall     + '\n';
+        msg += E.event   + ' Event: '    + d.event    + '\n';
+        msg += E.person  + ' Customer: ' + d.customer + '\n';
+        if (inclPhone) msg += E.phone + ' Contact: ' + d.phone + '\n';
+
+        msg += '\n' + E.date  + ' Date: ' + d.date + '\n';
+        msg += E.clock + ' Time: ' + d.time_start + ' – ' + d.time_end + '\n';
+        msg += '\n' + E.guests + ' Guests: ' + d.guests + '\n';
+        if (d.meal_plan) msg += E.meal + ' Meal Plan: ' + d.meal_plan + '\n';
+        msg += E.pin + ' Status: ' + d.status + '\n';
+
+        // Payment
+        if (inclPayment) {
+            msg += '\n' + E.wallet + ' Payment:\n';
+            msg += '₹' + d.paid + ' Paid\n';
+            if (d.has_balance) msg += '₹' + d.balance + ' Pending\n';
+        }
+
+        // Kitchen
+        if (inclKitchen && d.meals) {
+            msg += '\n' + sep() + '\n';
+            msg += E.kitchen + ' Kitchen:\n';
+            msg += d.meals + ' – ' + d.guests + ' Covers\n';
+        }
+
+        // Other events today
+        if (d.other_events && d.other_events.length > 0) {
+            msg += '\n' + sep() + '\n';
+            msg += E.list + ' Other Events Today:\n';
+            d.other_events.forEach(ev => { msg += '• ' + ev + '\n'; });
+        }
+
+        msg += '\n' + sep() + '\n';
+        msg += 'Shared from ExpenseFlow Hall Operations';
+
+        return msg;
+    }
+
+    function rebuildMessage() {
+        const msg = buildMessage();
+        document.getElementById('sharePreview').textContent = msg;
+        document.getElementById('shareWaBtn').href = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(msg);
+
+        // Update toggle label styles
+        ['phone','payment','kitchen'].forEach(key => {
+            const cb    = document.getElementById('toggle-' + key);
+            const label = document.getElementById('toggle-' + key + '-label');
+            if (label) label.classList.toggle('checked', cb.checked);
+        });
+    }
+
+    // Build on modal open
+    document.getElementById('shareBriefModal').addEventListener('show.bs.modal', rebuildMessage);
+
+    // Copy button
+    const copyBtn = document.getElementById('shareCopyBtn');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', function () {
+            const msg = buildMessage();
+            navigator.clipboard.writeText(msg).then(() => {
+                this.innerHTML = '<i class="bi bi-check-lg"></i> Copied!';
+                setTimeout(() => { this.innerHTML = '<i class="bi bi-clipboard"></i> Copy'; }, 2000);
+            }).catch(() => {
+                const ta = document.createElement('textarea');
+                ta.value = msg;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                ta.remove();
+                this.innerHTML = '<i class="bi bi-check-lg"></i> Copied!';
+                setTimeout(() => { this.innerHTML = '<i class="bi bi-clipboard"></i> Copy'; }, 2000);
+            });
+        });
+    }
+
+    // Expose for checkbox onchange
+    window.rebuildMessage = rebuildMessage;
+})();
+</script>
+@endpush
+
 </x-admin-layout>

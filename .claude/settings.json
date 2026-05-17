@@ -43,7 +43,10 @@
       "Bash(sed -n '171,185p' /home/qc7107-l/Projects/ExpenseFlow/routes/web.php)",
       "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/app/Http/Controllers/Manager/DashboardController.php)",
       "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/app/Http/Controllers/Manager/ExpenseRequestController.php)",
-      "Bash(php -r ' *)"
+      "Bash(php -r ' *)",
+      "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/app/Http/Controllers/Hall/HallBookingController.php)",
+      "Bash(curl -s -c /tmp/ef_cookies.txt -b /tmp/ef_cookies.txt http://127.0.0.1:8001/hall/bookings/calendar -I)",
+      "Bash(python3)"
     ]
   }
 }

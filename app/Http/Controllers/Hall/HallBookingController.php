@@ -237,15 +237,28 @@ class HallBookingController extends Controller
             ->count();
 
         $summary = [
-            'total_bookings' => $monthBookings->count(),
-            'upcoming_events' => $monthBookings->where('booking_date', '>=', today())->count(),
-            'revenue' => $monthBookings->sum('total_amount'),
-            'occupancy' => $monthEnd->day > 0 ? round(($occupiedDates / $monthEnd->day) * 100) : 0,
+            'total_bookings'   => $monthBookings->count(),
+            'upcoming_events'  => $monthBookings->where('booking_date', '>=', today())->count(),
+            'revenue'          => $monthBookings->sum('total_amount'),
+            'occupancy'        => $monthEnd->day > 0 ? round(($occupiedDates / $monthEnd->day) * 100) : 0,
             'pending_payments' => $monthBookings->where('payment_status', '!=', 'paid')->count(),
-            'catering_load' => $monthBookings->sum('number_of_people'),
+            'catering_load'    => $monthBookings->sum('number_of_people'),
         ];
 
-        return view('hall.bookings.calendar', compact('halls', 'summary'));
+        // Today's bookings for Share Brief feature
+        $todayBookings = HallBooking::with(['hall', 'mealPlan', 'payments'])
+            ->whereDate('booking_date', today())
+            ->where('status', '!=', 'cancelled')
+            ->orderBy('start_time')
+            ->get();
+
+        $now = now();
+        // Prefer: currently active > next upcoming > null
+        $nextBooking = $todayBookings->first(
+            fn ($b) => \Carbon\Carbon::parse($b->end_time)->isAfter($now)
+        );
+
+        return view('hall.bookings.calendar', compact('halls', 'summary', 'todayBookings', 'nextBooking'));
     }
 
     public function calendarEvents(Request $request): JsonResponse

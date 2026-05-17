@@ -18,18 +18,32 @@
         'Dinner' => $booking->has_dinner,
     ])->filter();
     $cleanMobile = preg_replace('/\D/', '', $booking->customer_mobile);
-    $waMessage = "Akshathay Mini Hall booking confirmation\n\n"
-        . "Booking: {$bookingRef}\n"
-        . "Customer: {$booking->customer_name}\n"
-        . "Event: {$eventLabel}\n"
-        . "Date: {$booking->booking_date->format('d M Y')}\n"
-        . "Time: {$start->format('h:i A')} - {$end->format('h:i A')}\n"
-        . "Hall: {$booking->hall->name}\n"
-        . "Guests: {$booking->number_of_people}\n\n"
-        . "Total: Rs. " . number_format($booking->total_amount, 2) . "\n"
-        . "Paid: Rs. " . number_format($totalPaid, 2) . "\n"
-        . "Balance: Rs. " . number_format($balance, 2) . "\n\n"
-        . route('hall.bookings.invoice', $booking);
+    $isLive      = now()->between($start, $end);
+    $mealLabels  = array_filter([
+        $booking->has_breakfast ? 'Breakfast' : null,
+        $booking->has_lunch     ? 'Lunch'     : null,
+        $booking->has_dinner    ? 'Dinner'    : null,
+    ]);
+    $mealStr     = implode(', ', $mealLabels) ?: '—';
+    $waMessage = ($isLive ? "🔴 *Function Currently Live*" : "🎉 *Upcoming Function Alert*") . "\n\n"
+        . "🏛️ Hall: {$booking->hall->name}\n"
+        . "🎊 Event: {$eventLabel}\n"
+        . "👤 Customer: {$booking->customer_name}\n"
+        . "📞 Contact: {$booking->customer_mobile}\n"
+        . "\n📅 Date: {$booking->booking_date->format('d M Y')}\n"
+        . "⏰ Time: {$start->format('h:i A')} – {$end->format('h:i A')}\n"
+        . "\n👥 Guests: " . number_format($booking->number_of_people) . "\n"
+        . ($booking->mealPlan ? "🍽️ Meal Plan: {$booking->mealPlan->name}\n" : "")
+        . "📍 Status: " . ucfirst($booking->status) . "\n"
+        . "\n💰 Payment:\n"
+        . "₹" . number_format($totalPaid, 0) . " Paid\n"
+        . ($balance > 0 ? "₹" . number_format($balance, 0) . " Pending\n" : "Fully Settled\n")
+        . "\n━━━━━━━━━━━━━━━\n"
+        . "📌 Kitchen:\n"
+        . "{$mealStr} – " . number_format($booking->number_of_people) . " Covers\n"
+        . "\n━━━━━━━━━━━━━━━\n"
+        . "📄 Invoice: " . route('hall.bookings.invoice', $booking) . "\n"
+        . "Shared from ExpenseFlow Hall Operations";
     $waUrl = 'https://wa.me/?text=' . rawurlencode($waMessage);
 @endphp
 
