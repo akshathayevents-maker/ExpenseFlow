@@ -24,7 +24,15 @@ class PurchasePlanController extends Controller
             ->latest()
             ->paginate(15);
 
-        return view('admin.purchase-plans.index', compact('plans'));
+        $stats = [
+            'draft'     => PurchasePlan::where('status', 'draft')->count(),
+            'approved'  => PurchasePlan::where('status', 'approved')->count(),
+            'ordered'   => PurchasePlan::where('status', 'ordered')->count(),
+            'completed' => PurchasePlan::where('status', 'completed')->count(),
+            'total'     => PurchasePlan::count(),
+        ];
+
+        return view('admin.purchase-plans.index', compact('plans', 'stats'));
     }
 
     public function suggestions(): View

@@ -16,12 +16,19 @@ class CategoryController extends Controller
     {
         $search = $request->get('search');
 
-        $categories = ExpenseCategory::when($search, fn ($q) =>
-            $q->where('name', 'ilike', "%{$search}%")
-              ->orWhere('description', 'ilike', "%{$search}%")
-        )->orderBy('name')->paginate(15)->withQueryString();
+        $categories = ExpenseCategory::withCount('expenseRequests')
+            ->when($search, fn ($q) =>
+                $q->where('name', 'ilike', "%{$search}%")
+                  ->orWhere('description', 'ilike', "%{$search}%")
+            )->orderBy('name')->paginate(15)->withQueryString();
 
-        return view('admin.categories.index', compact('categories', 'search'));
+        $stats = [
+            'total'    => ExpenseCategory::count(),
+            'active'   => ExpenseCategory::where('is_active', true)->count(),
+            'inactive' => ExpenseCategory::where('is_active', false)->count(),
+        ];
+
+        return view('admin.categories.index', compact('categories', 'search', 'stats'));
     }
 
     public function create(): View

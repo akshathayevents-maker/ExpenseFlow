@@ -17,11 +17,14 @@ class ReportController extends Controller
     public function index(): View
     {
         $summary = [
-            'total_expenses'        => ExpenseRequest::whereIn('status', ['paid','reimbursed','completed'])->sum('amount'),
-            'month_expenses'        => ExpenseRequest::whereIn('status', ['paid','reimbursed','completed'])
+            'total_expenses'         => ExpenseRequest::whereIn('status', ['paid','reimbursed','completed'])->sum('amount'),
+            'month_expenses'         => ExpenseRequest::whereIn('status', ['paid','reimbursed','completed'])
                 ->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->sum('amount'),
             'pending_reimbursements' => ExpenseRequest::reimbursementPending()->sum('amount'),
-            'total_wallet_balance'  => Wallet::sum('balance'),
+            'total_wallet_balance'   => Wallet::sum('balance'),
+            'pending_approvals'      => ExpenseRequest::pending()->count(),
+            'active_employees'       => User::whereIn('role', ['employee', 'manager'])->where('is_active', true)->count(),
+            'active_vendors'         => Vendor::where('is_active', true)->count(),
         ];
 
         return view('admin.reports.index', compact('summary'));

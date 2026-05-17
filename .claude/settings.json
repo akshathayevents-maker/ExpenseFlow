@@ -22,7 +22,11 @@
       "Bash(php artisan *)",
       "Bash(php -r \"require 'vendor/autoload.php'; echo 'PHP OK';\")",
       "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/app/Http/Controllers/Admin/AuditLogController.php)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(php -l app/Http/Controllers/Admin/PurchasePlanController.php)",
+      "Bash(php -l app/Http/Controllers/Admin/VendorController.php)",
+      "Bash(php -l app/Http/Controllers/Admin/CategoryController.php)",
+      "Bash(php -l app/Http/Controllers/Admin/ReportController.php)"
     ]
   }
 }

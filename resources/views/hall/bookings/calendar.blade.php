@@ -2,6 +2,75 @@
 @push('styles')
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css">
 <style>
+/* ── Calendar header: dark dramatic override ───────────────────── */
+.ef-cal-header {
+    background: linear-gradient(135deg, #1a1410 0%, #2a2218 50%, #1e1812 100%);
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 20px;
+    box-shadow: 0 4px 24px rgba(26,22,18,.16), 0 1px 4px rgba(26,22,18,.1);
+    margin-bottom: 24px;
+    overflow: hidden;
+    padding: 32px;
+    position: relative;
+}
+.ef-cal-header::before {
+    background: radial-gradient(circle, rgba(160,114,56,.16) 0%, transparent 68%);
+    border-radius: 50%;
+    content: "";
+    height: 420px;
+    pointer-events: none;
+    position: absolute;
+    right: -80px;
+    top: -140px;
+    width: 420px;
+}
+.ef-cal-header::after {
+    background: radial-gradient(circle, rgba(26,102,69,.1) 0%, transparent 70%);
+    border-radius: 50%;
+    bottom: -80px;
+    content: "";
+    height: 260px;
+    left: 28%;
+    pointer-events: none;
+    position: absolute;
+    width: 260px;
+}
+.ef-cal-kicker  { color: rgba(160,114,56,.9) !important; }
+.ef-cal-title   { color: #fffdfa !important; }
+.ef-cal-subtitle { color: rgba(255,253,250,.52) !important; }
+.ef-cal-controls { position: relative; z-index: 1; }
+.ef-cal-controls .ef-btn {
+    background: rgba(255,255,255,.08);
+    border-color: rgba(255,255,255,.14);
+    color: rgba(255,253,250,.85);
+}
+.ef-cal-controls .ef-btn:hover {
+    background: rgba(255,255,255,.14);
+    color: #fffdfa;
+}
+.ef-cal-controls .ef-btn-dark {
+    background: #a07238;
+    border-color: #a07238;
+    color: #fff;
+}
+.ef-cal-controls .ef-btn-dark:hover {
+    background: #b8854a;
+    border-color: #b8854a;
+}
+.ef-cal-select,
+.ef-cal-search {
+    background: rgba(255,255,255,.07);
+    border-color: rgba(255,255,255,.14);
+    color: rgba(255,253,250,.88);
+}
+.ef-cal-select::placeholder,
+.ef-cal-search::placeholder { color: rgba(255,253,250,.32); }
+.ef-cal-select:focus,
+.ef-cal-search:focus {
+    border-color: rgba(160,114,56,.6);
+    box-shadow: 0 0 0 3px rgba(160,114,56,.12);
+}
+
 /* ── Mobile overrides (hide desktop elements) ─────────────────── */
 @media (max-width: 767.98px) {
     .ef-cal-header   { display: none !important; }

@@ -8,23 +8,52 @@
     padding-bottom: 92px;
 }
 
-/* ── Hero ──────────────────────────────────────────────────────── */
+/* ── Hero — dark dramatic ──────────────────────────────────────── */
 .ef-bk-hero {
     align-items: end;
+    background: linear-gradient(135deg, #1a1410 0%, #2a2218 50%, #1e1812 100%);
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 20px;
+    box-shadow: 0 4px 24px rgba(26,22,18,.16), 0 1px 4px rgba(26,22,18,.1);
     display: grid;
     gap: 20px;
     grid-template-columns: minmax(0, 1fr) auto;
     margin-bottom: 28px;
+    overflow: hidden;
+    padding: 32px;
+    position: relative;
+}
+.ef-bk-hero::before {
+    background: radial-gradient(circle, rgba(160,114,56,.16) 0%, transparent 68%);
+    border-radius: 50%;
+    content: "";
+    height: 420px;
+    pointer-events: none;
+    position: absolute;
+    right: -80px;
+    top: -140px;
+    width: 420px;
+}
+.ef-bk-hero::after {
+    background: radial-gradient(circle, rgba(26,102,69,.1) 0%, transparent 70%);
+    border-radius: 50%;
+    bottom: -80px;
+    content: "";
+    height: 260px;
+    left: 30%;
+    pointer-events: none;
+    position: absolute;
+    width: 260px;
 }
 .ef-bk-kicker {
-    color: var(--ef-faint);
+    color: rgba(160,114,56,.9);
     font-size: .67rem;
     font-weight: 760;
     letter-spacing: .17em;
     text-transform: uppercase;
 }
 .ef-bk-title {
-    color: var(--ef-ink);
+    color: #fffdfa;
     font-size: clamp(2rem, 4vw, 3.2rem);
     font-weight: 780;
     letter-spacing: -.01em;
@@ -32,12 +61,12 @@
     margin: 8px 0 10px;
 }
 .ef-bk-subtitle {
-    color: var(--ef-muted);
+    color: rgba(255,253,250,.55);
     font-size: .9rem;
     margin-bottom: 6px;
 }
 .ef-bk-date {
-    color: var(--ef-faint);
+    color: rgba(255,253,250,.32);
     font-size: .78rem;
     font-weight: 640;
     letter-spacing: .03em;
@@ -48,6 +77,17 @@
     flex-wrap: wrap;
     gap: 8px;
     justify-content: flex-end;
+    position: relative;
+    z-index: 1;
+}
+.ef-bk-hero .ef-btn {
+    background: rgba(255,255,255,.08);
+    border-color: rgba(255,255,255,.14);
+    color: rgba(255,253,250,.85);
+}
+.ef-bk-hero .ef-btn:hover {
+    background: rgba(255,255,255,.14);
+    color: #fffdfa;
 }
 
 /* ── Insight strip ─────────────────────────────────────────────── */
@@ -487,7 +527,7 @@
 
 /* ── Responsive ────────────────────────────────────────────────── */
 @media (max-width: 1199.98px) {
-    .ef-bk-hero     { grid-template-columns: minmax(0, 1fr); }
+    .ef-bk-hero     { grid-template-columns: minmax(0, 1fr); padding: 28px; }
     .ef-bk-hero-actions { justify-content: flex-start; }
     .ef-bk-insights { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
@@ -495,6 +535,7 @@
     .ef-bk-grid { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 767.98px) {
+    .ef-bk-hero { padding: 20px; }
     .ef-bk-insights { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .ef-bk-title    { font-size: clamp(1.6rem, 6vw, 2.2rem); }
     .ef-bk-search   { min-width: 0; flex: 1; }

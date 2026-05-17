@@ -16,12 +16,19 @@ class VendorController extends Controller
     {
         $search = $request->get('search');
 
-        $vendors = Vendor::when($search, fn ($q) =>
-            $q->where('name', 'ilike', "%{$search}%")
-              ->orWhere('phone', 'ilike', "%{$search}%")
-        )->orderBy('name')->paginate(15)->withQueryString();
+        $vendors = Vendor::withCount('expenseRequests')
+            ->when($search, fn ($q) =>
+                $q->where('name', 'ilike', "%{$search}%")
+                  ->orWhere('phone', 'ilike', "%{$search}%")
+            )->orderBy('name')->paginate(15)->withQueryString();
 
-        return view('admin.vendors.index', compact('vendors', 'search'));
+        $stats = [
+            'total'    => Vendor::count(),
+            'active'   => Vendor::where('is_active', true)->count(),
+            'inactive' => Vendor::where('is_active', false)->count(),
+        ];
+
+        return view('admin.vendors.index', compact('vendors', 'search', 'stats'));
     }
 
     public function create(): View

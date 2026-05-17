@@ -18,7 +18,7 @@ class WalletController extends Controller
 {
     public function __construct(private WalletService $walletService) {}
 
-    public function index(): View
+    public function index(Request $request): View
     {
         // Ensure every employee/manager has a wallet
         User::whereIn('role', ['employee', 'manager'])
@@ -26,16 +26,41 @@ class WalletController extends Controller
             ->get()
             ->each(fn ($u) => $this->walletService->getOrCreate($u));
 
-        $wallets = Wallet::with('user')
-            ->whereHas('user', fn ($q) => $q->whereIn('role', ['employee', 'manager']))
-            ->orderByDesc('updated_at')
-            ->paginate(20);
+        $search = $request->get('search', '');
+        $health = $request->get('health', '');
 
-        $totalBalance     = Wallet::sum('balance');
-        $lowBalanceCount  = Wallet::where('balance', '<', 500)->count();
-        $pendingReimbCount = ExpenseRequest::reimbursementPending()->count();
+        $wallets = Wallet::with(['user'])
+            ->whereHas('user', fn ($q) => $q
+                ->whereIn('role', ['employee', 'manager'])
+                ->when($search, fn ($q) => $q->where(fn ($q) => $q
+                    ->where('name',  'ilike', "%{$search}%")
+                    ->orWhere('email', 'ilike', "%{$search}%")
+                ))
+            )
+            ->when($health === 'low',      fn ($q) => $q->where('balance', '<', 500)->where('balance', '>=', 0))
+            ->when($health === 'critical', fn ($q) => $q->where('balance', '<', 0))
+            ->when($health === 'healthy',  fn ($q) => $q->where('balance', '>=', 500))
+            ->orderByRaw("CASE WHEN balance < 0 THEN 0 WHEN balance < 500 THEN 1 ELSE 2 END")
+            ->orderBy('balance')
+            ->paginate(24)
+            ->withQueryString();
 
-        return view('admin.wallets.index', compact('wallets', 'totalBalance', 'lowBalanceCount', 'pendingReimbCount'));
+        $baseScope = Wallet::whereHas('user', fn ($q) => $q->whereIn('role', ['employee', 'manager']));
+
+        $agg = (clone $baseScope)
+            ->selectRaw('COALESCE(SUM(balance), 0) as total_balance, COUNT(*) as total_wallets, COALESCE(AVG(balance), 0) as avg_balance')
+            ->first();
+
+        $stats = [
+            'total_balance'       => (float) ($agg->total_balance   ?? 0),
+            'total_wallets'       => (int)   ($agg->total_wallets   ?? 0),
+            'avg_balance'         => (float) ($agg->avg_balance     ?? 0),
+            'low_balance_count'   => (clone $baseScope)->where('balance', '<', 500)->where('balance', '>=', 0)->count(),
+            'negative_count'      => (clone $baseScope)->where('balance', '<', 0)->count(),
+            'pending_reimb_count' => ExpenseRequest::reimbursementPending()->count(),
+        ];
+
+        return view('admin.wallets.index', compact('wallets', 'stats', 'search', 'health'));
     }
 
     public function show(User $user, Request $request): View
