@@ -27,24 +27,50 @@ class ExpenseRequestController extends Controller
     {
         $filters = $request->only(['search', 'status', 'category_id', 'employee_id', 'priority', 'from', 'to']);
 
-        $requests = ExpenseRequest::with(['category', 'vendor', 'requester', 'approver'])
-            ->when($filters['search'] ?? null, fn ($q, $v) =>
-                $q->where('title', 'ilike', "%{$v}%")
-            )
-            ->when($filters['status'] ?? null, fn ($q, $v) => $q->where('status', $v))
-            ->when($filters['category_id'] ?? null, fn ($q, $v) => $q->where('expense_category_id', $v))
-            ->when($filters['employee_id'] ?? null, fn ($q, $v) => $q->where('requested_by', $v))
-            ->when($filters['priority'] ?? null, fn ($q, $v) => $q->where('priority', $v))
-            ->when($filters['from'] ?? null, fn ($q, $v) => $q->whereDate('created_at', '>=', $v))
-            ->when($filters['to'] ?? null, fn ($q, $v) => $q->whereDate('created_at', '<=', $v))
-            ->latest()
-            ->paginate(20)
-            ->withQueryString();
+        $applyFilters = function ($query) use ($filters) {
+            return $query
+                ->when($filters['search'] ?? null, fn ($q, $v) => $q->where('title', 'ilike', "%{$v}%"))
+                ->when($filters['status'] ?? null, fn ($q, $v) => $q->where('status', $v))
+                ->when($filters['category_id'] ?? null, fn ($q, $v) => $q->where('expense_category_id', $v))
+                ->when($filters['employee_id'] ?? null, fn ($q, $v) => $q->where('requested_by', $v))
+                ->when($filters['priority'] ?? null, fn ($q, $v) => $q->where('priority', $v))
+                ->when($filters['from'] ?? null, fn ($q, $v) => $q->whereDate('created_at', '>=', $v))
+                ->when($filters['to'] ?? null, fn ($q, $v) => $q->whereDate('created_at', '<=', $v));
+        };
+
+        $requests = $applyFilters(
+            ExpenseRequest::with(['category', 'vendor', 'requester', 'approver'])
+                ->withCount(['bills'])
+        )->latest()->paginate(20)->withQueryString();
+
+        $agg = $applyFilters(ExpenseRequest::query())
+            ->selectRaw("
+                COUNT(*) as total_count,
+                COALESCE(SUM(amount), 0) as total_amount,
+                COALESCE(SUM(CASE WHEN status = 'pending'  THEN 1 ELSE 0 END), 0) as pending_count,
+                COALESCE(SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END), 0) as approved_count,
+                COALESCE(SUM(CASE WHEN status IN ('paid','reimbursed','completed','pending_payment','reimbursement_pending') THEN 1 ELSE 0 END), 0) as settled_count,
+                COALESCE(SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END), 0) as rejected_count
+            ")
+            ->first();
+
+        $stats = [
+            'total_count'    => (int)   ($agg->total_count    ?? 0),
+            'total_amount'   => (float) ($agg->total_amount   ?? 0),
+            'pending_count'  => (int)   ($agg->pending_count  ?? 0),
+            'approved_count' => (int)   ($agg->approved_count ?? 0),
+            'settled_count'  => (int)   ($agg->settled_count  ?? 0),
+            'rejected_count' => (int)   ($agg->rejected_count ?? 0),
+            'monthly_total'  => (float) ExpenseRequest::whereMonth('created_at', now()->month)
+                                    ->whereYear('created_at', now()->year)
+                                    ->whereNotIn('status', ['rejected'])
+                                    ->sum('amount'),
+        ];
 
         $categories = ExpenseCategory::active()->orderBy('name')->get();
         $employees  = User::whereIn('role', ['employee', 'manager'])->orderBy('name')->get();
 
-        return view('admin.expense-requests.index', compact('requests', 'filters', 'categories', 'employees'));
+        return view('admin.expense-requests.index', compact('requests', 'filters', 'categories', 'employees', 'stats'));
     }
 
     public function show(ExpenseRequest $expenseRequest): View

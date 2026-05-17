@@ -7,6 +7,7 @@ use App\Http\Requests\Inventory\InventoryItemRequest;
 use App\Http\Requests\Inventory\InventoryTransactionRequest;
 use App\Models\InventoryCategory;
 use App\Models\InventoryItem;
+use App\Models\InventoryTransaction;
 use App\Services\AuditLogService;
 use App\Services\InventoryService;
 use Illuminate\Http\RedirectResponse;
@@ -42,11 +43,24 @@ class InventoryItemController extends Controller
             ->paginate(25)
             ->withQueryString();
 
-        $categories    = InventoryCategory::active()->orderBy('name')->get();
-        $lowStockCount = InventoryItem::active()->lowStock()->count();
-        $outOfStock    = InventoryItem::active()->outOfStock()->count();
+        $categories = InventoryCategory::active()->orderBy('name')->get();
 
-        return view('admin.inventory.items.index', compact('items', 'filters', 'categories', 'lowStockCount', 'outOfStock'));
+        $stats = [
+            'total_active'   => InventoryItem::active()->count(),
+            'low_stock'      => InventoryItem::active()->lowStock()->count(),
+            'out_of_stock'   => InventoryItem::active()->outOfStock()->count(),
+            'critical'       => InventoryItem::active()->critical()->count(),
+            'inventory_value' => (float) InventoryItem::active()
+                ->selectRaw('COALESCE(SUM(current_stock * average_cost), 0) as val')
+                ->value('val'),
+            'monthly_spend'  => (float) InventoryTransaction::where('type', 'purchase')
+                ->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->selectRaw('COALESCE(SUM(quantity * unit_cost), 0) as val')
+                ->value('val'),
+        ];
+
+        return view('admin.inventory.items.index', compact('items', 'filters', 'categories', 'stats'));
     }
 
     public function create(): View
