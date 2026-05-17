@@ -125,12 +125,31 @@
             </div>
         </div>
 
+        {{-- Payment page link --}}
+        @php $payLink = $expenseRequest->paymentPageUrl(); @endphp
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:.85rem 1rem;margin-bottom:1rem">
+            <p style="font-size:.72rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#15803d;margin-bottom:6px">Payment Page (with QR)</p>
+            <div style="display:flex;align-items:center;gap:8px">
+                <input id="payLinkInput"
+                       type="text"
+                       value="{{ $payLink }}"
+                       readonly
+                       style="flex:1;font-size:.72rem;border:1px solid #bbf7d0;border-radius:8px;padding:6px 10px;background:#fff;color:#166534;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                <button onclick="copyPayLink()" id="copyBtn"
+                        style="flex-shrink:0;background:#15803d;border:none;color:#fff;font-size:.75rem;font-weight:700;padding:7px 12px;border-radius:8px;cursor:pointer;white-space:nowrap">
+                    Copy
+                </button>
+            </div>
+            <p style="font-size:.72rem;color:#15803d;margin-top:5px;margin-bottom:0">
+                <i class="bi bi-info-circle"></i>
+                Manager opens this link to view QR &amp; pay instantly
+            </p>
+        </div>
+
         {{-- WhatsApp CTA --}}
         <div class="wa-note mb-3">
             <i class="bi bi-whatsapp"></i>
-            <div>
-                Manager will be notified via WhatsApp. Tap below to send the payment details now.
-            </div>
+            <div>WhatsApp message includes your QR payment link. Manager taps link → sees QR → pays instantly.</div>
         </div>
 
         <a id="btnWhatsApp"
@@ -139,7 +158,7 @@
            rel="noopener"
            class="btn-whatsapp mb-3">
             <i class="bi bi-whatsapp fs-5"></i>
-            Open WhatsApp to Notify Manager
+            Send via WhatsApp (with QR link)
         </a>
 
         {{-- Action buttons --}}
@@ -163,9 +182,23 @@
 
 @push('scripts')
 <script>
+function copyPayLink() {
+    const input = document.getElementById('payLinkInput');
+    const btn   = document.getElementById('copyBtn');
+    navigator.clipboard.writeText(input.value).then(function () {
+        btn.textContent = 'Copied!';
+        btn.style.background = '#166534';
+        setTimeout(() => { btn.textContent = 'Copy'; btn.style.background = '#15803d'; }, 2000);
+    }).catch(function () {
+        input.select();
+        document.execCommand('copy');
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+    });
+}
+
 (function () {
     // Auto-open WhatsApp on mobile after brief delay
-    // Only fires once per page load and only on mobile (user-agent check)
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     if (isMobile) {
         const btn = document.getElementById('btnWhatsApp');

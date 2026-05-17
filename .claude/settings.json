@@ -26,7 +26,11 @@
       "Bash(php -l app/Http/Controllers/Admin/PurchasePlanController.php)",
       "Bash(php -l app/Http/Controllers/Admin/VendorController.php)",
       "Bash(php -l app/Http/Controllers/Admin/CategoryController.php)",
-      "Bash(php -l app/Http/Controllers/Admin/ReportController.php)"
+      "Bash(php -l app/Http/Controllers/Admin/ReportController.php)",
+      "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/app/Http/Controllers/Employee/DashboardController.php)",
+      "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/app/Http/Controllers/Auth/AuthenticatedSessionController.php)",
+      "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/app/Http/Controllers/PaymentRequestController.php)",
+      "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/app/Models/ExpenseRequest.php)"
     ]
   }
 }

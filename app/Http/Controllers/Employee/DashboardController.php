@@ -18,18 +18,20 @@ class DashboardController extends Controller
         $wallet = $this->walletService->getOrCreate($user);
 
         $stats = [
-            'my_requests'       => ExpenseRequest::where('requested_by', $userId)->count(),
-            'pending_requests'  => ExpenseRequest::where('requested_by', $userId)->pending()->count(),
-            'approved_requests' => ExpenseRequest::where('requested_by', $userId)->approved()->count(),
-            'approved_amount'   => ExpenseRequest::where('requested_by', $userId)->approved()->sum('amount'),
-            'rejected_requests' => ExpenseRequest::where('requested_by', $userId)->rejected()->count(),
-            'monthly_expense'   => ExpenseRequest::where('requested_by', $userId)
+            'my_requests'            => ExpenseRequest::where('requested_by', $userId)->count(),
+            'pending_requests'       => ExpenseRequest::where('requested_by', $userId)->pending()->count(),
+            'approved_requests'      => ExpenseRequest::where('requested_by', $userId)->approved()->count(),
+            'approved_amount'        => ExpenseRequest::where('requested_by', $userId)->approved()->sum('amount'),
+            'rejected_requests'      => ExpenseRequest::where('requested_by', $userId)->rejected()->count(),
+            'monthly_expense'        => ExpenseRequest::where('requested_by', $userId)
                 ->whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year)
                 ->sum('amount'),
-            'wallet_balance'    => $wallet->balance,
-            'wallet_low'        => $wallet->isLow(),
-            'wallet_negative'   => $wallet->isNegative(),
+            'reimbursement_pending'  => ExpenseRequest::where('requested_by', $userId)
+                ->reimbursementPending()->sum('amount'),
+            'wallet_balance'         => $wallet->balance,
+            'wallet_low'             => $wallet->isLow(),
+            'wallet_negative'        => $wallet->isNegative(),
         ];
 
         $recentRequests = ExpenseRequest::with(['category'])

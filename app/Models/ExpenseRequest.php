@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\URL;
 
 class ExpenseRequest extends Model
 {
@@ -92,21 +93,30 @@ class ExpenseRequest extends Model
             : null;
     }
 
+    public function paymentPageUrl(): string
+    {
+        return URL::temporarySignedRoute(
+            'payment-request.show',
+            now()->addDays(30),
+            ['id' => $this->id],
+        );
+    }
+
     public function whatsAppUrl(): string
     {
         $name   = $this->requester?->name ?? 'Employee';
         $amount = number_format((float) $this->amount, 2);
+        $link   = $this->paymentPageUrl();
 
         $message = implode("\n", [
-            'New Expense Payment Request',
+            '💰 Expense Payment Request',
             '',
-            "Employee: {$name}",
-            "Title: {$this->title}",
-            "Amount: ₹{$amount}",
+            "👤 Employee: {$name}",
+            "📋 Title: {$this->title}",
+            "💵 Amount: ₹{$amount}",
             '',
-            "Request ID: #{$this->id}",
-            '',
-            'Please make payment using attached QR.',
+            '📲 Tap to view QR & pay:',
+            $link,
         ]);
 
         return 'https://wa.me/9003320332?text=' . rawurlencode($message);

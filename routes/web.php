@@ -27,6 +27,7 @@ use App\Http\Controllers\Hall\HallDashboardController;
 use App\Http\Controllers\Hall\HallReportController;
 use App\Http\Controllers\Hall\MealPlanController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PaymentRequestController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -229,6 +230,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
     Route::get('notifications/count', [NotificationController::class, 'unreadCount'])->name('notifications.count');
 });
+
+// ── Public payment request page (no auth — WhatsApp shareable) ───────────────
+// Signed URL prevents enumeration; WhatsApp preview crawler accesses freely.
+Route::get('/pay/{id}', [PaymentRequestController::class, 'show'])
+    ->name('payment-request.show')
+    ->middleware('signed');
 
 // ── Profile ───────────────────────────────────────────────────────────────────
 Route::middleware('auth')->group(function () {

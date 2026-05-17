@@ -6,13 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Expense\StoreExpenseRequestRequest;
 use App\Models\ExpenseRequest;
 use App\Services\ExpenseRequestService;
+use App\Services\WalletService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class ExpenseRequestController extends Controller
 {
-    public function __construct(private ExpenseRequestService $service) {}
+    public function __construct(
+        private ExpenseRequestService $service,
+        private WalletService $walletService,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -36,7 +40,12 @@ class ExpenseRequestController extends Controller
 
     public function create(): View
     {
-        return view('employee.expense-requests.create');
+        $wallet = $this->walletService->getOrCreate(auth()->user());
+        return view('employee.expense-requests.create', [
+            'walletBalance'  => $wallet->balance,
+            'walletLow'      => $wallet->isLow(),
+            'walletNegative' => $wallet->isNegative(),
+        ]);
     }
 
     public function store(StoreExpenseRequestRequest $request): RedirectResponse

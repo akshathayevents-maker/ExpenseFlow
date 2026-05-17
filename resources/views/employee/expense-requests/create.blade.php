@@ -1,420 +1,664 @@
-<x-admin-layout title="Send Payment Request">
-
+<x-admin-layout title="Submit Expense">
+@push('styles')
 <style>
-/* ── Mobile-first overrides for this page only ─────────────────── */
-.pay-card {
-    max-width: 480px;
+/* ── UPI-style expense entry — ef-upi-* ───────────────── */
+:root {
+    --upi-green:    #1a6645;
+    --upi-green-hi: #22845a;
+    --upi-red:      #dc2626;
+    --upi-amber:    #d97706;
+    --upi-text:     #111827;
+    --upi-sub:      #6b7280;
+    --upi-border:   #e5e7eb;
+    --upi-bg:       #f9fafb;
+}
+
+/* ── Page wrapper ─────────────────────────────────────── */
+.ef-upi-page {
+    max-width: 420px;
     margin: 0 auto;
-    border-radius: 20px;
-    border: none;
-    box-shadow: 0 4px 24px rgba(0,0,0,.10);
+    padding-bottom: 100px;
 }
 
-/* Larger inputs for thumb use */
-.pay-card .form-control,
-.pay-card .form-select {
-    font-size: 1rem;
-    padding: .75rem 1rem;
-    border-radius: 12px;
-    border-color: #e2e8f0;
-}
-.pay-card .form-control:focus {
-    border-color: #25D366;
-    box-shadow: 0 0 0 3px rgba(37,211,102,.15);
-}
-.pay-card .form-label {
-    font-weight: 600;
-    font-size: .85rem;
-    color: #475569;
-    margin-bottom: .4rem;
-    letter-spacing: .02em;
-    text-transform: uppercase;
-}
-
-/* Amount field */
-.amount-wrap .input-group-text {
-    font-size: 1.25rem;
-    font-weight: 700;
-    background: #f8fafc;
-    border-color: #e2e8f0;
-    border-radius: 12px 0 0 12px;
-    color: #1e293b;
-    padding: .75rem 1rem;
-}
-.amount-wrap input {
-    font-size: 1.5rem !important;
-    font-weight: 700;
-    color: #1e293b;
-    border-radius: 0 12px 12px 0 !important;
-}
-
-/* QR upload zone */
-.qr-zone {
-    border: 2px dashed #cbd5e1;
-    border-radius: 16px;
-    background: #f8fafc;
-    cursor: pointer;
-    transition: border-color .2s, background .2s;
-    min-height: 160px;
+/* ── Top bar ──────────────────────────────────────────── */
+.ef-upi-topbar {
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0 20px;
+}
+.ef-upi-back {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: #f3f4f6;
+    border: none;
+    display: flex;
     align-items: center;
     justify-content: center;
-    gap: .5rem;
-    padding: 1.5rem;
+    color: var(--upi-text);
+    font-size: .95rem;
+    text-decoration: none;
+    transition: background .12s;
+    flex-shrink: 0;
 }
-.qr-zone:hover,
-.qr-zone.drag-over {
-    border-color: #25D366;
-    background: #f0fdf4;
-}
-.qr-zone.has-file {
-    border-style: solid;
-    border-color: #25D366;
-    background: #f0fdf4;
-}
-.qr-preview {
-    width: 120px;
-    height: 120px;
-    object-fit: contain;
-    border-radius: 10px;
-}
-
-/* CTA button */
-.btn-send {
-    background: #25D366;
-    border: none;
-    color: #fff;
+.ef-upi-back:hover { background: #e5e7eb; color: var(--upi-text); }
+.ef-upi-heading {
     font-size: 1.05rem;
     font-weight: 700;
-    border-radius: 14px;
-    padding: .9rem 1.5rem;
-    width: 100%;
-    letter-spacing: .03em;
-    transition: background .2s, transform .1s;
+    color: var(--upi-text);
+    text-align: center;
+    flex: 1;
+}
+.ef-upi-wallet-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: .75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.chip-ok  { background: #dcfce7; color: #15803d; }
+.chip-low { background: #fef3c7; color: #b45309; }
+.chip-neg { background: #fee2e2; color: #dc2626; }
+
+/* ── Amount hero ──────────────────────────────────────── */
+.ef-upi-amount-hero {
+    text-align: center;
+    padding: 20px 0 28px;
     position: relative;
 }
-.btn-send:hover:not(:disabled) { background: #1ebe5d; transform: translateY(-1px); }
-.btn-send:active:not(:disabled) { transform: translateY(0); }
-.btn-send:disabled { background: #86efac; cursor: not-allowed; }
-.btn-send .spinner-border { width: 1.1rem; height: 1.1rem; border-width: 2px; }
-
-/* Sticky footer on mobile */
-@media (max-width: 575px) {
-    .sticky-cta {
-        position: fixed;
-        bottom: 0; left: 0; right: 0;
-        background: #fff;
-        padding: 1rem 1.25rem calc(1rem + env(safe-area-inset-bottom));
-        box-shadow: 0 -4px 20px rgba(0,0,0,.10);
-        z-index: 1020;
-    }
-    .form-bottom-spacer { height: 100px; }
+.ef-upi-amount-lbl {
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--upi-sub);
+    margin-bottom: 12px;
 }
-@media (min-width: 576px) {
-    .sticky-cta { padding-top: 1.5rem; }
+.ef-upi-amount-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
 }
-
-/* Page header */
-.pay-header {
+.ef-upi-rupee {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--upi-sub);
+    line-height: 1;
+    padding-top: 6px;
+    transition: color .2s;
+}
+.ef-upi-amount-input {
+    font-size: 3rem;
+    font-weight: 800;
+    color: var(--upi-text);
+    border: none;
+    background: transparent;
+    outline: none;
     text-align: center;
-    padding: 1.5rem 0 1rem;
+    width: 200px;
+    min-width: 80px;
+    max-width: 280px;
+    line-height: 1;
+    caret-color: var(--upi-green);
+    transition: color .2s;
+    /* auto-size via JS */
 }
-.pay-header .wa-icon {
+.ef-upi-amount-input::placeholder { color: #d1d5db; }
+.ef-upi-amount-input:focus ~ .ef-upi-amount-line,
+.ef-upi-amount-row:focus-within .ef-upi-amount-line { background: var(--upi-green); }
+.ef-upi-amount-row:focus-within .ef-upi-rupee { color: var(--upi-green); }
+.ef-upi-amount-line {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 2px;
+    background: var(--upi-border);
+    border-radius: 2px;
+    transition: background .2s, width .2s;
+}
+.ef-upi-amount-row:focus-within + .ef-upi-amount-line { background: var(--upi-green); width: 160px; }
+
+/* ── Fields ───────────────────────────────────────────── */
+.ef-upi-field {
+    background: #fff;
+    border: 1.5px solid var(--upi-border);
+    border-radius: 16px;
+    padding: 16px 18px;
+    margin-bottom: 12px;
+    transition: border-color .15s, box-shadow .15s;
+}
+.ef-upi-field:focus-within {
+    border-color: var(--upi-green);
+    box-shadow: 0 0 0 3px rgba(26,102,69,.08);
+}
+.ef-upi-field.is-invalid {
+    border-color: var(--upi-red);
+    box-shadow: 0 0 0 3px rgba(220,38,38,.06);
+}
+.ef-upi-field-label {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--upi-sub);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.ef-upi-field-input {
+    width: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--upi-text);
+    padding: 0;
+}
+.ef-upi-field-input::placeholder { color: #9ca3af; font-weight: 500; }
+.ef-upi-field-error {
+    font-size: .74rem;
+    color: var(--upi-red);
+    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Suggestion chips below title */
+.ef-upi-suggestions {
+    display: flex;
+    gap: 7px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+.ef-upi-chip {
+    font-size: .73rem;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 20px;
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #e5e7eb;
+    cursor: pointer;
+    transition: all .12s;
+    user-select: none;
+}
+.ef-upi-chip:hover,
+.ef-upi-chip.selected {
+    background: #dcfce7;
+    border-color: #6ee7b7;
+    color: #065f46;
+}
+
+/* ── Upload zone ──────────────────────────────────────── */
+.ef-upi-upload {
+    background: #fff;
+    border: 2px dashed #d1d5db;
+    border-radius: 16px;
+    padding: 24px 16px;
+    margin-bottom: 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    position: relative;
+}
+.ef-upi-upload:hover,
+.ef-upi-upload.drag-over {
+    border-color: var(--upi-green);
+    background: rgba(26,102,69,.03);
+}
+.ef-upi-upload.has-file {
+    border-style: solid;
+    border-color: var(--upi-green);
+    background: rgba(26,102,69,.03);
+}
+.ef-upi-upload.is-invalid { border-color: var(--upi-red); }
+.ef-upi-upload-icon {
     width: 52px; height: 52px;
-    background: #25D366;
     border-radius: 50%;
+    background: #f3f4f6;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.6rem;
-    margin-bottom: .75rem;
-    color: #fff;
-    box-shadow: 0 4px 12px rgba(37,211,102,.35);
+    font-size: 1.3rem;
+    color: var(--upi-sub);
+    margin-bottom: 10px;
+    transition: background .2s, color .2s;
 }
-.pay-header h4 { font-weight: 800; color: #1e293b; margin-bottom: .2rem; }
-.pay-header p  { color: #64748b; font-size: .9rem; }
+.ef-upi-upload:hover .ef-upi-upload-icon,
+.ef-upi-upload.has-file .ef-upi-upload-icon {
+    background: #dcfce7;
+    color: var(--upi-green);
+}
+.ef-upi-upload-title {
+    font-size: .92rem;
+    font-weight: 700;
+    color: var(--upi-text);
+    margin-bottom: 3px;
+}
+.ef-upi-upload-sub {
+    font-size: .75rem;
+    color: var(--upi-sub);
+    margin-bottom: 10px;
+}
+.ef-upi-camera-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 7px 16px;
+    border-radius: 20px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    font-size: .78rem;
+    font-weight: 600;
+    color: var(--upi-text);
+    cursor: pointer;
+    transition: all .12s;
+}
+.ef-upi-camera-pill:hover { background: #dcfce7; border-color: #6ee7b7; color: #065f46; }
+
+/* Upload preview */
+.ef-upi-preview { text-align: center; }
+.ef-upi-preview-img {
+    max-width: 130px; max-height: 130px;
+    object-fit: contain;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+}
+.ef-upi-preview-name {
+    font-size: .73rem;
+    color: var(--upi-sub);
+    margin: 6px 0 0;
+}
+.ef-upi-change-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 14px;
+    border-radius: 20px;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    font-size: .74rem;
+    font-weight: 600;
+    color: var(--upi-sub);
+    cursor: pointer;
+    margin-top: 8px;
+    transition: all .12s;
+}
+.ef-upi-change-pill:hover { background: #e5e7eb; color: var(--upi-text); }
+
+/* ── Notes (collapsible feel) ─────────────────────────── */
+.ef-upi-notes-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    padding: 4px 0 12px;
+    font-size: .8rem;
+    font-weight: 600;
+    color: var(--upi-sub);
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    transition: color .12s;
+}
+.ef-upi-notes-toggle:hover { color: var(--upi-text); }
+.ef-upi-notes-toggle i { transition: transform .2s; }
+.ef-upi-notes-toggle.open i { transform: rotate(180deg); }
+.ef-upi-notes-body {
+    display: none;
+    margin-bottom: 12px;
+}
+.ef-upi-notes-body.open { display: block; }
+.ef-upi-notes-input {
+    width: 100%;
+    background: #fff;
+    border: 1.5px solid var(--upi-border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    font-size: .95rem;
+    color: var(--upi-text);
+    outline: none;
+    resize: vertical;
+    min-height: 80px;
+    transition: border-color .15s, box-shadow .15s;
+}
+.ef-upi-notes-input:focus {
+    border-color: var(--upi-green);
+    box-shadow: 0 0 0 3px rgba(26,102,69,.08);
+}
+
+/* ── Error panel ──────────────────────────────────────── */
+.ef-upi-errors {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    font-size: .82rem;
+    color: #991b1b;
+}
+.ef-upi-errors ul { margin: 6px 0 0; padding-left: 16px; }
+.ef-upi-errors li { margin-bottom: 2px; }
+
+/* ── Sticky submit ────────────────────────────────────── */
+.ef-upi-submit-wrap {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(255,255,255,.95);
+    backdrop-filter: blur(8px);
+    padding: 14px 20px calc(14px + env(safe-area-inset-bottom));
+    box-shadow: 0 -2px 20px rgba(0,0,0,.08);
+    z-index: 1020;
+}
+.ef-upi-submit-inner { max-width: 420px; margin: 0 auto; }
+.ef-upi-submit-btn {
+    width: 100%;
+    background: var(--upi-green);
+    border: none;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 700;
+    padding: 17px;
+    border-radius: 16px;
+    letter-spacing: .03em;
+    box-shadow: 0 4px 14px rgba(26,102,69,.3);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background .15s, transform .1s, box-shadow .15s;
+}
+.ef-upi-submit-btn:hover:not(:disabled) {
+    background: var(--upi-green-hi);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(26,102,69,.38);
+}
+.ef-upi-submit-btn:active:not(:disabled) { transform: translateY(0); }
+.ef-upi-submit-btn:disabled { background: #86efac; cursor: not-allowed; box-shadow: none; }
+.ef-upi-submit-btn .spinner-border { width: 1rem; height: 1rem; border-width: 2px; }
+.ef-upi-spacer { height: 90px; }
+
+/* ── Responsive ───────────────────────────────────────── */
+@media (min-width: 768px) {
+    .ef-upi-page { padding: 12px 0 100px; }
+    .ef-upi-amount-input { font-size: 3.5rem; }
+}
 </style>
+@endpush
 
-{{-- Page header --}}
-<div class="pay-header">
-    <div class="wa-icon"><i class="bi bi-whatsapp"></i></div>
-    <h4>Send Payment Request</h4>
-    <p>Fill in the details and attach your payment QR</p>
-</div>
+<div class="ef-upi-page">
 
-@if ($errors->any())
-    <div class="pay-card card mx-auto mb-3 px-4 py-3">
-        <div class="alert alert-danger mb-0 py-2 rounded-3">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            <strong>Please fix the following:</strong>
-            <ul class="mb-0 mt-1 ps-3">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
+    {{-- Top bar --}}
+    <div class="ef-upi-topbar">
+        <a href="{{ route('employee.dashboard') }}" class="ef-upi-back">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <span class="ef-upi-heading">Submit Expense</span>
+        @php
+            $chipClass = $walletNegative ? 'chip-neg' : ($walletLow ? 'chip-low' : 'chip-ok');
+        @endphp
+        <span class="ef-upi-wallet-chip {{ $chipClass }}">
+            <i class="bi bi-wallet2"></i>
+            ₹{{ number_format($walletBalance, 0) }}
+        </span>
     </div>
-@endif
 
-<form method="POST"
-      action="{{ route('employee.expense-requests.store') }}"
-      enctype="multipart/form-data"
-      id="payForm"
-      novalidate>
+    {{-- Errors --}}
+    @if($errors->any())
+    <div class="ef-upi-errors">
+        <strong>Please fix:</strong>
+        <ul>
+            @foreach($errors->all() as $e)
+            <li>{{ $e }}</li>
+            @endforeach
+        </ul>
+    </div>
+    @endif
+
+    <form method="POST"
+          action="{{ route('employee.expense-requests.store') }}"
+          enctype="multipart/form-data"
+          id="upiForm"
+          novalidate>
     @csrf
 
-    <div class="pay-card card mb-0">
-        <div class="card-body p-4 pb-3">
-            <div class="d-flex flex-column gap-4">
+    {{-- Amount hero --}}
+    <div class="ef-upi-amount-hero">
+        <p class="ef-upi-amount-lbl">Enter Amount</p>
+        <div class="ef-upi-amount-row">
+            <span class="ef-upi-rupee">₹</span>
+            <input type="number"
+                   id="amount"
+                   name="amount"
+                   class="ef-upi-amount-input"
+                   step="0.01"
+                   min="0.01"
+                   inputmode="decimal"
+                   value="{{ old('amount') }}"
+                   placeholder="0"
+                   required>
+        </div>
+        <div class="ef-upi-amount-line"></div>
+        @error('amount')
+        <div class="ef-upi-field-error mt-2"><i class="bi bi-exclamation-circle"></i> {{ $message }}</div>
+        @enderror
+    </div>
 
-                {{-- Title ------------------------------------------------- --}}
-                <div>
-                    <label class="form-label" for="title">
-                        What is this payment for?
-                    </label>
-                    <input type="text"
-                           id="title"
-                           name="title"
-                           class="form-control @error('title') is-invalid @enderror"
-                           value="{{ old('title') }}"
-                           placeholder="e.g. Grocery supplies, Fuel, Cleaning material…"
-                           autocomplete="off"
-                           autofocus
-                           required>
-                    @error('title')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
+    {{-- Title --}}
+    <div class="ef-upi-field {{ $errors->has('title') ? 'is-invalid' : '' }}">
+        <div class="ef-upi-field-label">
+            <span>What is this for?</span>
+            <span style="font-size:.65rem;color:#9ca3af;font-weight:500;text-transform:none;letter-spacing:0">required</span>
+        </div>
+        <input type="text"
+               id="title"
+               name="title"
+               class="ef-upi-field-input"
+               value="{{ old('title') }}"
+               placeholder="Fuel, Vegetables, Supplies…"
+               autocomplete="off"
+               autofocus
+               required>
+        {{-- Quick-fill chips --}}
+        <div class="ef-upi-suggestions">
+            <span class="ef-upi-chip" data-val="Fuel">Fuel</span>
+            <span class="ef-upi-chip" data-val="Vegetables">Vegetables</span>
+            <span class="ef-upi-chip" data-val="Milk">Milk</span>
+            <span class="ef-upi-chip" data-val="Cleaning">Cleaning</span>
+            <span class="ef-upi-chip" data-val="Advance">Advance</span>
+        </div>
+        @error('title')
+        <div class="ef-upi-field-error"><i class="bi bi-exclamation-circle"></i> {{ $message }}</div>
+        @enderror
+    </div>
 
-                {{-- Amount ------------------------------------------------- --}}
-                <div>
-                    <label class="form-label" for="amount">Amount</label>
-                    <div class="input-group amount-wrap">
-                        <span class="input-group-text">₹</span>
-                        <input type="number"
-                               id="amount"
-                               name="amount"
-                               step="0.01"
-                               min="0.01"
-                               inputmode="decimal"
-                               class="form-control @error('amount') is-invalid @enderror"
-                               value="{{ old('amount') }}"
-                               placeholder="0.00"
-                               required>
-                        @error('amount')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-                </div>
+    {{-- Upload --}}
+    <div id="uploadZone"
+         class="ef-upi-upload {{ $errors->has('qr') ? 'is-invalid' : '' }}"
+         role="button"
+         tabindex="0"
+         aria-label="Upload payment QR or receipt">
 
-                {{-- QR Upload ---------------------------------------------- --}}
-                <div>
-                    <label class="form-label">Payment QR Code <span class="text-danger">*</span></label>
+        <div id="uploadPlaceholder">
+            <div class="ef-upi-upload-icon"><i class="bi bi-image"></i></div>
+            <p class="ef-upi-upload-title">Upload Bill / QR / Screenshot</p>
+            <p class="ef-upi-upload-sub">Tap to pick from gallery</p>
+            <button type="button" id="btnCamera" class="ef-upi-camera-pill">
+                <i class="bi bi-camera"></i> Take Photo
+            </button>
+        </div>
 
-                    <div id="qrZone" class="qr-zone @error('qr') border-danger @enderror"
-                         role="button"
-                         aria-label="Upload QR code image"
-                         tabindex="0">
-                        <div id="qrPlaceholder">
-                            <i class="bi bi-qr-code fs-1 text-muted d-block text-center mb-1"></i>
-                            <div class="text-center text-muted small">
-                                <span class="fw-semibold text-dark">Tap to upload QR</span><br>
-                                or drag &amp; drop here<br>
-                                <span class="d-none d-sm-inline">JPG · PNG · PDF — max 10 MB</span>
-                            </div>
-                            {{-- Camera capture on mobile --}}
-                            <div class="text-center mt-2">
-                                <button type="button" id="btnCamera"
-                                        class="btn btn-sm btn-outline-secondary rounded-pill px-3">
-                                    <i class="bi bi-camera me-1"></i>Take Photo
-                                </button>
-                            </div>
-                        </div>
-
-                        {{-- Preview after file chosen --}}
-                        <div id="qrPreviewWrap" class="d-none text-center">
-                            <img id="qrPreviewImg" class="qr-preview d-none" src="" alt="QR preview">
-                            <div id="qrPreviewPdf" class="d-none">
-                                <i class="bi bi-file-earmark-pdf text-danger" style="font-size:3rem"></i>
-                            </div>
-                            <p id="qrFileName" class="small text-muted mt-2 mb-0"></p>
-                            <button type="button" id="btnChangeQr"
-                                    class="btn btn-sm btn-outline-secondary mt-2 rounded-pill px-3">
-                                <i class="bi bi-arrow-repeat me-1"></i>Change
-                            </button>
-                        </div>
-                    </div>
-
-                    {{-- Hidden file inputs: one for gallery/files, one for camera --}}
-                    <input type="file" id="qrInput"       name="qr" accept="image/*,application/pdf" class="d-none">
-                    <input type="file" id="qrInputCamera" name="qr" accept="image/*" capture="environment" class="d-none">
-
-                    @error('qr')
-                        <div class="text-danger small mt-1">
-                            <i class="bi bi-exclamation-circle me-1"></i>{{ $message }}
-                        </div>
-                    @enderror
-                </div>
-
-                {{-- Notes -------------------------------------------------- --}}
-                <div>
-                    <label class="form-label" for="notes">
-                        Note <span class="text-muted fw-normal" style="text-transform:none">(optional)</span>
-                    </label>
-                    <textarea id="notes"
-                              name="notes"
-                              rows="2"
-                              class="form-control @error('notes') is-invalid @enderror"
-                              placeholder="Any extra details for the manager…">{{ old('notes') }}</textarea>
-                    @error('notes')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
-
-            </div>{{-- /gap-4 --}}
-
-            {{-- Bottom spacer so sticky button doesn't cover content on mobile --}}
-            <div class="form-bottom-spacer"></div>
+        <div id="uploadPreview" class="ef-upi-preview d-none">
+            <img id="previewImg" class="ef-upi-preview-img d-none" src="" alt="">
+            <div id="previewPdf" class="d-none">
+                <i class="bi bi-file-earmark-pdf" style="font-size:3.2rem;color:#dc2626"></i>
+            </div>
+            <p id="previewName" class="ef-upi-preview-name"></p>
+            <button type="button" id="btnChange" class="ef-upi-change-pill">
+                <i class="bi bi-arrow-repeat"></i> Change
+            </button>
         </div>
     </div>
 
-    {{-- Sticky CTA --------------------------------------------------------- --}}
-    <div class="sticky-cta">
-        <button type="submit" id="btnSubmit" class="btn-send">
-            <span id="btnNormal">
-                <i class="bi bi-whatsapp me-2"></i>Send Payment Request
-            </span>
-            <span id="btnLoading" class="d-none">
-                <span class="spinner-border me-2" role="status" aria-hidden="true"></span>
-                Sending…
-            </span>
-        </button>
+    <input type="file" id="qrInput"       name="qr" accept="image/*,application/pdf" class="d-none">
+    <input type="file" id="qrInputCamera" name="qr" accept="image/*" capture="environment" class="d-none">
+
+    @error('qr')
+    <div class="ef-upi-field-error mb-3"><i class="bi bi-exclamation-circle"></i> {{ $message }}</div>
+    @enderror
+
+    {{-- Notes — collapsible --}}
+    <button type="button" class="ef-upi-notes-toggle" id="notesToggle">
+        <i class="bi bi-chevron-down"></i>
+        Add a note (optional)
+    </button>
+    <div class="ef-upi-notes-body" id="notesBody">
+        <textarea name="notes"
+                  id="notes"
+                  class="ef-upi-notes-input"
+                  rows="3"
+                  placeholder="Any details for your manager…">{{ old('notes') }}</textarea>
+        @error('notes')
+        <div class="ef-upi-field-error mt-1"><i class="bi bi-exclamation-circle"></i> {{ $message }}</div>
+        @enderror
     </div>
 
-</form>
+    {{-- Spacer for fixed button --}}
+    <div class="ef-upi-spacer"></div>
+
+    {{-- Sticky submit --}}
+    <div class="ef-upi-submit-wrap">
+        <div class="ef-upi-submit-inner">
+            <button type="submit" id="btnSubmit" class="ef-upi-submit-btn">
+                <span id="btnNormal"><i class="bi bi-send-fill"></i> Submit Expense</span>
+                <span id="btnLoading" class="d-none">
+                    <span class="spinner-border" role="status" aria-hidden="true"></span> Submitting…
+                </span>
+            </button>
+        </div>
+    </div>
+
+    </form>
+
+</div>{{-- /page --}}
 
 @push('scripts')
 <script>
 (function () {
     'use strict';
 
-    // ── QR upload logic ──────────────────────────────────────────────────────
-    const zone         = document.getElementById('qrZone');
-    const qrInput      = document.getElementById('qrInput');
-    const cameraInput  = document.getElementById('qrInputCamera');
-    const btnCamera    = document.getElementById('btnCamera');
-    const placeholder  = document.getElementById('qrPlaceholder');
-    const previewWrap  = document.getElementById('qrPreviewWrap');
-    const previewImg   = document.getElementById('qrPreviewImg');
-    const previewPdf   = document.getElementById('qrPreviewPdf');
-    const fileName     = document.getElementById('qrFileName');
-    const btnChange    = document.getElementById('btnChangeQr');
-    const form         = document.getElementById('payForm');
-    const btnSubmit    = document.getElementById('btnSubmit');
-    const btnNormal    = document.getElementById('btnNormal');
-    const btnLoading   = document.getElementById('btnLoading');
-
-    // Tap zone → open file picker
-    zone.addEventListener('click', function (e) {
-        if (e.target === btnCamera || btnCamera.contains(e.target)) return;
-        if (e.target === btnChange || btnChange.contains(e.target)) return;
-        qrInput.click();
+    // ── Quick-fill chips ─────────────────────────────────────────────────────
+    const titleInput = document.getElementById('title');
+    document.querySelectorAll('.ef-upi-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            titleInput.value = chip.dataset.val;
+            document.querySelectorAll('.ef-upi-chip').forEach(c => c.classList.remove('selected'));
+            chip.classList.add('selected');
+            titleInput.focus();
+        });
+    });
+    titleInput.addEventListener('input', () => {
+        document.querySelectorAll('.ef-upi-chip').forEach(c => c.classList.remove('selected'));
     });
 
-    // Keyboard accessible
+    // ── Notes toggle ─────────────────────────────────────────────────────────
+    const notesToggle = document.getElementById('notesToggle');
+    const notesBody   = document.getElementById('notesBody');
+    // If old() notes value exists, open by default
+    @if(old('notes'))
+    notesBody.classList.add('open');
+    notesToggle.classList.add('open');
+    @endif
+    notesToggle.addEventListener('click', () => {
+        const open = notesBody.classList.toggle('open');
+        notesToggle.classList.toggle('open', open);
+        if (open) document.getElementById('notes').focus();
+    });
+
+    // ── Upload logic ─────────────────────────────────────────────────────────
+    const zone        = document.getElementById('uploadZone');
+    const qrInput     = document.getElementById('qrInput');
+    const camInput    = document.getElementById('qrInputCamera');
+    const btnCamera   = document.getElementById('btnCamera');
+    const placeholder = document.getElementById('uploadPlaceholder');
+    const preview     = document.getElementById('uploadPreview');
+    const previewImg  = document.getElementById('previewImg');
+    const previewPdf  = document.getElementById('previewPdf');
+    const previewName = document.getElementById('previewName');
+    const btnChange   = document.getElementById('btnChange');
+
+    zone.addEventListener('click', e => {
+        if (btnCamera.contains(e.target) || btnChange.contains(e.target)) return;
+        qrInput.click();
+    });
     zone.addEventListener('keydown', e => {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); qrInput.click(); }
     });
-
-    // Camera button → trigger camera capture
-    btnCamera.addEventListener('click', e => { e.stopPropagation(); cameraInput.click(); });
-
-    // Change button → reopen picker
+    btnCamera.addEventListener('click', e => { e.stopPropagation(); camInput.click(); });
     btnChange.addEventListener('click', e => { e.stopPropagation(); qrInput.click(); });
 
-    // Drag & drop
     zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
     zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
     zone.addEventListener('drop', e => {
         e.preventDefault();
         zone.classList.remove('drag-over');
-        const dt = e.dataTransfer;
-        if (dt.files && dt.files.length) handleFile(dt.files[0], qrInput);
+        if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0], qrInput);
     });
 
     qrInput.addEventListener('change', () => {
-        if (qrInput.files[0]) {
-            handleFile(qrInput.files[0], qrInput);
-            // Disable camera input so only one is submitted
-            cameraInput.removeAttribute('name');
-        }
+        if (qrInput.files[0]) { handleFile(qrInput.files[0], qrInput); camInput.removeAttribute('name'); }
     });
-
-    cameraInput.addEventListener('change', () => {
-        if (cameraInput.files[0]) {
-            handleFile(cameraInput.files[0], cameraInput);
-            // Make camera input the submitted file
+    camInput.addEventListener('change', () => {
+        if (camInput.files[0]) {
+            handleFile(camInput.files[0], camInput);
             qrInput.removeAttribute('name');
-            cameraInput.setAttribute('name', 'qr');
+            camInput.setAttribute('name', 'qr');
         }
     });
 
-    function handleFile(file, sourceInput) {
-        const maxBytes = 10 * 1024 * 1024;
-        if (file.size > maxBytes) {
-            alert('File is too large. Maximum size is 10 MB.');
-            sourceInput.value = '';
-            return;
-        }
-
-        const isPdf = file.type === 'application/pdf';
-        fileName.textContent = file.name + ' (' + humanSize(file.size) + ')';
-
-        if (isPdf) {
-            previewImg.classList.add('d-none');
-            previewPdf.classList.remove('d-none');
+    function handleFile(file, src) {
+        if (file.size > 10 * 1024 * 1024) { alert('File too large. Max 10 MB.'); src.value = ''; return; }
+        const sz = file.size < 1048576
+            ? (file.size / 1024).toFixed(1) + ' KB'
+            : (file.size / 1048576).toFixed(1) + ' MB';
+        previewName.textContent = file.name + ' · ' + sz;
+        if (file.type === 'application/pdf') {
+            previewImg.classList.add('d-none'); previewPdf.classList.remove('d-none');
         } else {
-            const reader = new FileReader();
-            reader.onload = ev => {
-                previewImg.src = ev.target.result;
-                previewImg.classList.remove('d-none');
-                previewPdf.classList.add('d-none');
-            };
-            reader.readAsDataURL(file);
+            const r = new FileReader();
+            r.onload = ev => { previewImg.src = ev.target.result; previewImg.classList.remove('d-none'); previewPdf.classList.add('d-none'); };
+            r.readAsDataURL(file);
         }
-
         placeholder.classList.add('d-none');
-        previewWrap.classList.remove('d-none');
+        preview.classList.remove('d-none');
         zone.classList.add('has-file');
+        zone.classList.remove('is-invalid');
     }
 
-    function humanSize(bytes) {
-        return bytes < 1048576
-            ? (bytes / 1024).toFixed(1) + ' KB'
-            : (bytes / 1048576).toFixed(1) + ' MB';
-    }
-
-    // ── Duplicate-submission prevention ──────────────────────────────────────
+    // ── Submit guard ─────────────────────────────────────────────────────────
     let submitted = false;
-
-    form.addEventListener('submit', function (e) {
+    document.getElementById('upiForm').addEventListener('submit', function (e) {
         if (submitted) { e.preventDefault(); return; }
-
-        // Basic client-side validation
-        const title  = document.getElementById('title').value.trim();
-        const amount = parseFloat(document.getElementById('amount').value);
-        const hasQr  = qrInput.files.length > 0 || cameraInput.files.length > 0;
-
-        if (!title || !amount || amount <= 0 || !hasQr) return; // let HTML5 validation handle it
-
+        const hasQr = qrInput.files.length > 0 || camInput.files.length > 0;
+        if (!titleInput.value.trim() || !parseFloat(document.getElementById('amount').value) || !hasQr) return;
         submitted = true;
-        btnSubmit.disabled = true;
-        btnNormal.classList.add('d-none');
-        btnLoading.classList.remove('d-none');
+        const btn = document.getElementById('btnSubmit');
+        btn.disabled = true;
+        document.getElementById('btnNormal').classList.add('d-none');
+        document.getElementById('btnLoading').classList.remove('d-none');
     });
 })();
 </script>
 @endpush
-
 </x-admin-layout>
