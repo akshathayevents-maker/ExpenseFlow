@@ -31,7 +31,19 @@
       "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/app/Http/Controllers/Auth/AuthenticatedSessionController.php)",
       "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/app/Http/Controllers/PaymentRequestController.php)",
       "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/app/Models/ExpenseRequest.php)",
-      "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/app/Http/Controllers/Employee/WalletController.php)"
+      "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/app/Http/Controllers/Employee/WalletController.php)",
+      "Bash(python3 -c \"import cairosvg\")",
+      "Bash(python3 -c \"from PIL import Image\")",
+      "Bash(python3 -c \"from PIL import Image, ImageDraw, ImageFont; print\\('PIL OK'\\); import PIL; print\\(PIL.__version__\\)\")",
+      "Bash(fc-list)",
+      "Read(//usr/share/fonts/truetype/dejavu/**)",
+      "Read(//usr/share/fonts/truetype/liberation/**)",
+      "Bash(python3 generate_favicons.py)",
+      "Bash(sed -n '146,160p' /home/qc7107-l/Projects/ExpenseFlow/app/Models/ExpenseRequest.php)",
+      "Bash(sed -n '171,185p' /home/qc7107-l/Projects/ExpenseFlow/routes/web.php)",
+      "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/app/Http/Controllers/Manager/DashboardController.php)",
+      "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/app/Http/Controllers/Manager/ExpenseRequestController.php)",
+      "Bash(php -r ' *)"
     ]
   }
 }

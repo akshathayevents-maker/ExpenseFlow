@@ -18,7 +18,11 @@
 @endif
 <meta name="twitter:card"       content="summary_large_image">
 
-<title>₹{{ number_format((float)$expense->amount, 2) }} — {{ $expense->title }}</title>
+<title>₹{{ number_format((float)$expense->amount, 2) }} • {{ $expense->title }} • ExpenseFlow</title>
+<link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}?v=2">
+<link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}?v=2">
+<meta name="theme-color" content="#10b981">
 
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }

@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Booking {{ str_pad($booking->id, 4, '0', STR_PAD_LEFT) }} — Akshathay Mini Hall</title>
+<title>Booking #{{ str_pad($booking->id, 4, '0', STR_PAD_LEFT) }} • Akshathay Mini Hall • ExpenseFlow</title>
+<link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}?v=2">
 <style>
 * { box-sizing: border-box; }
 html { font-size: 13px; }

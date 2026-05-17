@@ -21,7 +21,7 @@ class ExpenseRequestController extends Controller
     {
         $filters = $request->only(['search', 'status', 'category_id', 'priority', 'from', 'to']);
 
-        $requests = ExpenseRequest::with(['category', 'vendor', 'requester', 'approver'])
+        $requests = ExpenseRequest::with(['category', 'requester'])
             ->when($filters['search'] ?? null, fn ($q, $v) =>
                 $q->where('title', 'ilike', "%{$v}%")
             )
@@ -30,13 +30,25 @@ class ExpenseRequestController extends Controller
             ->when($filters['priority'] ?? null, fn ($q, $v) => $q->where('priority', $v))
             ->when($filters['from'] ?? null, fn ($q, $v) => $q->whereDate('created_at', '>=', $v))
             ->when($filters['to'] ?? null, fn ($q, $v) => $q->whereDate('created_at', '<=', $v))
+            ->orderByRaw("CASE priority WHEN 'urgent' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 ELSE 4 END")
             ->latest()
             ->paginate(20)
             ->withQueryString();
 
         $categories = ExpenseCategory::active()->orderBy('name')->get();
 
-        return view('manager.expense-requests.index', compact('requests', 'filters', 'categories'));
+        $summary = [
+            'pending'              => ExpenseRequest::pending()->count(),
+            'pending_amount'       => ExpenseRequest::pending()->sum('amount'),
+            'high_priority'        => ExpenseRequest::pending()->whereIn('priority', ['high', 'urgent'])->count(),
+            'approved_today'       => ExpenseRequest::approved()->whereDate('updated_at', today())->count(),
+            'approved_today_amount'=> ExpenseRequest::approved()->whereDate('updated_at', today())->sum('amount'),
+            'rejected'             => ExpenseRequest::rejected()->count(),
+            'paid_today'           => ExpenseRequest::whereIn('status', ['paid', 'completed', 'reimbursed'])
+                                        ->whereDate('updated_at', today())->sum('amount'),
+        ];
+
+        return view('manager.expense-requests.index', compact('requests', 'filters', 'categories', 'summary'));
     }
 
     public function show(ExpenseRequest $expenseRequest): View
