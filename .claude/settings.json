@@ -30,7 +30,8 @@
       "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/app/Http/Controllers/Employee/DashboardController.php)",
       "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/app/Http/Controllers/Auth/AuthenticatedSessionController.php)",
       "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/app/Http/Controllers/PaymentRequestController.php)",
-      "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/app/Models/ExpenseRequest.php)"
+      "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/app/Models/ExpenseRequest.php)",
+      "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/app/Http/Controllers/Employee/WalletController.php)"
     ]
   }
 }
