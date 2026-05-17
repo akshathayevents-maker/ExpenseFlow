@@ -108,18 +108,36 @@ class ExpenseRequest extends Model
         $amount = number_format((float) $this->amount, 2);
         $link   = $this->paymentPageUrl();
 
-        $message = implode("\n", [
-            '💰 Expense Payment Request',
-            '',
-            "👤 Employee: {$name}",
-            "📋 Title: {$this->title}",
-            "💵 Amount: ₹{$amount}",
-            '',
-            '📲 Tap to view QR & pay:',
-            $link,
-        ]);
+        // PHP \u{XXXX} escapes guarantee correct UTF-8 bytes for supplementary emoji,
+        // avoiding source-file encoding corruption. rawurlencode() is the PHP
+        // equivalent of JS encodeURIComponent() — encodes the same character set.
+        $party  = "\u{1F389}"; // 🎉
+        $person = "\u{1F464}"; // 👤
+        $bill   = "\u{1F9FE}"; // 🧾
+        $money  = "\u{1F4B0}"; // 💰
+        $mobile = "\u{1F4F2}"; // 📲
+        $bolt   = "\u{26A1}";  // ⚡
+        $rule   = "\u{2501}\u{2501}\u{2501}\u{2501}\u{2501}\u{2501}\u{2501}\u{2501}\u{2501}\u{2501}\u{2501}\u{2501}\u{2501}\u{2501}\u{2501}";
 
-        return 'https://wa.me/9003320332?text=' . rawurlencode($message);
+        $lines = [
+            "{$party} *Expense Payment Request*",
+            "",
+            "{$person} *Employee:* {$name}",
+            "{$bill} *Title:* {$this->title}",
+            "{$money} *Amount:* \u{20B9}{$amount}",
+            "",
+            $rule,
+            "",
+            "{$mobile} *Tap below to open payment page & scan QR:*",
+            "",
+            $link,
+            "",
+            $rule,
+            "",
+            "{$bolt} Shared via ExpenseFlow",
+        ];
+
+        return 'https://api.whatsapp.com/send?text=' . rawurlencode(implode("\n", $lines));
     }
 
     // Scopes
