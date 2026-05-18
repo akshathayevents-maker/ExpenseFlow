@@ -613,6 +613,220 @@ textarea.ef-textarea {
 
 } /* end @media max-width: 767.98px */
 
+/* ═══════════════════════════════════════════════════════════════════
+   Report sub-page mobile filter  (ef-rpf-*)
+   Used on d-md-none wrapper — never rendered on desktop.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.ef-rpf-wrap {
+    background: var(--ef-surface);
+    border: 1px solid var(--ef-border);
+    border-radius: 16px;
+    box-shadow: var(--ef-shadow);
+    margin-bottom: 12px;
+    overflow: hidden;
+    padding: 14px 14px 0;
+}
+
+/* Section label */
+.ef-rpf-lbl {
+    color: var(--ef-faint);
+    font-size: .59rem;
+    font-weight: 760;
+    letter-spacing: .1em;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+/* Quick range chip row */
+.ef-rpf-ranges {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.ef-rpf-ranges::-webkit-scrollbar { display: none; }
+
+.ef-rpf-chip {
+    align-items: center;
+    background: var(--ef-bg-subtle);
+    border: 1.5px solid var(--ef-border);
+    border-radius: 20px;
+    color: var(--ef-muted);
+    cursor: pointer;
+    display: inline-flex;
+    flex-shrink: 0;
+    font-size: .72rem;
+    font-weight: 700;
+    gap: 5px;
+    height: 32px;
+    padding: 0 13px;
+    transition: all .14s;
+    white-space: nowrap;
+}
+.ef-rpf-chip.--active {
+    background: var(--ef-ink);
+    border-color: var(--ef-ink);
+    box-shadow: 0 2px 8px rgba(20,20,18,.16);
+    color: #fff;
+    transform: translateY(-1px);
+}
+.ef-rpf-chip:not(.--active):active {
+    background: var(--ef-border);
+}
+
+/* Horizontal separator */
+.ef-rpf-sep {
+    border: none;
+    border-top: 1px solid var(--ef-border);
+    margin: 0 -14px 12px;
+}
+
+/* Two-column grid (date pickers, selects) */
+.ef-rpf-grid-2 {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: 1fr 1fr;
+    margin-bottom: 10px;
+}
+.ef-rpf-grid-1 {
+    margin-bottom: 10px;
+}
+
+/* Field label */
+.ef-rpf-field-lbl {
+    color: var(--ef-faint);
+    display: block;
+    font-size: .6rem;
+    font-weight: 760;
+    letter-spacing: .1em;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+}
+
+/* Date input */
+.ef-rpf-date {
+    background: var(--ef-bg-subtle);
+    border: 1.5px solid var(--ef-border);
+    border-radius: 10px;
+    color: var(--ef-ink);
+    font-size: .84rem;
+    height: 40px;
+    padding: 0 10px;
+    transition: border-color .14s;
+    width: 100%;
+}
+.ef-rpf-date:focus {
+    border-color: var(--ef-ink);
+    outline: none;
+}
+
+/* Select input */
+.ef-rpf-select {
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--ef-bg-subtle)
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+        no-repeat right 10px center;
+    border: 1.5px solid var(--ef-border);
+    border-radius: 10px;
+    color: var(--ef-ink);
+    font-size: .84rem;
+    height: 40px;
+    padding: 0 30px 0 10px;
+    transition: border-color .14s;
+    width: 100%;
+}
+.ef-rpf-select:focus {
+    border-color: var(--ef-ink);
+    outline: none;
+}
+
+/* Active filter summary bar */
+.ef-rpf-fsbar {
+    align-items: center;
+    background: rgba(20,20,18,.04);
+    border-radius: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 10px;
+    padding: 7px 10px;
+}
+.ef-rpf-fsbar-lbl {
+    color: var(--ef-faint);
+    font-size: .62rem;
+    font-weight: 760;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+.ef-rpf-fsbar-chip {
+    align-items: center;
+    background: var(--ef-ink);
+    border-radius: 20px;
+    color: #fff;
+    display: inline-flex;
+    font-size: .68rem;
+    font-weight: 680;
+    gap: 3px;
+    padding: 2px 9px;
+}
+
+/* Footer action row */
+.ef-rpf-footer {
+    background: var(--ef-surface);
+    border-top: 1px solid var(--ef-border);
+    display: flex;
+    gap: 8px;
+    margin: 0 -14px;
+    padding: 10px 14px;
+}
+.ef-rpf-apply {
+    background: var(--ef-ink);
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    cursor: pointer;
+    flex: 1;
+    font-size: .84rem;
+    font-weight: 720;
+    height: 42px;
+    transition: opacity .14s, transform .14s;
+}
+.ef-rpf-apply:disabled {
+    cursor: not-allowed;
+    opacity: .35;
+}
+.ef-rpf-apply:not(:disabled):active { transform: scale(.98); }
+
+.ef-rpf-reset {
+    align-items: center;
+    background: transparent;
+    border: 1.5px solid var(--ef-border);
+    border-radius: 10px;
+    color: var(--ef-muted);
+    cursor: pointer;
+    display: flex;
+    font-size: .8rem;
+    font-weight: 700;
+    gap: 5px;
+    height: 42px;
+    padding: 0 13px;
+    transition: all .14s;
+    white-space: nowrap;
+}
+.ef-rpf-reset:active { background: var(--ef-bg-subtle); }
+
+/* Loading spinner keyframe (reused from page if defined, fallback here) */
+@keyframes ef-rpf-spin {
+    to { transform: rotate(360deg); }
+}
+.ef-rpf-spinner {
+    animation: ef-rpf-spin .7s linear infinite;
+    display: inline-block;
+}
+
 /* ── Tablet: 768px - 991px ─────────────────────────────────────── */
 @media (min-width: 768px) and (max-width: 991.98px) {
     .ef-ds-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }

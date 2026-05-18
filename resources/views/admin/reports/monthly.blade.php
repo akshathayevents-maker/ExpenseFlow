@@ -1,5 +1,49 @@
 <x-admin-layout title="Monthly Report">
 
+{{-- ── Mobile filter (d-md-none) ──────────────────────────────── --}}
+<div class="d-md-none"
+     x-data="{
+         yr:  @js((int)$year),
+         yr0: @js((int)$year),
+         ld: false,
+         get dirty() { return this.yr !== this.yr0 },
+         go() { this.ld=true; window.location.href='{{ route('admin.reports.monthly') }}?year='+this.yr }
+     }">
+
+    <div class="ef-rpf-wrap">
+        <div class="ef-rpf-lbl">Year</div>
+        <div class="ef-rpf-ranges">
+            @foreach($years->take(5) as $y)
+            <button type="button"
+                    class="ef-rpf-chip"
+                    :class="{'--active': yr === {{ (int)$y }}}"
+                    @click="yr = {{ (int)$y }}">
+                {{ (int)$y }}
+            </button>
+            @endforeach
+            @if($years->isEmpty())
+            <button type="button" class="ef-rpf-chip --active">{{ now()->year }}</button>
+            @endif
+        </div>
+
+        @if((int)$year !== now()->year)
+        <div class="ef-rpf-fsbar">
+            <span class="ef-rpf-fsbar-lbl">Viewing:</span>
+            <span class="ef-rpf-fsbar-chip"><i class="bi bi-calendar3"></i> {{ $year }}</span>
+        </div>
+        @endif
+
+        <div class="ef-rpf-footer">
+            <button type="button" class="ef-rpf-apply" @click="go()" :disabled="!dirty || ld">
+                <template x-if="ld"><span><i class="bi bi-hourglass-split ef-rpf-spinner"></i></span></template>
+                <template x-if="!ld"><span>View Year</span></template>
+            </button>
+        </div>
+    </div>
+</div>
+
+{{-- ── Desktop filter ──────────────────────────────────────────── --}}
+<div class="d-none d-md-block">
 <x-ds.hero eyebrow="Reports" title="Monthly Expense Aggregates">
     <x-slot:actions>
         <a href="{{ route('admin.reports.index') }}" class="ef-btn">
@@ -26,6 +70,16 @@
         </div>
     </form>
 </x-ds.card>
+</div>
+
+{{-- ── Mobile hero (d-md-none) ─────────────────────────────────── --}}
+<div class="d-md-none">
+    <x-ds.hero eyebrow="Reports" title="Monthly Expense Aggregates">
+        <x-slot:actions>
+            <a href="{{ route('admin.reports.index') }}" class="ef-btn ef-btn-icon"><i class="bi bi-arrow-left"></i></a>
+        </x-slot:actions>
+    </x-ds.hero>
+</div>
 
 <x-ds.card :no-pad="true">
     <div style="overflow-x:auto">
@@ -56,7 +110,10 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="5" style="text-align:center;padding:32px;color:var(--ef-faint)">No data for {{ $year }}.</td></tr>
+                <tr><td colspan="5" style="text-align:center;padding:32px;color:var(--ef-faint)">
+                    <i class="bi bi-calendar-month" style="font-size:1.5rem;display:block;margin-bottom:8px;opacity:.3"></i>
+                    No data for {{ $year }}.
+                </td></tr>
                 @endforelse
             </tbody>
             @if($data->isNotEmpty())

@@ -59,7 +59,9 @@
       "Bash(xargs cat)",
       "Bash(php -r \"require '/home/qc7107-l/Projects/ExpenseFlow/vendor/autoload.php';\")",
       "Bash(xargs ls)",
-      "Bash(php -r \"echo 'PHP OK';\")"
+      "Bash(php -r \"echo 'PHP OK';\")",
+      "Bash(grep -n '$filters' /home/qc7107-l/Projects/ExpenseFlow/resources/views/admin/reports/ledger.blade.php)",
+      "Bash(grep -n '$filters' /home/qc7107-l/Projects/ExpenseFlow/app/Http/Controllers/Admin/ReportController.php)"
     ]
   }
 }

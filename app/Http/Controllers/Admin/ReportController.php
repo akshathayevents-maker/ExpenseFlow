@@ -32,20 +32,26 @@ class ReportController extends Controller
 
     public function employee(Request $request): View
     {
-        $from = $request->get('from', now()->startOfMonth()->toDateString());
-        $to   = $request->get('to', now()->toDateString());
-        $dateRange = [$from, $to . ' 23:59:59'];
+        $from = $request->query('from', '');
+        $to   = $request->query('to', '');
 
         $data = User::whereIn('role', ['employee', 'manager'])
             ->withSum(['expenseRequests as total_amount' => fn ($q) =>
-                $q->whereBetween('expense_requests.created_at', $dateRange)
+                $q->when($from, fn ($q) => $q->whereDate('expense_requests.created_at', '>=', $from))
+                  ->when($to,   fn ($q) => $q->whereDate('expense_requests.created_at', '<=', $to))
                   ->whereIn('expense_requests.status', ['approved','paid','reimbursement_pending','reimbursed','completed'])
             ], 'amount')
             ->withCount(['expenseRequests as total_count' => fn ($q) =>
-                $q->whereBetween('expense_requests.created_at', $dateRange)
+                $q->when($from, fn ($q) => $q->whereDate('expense_requests.created_at', '>=', $from))
+                  ->when($to,   fn ($q) => $q->whereDate('expense_requests.created_at', '<=', $to))
             ])
-            ->whereHas('expenseRequests', fn ($q) =>
-                $q->whereBetween('expense_requests.created_at', $dateRange)
+            ->when(
+                $from || $to,
+                fn ($q) => $q->whereHas('expenseRequests', fn ($q) =>
+                    $q->when($from, fn ($q) => $q->whereDate('expense_requests.created_at', '>=', $from))
+                      ->when($to,   fn ($q) => $q->whereDate('expense_requests.created_at', '<=', $to))
+                ),
+                fn ($q) => $q->whereHas('expenseRequests')
             )
             ->orderByDesc('total_amount')
             ->get();
@@ -55,19 +61,25 @@ class ReportController extends Controller
 
     public function category(Request $request): View
     {
-        $from = $request->get('from', now()->startOfMonth()->toDateString());
-        $to   = $request->get('to', now()->toDateString());
-        $dateRange = [$from, $to . ' 23:59:59'];
+        $from = $request->query('from', '');
+        $to   = $request->query('to', '');
 
         $data = ExpenseCategory::withSum(['expenseRequests as total_amount' => fn ($q) =>
-                $q->whereBetween('expense_requests.created_at', $dateRange)
+                $q->when($from, fn ($q) => $q->whereDate('expense_requests.created_at', '>=', $from))
+                  ->when($to,   fn ($q) => $q->whereDate('expense_requests.created_at', '<=', $to))
                   ->whereIn('expense_requests.status', ['approved','paid','reimbursement_pending','reimbursed','completed'])
             ], 'amount')
             ->withCount(['expenseRequests as total_count' => fn ($q) =>
-                $q->whereBetween('expense_requests.created_at', $dateRange)
+                $q->when($from, fn ($q) => $q->whereDate('expense_requests.created_at', '>=', $from))
+                  ->when($to,   fn ($q) => $q->whereDate('expense_requests.created_at', '<=', $to))
             ])
-            ->whereHas('expenseRequests', fn ($q) =>
-                $q->whereBetween('expense_requests.created_at', $dateRange)
+            ->when(
+                $from || $to,
+                fn ($q) => $q->whereHas('expenseRequests', fn ($q) =>
+                    $q->when($from, fn ($q) => $q->whereDate('expense_requests.created_at', '>=', $from))
+                      ->when($to,   fn ($q) => $q->whereDate('expense_requests.created_at', '<=', $to))
+                ),
+                fn ($q) => $q->whereHas('expenseRequests')
             )
             ->orderByDesc('total_amount')
             ->get();
@@ -79,19 +91,25 @@ class ReportController extends Controller
 
     public function vendor(Request $request): View
     {
-        $from = $request->get('from', now()->startOfMonth()->toDateString());
-        $to   = $request->get('to', now()->toDateString());
-        $dateRange = [$from, $to . ' 23:59:59'];
+        $from = $request->query('from', '');
+        $to   = $request->query('to', '');
 
         $data = Vendor::withSum(['expenseRequests as total_amount' => fn ($q) =>
-                $q->whereBetween('expense_requests.created_at', $dateRange)
+                $q->when($from, fn ($q) => $q->whereDate('expense_requests.created_at', '>=', $from))
+                  ->when($to,   fn ($q) => $q->whereDate('expense_requests.created_at', '<=', $to))
                   ->whereIn('expense_requests.status', ['approved','paid','reimbursement_pending','reimbursed','completed'])
             ], 'amount')
             ->withCount(['expenseRequests as total_count' => fn ($q) =>
-                $q->whereBetween('expense_requests.created_at', $dateRange)
+                $q->when($from, fn ($q) => $q->whereDate('expense_requests.created_at', '>=', $from))
+                  ->when($to,   fn ($q) => $q->whereDate('expense_requests.created_at', '<=', $to))
             ])
-            ->whereHas('expenseRequests', fn ($q) =>
-                $q->whereBetween('expense_requests.created_at', $dateRange)
+            ->when(
+                $from || $to,
+                fn ($q) => $q->whereHas('expenseRequests', fn ($q) =>
+                    $q->when($from, fn ($q) => $q->whereDate('expense_requests.created_at', '>=', $from))
+                      ->when($to,   fn ($q) => $q->whereDate('expense_requests.created_at', '<=', $to))
+                ),
+                fn ($q) => $q->whereHas('expenseRequests')
             )
             ->orderByDesc('total_amount')
             ->get();
@@ -101,7 +119,7 @@ class ReportController extends Controller
 
     public function ledger(Request $request): View
     {
-        $filters = $request->only(['employee_id', 'type', 'from', 'to']);
+        $filters = $request->query();
 
         $transactions = WalletTransaction::with(['wallet.user', 'expenseRequest', 'creator'])
             ->when($filters['employee_id'] ?? null, fn ($q, $v) =>
@@ -121,9 +139,9 @@ class ReportController extends Controller
 
     public function reimbursement(Request $request): View
     {
-        $status = $request->get('status', '');
-        $from   = $request->get('from', '');
-        $to     = $request->get('to', '');
+        $status = $request->query('status', '');
+        $from   = $request->query('from', '');
+        $to     = $request->query('to', '');
 
         $data = ExpenseRequest::with(['requester', 'category', 'payment'])
             ->where('settlement_type', 'reimbursement')
@@ -144,11 +162,12 @@ class ReportController extends Controller
 
     public function daily(Request $request): View
     {
-        $from = $request->get('from', now()->startOfMonth()->toDateString());
-        $to   = $request->get('to', now()->toDateString());
+        $from = $request->query('from', '');
+        $to   = $request->query('to', '');
 
         $data = ExpenseRequest::selectRaw('DATE(created_at) as date, COUNT(*) as count, SUM(amount) as total')
-            ->whereBetween('created_at', [$from, $to . ' 23:59:59'])
+            ->when($from, fn ($q) => $q->whereDate('created_at', '>=', $from))
+            ->when($to,   fn ($q) => $q->whereDate('created_at', '<=', $to))
             ->whereNotIn('status', ['pending', 'rejected'])
             ->groupByRaw('DATE(created_at)')
             ->orderByRaw('DATE(created_at) DESC')
@@ -159,7 +178,7 @@ class ReportController extends Controller
 
     public function monthly(Request $request): View
     {
-        $year = $request->get('year', now()->year);
+        $year = $request->query('year', now()->year);
 
         $data = ExpenseRequest::selectRaw("TO_CHAR(created_at, 'Month') as month_name, EXTRACT(MONTH FROM created_at) as month_num, COUNT(*) as count, SUM(amount) as total")
             ->whereYear('created_at', $year)
