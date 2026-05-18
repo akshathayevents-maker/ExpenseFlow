@@ -687,6 +687,310 @@
 /* ── Mobile bar (hidden — replaced by FAB) ────────────── */
 .ef-emp-mobile-bar { display: none !important; }
 
+/* ── Mobile Filter Component ──────────────────────────── */
+[x-cloak] { display: none !important; }
+
+.ef-emp-mfilter { display: none; }
+
+.ef-emp-mf-card {
+    background: var(--ef-surface);
+    border: 1px solid var(--ef-border);
+    border-radius: 16px;
+    box-shadow: var(--ef-shadow);
+    margin-bottom: 10px;
+    padding: 14px 14px 16px;
+}
+
+.ef-emp-mf-active-bar {
+    align-items: center;
+    background: rgba(184,137,62,.07);
+    border: 1px solid rgba(184,137,62,.18);
+    border-radius: 10px;
+    display: flex;
+    font-size: .74rem;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding: 8px 12px;
+}
+.ef-emp-mf-active-label {
+    align-items: center;
+    color: #a07838;
+    display: flex;
+    font-weight: 700;
+    gap: 6px;
+}
+.ef-emp-mf-active-label i { font-size: .7rem; }
+.ef-emp-mf-active-clear {
+    background: none;
+    border: none;
+    color: var(--ef-muted);
+    cursor: pointer;
+    font-size: .72rem;
+    font-weight: 680;
+    padding: 0;
+    transition: color .12s;
+}
+.ef-emp-mf-active-clear:hover { color: var(--ef-danger); }
+
+.ef-emp-mf-search {
+    margin-bottom: 12px;
+    position: relative;
+}
+.ef-emp-mf-search-icon {
+    color: var(--ef-faint);
+    font-size: .9rem;
+    left: 14px;
+    pointer-events: none;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+}
+.ef-emp-mf-search-input {
+    background: var(--ef-bg-subtle);
+    border: 1.5px solid var(--ef-border);
+    border-radius: 24px;
+    color: var(--ef-ink);
+    font-size: 16px;
+    height: 46px;
+    outline: none;
+    padding: 0 46px 0 42px;
+    transition: border-color .15s, box-shadow .15s;
+    width: 100%;
+}
+.ef-emp-mf-search-input:focus {
+    background: rgba(255,253,250,1);
+    border-color: rgba(184,137,62,.4);
+    box-shadow: 0 0 0 3px rgba(184,137,62,.08);
+}
+.ef-emp-mf-search-input::placeholder { color: var(--ef-faint); }
+.ef-emp-mf-clear-btn {
+    align-items: center;
+    background: rgba(20,20,18,.08);
+    border: none;
+    border-radius: 50%;
+    color: var(--ef-muted);
+    cursor: pointer;
+    display: flex;
+    font-size: .82rem;
+    height: 26px;
+    justify-content: center;
+    position: absolute;
+    right: 11px;
+    top: 50%;
+    transform: translateY(-50%);
+    transition: background .12s, color .12s;
+    width: 26px;
+}
+.ef-emp-mf-clear-btn:hover { background: rgba(20,20,18,.14); color: var(--ef-ink); }
+
+.ef-emp-mf-divider {
+    background: var(--ef-border);
+    border: none;
+    height: 1px;
+    margin: 12px 0;
+}
+
+.ef-emp-mf-section-label {
+    color: var(--ef-faint);
+    font-size: .6rem;
+    font-weight: 760;
+    letter-spacing: .1em;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.ef-emp-mf-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-bottom: 12px;
+}
+
+.ef-emp-mf-chip {
+    align-items: center;
+    background: var(--ef-bg-subtle);
+    border: 1.5px solid var(--ef-border);
+    border-radius: 20px;
+    color: var(--ef-muted);
+    cursor: pointer;
+    display: inline-flex;
+    font-size: .8rem;
+    font-weight: 680;
+    gap: 5px;
+    min-height: 34px;
+    padding: 5px 14px;
+    transition: background .13s, color .13s, border-color .13s, box-shadow .13s, transform .12s;
+    white-space: nowrap;
+}
+.ef-emp-mf-chip:active { transform: scale(.96); }
+.ef-emp-mf-chip i { font-size: .78rem; }
+
+/* Role chip active states — strong, unambiguous */
+.ef-emp-mf-chip.--role-all.--active {
+    background: #1a1a18;
+    border-color: #1a1a18;
+    box-shadow: 0 2px 8px rgba(0,0,0,.22);
+    color: rgba(255,253,250,.94);
+    transform: translateY(-1px);
+}
+.ef-emp-mf-chip.--role-manager.--active {
+    background: rgba(96,112,128,.13);
+    border-color: #607080;
+    box-shadow: 0 1px 5px rgba(96,112,128,.2);
+    color: #607080;
+}
+.ef-emp-mf-chip.--role-employee.--active {
+    background: rgba(61,92,58,.12);
+    border-color: #3d5c3a;
+    box-shadow: 0 1px 5px rgba(61,92,58,.2);
+    color: #3d5c3a;
+}
+
+/* Status chip active states — strong */
+.ef-emp-mf-chip.--status-all.--active {
+    background: #1a1a18;
+    border-color: #1a1a18;
+    box-shadow: 0 2px 8px rgba(0,0,0,.22);
+    color: rgba(255,253,250,.94);
+    transform: translateY(-1px);
+}
+.ef-emp-mf-chip.--status-active.--active {
+    background: rgba(15,123,95,.13);
+    border-color: var(--ef-emerald);
+    box-shadow: 0 1px 5px rgba(15,123,95,.18);
+    color: var(--ef-emerald);
+}
+.ef-emp-mf-chip.--status-inactive.--active {
+    background: rgba(96,112,128,.12);
+    border-color: rgba(96,112,128,.4);
+    color: #607080;
+}
+
+/* ── Mobile filter footer (reset + apply stack) ─────────── */
+.ef-emp-mf-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.ef-emp-mf-reset {
+    align-items: center;
+    background: none;
+    border: 1.5px solid var(--ef-border-strong);
+    border-radius: 12px;
+    color: var(--ef-muted);
+    cursor: pointer;
+    display: flex;
+    font-size: .84rem;
+    font-weight: 680;
+    gap: 6px;
+    height: 40px;
+    justify-content: center;
+    transition: background .13s, border-color .13s, color .13s;
+    width: 100%;
+}
+.ef-emp-mf-reset:hover {
+    background: rgba(141,74,60,.06);
+    border-color: rgba(141,74,60,.28);
+    color: var(--ef-danger);
+}
+
+.ef-emp-mf-apply {
+    align-items: center;
+    background: var(--ef-ink);
+    border: none;
+    border-radius: 12px;
+    color: rgba(255,253,250,.94);
+    cursor: pointer;
+    display: flex;
+    font-size: .92rem;
+    font-weight: 700;
+    gap: 7px;
+    height: 46px;
+    justify-content: center;
+    letter-spacing: .02em;
+    transition: opacity .13s, background .13s, transform .12s;
+    width: 100%;
+}
+.ef-emp-mf-apply:disabled { cursor: not-allowed; opacity: .4; }
+.ef-emp-mf-apply:not(:disabled):hover  { background: rgba(20,20,18,.82); }
+.ef-emp-mf-apply:not(:disabled):active { opacity: .8; transform: scale(.99); }
+
+/* ── Filter summary bar ─────────────────────────────────── */
+.ef-emp-fsbar {
+    align-items: center;
+    background: rgba(184,137,62,.06);
+    border: 1px solid rgba(184,137,62,.18);
+    border-radius: var(--ef-radius);
+    display: flex;
+    flex-wrap: wrap;
+    font-size: .78rem;
+    gap: 6px 10px;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    padding: 8px 14px;
+}
+.ef-emp-fsbar-left {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    color: #a07838;
+    font-size: .6rem;
+    font-weight: 760;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+}
+.ef-emp-fsbar-left > i { font-size: .78rem; }
+.ef-emp-fsbar-chip {
+    align-items: center;
+    background: rgba(255,253,250,.92);
+    border: 1px solid rgba(20,20,18,.12);
+    border-radius: 999px;
+    color: var(--ef-ink-2);
+    display: inline-flex;
+    font-size: .72rem;
+    font-weight: 680;
+    gap: 4px;
+    letter-spacing: 0;
+    padding: 2px 9px;
+    text-transform: none;
+}
+.ef-emp-fsbar-chip.--role    { background: rgba(96,112,128,.1);  border-color: rgba(96,112,128,.22); color: #607080; }
+.ef-emp-fsbar-chip.--active  { background: rgba(15,123,95,.09);  border-color: rgba(15,123,95,.22);  color: var(--ef-emerald); }
+.ef-emp-fsbar-chip.--inactive{ background: rgba(96,112,128,.08); border-color: rgba(96,112,128,.2);  color: var(--ef-muted); }
+.ef-emp-fsbar-clear {
+    align-items: center;
+    color: var(--ef-muted);
+    display: inline-flex;
+    font-size: .72rem;
+    font-weight: 700;
+    gap: 3px;
+    text-decoration: none;
+    transition: color .13s;
+    white-space: nowrap;
+}
+.ef-emp-fsbar-clear:hover { color: var(--ef-danger); }
+
+/* ── Empty state filter context ─────────────────────────── */
+.ef-emp-empty-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    justify-content: center;
+    margin: 0 0 14px;
+}
+.ef-emp-empty-filters span {
+    background: rgba(20,20,18,.06);
+    border: 1px solid rgba(20,20,18,.1);
+    border-radius: 999px;
+    color: var(--ef-ink-2);
+    font-size: .75rem;
+    font-weight: 680;
+    padding: 3px 10px;
+}
+
 /* ── Responsive ───────────────────────────────────────── */
 @media (max-width: 1199.98px) {
     .ef-emp-hero { grid-template-columns: 1fr; }
@@ -820,38 +1124,9 @@
     .ef-emp-stat-value { font-size: 1.15rem; margin-top: 6px; }
     .ef-emp-stat-note  { font-size: .65rem; margin-top: 4px; }
 
-    /* ── Toolbar sticky + compact ── */
-    .ef-emp-toolbar {
-        border-radius: 12px;
-        margin-bottom: 10px;
-        padding: 10px 13px;
-        position: sticky;
-        top: 8px;
-        z-index: 30;
-        backdrop-filter: blur(16px) saturate(180%);
-        background: rgba(253,250,245,.96);
-    }
-
-    .ef-emp-toolbar-inner { gap: 8px; flex-wrap: wrap; }
-    .ef-emp-search-wrap { min-width: 100%; order: -1; }
-    .ef-emp-search-input { height: 38px; font-size: .85rem; }
-    .ef-emp-toolbar-sep { display: none; }
-
-    .ef-emp-filter-group {
-        flex-direction: row;
-        align-items: center;
-        gap: 6px;
-    }
-
-    .ef-emp-filter-label { white-space: nowrap; }
-
-    .ef-emp-filter-select {
-        font-size: .8rem;
-        height: 32px;
-        padding: 0 8px;
-    }
-
-    .ef-emp-toolbar-actions { align-items: center; }
+    /* ── Hide desktop toolbar, show mobile filter ── */
+    .ef-emp-toolbar { display: none !important; }
+    .ef-emp-mfilter { display: block; }
 
     /* ── List head ── */
     .ef-emp-list-head { padding: 9px 14px; }
@@ -979,6 +1254,162 @@ $roleTones = [
         </div>
     </div>
 
+    {{-- ═══ MOBILE FILTER (shown only on mobile, Alpine.js powered) ════════ --}}
+    <div class="ef-emp-mfilter"
+         x-data="{
+             search:     @js($search),
+             role:       @js($role),
+             status:     @js($status),
+             loading:    false,
+             initSearch: @js($search),
+             initRole:   @js($role),
+             initStatus: @js($status),
+             base: '{{ route('admin.employees.index') }}',
+             get activeCount() {
+                 return [this.search.trim(), this.role, this.status].filter(Boolean).length;
+             },
+             get isDirty() {
+                 return this.search.trim() !== this.initSearch.trim()
+                     || this.role   !== this.initRole
+                     || this.status !== this.initStatus;
+             },
+             navigate() {
+                 this.loading = true;
+                 const p = new URLSearchParams();
+                 if (this.search.trim()) p.set('search', this.search.trim());
+                 if (this.role)          p.set('role',   this.role);
+                 if (this.status)        p.set('status', this.status);
+                 window.location.href = this.base + (p.toString() ? '?' + p.toString() : '');
+             },
+             reset() {
+                 this.search = ''; this.role = ''; this.status = '';
+                 this.navigate();
+             },
+             clearSearch() {
+                 this.search = '';
+                 if (this.initSearch !== '') this.navigate();
+             },
+             setRole(val)   { this.role   = val; },
+             setStatus(val) { this.status = val; },
+         }">
+
+        <div class="ef-emp-mf-card">
+
+            {{-- Active filter bar --}}
+            <div class="ef-emp-mf-active-bar" x-show="activeCount > 0" x-cloak>
+                <span class="ef-emp-mf-active-label">
+                    <i class="bi bi-funnel-fill"></i>
+                    <span x-text="activeCount + (activeCount === 1 ? ' filter' : ' filters') + ' active'"></span>
+                </span>
+                <button type="button" @click="reset()" class="ef-emp-mf-active-clear">
+                    Clear all
+                </button>
+            </div>
+
+            {{-- Search pill --}}
+            <div class="ef-emp-mf-search">
+                <i class="bi bi-search ef-emp-mf-search-icon"></i>
+                <input type="text"
+                       x-model="search"
+                       @input.debounce.400ms="navigate()"
+                       class="ef-emp-mf-search-input"
+                       placeholder="Search employees..."
+                       autocomplete="off"
+                       inputmode="search"
+                       spellcheck="false">
+                <button type="button"
+                        class="ef-emp-mf-clear-btn"
+                        @click="clearSearch()"
+                        x-show="search.length > 0"
+                        x-cloak
+                        aria-label="Clear search">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+
+            <div class="ef-emp-mf-divider"></div>
+
+            {{-- Role chips --}}
+            <div class="ef-emp-mf-section-label">Role</div>
+            <div class="ef-emp-mf-chips">
+                <button type="button"
+                        class="ef-emp-mf-chip --role-all"
+                        :class="{ '--active': role === '' }"
+                        @click="setRole('')">
+                    <i class="bi bi-people"></i> All
+                </button>
+                <button type="button"
+                        class="ef-emp-mf-chip --role-manager"
+                        :class="{ '--active': role === 'manager' }"
+                        @click="setRole('manager')">
+                    <i class="bi bi-person-badge"></i> Manager
+                </button>
+                <button type="button"
+                        class="ef-emp-mf-chip --role-employee"
+                        :class="{ '--active': role === 'employee' }"
+                        @click="setRole('employee')">
+                    <i class="bi bi-person"></i> Employee
+                </button>
+            </div>
+
+            {{-- Status chips --}}
+            <div class="ef-emp-mf-section-label">Status</div>
+            <div class="ef-emp-mf-chips" style="margin-bottom:0">
+                <button type="button"
+                        class="ef-emp-mf-chip --status-all"
+                        :class="{ '--active': status === '' }"
+                        @click="setStatus('')">
+                    Any
+                </button>
+                <button type="button"
+                        class="ef-emp-mf-chip --status-active"
+                        :class="{ '--active': status === 'active' }"
+                        @click="setStatus('active')">
+                    <i class="bi bi-check-circle"></i> Active
+                </button>
+                <button type="button"
+                        class="ef-emp-mf-chip --status-inactive"
+                        :class="{ '--active': status === 'inactive' }"
+                        @click="setStatus('inactive')">
+                    <i class="bi bi-pause-circle"></i> Inactive
+                </button>
+            </div>
+
+            {{-- Footer: reset + apply --}}
+            <div class="ef-emp-mf-footer">
+
+                <button type="button"
+                        @click="reset()"
+                        x-show="activeCount > 0"
+                        x-cloak
+                        class="ef-emp-mf-reset">
+                    <i class="bi bi-x-circle"></i> Reset filters
+                </button>
+
+                <button type="button"
+                        @click="navigate()"
+                        :disabled="!isDirty || loading"
+                        class="ef-emp-mf-apply">
+                    <template x-if="!loading">
+                        <span style="display:flex;align-items:center;gap:7px">
+                            <i class="bi bi-funnel"></i>
+                            <span>Apply Filters</span>
+                        </span>
+                    </template>
+                    <template x-if="loading">
+                        <span style="display:flex;align-items:center;gap:8px">
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            Loading…
+                        </span>
+                    </template>
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
     {{-- ═══ SEARCH + FILTER TOOLBAR ════════════════════════════════════════ --}}
     <div class="ef-emp-toolbar">
         <form method="GET" action="{{ route('admin.employees.index') }}"
@@ -996,7 +1427,7 @@ $roleTones = [
 
             <div class="ef-emp-filter-group">
                 <label class="ef-emp-filter-label">Role</label>
-                <select name="role" class="ef-emp-filter-select">
+                <select name="role" class="ef-emp-filter-select" onchange="this.form.submit()">
                     <option value="">All roles</option>
                     <option value="manager"  {{ $role === 'manager'  ? 'selected' : '' }}>Manager</option>
                     <option value="employee" {{ $role === 'employee' ? 'selected' : '' }}>Employee</option>
@@ -1005,7 +1436,7 @@ $roleTones = [
 
             <div class="ef-emp-filter-group">
                 <label class="ef-emp-filter-label">Status</label>
-                <select name="status" class="ef-emp-filter-select">
+                <select name="status" class="ef-emp-filter-select" onchange="this.form.submit()">
                     <option value="">All statuses</option>
                     <option value="active"   {{ $status === 'active'   ? 'selected' : '' }}>Active</option>
                     <option value="inactive" {{ $status === 'inactive' ? 'selected' : '' }}>Inactive</option>
@@ -1028,6 +1459,36 @@ $roleTones = [
 
         </form>
     </div>
+
+    {{-- ═══ ACTIVE FILTER SUMMARY BAR ════════════════════════════════════ --}}
+    @if($hasFilters)
+    <div class="ef-emp-fsbar">
+        <div class="ef-emp-fsbar-left">
+            <i class="bi bi-funnel-fill"></i>
+            Showing:
+            @if($search)
+            <span class="ef-emp-fsbar-chip">
+                <i class="bi bi-search"></i> "{{ $search }}"
+            </span>
+            @endif
+            @if($role)
+            <span class="ef-emp-fsbar-chip --role">
+                <i class="bi bi-{{ $role === 'manager' ? 'person-badge' : 'person' }}"></i>
+                {{ ucfirst($role) }}
+            </span>
+            @endif
+            @if($status)
+            <span class="ef-emp-fsbar-chip --{{ $status }}">
+                <i class="bi bi-{{ $status === 'active' ? 'check-circle' : 'pause-circle' }}"></i>
+                {{ ucfirst($status) }}
+            </span>
+            @endif
+        </div>
+        <a href="{{ route('admin.employees.index') }}" class="ef-emp-fsbar-clear">
+            <i class="bi bi-x"></i> Clear all
+        </a>
+    </div>
+    @endif
 
     {{-- ═══ EMPLOYEE LIST ══════════════════════════════════════════════════ --}}
     <div class="ef-emp-list-wrap">
@@ -1247,20 +1708,29 @@ $roleTones = [
         @empty
 
         <div class="ef-empty-state">
-            <div class="ef-empty-orb"><i class="bi bi-people"></i></div>
+            <div class="ef-empty-orb">
+                <i class="bi bi-{{ $hasFilters ? 'funnel' : 'people' }}"></i>
+            </div>
             <h3 style="color:var(--ef-ink);font-size:1.1rem;font-weight:760;margin:0 0 8px">
-                No employees found
+                {{ $hasFilters ? 'No matches found' : 'No employees yet' }}
             </h3>
+            @if($hasFilters)
+            <div class="ef-emp-empty-filters">
+                @if($search)<span><i class="bi bi-search" style="opacity:.6;margin-right:3px"></i>"{{ $search }}"</span>@endif
+                @if($role)<span>Role: {{ ucfirst($role) }}</span>@endif
+                @if($status)<span>Status: {{ ucfirst($status) }}</span>@endif
+            </div>
+            @endif
             <p style="color:var(--ef-muted);font-size:.86rem;margin:0 0 20px;max-width:300px;line-height:1.6">
                 @if($hasFilters)
-                    No employees match your current filters. Try adjusting the search or role selection.
+                    No employees match your active filters. Try adjusting or resetting them.
                 @else
                     Employee records and workforce operations will appear here once staff are added.
                 @endif
             </p>
             @if($hasFilters)
                 <a href="{{ route('admin.employees.index') }}" class="ef-btn ef-btn-dark">
-                    <i class="bi bi-x-circle"></i> Clear Filters
+                    <i class="bi bi-x-circle"></i> Reset Filters
                 </a>
             @else
                 <a href="{{ route('admin.employees.create') }}" class="ef-btn ef-btn-dark">
@@ -1337,5 +1807,9 @@ $roleTones = [
 </div>
 @endif
 @endforeach
+
+@push('scripts')
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+@endpush
 
 </x-admin-layout>

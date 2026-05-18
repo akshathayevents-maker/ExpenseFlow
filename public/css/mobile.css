@@ -462,6 +462,43 @@ nav[role="navigation"] {
 #sidebar { z-index: 1055; }
 #sidebar-overlay { z-index: 1050; }
 
+/* ── 24. Bottom nav overlap: lift sticky CTAs above nav ─────────── */
+
+:root { --mob-nav-h: 60px; }
+
+/* Expense create: sticky submit bar */
+.ef-upi-submit-wrap {
+    bottom: calc(var(--mob-nav-h) + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: 12px !important;
+    z-index: 1040 !important;
+}
+.ef-upi-spacer {
+    height: calc(var(--mob-nav-h) + 100px) !important;
+}
+
+/* Employee create: sticky footer bar */
+.ef-emp-sticky {
+    bottom: calc(var(--mob-nav-h) + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: 12px !important;
+    z-index: 1040 !important;
+}
+
+/* Employee create: extra scroll clearance (no spacer in that page) */
+.ef-emp-canvas {
+    padding-bottom: calc(var(--mob-nav-h) + 80px) !important;
+}
+
+/* Toast containers: lift above nav */
+.toast-container.bottom-0 {
+    bottom: calc(var(--mob-nav-h) + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+/* Utility: any future sticky CTA */
+.ef-mobile-sticky-cta {
+    bottom: calc(var(--mob-nav-h) + env(safe-area-inset-bottom, 0px)) !important;
+    z-index: 1040 !important;
+}
+
 } /* end @media max-width: 767.98px */
 
 /* ── 24. Wallets index hero ─────────────────────────────────────── */
