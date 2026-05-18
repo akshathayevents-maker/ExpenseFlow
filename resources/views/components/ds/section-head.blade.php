@@ -4,7 +4,7 @@
 
     Usage:
         <x-ds.section-head title="Workforce Directory" count="42 members · 1–25 shown">
-            {{-- optional right-side slot --}}
+            (optional right-side slot)
             <x-slot:right>
                 <a href="#" class="ef-btn ef-btn-icon"><i class="bi bi-download"></i></a>
             </x-slot:right>
