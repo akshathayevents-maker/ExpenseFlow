@@ -2,19 +2,19 @@
 @push('styles')
 <style>
 :root {
-    --rp-gold: #a07238;
-    --rp-gold-hi: #b8854a;
-    --rp-emerald: #1a6645;
-    --rp-danger: #b91c1c;
+    --rp-gold: #B8893E;
+    --rp-gold-hi: #D6B97A;
+    --rp-emerald: #0F7B5F;
+    --rp-danger: var(--ef-danger);
     --rp-indigo: #4338ca;
 }
 
 /* ── Hero ─────────────────────────────────────────────── */
 .ef-rp-hero {
-    background: linear-gradient(135deg, #1a1410 0%, #2a2218 50%, #1e1812 100%);
+    background: var(--ef-hero-grad);
     border: 1px solid rgba(255,255,255,.07);
     border-radius: 20px;
-    box-shadow: 0 4px 24px rgba(26,22,18,.16), 0 1px 4px rgba(26,22,18,.1);
+    box-shadow: 0 4px 24px rgba(4,27,20,.24), 0 1px 4px rgba(4,27,20,.12);
     padding: 32px;
     position: relative;
     overflow: hidden;
@@ -23,7 +23,7 @@
 .ef-rp-hero::before {
     content: '';
     position: absolute;
-    background: radial-gradient(circle, rgba(160,114,56,.16) 0%, transparent 68%);
+    background: radial-gradient(circle, rgba(184,137,62,.16) 0%, transparent 68%);
     height: 480px; width: 480px;
     right: -80px; top: -140px;
     pointer-events: none;
@@ -38,7 +38,7 @@
 }
 .ef-rp-kicker {
     font-size: .7rem; font-weight: 700; letter-spacing: .12em;
-    text-transform: uppercase; color: rgba(160,114,56,.9); margin-bottom: 6px;
+    text-transform: uppercase; color: rgba(184,137,62,.9); margin-bottom: 6px;
 }
 .ef-rp-title {
     font-size: 1.6rem; font-weight: 700; color: #fffdfa;
@@ -54,11 +54,11 @@
     margin-bottom: 24px;
 }
 .ef-rp-kpi-card {
-    background: #fff; border: 1px solid #e8e3dc; border-radius: 14px;
+    background: var(--ef-surface); border: 1px solid var(--ef-border); border-radius: 14px;
     padding: 18px 20px; position: relative; overflow: hidden;
     transition: box-shadow .15s, transform .15s;
 }
-.ef-rp-kpi-card:hover { box-shadow: 0 4px 16px rgba(160,114,56,.1); transform: translateY(-1px); }
+.ef-rp-kpi-card:hover { box-shadow: 0 4px 16px rgba(184,137,62,.1); transform: translateY(-1px); }
 .ef-rp-kpi-card::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0;
     height: 3px; border-radius: 14px 14px 0 0;
@@ -73,18 +73,18 @@
 
 .ef-rp-kpi-label {
     font-size: .68rem; font-weight: 700; letter-spacing: .08em;
-    text-transform: uppercase; color: #9c8e7e; margin-bottom: 6px;
+    text-transform: uppercase; color: var(--ef-muted); margin-bottom: 6px;
 }
-.ef-rp-kpi-value { font-size: 1.5rem; font-weight: 700; color: #1c1612; line-height: 1; }
-.ef-rp-kpi-value.is-alert { color: #dc2626; }
-.ef-rp-kpi-sub { font-size: .72rem; color: #b0a090; margin-top: 4px; }
+.ef-rp-kpi-value { font-size: 1.5rem; font-weight: 700; color: var(--ef-ink); line-height: 1; }
+.ef-rp-kpi-value.is-alert { color: var(--ef-danger); }
+.ef-rp-kpi-sub { font-size: .72rem; color: var(--ef-faint); margin-top: 4px; }
 
 /* ── Section heading ──────────────────────────────────── */
 .ef-rp-section-head {
     font-size: .7rem; font-weight: 700; letter-spacing: .1em;
-    text-transform: uppercase; color: #9c8e7e;
+    text-transform: uppercase; color: var(--ef-muted);
     margin-bottom: 14px; padding-bottom: 10px;
-    border-bottom: 1px solid #f0ece6;
+    border-bottom: 1px solid var(--ef-border);
 }
 
 /* ── Report nav cards ─────────────────────────────────── */
@@ -94,7 +94,7 @@
     gap: 14px;
 }
 .ef-rp-nav-card {
-    background: #fff; border: 1px solid #e8e3dc; border-radius: 16px;
+    background: var(--ef-surface); border: 1px solid var(--ef-border); border-radius: 16px;
     padding: 20px; text-decoration: none;
     display: flex; align-items: center; gap: 16px;
     transition: box-shadow .18s, transform .18s, border-color .18s;
@@ -107,16 +107,16 @@
     opacity: 0; transition: opacity .18s;
 }
 .ef-rp-nav-card:hover {
-    box-shadow: 0 6px 24px rgba(160,114,56,.1);
+    box-shadow: 0 6px 24px rgba(184,137,62,.1);
     transform: translateY(-2px);
-    border-color: rgba(160,114,56,.25);
+    border-color: rgba(184,137,62,.25);
     text-decoration: none;
 }
 .ef-rp-nav-card:hover::before { opacity: 1; }
 .ef-rp-nav-card.nav-employee::before  { background: #0891b2; }
 .ef-rp-nav-card.nav-category::before  { background: var(--rp-emerald); }
 .ef-rp-nav-card.nav-vendor::before    { background: #d97706; }
-.ef-rp-nav-card.nav-ledger::before    { background: #1c1612; }
+.ef-rp-nav-card.nav-ledger::before    { background: var(--ef-ink); }
 .ef-rp-nav-card.nav-reimb::before     { background: var(--rp-danger); }
 .ef-rp-nav-card.nav-daily::before     { background: var(--rp-indigo); }
 .ef-rp-nav-card.nav-monthly::before   { background: #7c3aed; }
@@ -135,11 +135,11 @@
 .icon-monthly   { background: #f3e8ff; color: #7c3aed; }
 
 .ef-rp-nav-title {
-    font-size: .9rem; font-weight: 700; color: #1c1612; margin-bottom: 2px;
+    font-size: .9rem; font-weight: 700; color: var(--ef-ink); margin-bottom: 2px;
 }
-.ef-rp-nav-desc { font-size: .75rem; color: #9c8e7e; }
+.ef-rp-nav-desc { font-size: .75rem; color: var(--ef-muted); }
 .ef-rp-nav-arrow {
-    margin-left: auto; color: #c8bfb0; font-size: .85rem;
+    margin-left: auto; color: var(--ef-faint); font-size: .85rem;
     transition: transform .18s, color .18s;
 }
 .ef-rp-nav-card:hover .ef-rp-nav-arrow {

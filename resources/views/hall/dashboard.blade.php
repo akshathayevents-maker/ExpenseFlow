@@ -9,9 +9,9 @@
 <style>
 /* ── Hall Dashboard page-level styles ────────────────────────── */
 :root {
-    --hd-gold:     #a07238;
-    --hd-gold-hi:  #b8854a;
-    --hd-emerald:  #1a6645;
+    --hd-gold:     #B8893E;
+    --hd-gold-hi:  #D6B97A;
+    --hd-emerald:  #0F7B5F;
     --hd-danger:   #b91c1c;
     --hd-ink:      #1a1612;
     --hd-muted:    #6b6560;

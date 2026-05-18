@@ -1,139 +1,142 @@
 <x-admin-layout title="Uploaded Bills">
-<div class="page-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-    <div>
-        <h4 class="mb-0 fw-bold">Uploaded Bills</h4>
-        <p class="text-muted mb-0 small">Invoice / bill upload history and import status</p>
-    </div>
-    <div class="d-flex gap-2">
-        <a href="{{ route('admin.inventory.items.index') }}" class="btn btn-sm btn-outline-secondary">
-            <i class="bi bi-boxes me-1"></i>Inventory Items
-        </a>
-        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
-            <i class="bi bi-cloud-upload me-1"></i>Upload Bill
-        </button>
-    </div>
-</div>
 
-@if (session('success'))
-    <div class="alert alert-success alert-dismissible fade show">
-        {{ session('success') }} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
+<x-ds.hero eyebrow="Inventory" title="Uploaded Bills"
+    :meta="[['icon' => 'bi-file-earmark-text', 'text' => 'Invoice & bill upload history and import status']]">
+    <x-slot:actions>
+        <a href="{{ route('admin.inventory.items.index') }}" class="ef-btn">
+            <i class="bi bi-boxes"></i> Inventory Items
+        </a>
+        <button type="button" class="ef-btn ef-btn-dark" data-bs-toggle="modal" data-bs-target="#uploadModal">
+            <i class="bi bi-cloud-upload"></i> Upload Bill
+        </button>
+    </x-slot:actions>
+</x-ds.hero>
+
+@if(session('success'))
+<div style="background:rgba(15,123,95,.08);border:1px solid rgba(15,123,95,.2);border-radius:var(--ef-radius);padding:10px 16px;margin-bottom:14px;font-size:.86rem;color:var(--ef-emerald);display:flex;align-items:center;gap:10px">
+    <i class="bi bi-check-circle-fill flex-shrink-0"></i> {{ session('success') }}
+</div>
 @endif
-@if (session('warning'))
-    <div class="alert alert-warning alert-dismissible fade show">
-        {{ session('warning') }} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
+@if(session('warning'))
+<div style="background:rgba(216,154,61,.08);border:1px solid rgba(216,154,61,.25);border-radius:var(--ef-radius);padding:10px 16px;margin-bottom:14px;font-size:.86rem;color:var(--ef-amber);display:flex;align-items:center;gap:10px">
+    <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i> {{ session('warning') }}
+</div>
 @endif
-@if (session('error'))
-    <div class="alert alert-danger alert-dismissible fade show">
-        {{ session('error') }} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
+@if(session('error'))
+<div style="background:rgba(220,53,69,.08);border:1px solid rgba(220,53,69,.2);border-radius:var(--ef-radius);padding:10px 16px;margin-bottom:14px;font-size:.86rem;color:var(--ef-danger);display:flex;align-items:center;gap:10px">
+    <i class="bi bi-x-circle-fill flex-shrink-0"></i> {{ session('error') }}
+</div>
 @endif
 
 {{-- Filters --}}
-<div class="card border-0 shadow-sm mb-3">
-    <div class="card-body py-2">
-        <form method="GET" class="row g-2 align-items-end">
-            <div class="col-auto">
-                <input type="text" name="vendor" class="form-control form-control-sm"
-                    placeholder="Vendor name…" value="{{ request('vendor') }}">
-            </div>
-            <div class="col-auto">
-                <select name="status" class="form-select form-select-sm">
-                    <option value="">All Statuses</option>
-                    @foreach (\App\Models\InventoryBillUpload::statusLabels() as $val => $label)
-                        <option value="{{ $val }}" {{ request('status') === $val ? 'selected' : '' }}>{{ $label }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="col-auto">
-                <button type="submit" class="btn btn-sm btn-primary">Filter</button>
-                <a href="{{ route('admin.inventory.bills.index') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
-            </div>
-        </form>
-    </div>
-</div>
+<x-ds.card style="margin-bottom:14px">
+    <form method="GET" class="ef-an-filter">
+        <div class="ef-an-filter-field">
+            <input type="text" name="vendor" class="ef-input" placeholder="Vendor name…" value="{{ request('vendor') }}">
+        </div>
+        <div class="ef-an-filter-field">
+            <select name="status" class="ef-select">
+                <option value="">All Statuses</option>
+                @foreach(\App\Models\InventoryBillUpload::statusLabels() as $val => $label)
+                    <option value="{{ $val }}" {{ request('status') === $val ? 'selected' : '' }}>{{ $label }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="ef-an-filter-actions">
+            <button type="submit" class="ef-btn ef-btn-dark">Filter</button>
+            <a href="{{ route('admin.inventory.bills.index') }}" class="ef-btn">Reset</a>
+        </div>
+    </form>
+</x-ds.card>
 
-<div class="card border-0 shadow-sm">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0 align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>Vendor</th>
-                        <th>Invoice No.</th>
-                        <th>Invoice Date</th>
-                        <th class="text-end">Total</th>
-                        <th class="text-center">Items</th>
-                        <th class="text-center">Status</th>
-                        <th>Uploaded By</th>
-                        <th>Uploaded At</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($bills as $bill)
-                        @php
-                            $statusColor = \App\Models\InventoryBillUpload::statuses()[$bill->status] ?? 'secondary';
-                            $statusLabel = \App\Models\InventoryBillUpload::statusLabels()[$bill->status] ?? ucfirst($bill->status);
-                        @endphp
-                        <tr>
-                            <td class="fw-semibold">{{ $bill->vendor_name ?: '—' }}</td>
-                            <td class="font-monospace small">{{ $bill->invoice_number ?: '—' }}</td>
-                            <td class="small">{{ $bill->invoice_date?->format('d M Y') ?? '—' }}</td>
-                            <td class="text-end">{{ $bill->total_amount > 0 ? '₹' . number_format($bill->total_amount, 2) : '—' }}</td>
-                            <td class="text-center">
-                                <span class="badge bg-secondary">{{ $bill->items->count() }}</span>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge bg-{{ $statusColor }}">{{ $statusLabel }}</span>
-                            </td>
-                            <td class="small text-muted">{{ optional($bill->uploader)->name ?? '—' }}</td>
-                            <td class="small text-muted" style="white-space:nowrap">{{ $bill->created_at->format('d M Y, h:i A') }}</td>
-                            <td class="text-end" style="white-space:nowrap">
-                                <a href="{{ route('admin.inventory.bills.show', $bill) }}"
-                                   class="btn btn-sm btn-outline-primary" title="Review">
-                                    <i class="bi bi-eye"></i>
-                                </a>
-                                @if ($bill->canDelete())
-                                    <form method="POST"
-                                          action="{{ route('admin.inventory.bills.destroy', $bill) }}"
-                                          class="d-inline"
-                                          onsubmit="return confirm('Delete this bill upload?')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
-                                @endif
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="9" class="text-center py-5 text-muted">
-                                <i class="bi bi-file-earmark-text fs-2 d-block mb-2"></i>
-                                No bills uploaded yet.
-                                <div class="mt-2">
-                                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
-                                        <i class="bi bi-cloud-upload me-1"></i>Upload First Bill
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+@php
+$statusDsColors = [
+    'success'   => 'background:rgba(15,123,95,.1);border:1px solid rgba(15,123,95,.2);color:var(--ef-emerald)',
+    'warning'   => 'background:rgba(216,154,61,.1);border:1px solid rgba(216,154,61,.2);color:var(--ef-amber)',
+    'danger'    => 'background:rgba(220,53,69,.08);border:1px solid rgba(220,53,69,.15);color:var(--ef-danger)',
+    'secondary' => 'background:rgba(100,116,139,.08);border:1px solid rgba(100,116,139,.15);color:#64748b',
+    'primary'   => 'background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.15);color:#3b82f6',
+    'info'      => 'background:rgba(13,148,136,.08);border:1px solid rgba(13,148,136,.15);color:var(--ef-teal)',
+];
+@endphp
+
+<x-ds.card :no-pad="true">
+    <div style="overflow-x:auto">
+        <table class="ef-an-trend-table">
+            <thead>
+                <tr>
+                    <th>Vendor</th>
+                    <th>Invoice No.</th>
+                    <th>Invoice Date</th>
+                    <th class="r">Total</th>
+                    <th style="text-align:center">Items</th>
+                    <th style="text-align:center">Status</th>
+                    <th>Uploaded By</th>
+                    <th>Uploaded At</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($bills as $bill)
+                @php
+                    $statusColor = \App\Models\InventoryBillUpload::statuses()[$bill->status] ?? 'secondary';
+                    $statusLabel = \App\Models\InventoryBillUpload::statusLabels()[$bill->status] ?? ucfirst($bill->status);
+                    $badgeStyle  = $statusDsColors[$statusColor] ?? $statusDsColors['secondary'];
+                @endphp
+                <tr>
+                    <td style="font-weight:600">{{ $bill->vendor_name ?: '—' }}</td>
+                    <td style="font-family:monospace;font-size:.82rem">{{ $bill->invoice_number ?: '—' }}</td>
+                    <td style="color:var(--ef-faint);font-size:.84rem">{{ $bill->invoice_date?->format('d M Y') ?? '—' }}</td>
+                    <td class="r fw">{{ $bill->total_amount > 0 ? '₹' . number_format($bill->total_amount, 2) : '—' }}</td>
+                    <td style="text-align:center">
+                        <span style="background:rgba(100,116,139,.08);border:1px solid rgba(100,116,139,.15);border-radius:5px;color:#64748b;font-size:.72rem;font-weight:700;padding:2px 8px">{{ $bill->items->count() }}</span>
+                    </td>
+                    <td style="text-align:center">
+                        <span style="{{ $badgeStyle }};border-radius:5px;font-size:.72rem;font-weight:700;padding:2px 8px;text-transform:uppercase">{{ $statusLabel }}</span>
+                    </td>
+                    <td style="color:var(--ef-faint);font-size:.84rem">{{ optional($bill->uploader)->name ?? '—' }}</td>
+                    <td style="color:var(--ef-faint);font-size:.84rem;white-space:nowrap">{{ $bill->created_at->format('d M Y, h:i A') }}</td>
+                    <td style="text-align:right;white-space:nowrap">
+                        <div style="display:flex;gap:6px;justify-content:flex-end">
+                            <a href="{{ route('admin.inventory.bills.show', $bill) }}" class="ef-btn ef-btn-icon" title="Review">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            @if($bill->canDelete())
+                            <form method="POST" action="{{ route('admin.inventory.bills.destroy', $bill) }}" style="display:inline"
+                                  onsubmit="return confirm('Delete this bill upload?')">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="ef-btn ef-btn-icon" style="color:var(--ef-danger)" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                            @endif
+                        </div>
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="9" style="text-align:center;padding:40px;color:var(--ef-faint)">
+                        <i class="bi bi-file-earmark-text" style="font-size:1.5rem;display:block;margin-bottom:8px"></i>
+                        No bills uploaded yet.
+                        <div style="margin-top:12px">
+                            <button type="button" class="ef-btn ef-btn-dark" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                                <i class="bi bi-cloud-upload"></i> Upload First Bill
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
-    @if ($bills->hasPages())
-        <div class="card-footer bg-transparent border-top d-flex align-items-center justify-content-between">
-            <div class="text-muted small">{{ $bills->total() }} bill(s)</div>
-            {{ $bills->links() }}
-        </div>
+    @if($bills->hasPages())
+    <div style="padding:12px 18px;border-top:1px solid var(--ef-border);display:flex;align-items:center;justify-content:space-between">
+        <div style="color:var(--ef-faint);font-size:.82rem">{{ $bills->total() }} bill(s)</div>
+        {{ $bills->links() }}
+    </div>
     @endif
-</div>
+</x-ds.card>
 
-{{-- Upload Modal --}}
 @include('admin.inventory.bills._upload-modal')
 
 </x-admin-layout>

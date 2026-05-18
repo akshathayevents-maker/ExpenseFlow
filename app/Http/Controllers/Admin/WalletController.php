@@ -76,7 +76,16 @@ class WalletController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('admin.wallets.show', compact('wallet', 'transactions'));
+        $base = WalletTransaction::where('wallet_id', $wallet->id);
+
+        $stats = [
+            'total_credited' => (float) (clone $base)->whereIn('type', ['credit', 'reimbursement'])->sum('amount'),
+            'total_debited'  => (float) (clone $base)->where('type', 'debit')->sum('amount'),
+            'txn_count'      => (clone $base)->count(),
+            'last_txn_at'    => (clone $base)->latest()->value('created_at'),
+        ];
+
+        return view('admin.wallets.show', compact('wallet', 'transactions', 'stats'));
     }
 
     public function transact(WalletTransactionRequest $request, User $user): RedirectResponse|JsonResponse

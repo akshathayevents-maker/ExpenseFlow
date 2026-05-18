@@ -1,131 +1,119 @@
 <x-admin-layout title="Wallet Ledger">
-<div class="page-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-    <div>
-        <nav aria-label="breadcrumb"><ol class="breadcrumb mb-1 small">
-            <li class="breadcrumb-item"><a href="{{ route('admin.reports.index') }}">Reports</a></li>
-            <li class="breadcrumb-item active">Wallet Ledger</li>
-        </ol></nav>
-        <h4 class="mb-0 fw-bold">Wallet Ledger</h4>
-        <p class="text-muted mb-0 small">All wallet transactions across employees</p>
-    </div>
-</div>
 
-<div class="card border-0 shadow-sm mb-3">
-    <div class="card-body py-2">
-        <form method="GET" class="row g-2 align-items-end">
-            <div class="col-auto">
-                <select name="employee_id" class="form-select form-select-sm">
-                    <option value="">All Employees</option>
-                    @foreach($employees as $emp)
-                        <option value="{{ $emp->id }}" {{ ($filters['employee_id'] ?? '') == $emp->id ? 'selected' : '' }}>
-                            {{ $emp->name }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="col-auto">
-                <select name="type" class="form-select form-select-sm">
-                    <option value="">All Types</option>
-                    <option value="credit" {{ ($filters['type'] ?? '') === 'credit' ? 'selected' : '' }}>Credit</option>
-                    <option value="debit" {{ ($filters['type'] ?? '') === 'debit' ? 'selected' : '' }}>Debit</option>
-                    <option value="adjustment" {{ ($filters['type'] ?? '') === 'adjustment' ? 'selected' : '' }}>Adjustment</option>
-                    <option value="reimbursement" {{ ($filters['type'] ?? '') === 'reimbursement' ? 'selected' : '' }}>Reimbursement</option>
-                </select>
-            </div>
-            <div class="col-auto">
-                <input type="date" name="from" class="form-control form-control-sm" value="{{ $filters['from'] ?? '' }}">
-            </div>
-            <div class="col-auto">
-                <input type="date" name="to" class="form-control form-control-sm" value="{{ $filters['to'] ?? '' }}">
-            </div>
-            <div class="col-auto">
-                <button class="btn btn-sm btn-primary">Filter</button>
-                <a href="{{ route('admin.reports.ledger') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
-            </div>
-        </form>
-    </div>
-</div>
+<x-ds.hero eyebrow="Reports" title="Wallet Ledger"
+    :meta="[['icon' => 'bi-journal-text', 'text' => 'All wallet transactions across employees']]">
+    <x-slot:actions>
+        <a href="{{ route('admin.reports.index') }}" class="ef-btn">
+            <i class="bi bi-arrow-left"></i> All Reports
+        </a>
+    </x-slot:actions>
+</x-ds.hero>
 
-<div class="card border-0 shadow-sm">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Employee</th>
-                        <th>Type</th>
-                        <th>Notes / Reference</th>
-                        <th class="text-end">Debit</th>
-                        <th class="text-end">Credit</th>
-                        <th class="text-end">Balance After</th>
-                        <th>By</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($transactions as $txn)
-                    @php
-                        $colors = \App\Models\WalletTransaction::typeColors();
-                        $color  = $colors[$txn->type] ?? 'secondary';
-                        $isDebit = in_array($txn->type, ['debit']);
-                    @endphp
-                    <tr>
-                        <td class="text-nowrap small">
-                            {{ $txn->created_at->format('d M Y') }}<br>
-                            <span class="text-muted">{{ $txn->created_at->format('h:i A') }}</span>
-                        </td>
-                        <td>
-                            <div class="fw-semibold small">{{ $txn->wallet->user->name }}</div>
-                        </td>
-                        <td>
-                            <span class="badge bg-{{ $color }}-subtle text-{{ $color }} border border-{{ $color }}-subtle"
-                                  style="font-size:.65rem;text-transform:uppercase;letter-spacing:.5px">
-                                {{ $txn->type }}
-                            </span>
-                        </td>
-                        <td class="text-muted small">
-                            {{ $txn->notes ?? '' }}
-                            @if($txn->expenseRequest)
-                                <a href="{{ route('admin.expense-requests.show', $txn->expenseRequest) }}"
-                                   class="d-block text-decoration-none small">
-                                    <i class="bi bi-link-45deg"></i>{{ Str::limit($txn->expenseRequest->title, 25) }}
-                                </a>
-                            @endif
-                        </td>
-                        <td class="text-end">
-                            @if($txn->isDebit())
-                                <span class="text-danger fw-semibold">₹{{ number_format($txn->amount, 2) }}</span>
-                            @else
-                                <span class="text-muted">—</span>
-                            @endif
-                        </td>
-                        <td class="text-end">
-                            @if($txn->isCredit())
-                                <span class="text-success fw-semibold">₹{{ number_format($txn->amount, 2) }}</span>
-                            @else
-                                <span class="text-muted">—</span>
-                            @endif
-                        </td>
-                        <td class="text-end fw-semibold">₹{{ number_format($txn->balance_after, 2) }}</td>
-                        <td class="small text-muted">{{ $txn->creator->name }}</td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="8" class="text-center py-5 text-muted">
-                            <i class="bi bi-journal-text fs-2 d-block mb-2"></i>
-                            No transactions found.
-                        </td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
+<x-ds.card>
+    <form method="GET" class="ef-an-filter">
+        <div>
+            <label class="ef-label">Employee</label>
+            <select name="employee_id" class="ef-select" style="min-height:38px;padding:7px 12px;min-width:160px">
+                <option value="">All Employees</option>
+                @foreach($employees as $emp)
+                    <option value="{{ $emp->id }}" {{ ($filters['employee_id'] ?? '') == $emp->id ? 'selected' : '' }}>
+                        {{ $emp->name }}
+                    </option>
+                @endforeach
+            </select>
         </div>
+        <div>
+            <label class="ef-label">Type</label>
+            <select name="type" class="ef-select" style="min-height:38px;padding:7px 12px;min-width:140px">
+                <option value="">All Types</option>
+                <option value="credit" {{ ($filters['type'] ?? '') === 'credit' ? 'selected' : '' }}>Credit</option>
+                <option value="debit" {{ ($filters['type'] ?? '') === 'debit' ? 'selected' : '' }}>Debit</option>
+                <option value="adjustment" {{ ($filters['type'] ?? '') === 'adjustment' ? 'selected' : '' }}>Adjustment</option>
+                <option value="reimbursement" {{ ($filters['type'] ?? '') === 'reimbursement' ? 'selected' : '' }}>Reimbursement</option>
+            </select>
+        </div>
+        <div class="ef-an-filter-field">
+            <label class="ef-label">From</label>
+            <input type="date" name="from" class="ef-input" style="min-height:38px;padding:7px 12px" value="{{ $filters['from'] ?? '' }}">
+        </div>
+        <div class="ef-an-filter-field">
+            <label class="ef-label">To</label>
+            <input type="date" name="to" class="ef-input" style="min-height:38px;padding:7px 12px" value="{{ $filters['to'] ?? '' }}">
+        </div>
+        <div class="ef-an-filter-actions">
+            <button class="ef-btn ef-btn-dark" style="height:38px">Filter</button>
+            <a href="{{ route('admin.reports.ledger') }}" class="ef-btn" style="height:38px;display:inline-flex;align-items:center">Reset</a>
+        </div>
+    </form>
+</x-ds.card>
+
+<x-ds.card :no-pad="true">
+    <div style="overflow-x:auto">
+        <table class="ef-wlt-txn-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Employee</th>
+                    <th>Type</th>
+                    <th>Notes / Reference</th>
+                    <th class="r">Debit</th>
+                    <th class="r">Credit</th>
+                    <th class="r">Balance After</th>
+                    <th>By</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($transactions as $txn)
+                <tr>
+                    <td style="white-space:nowrap">
+                        <div style="font-size:.86rem;font-weight:600">{{ $txn->created_at->format('d M Y') }}</div>
+                        <div style="color:var(--ef-faint);font-size:.76rem">{{ $txn->created_at->format('h:i A') }}</div>
+                    </td>
+                    <td style="font-size:.86rem;font-weight:600">{{ $txn->wallet->user->name }}</td>
+                    <td><span class="ef-wlt-type-badge --{{ $txn->type }}">{{ $txn->type }}</span></td>
+                    <td style="color:var(--ef-faint);font-size:.84rem;max-width:180px">
+                        {{ $txn->notes ?? '' }}
+                        @if($txn->expenseRequest)
+                            <a href="{{ route('admin.expense-requests.show', $txn->expenseRequest) }}"
+                               style="display:block;color:var(--ef-emerald);text-decoration:none;font-size:.8rem;margin-top:2px">
+                                <i class="bi bi-link-45deg"></i>{{ Str::limit($txn->expenseRequest->title, 25) }}
+                            </a>
+                        @endif
+                    </td>
+                    <td class="r">
+                        @if($txn->isDebit())
+                            <span style="color:var(--ef-danger);font-weight:680">₹{{ number_format($txn->amount, 2) }}</span>
+                        @else
+                            <span style="color:var(--ef-faint)">—</span>
+                        @endif
+                    </td>
+                    <td class="r">
+                        @if($txn->isCredit())
+                            <span style="color:var(--ef-emerald);font-weight:680">₹{{ number_format($txn->amount, 2) }}</span>
+                        @else
+                            <span style="color:var(--ef-faint)">—</span>
+                        @endif
+                    </td>
+                    <td class="r" style="font-weight:680">₹{{ number_format($txn->balance_after, 2) }}</td>
+                    <td style="color:var(--ef-faint);font-size:.84rem">{{ $txn->creator->name }}</td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="8" style="text-align:center;padding:40px;color:var(--ef-faint)">
+                        <i class="bi bi-journal-text" style="font-size:1.5rem;display:block;margin-bottom:8px"></i>
+                        No transactions found.
+                    </td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
     @if($transactions->hasPages())
-    <div class="card-footer bg-transparent border-top d-flex align-items-center justify-content-between">
-        <div class="text-muted small">{{ $transactions->total() }} transactions</div>
+    <div style="padding:12px 18px;border-top:1px solid var(--ef-border);display:flex;align-items:center;justify-content:space-between">
+        <div style="color:var(--ef-faint);font-size:.8rem">{{ $transactions->total() }} transactions</div>
         {{ $transactions->links() }}
     </div>
     @endif
-</div>
+</x-ds.card>
+
 </x-admin-layout>

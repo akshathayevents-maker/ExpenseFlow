@@ -33,6 +33,7 @@
     @if($appJs)
         <script type="module" src="{{ asset('build/' . $appJs) }}"></script>
     @endif
+    <link rel="stylesheet" href="{{ asset('css/mobile.css') }}?v=1">
 
     <style>
         :root {
@@ -212,6 +213,9 @@
         @php
             $unreadCount = auth()->user()->hasMany(\App\Models\AppNotification::class)->whereNull('read_at')->count();
             $recentNotifications = \App\Models\AppNotification::where('user_id', auth()->id())->latest()->limit(6)->get();
+            $mPendingCount = in_array(auth()->user()->role, ['admin', 'manager'])
+                ? \App\Models\ExpenseRequest::where('status', 'pending')->count()
+                : 0;
         @endphp
         {{-- Notification bell --}}
         <div class="dropdown">
@@ -522,20 +526,116 @@
 {{-- Main content --}}
 <main id="main-content">
     @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
-            <i class="bi bi-check-circle-fill"></i> {{ session('success') }}
-            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+        <div class="alert alert-dismissible fade show" role="alert"
+             style="align-items:center;background:rgba(15,123,95,.08);border:1px solid rgba(15,123,95,.2);border-radius:12px;color:#0F7B5F;display:flex;font-size:.86rem;gap:10px;margin-bottom:16px;padding:10px 14px">
+            <i class="bi bi-check-circle-fill flex-shrink-0"></i>
+            <span style="flex:1">{{ session('success') }}</span>
+            <button type="button" class="btn-close btn-sm flex-shrink-0" data-bs-dismiss="alert" style="filter:invert(40%) sepia(80%) saturate(300%) hue-rotate(120deg);margin:0"></button>
         </div>
     @endif
     @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
-            <i class="bi bi-exclamation-triangle-fill"></i> {{ session('error') }}
-            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+        <div class="alert alert-dismissible fade show" role="alert"
+             style="align-items:center;background:rgba(200,75,68,.08);border:1px solid rgba(200,75,68,.2);border-radius:12px;color:#C84B44;display:flex;font-size:.86rem;gap:10px;margin-bottom:16px;padding:10px 14px">
+            <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+            <span style="flex:1">{{ session('error') }}</span>
+            <button type="button" class="btn-close btn-sm flex-shrink-0" data-bs-dismiss="alert" style="filter:invert(30%) sepia(80%) saturate(600%) hue-rotate(330deg);margin:0"></button>
         </div>
     @endif
 
     {{ $slot }}
 </main>
+
+{{-- Mobile bottom navigation (shown on screens ≤ 767px via CSS) --}}
+@auth
+@php $mRole = auth()->user()->role ?? 'employee'; @endphp
+<nav class="ef-m-bottomnav" role="navigation" aria-label="Mobile navigation">
+    @if($mRole === 'admin')
+        <a href="{{ route('admin.dashboard') }}"
+           class="ef-m-bottomnav-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+            <div class="ef-m-bottomnav-icon-wrap"><i class="bi bi-speedometer2"></i></div>
+            <span>Home</span>
+        </a>
+        <a href="{{ route('admin.expense-requests.index') }}"
+           class="ef-m-bottomnav-item {{ request()->routeIs('admin.expense-requests.*') ? 'active' : '' }}">
+            <div class="ef-m-bottomnav-icon-wrap">
+                <i class="bi bi-file-earmark-text"></i>
+                @if($mPendingCount > 0)
+                    <span class="ef-m-nav-badge">{{ $mPendingCount > 99 ? '99+' : $mPendingCount }}</span>
+                @endif
+            </div>
+            <span>Expenses</span>
+        </a>
+        <a href="{{ route('admin.wallets.index') }}"
+           class="ef-m-bottomnav-item {{ request()->routeIs('admin.wallets.*') ? 'active' : '' }}">
+            <div class="ef-m-bottomnav-icon-wrap"><i class="bi bi-wallet2"></i></div>
+            <span>Wallets</span>
+        </a>
+        <button type="button" class="ef-m-bottomnav-item" onclick="document.getElementById('sidebar-toggle').click()">
+            <div class="ef-m-bottomnav-icon-wrap">
+                <i class="bi bi-grid-3x3-gap"></i>
+                @if($unreadCount > 0)
+                    <span class="ef-m-nav-badge">{{ $unreadCount > 99 ? '99+' : $unreadCount }}</span>
+                @endif
+            </div>
+            <span>Menu</span>
+        </button>
+
+    @elseif($mRole === 'manager')
+        <a href="{{ route('manager.dashboard') }}"
+           class="ef-m-bottomnav-item {{ request()->routeIs('manager.dashboard') ? 'active' : '' }}">
+            <div class="ef-m-bottomnav-icon-wrap"><i class="bi bi-speedometer2"></i></div>
+            <span>Home</span>
+        </a>
+        <a href="{{ route('manager.expense-requests.index') }}"
+           class="ef-m-bottomnav-item {{ request()->routeIs('manager.expense-requests.*') ? 'active' : '' }}">
+            <div class="ef-m-bottomnav-icon-wrap">
+                <i class="bi bi-file-earmark-text"></i>
+                @if($mPendingCount > 0)
+                    <span class="ef-m-nav-badge">{{ $mPendingCount > 99 ? '99+' : $mPendingCount }}</span>
+                @endif
+            </div>
+            <span>Requests</span>
+        </a>
+        <a href="{{ route('hall.dashboard') }}"
+           class="ef-m-bottomnav-item {{ request()->routeIs('hall.*') ? 'active' : '' }}">
+            <div class="ef-m-bottomnav-icon-wrap"><i class="bi bi-building"></i></div>
+            <span>Hall</span>
+        </a>
+        <button type="button" class="ef-m-bottomnav-item" onclick="document.getElementById('sidebar-toggle').click()">
+            <div class="ef-m-bottomnav-icon-wrap">
+                <i class="bi bi-grid-3x3-gap"></i>
+                @if($unreadCount > 0)
+                    <span class="ef-m-nav-badge">{{ $unreadCount > 99 ? '99+' : $unreadCount }}</span>
+                @endif
+            </div>
+            <span>Menu</span>
+        </button>
+
+    @else
+        {{-- Employee --}}
+        <a href="{{ route('employee.dashboard') }}"
+           class="ef-m-bottomnav-item {{ request()->routeIs('employee.dashboard') ? 'active' : '' }}">
+            <div class="ef-m-bottomnav-icon-wrap"><i class="bi bi-speedometer2"></i></div>
+            <span>Home</span>
+        </a>
+        <a href="{{ route('employee.expense-requests.index') }}"
+           class="ef-m-bottomnav-item {{ request()->routeIs('employee.expense-requests.index') ? 'active' : '' }}">
+            <div class="ef-m-bottomnav-icon-wrap"><i class="bi bi-list-ul"></i></div>
+            <span>Requests</span>
+        </a>
+        <a href="{{ route('employee.wallet.show') }}"
+           class="ef-m-bottomnav-item {{ request()->routeIs('employee.wallet.*') ? 'active' : '' }}">
+            <div class="ef-m-bottomnav-icon-wrap"><i class="bi bi-wallet2"></i></div>
+            <span>Wallet</span>
+        </a>
+        <a href="{{ route('employee.expense-requests.create') }}"
+           class="ef-m-bottomnav-item {{ request()->routeIs('employee.expense-requests.create') ? 'active' : '' }}">
+            <div class="ef-m-bottomnav-icon-wrap"><i class="bi bi-plus-circle"></i></div>
+            <span>New</span>
+        </a>
+    @endif
+</nav>
+@endauth
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>

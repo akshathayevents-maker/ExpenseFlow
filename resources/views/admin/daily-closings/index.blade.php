@@ -808,7 +808,7 @@
                                 @if($closing->canDelete())
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
-                                        <button class="dropdown-item text-danger"
+                                        <button class="dropdown-item" style="color:var(--ef-danger)"
                                                 style="font-size:.84rem"
                                                 data-bs-toggle="modal"
                                                 data-bs-target="#deleteModal{{ $closing->id }}">
@@ -880,7 +880,7 @@
             <div class="modal-content">
                 <div class="modal-header border-0">
                     <h6 class="modal-title">
-                        <i class="bi bi-trash text-danger me-2"></i> Delete Closing
+                        <i class="bi bi-trash me-2" style="color:var(--ef-danger)"></i> Delete Closing
                     </h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>

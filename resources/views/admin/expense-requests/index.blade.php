@@ -1138,8 +1138,8 @@ a.ef-mgr-kpi:hover {
                     @enderror
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-light btn-sm fw-semibold" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger btn-sm">Reject Request</button>
+                    <button type="button" class="ef-btn" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="ef-btn" style="color:var(--ef-danger)">Reject Request</button>
                 </div>
             </form>
         </div>

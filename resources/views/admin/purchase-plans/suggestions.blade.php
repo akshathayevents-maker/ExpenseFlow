@@ -1,80 +1,73 @@
 <x-admin-layout title="Purchase Suggestions">
-<div class="page-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-    <div>
-        <h4 class="mb-0 fw-bold">Purchase Suggestions</h4>
-        <p class="text-muted mb-0 small">Items below minimum stock — auto-generated list</p>
-    </div>
+
+<x-ds.hero eyebrow="Purchase Plans" title="Purchase Suggestions"
+    :meta="[['icon' => 'bi-lightbulb', 'text' => 'Items below minimum stock — auto-generated list']]">
     @if($suggestions->isNotEmpty())
-    <a href="{{ route('admin.purchase-plans.create') }}" class="btn btn-primary btn-sm">
-        <i class="bi bi-plus-lg me-1"></i> Create Purchase Plan
-    </a>
+    <x-slot:actions>
+        <a href="{{ route('admin.purchase-plans.create') }}" class="ef-btn ef-btn-dark">
+            <i class="bi bi-plus-lg"></i> Create Purchase Plan
+        </a>
+    </x-slot:actions>
     @endif
-</div>
+</x-ds.hero>
 
 @if($suggestions->isEmpty())
-    <div class="card border-0 shadow-sm">
-        <div class="card-body text-center py-5 text-muted">
-            <i class="bi bi-check-circle fs-2 d-block mb-2 text-success"></i>
-            All stock levels are healthy. No purchases needed right now.
-        </div>
+<x-ds.card>
+    <div style="text-align:center;padding:32px;color:var(--ef-faint)">
+        <i class="bi bi-check-circle" style="font-size:1.5rem;display:block;margin-bottom:8px;color:var(--ef-emerald)"></i>
+        All stock levels are healthy. No purchases needed right now.
     </div>
+</x-ds.card>
 @else
-<div class="card border-0 shadow-sm">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead>
-                    <tr>
-                        <th>Item</th>
-                        <th>Category</th>
-                        <th class="text-end">Current</th>
-                        <th class="text-end">Minimum</th>
-                        <th class="text-end">Deficit</th>
-                        <th class="text-end">Suggested Order</th>
-                        <th class="text-center">Priority</th>
-                        <th class="text-end">Est. Cost</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($suggestions as $item)
-                    @php
-                        $pc = \App\Models\PurchasePlanItem::priorityColors();
-                        $color = $pc[$item->priority] ?? 'secondary';
-                    @endphp
-                    <tr>
-                        <td>
-                            <a href="{{ route('admin.inventory.items.show', $item) }}" class="fw-semibold text-decoration-none">
-                                {{ $item->name }}
-                            </a>
-                            @if($item->isOutOfStock())
-                                <span class="badge bg-danger ms-1" style="font-size:.6rem">OUT</span>
-                            @endif
-                        </td>
-                        <td class="text-muted small">{{ $item->category->name }}</td>
-                        <td class="text-end {{ $item->isOutOfStock() ? 'text-danger fw-bold' : 'text-warning fw-semibold' }}">
-                            {{ $item->current_stock }} {{ $item->unit }}
-                        </td>
-                        <td class="text-end text-muted small">{{ $item->minimum_stock }} {{ $item->unit }}</td>
-                        <td class="text-end text-danger fw-semibold">{{ $item->deficit }} {{ $item->unit }}</td>
-                        <td class="text-end fw-semibold text-primary">{{ $item->suggested_quantity }} {{ $item->unit }}</td>
-                        <td class="text-center">
-                            <span class="badge bg-{{ $color }}-subtle text-{{ $color }} border border-{{ $color }}-subtle"
-                                  style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px">
-                                {{ $item->priority }}
-                            </span>
-                        </td>
-                        <td class="text-end text-muted small">
-                            @if($item->average_cost)
-                                ₹{{ number_format($item->average_cost * $item->suggested_quantity, 2) }}
-                            @else —
-                            @endif
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
+<x-ds.card :no-pad="true">
+    <div style="overflow-x:auto">
+        <table class="ef-an-trend-table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Category</th>
+                    <th class="r">Current</th>
+                    <th class="r">Minimum</th>
+                    <th class="r">Deficit</th>
+                    <th class="r">Suggested Order</th>
+                    <th style="text-align:center">Priority</th>
+                    <th class="r">Est. Cost</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($suggestions as $item)
+                <tr>
+                    <td>
+                        <a href="{{ route('admin.inventory.items.show', $item) }}"
+                           style="color:var(--ef-ink-2);text-decoration:none;font-weight:600">
+                            {{ $item->name }}
+                        </a>
+                        @if($item->isOutOfStock())
+                            <span style="background:rgba(220,53,69,.1);border-radius:4px;color:var(--ef-danger);font-size:.62rem;font-weight:700;margin-left:6px;padding:1px 6px;text-transform:uppercase">OUT</span>
+                        @endif
+                    </td>
+                    <td style="color:var(--ef-faint);font-size:.84rem">{{ $item->category->name }}</td>
+                    <td class="r" style="{{ $item->isOutOfStock() ? 'color:var(--ef-danger);font-weight:700' : 'color:var(--ef-amber);font-weight:600' }}">
+                        {{ $item->current_stock }} {{ $item->unit }}
+                    </td>
+                    <td class="r" style="color:var(--ef-faint);font-size:.84rem">{{ $item->minimum_stock }} {{ $item->unit }}</td>
+                    <td class="r" style="color:var(--ef-danger);font-weight:680">{{ $item->deficit }} {{ $item->unit }}</td>
+                    <td class="r fw" style="color:var(--ef-emerald)">{{ $item->suggested_quantity }} {{ $item->unit }}</td>
+                    <td style="text-align:center">
+                        <span class="ef-ds-priority --{{ $item->priority }}">{{ $item->priority }}</span>
+                    </td>
+                    <td class="r" style="color:var(--ef-faint);font-size:.84rem">
+                        @if($item->average_cost)
+                            ₹{{ number_format($item->average_cost * $item->suggested_quantity, 2) }}
+                        @else —
+                        @endif
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
     </div>
-</div>
+</x-ds.card>
 @endif
+
 </x-admin-layout>

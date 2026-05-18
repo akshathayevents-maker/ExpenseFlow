@@ -1,23 +1,6 @@
 <x-admin-layout title="Add Employee">
 @push('styles')
 <style>
-/* ── Design tokens ─────────────────────────────────────── */
-:root {
-    --ef-bg:            #f7f4f0;
-    --ef-ink:           #1a1612;
-    --ef-gold:          #a07238;
-    --ef-gold-hi:       #b8854a;
-    --ef-muted:         #6b6560;
-    --ef-faint:         #ede9e3;
-    --ef-border:        rgba(160,114,56,.15);
-    --ef-border-strong: rgba(160,114,56,.30);
-    --ef-shadow:        0 1px 3px rgba(26,22,18,.08),0 4px 12px rgba(26,22,18,.06);
-    --ef-shadow-hover:  0 4px 16px rgba(26,22,18,.14),0 1px 4px rgba(26,22,18,.08);
-    --ef-radius:        14px;
-    --ef-ease:          cubic-bezier(.25,.46,.45,.94);
-    --ef-danger:        #c0392b;
-    --ef-success:       #16a34a;
-}
 
 /* ── Hero ──────────────────────────────────────────────── */
 .ef-emp-hero {
@@ -99,7 +82,7 @@
 .ef-emp-step-num {
     width: 28px; height: 28px;
     border-radius: 50%;
-    background: #fff;
+    background: var(--ef-surface);
     border: 1.5px solid var(--ef-border-strong);
     display: flex; align-items: center; justify-content: center;
     font-size: .72rem;
@@ -129,7 +112,7 @@
 
 /* ── Section card ──────────────────────────────────────── */
 .ef-emp-section {
-    background: #fff;
+    background: var(--ef-surface);
     border: 1px solid var(--ef-border);
     border-radius: var(--ef-radius);
     box-shadow: var(--ef-shadow);
@@ -145,8 +128,8 @@
 .ef-emp-section-num {
     width: 30px; height: 30px;
     border-radius: 8px;
-    background: rgba(160,114,56,.1);
-    border: 1px solid rgba(160,114,56,.2);
+    background: rgba(184,137,62,.1);
+    border: 1px solid rgba(184,137,62,.2);
     display: flex; align-items: center; justify-content: center;
     font-size: .72rem;
     font-weight: 800;
@@ -215,8 +198,8 @@
 .ef-emp-input::placeholder { color: #b5afa8; }
 .ef-emp-input:focus {
     border-color: var(--ef-gold);
-    background: #fff;
-    box-shadow: 0 0 0 3px rgba(160,114,56,.12);
+    background: var(--ef-surface);
+    box-shadow: 0 0 0 3px rgba(184,137,62,.12);
 }
 .ef-emp-input.--invalid {
     border-color: var(--ef-danger);
@@ -314,12 +297,12 @@
 }
 .ef-emp-role-card:hover .ef-emp-role-face {
     border-color: var(--ef-gold);
-    background: rgba(160,114,56,.04);
+    background: rgba(184,137,62,.04);
 }
 .ef-emp-role-card input:checked + .ef-emp-role-face {
     border-color: var(--ef-gold);
-    background: rgba(160,114,56,.07);
-    box-shadow: 0 0 0 2px rgba(160,114,56,.18);
+    background: rgba(184,137,62,.07);
+    box-shadow: 0 0 0 2px rgba(184,137,62,.18);
 }
 .ef-emp-role-icon {
     width: 32px; height: 32px;
@@ -330,10 +313,10 @@
     transition: all .2s;
 }
 .ef-emp-role-icon.--employee { background: rgba(37,99,235,.1);   color: #1d4ed8; }
-.ef-emp-role-icon.--manager  { background: rgba(160,114,56,.12); color: var(--ef-gold); }
+.ef-emp-role-icon.--manager  { background: rgba(184,137,62,.12); color: var(--ef-gold); }
 .ef-emp-role-icon.--admin    { background: rgba(107,114,128,.12);color: #374151; }
 .ef-emp-role-card input:checked + .ef-emp-role-face .ef-emp-role-icon.--employee { background: rgba(37,99,235,.15);   }
-.ef-emp-role-card input:checked + .ef-emp-role-face .ef-emp-role-icon.--manager  { background: rgba(160,114,56,.2);  }
+.ef-emp-role-card input:checked + .ef-emp-role-face .ef-emp-role-icon.--manager  { background: rgba(184,137,62,.2);  }
 .ef-emp-role-card input:checked + .ef-emp-role-face .ef-emp-role-icon.--admin    { background: rgba(107,114,128,.2); }
 .ef-emp-role-title {
     font-size: .875rem;
@@ -377,7 +360,7 @@
     transition: border-color .18s var(--ef-ease), background .18s;
     cursor: pointer;
 }
-.ef-emp-toggle-row:hover { border-color: var(--ef-border-strong); background: rgba(160,114,56,.04); }
+.ef-emp-toggle-row:hover { border-color: var(--ef-border-strong); background: rgba(184,137,62,.04); }
 .ef-emp-toggle-info { flex: 1; }
 .ef-emp-toggle-title {
     font-size: .875rem;
@@ -402,7 +385,7 @@
     position: absolute;
     width: 18px; height: 18px;
     border-radius: 50%;
-    background: #fff;
+    background: var(--ef-surface);
     top: 3px; left: 3px;
     transition: transform .25s var(--ef-ease);
     box-shadow: 0 1px 3px rgba(0,0,0,.2);
@@ -425,7 +408,7 @@
 
 /* ── Action footer (desktop) ────────────────────────────── */
 .ef-emp-footer {
-    background: #fff;
+    background: var(--ef-surface);
     border: 1px solid var(--ef-border);
     border-radius: var(--ef-radius);
     padding: 1.15rem 1.8rem;
@@ -467,12 +450,12 @@
     align-items: center;
     gap: .4rem;
     transition: background .2s var(--ef-ease), transform .15s, box-shadow .2s;
-    box-shadow: 0 2px 8px rgba(160,114,56,.25);
+    box-shadow: 0 2px 8px rgba(184,137,62,.25);
 }
 .ef-emp-btn-submit:hover {
     background: var(--ef-gold-hi);
     transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(160,114,56,.35);
+    box-shadow: 0 4px 14px rgba(184,137,62,.35);
 }
 .ef-emp-btn-submit:active { transform: translateY(0); }
 

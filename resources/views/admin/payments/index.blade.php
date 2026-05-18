@@ -1,24 +1,6 @@
 <x-admin-layout title="Payments">
 @push('styles')
 <style>
-/* ── Design tokens ─────────────────────────────────────── */
-:root {
-    --ef-bg:            #f7f4f0;
-    --ef-ink:           #1a1612;
-    --ef-gold:          #a07238;
-    --ef-gold-hi:       #b8854a;
-    --ef-muted:         #6b6560;
-    --ef-faint:         #ede9e3;
-    --ef-border:        rgba(160,114,56,.15);
-    --ef-border-strong: rgba(160,114,56,.30);
-    --ef-shadow:        0 1px 3px rgba(26,22,18,.08),0 4px 12px rgba(26,22,18,.06);
-    --ef-shadow-hover:  0 4px 16px rgba(26,22,18,.14),0 1px 4px rgba(26,22,18,.08);
-    --ef-radius:        14px;
-    --ef-ease:          cubic-bezier(.25,.46,.45,.94);
-    --ef-danger:        #c0392b;
-    --ef-success:       #16a34a;
-}
-
 /* ── Hero ──────────────────────────────────────────────── */
 .ef-pay-hero {
     background: linear-gradient(135deg, #111210 0%, #1f1d19 55%, #2a2519 100%);
@@ -100,7 +82,7 @@
 @media (max-width: 1399px) { .ef-pay-strip { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 767px)  { .ef-pay-strip { grid-template-columns: repeat(2, 1fr); } }
 .ef-pay-kpi {
-    background: #fff;
+    background: var(--ef-surface);
     border: 1px solid var(--ef-border);
     border-radius: var(--ef-radius);
     padding: 1.15rem 1.2rem;
@@ -118,12 +100,12 @@ a.ef-pay-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     font-size: .85rem;
     margin-bottom: .65rem;
 }
-.ef-pay-kpi-icon.--total  { background: rgba(160,114,56,.12); color: var(--ef-gold); }
+.ef-pay-kpi-icon.--total  { background: rgba(184,137,62,.12); color: var(--ef-gold); }
 .ef-pay-kpi-icon.--cash   { background: rgba(22,163,74,.1);   color: #15803d; }
 .ef-pay-kpi-icon.--upi    { background: rgba(99,102,241,.1);  color: #4338ca; }
 .ef-pay-kpi-icon.--bank   { background: rgba(14,165,233,.1);  color: #0369a1; }
 .ef-pay-kpi-icon.--avg    { background: rgba(107,114,128,.1); color: #374151; }
-.ef-pay-kpi-icon.--month  { background: rgba(239,68,68,.08);  color: #b91c1c; }
+.ef-pay-kpi-icon.--month  { background: rgba(239,68,68,.08);  color: var(--ef-danger); }
 .ef-pay-kpi-val {
     font-size: 1.3rem;
     font-weight: 800;
@@ -137,7 +119,7 @@ a.ef-pay-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
 
 /* ── Filter bar ────────────────────────────────────────── */
 .ef-pay-filter-bar {
-    background: #fff;
+    background: var(--ef-surface);
     border: 1px solid var(--ef-border);
     border-radius: var(--ef-radius);
     padding: 1rem 1.2rem;
@@ -173,7 +155,7 @@ a.ef-pay-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     align-items: center;
     gap: .3rem;
 }
-.ef-pay-chip:hover  { border-color: var(--ef-gold); color: var(--ef-gold); background: rgba(160,114,56,.06); }
+.ef-pay-chip:hover  { border-color: var(--ef-gold); color: var(--ef-gold); background: rgba(184,137,62,.06); }
 .ef-pay-chip.--active { background: var(--ef-gold); border-color: var(--ef-gold); color: #fff; }
 .ef-pay-chip.--cash { background: rgba(22,163,74,.08);  border-color: rgba(22,163,74,.25);  color: #15803d; }
 .ef-pay-chip.--cash.--active  { background: #15803d; border-color: #15803d; color: #fff; }
@@ -210,8 +192,8 @@ a.ef-pay-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
 .ef-pay-search::placeholder { color: #b5afa8; }
 .ef-pay-search:focus {
     border-color: var(--ef-gold);
-    background: #fff;
-    box-shadow: 0 0 0 3px rgba(160,114,56,.12);
+    background: var(--ef-surface);
+    box-shadow: 0 0 0 3px rgba(184,137,62,.12);
 }
 .ef-pay-select {
     border: 1px solid var(--ef-border-strong);
@@ -225,7 +207,7 @@ a.ef-pay-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     cursor: pointer;
     min-width: 130px;
 }
-.ef-pay-select:focus { border-color: var(--ef-gold); background: #fff; box-shadow: 0 0 0 3px rgba(160,114,56,.12); }
+.ef-pay-select:focus { border-color: var(--ef-gold); background: #fff; box-shadow: 0 0 0 3px rgba(184,137,62,.12); }
 .ef-pay-adv-toggle {
     border: 1px solid var(--ef-border);
     border-radius: 9px;
@@ -242,7 +224,7 @@ a.ef-pay-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     white-space: nowrap;
     position: relative;
 }
-.ef-pay-adv-toggle:hover { border-color: var(--ef-gold); color: var(--ef-gold); background: rgba(160,114,56,.06); }
+.ef-pay-adv-toggle:hover { border-color: var(--ef-gold); color: var(--ef-gold); background: rgba(184,137,62,.06); }
 .ef-pay-adv-dot {
     width: 6px; height: 6px; border-radius: 50%;
     background: var(--ef-gold);
@@ -306,7 +288,7 @@ a.ef-pay-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
 
 /* ── Transaction list container ────────────────────────── */
 .ef-pay-list {
-    background: #fff;
+    background: var(--ef-surface);
     border: 1px solid var(--ef-border);
     border-radius: var(--ef-radius);
     box-shadow: var(--ef-shadow);
@@ -344,7 +326,7 @@ a.ef-pay-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     position: relative;
 }
 .ef-pay-row:last-child { border-bottom: none; }
-.ef-pay-row:hover { background: rgba(160,114,56,.025); }
+.ef-pay-row:hover { background: rgba(184,137,62,.025); }
 @media (max-width: 767px) {
     .ef-pay-row {
         grid-template-columns: 1fr;
@@ -461,7 +443,7 @@ a.ef-pay-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     align-items: center;
     gap: .25rem;
 }
-.ef-pay-view-btn:hover { border-color: var(--ef-gold); color: var(--ef-gold); background: rgba(160,114,56,.05); }
+.ef-pay-view-btn:hover { border-color: var(--ef-gold); color: var(--ef-gold); background: rgba(184,137,62,.05); }
 
 /* ── Date group header ─────────────────────────────────── */
 .ef-pay-date-group {
@@ -499,7 +481,7 @@ a.ef-pay-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
 
 /* ── Pagination ────────────────────────────────────────── */
 .ef-pay-pagination {
-    background: #fff;
+    background: var(--ef-surface);
     border: 1px solid var(--ef-border);
     border-radius: var(--ef-radius);
     padding: .85rem 1.4rem;

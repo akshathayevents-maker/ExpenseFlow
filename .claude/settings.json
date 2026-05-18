@@ -46,7 +46,20 @@
       "Bash(php -r ' *)",
       "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/app/Http/Controllers/Hall/HallBookingController.php)",
       "Bash(curl -s -c /tmp/ef_cookies.txt -b /tmp/ef_cookies.txt http://127.0.0.1:8001/hall/bookings/calendar -I)",
-      "Bash(python3)"
+      "Bash(python3)",
+      "Bash(sed -i 's/class=\"form-control @error\\('\\\\''opening_balance'\\\\''\\) is-invalid @enderror\"/class=\"ef-input @error\\('\\\\''opening_balance'\\\\''\\) --error @enderror\"/g' /home/qc7107-l/Projects/ExpenseFlow/resources/views/admin/daily-closings/edit.blade.php)",
+      "Bash(sed -i 's/class=\"form-control @error\\('\\\\''notes'\\\\''\\) is-invalid @enderror\"/class=\"ef-textarea @error\\('\\\\''notes'\\\\''\\) --error @enderror\"/g' /home/qc7107-l/Projects/ExpenseFlow/resources/views/admin/daily-closings/edit.blade.php)",
+      "Bash(sed -i 's/class=\"form-select form-select-sm\" required>/class=\"ef-select\" required>/g' /home/qc7107-l/Projects/ExpenseFlow/resources/views/admin/daily-closings/edit.blade.php)",
+      "Bash(sed -i 's/class=\"form-control form-control-sm\" step=\"0.01\" min=\"0.01\" required>/class=\"ef-input\" style=\"min-height:36px;padding:6px 10px\" step=\"0.01\" min=\"0.01\" required>/g' /home/qc7107-l/Projects/ExpenseFlow/resources/views/admin/daily-closings/edit.blade.php)",
+      "Bash(sed -i 's/class=\"form-control form-control-sm\" maxlength=\"255\" required>/class=\"ef-input\" style=\"min-height:36px;padding:6px 10px\" maxlength=\"255\" required>/g' /home/qc7107-l/Projects/ExpenseFlow/resources/views/admin/daily-closings/edit.blade.php)",
+      "Bash(sed -i -e 's/class=\"dropdown-item text-danger\"/class=\"dropdown-item\" style=\"color:var\\(--ef-danger\\)\"/g' -e 's/class=\"bi bi-trash text-danger me-2\"/class=\"bi bi-trash me-2\" style=\"color:var\\(--ef-danger\\)\"/g' /home/qc7107-l/Projects/ExpenseFlow/resources/views/admin/daily-closings/index.blade.php)",
+      "Bash(sed -i -e 's/class=\"dropdown-item text-danger\"/class=\"dropdown-item\" style=\"color:var\\(--ef-danger\\)\"/g' -e 's/class=\"bi bi-person-x text-danger me-2\"/class=\"bi bi-person-x me-2\" style=\"color:var\\(--ef-danger\\)\"/g' /home/qc7107-l/Projects/ExpenseFlow/resources/views/admin/employees/index.blade.php)",
+      "Bash(sed -i -e 's/class=\"bi bi-plus-circle text-success me-2\"/class=\"bi bi-plus-circle me-2\" style=\"color:var\\(--ef-emerald\\)\"/g' -e 's/class=\"bi bi-dash-circle text-danger me-2\"/class=\"bi bi-dash-circle me-2\" style=\"color:var\\(--ef-danger\\)\"/g' /home/qc7107-l/Projects/ExpenseFlow/resources/views/admin/wallets/show.blade.php)",
+      "Bash(sed -i 's/class=\"text-danger small mt-1 d-none\"/class=\"d-none\" style=\"color:var\\(--ef-danger\\);font-size:.8rem;margin-top:4px\"/g' /home/qc7107-l/Projects/ExpenseFlow/resources/views/admin/daily-closings/edit.blade.php)",
+      "Bash(xargs cat)",
+      "Bash(php -r \"require '/home/qc7107-l/Projects/ExpenseFlow/vendor/autoload.php';\")",
+      "Bash(xargs ls)",
+      "Bash(php -r \"echo 'PHP OK';\")"
     ]
   }
 }

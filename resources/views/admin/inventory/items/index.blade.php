@@ -1,23 +1,6 @@
 <x-admin-layout title="Inventory Items">
 @push('styles')
 <style>
-/* ── Design tokens ─────────────────────────────────────── */
-:root {
-    --ef-bg:            #f7f4f0;
-    --ef-ink:           #1a1612;
-    --ef-gold:          #a07238;
-    --ef-gold-hi:       #b8854a;
-    --ef-muted:         #6b6560;
-    --ef-faint:         #ede9e3;
-    --ef-border:        rgba(160,114,56,.15);
-    --ef-border-strong: rgba(160,114,56,.30);
-    --ef-shadow:        0 1px 3px rgba(26,22,18,.08),0 4px 12px rgba(26,22,18,.06);
-    --ef-shadow-hover:  0 4px 16px rgba(26,22,18,.14),0 1px 4px rgba(26,22,18,.08);
-    --ef-radius:        14px;
-    --ef-ease:          cubic-bezier(.25,.46,.45,.94);
-    --ef-danger:        #c0392b;
-}
-
 /* ── Hero ──────────────────────────────────────────────── */
 .ef-inv-hero {
     background: linear-gradient(135deg, #1a1612 0%, #2d2420 60%, #3a2e22 100%);
@@ -103,7 +86,7 @@
 @media (max-width: 1399px) { .ef-inv-strip { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 767px)  { .ef-inv-strip { grid-template-columns: repeat(2, 1fr); } }
 .ef-inv-kpi {
-    background: #fff;
+    background: var(--ef-surface);
     border: 1px solid var(--ef-border);
     border-radius: var(--ef-radius);
     padding: 1.15rem 1.2rem;
@@ -121,7 +104,7 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     font-size: .9rem;
     margin-bottom: .7rem;
 }
-.ef-inv-kpi-icon.--gold   { background: rgba(160,114,56,.12); color: var(--ef-gold); }
+.ef-inv-kpi-icon.--gold   { background: rgba(184,137,62,.12); color: var(--ef-gold); }
 .ef-inv-kpi-icon.--warn   { background: rgba(202,138,4,.12);  color: #b45309; }
 .ef-inv-kpi-icon.--danger { background: rgba(192,57,43,.10);  color: var(--ef-danger); }
 .ef-inv-kpi-icon.--orange { background: rgba(234,88,12,.10);  color: #c2410c; }
@@ -134,7 +117,7 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
 
 /* ── Filter bar ────────────────────────────────────────── */
 .ef-inv-filter-bar {
-    background: #fff;
+    background: var(--ef-surface);
     border: 1px solid var(--ef-border);
     border-radius: var(--ef-radius);
     padding: 1rem 1.2rem;
@@ -170,7 +153,7 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     align-items: center;
     gap: .3rem;
 }
-.ef-inv-chip:hover { border-color: var(--ef-gold); color: var(--ef-gold); background: rgba(160,114,56,.06); }
+.ef-inv-chip:hover { border-color: var(--ef-gold); color: var(--ef-gold); background: rgba(184,137,62,.06); }
 .ef-inv-chip.--active         { background: var(--ef-gold); border-color: var(--ef-gold); color: #fff; }
 .ef-inv-chip.--warn           { background: #fef3c7; border-color: #fbbf24; color: #92400e; }
 .ef-inv-chip.--warn.--active  { background: #b45309; border-color: #b45309; color: #fff; }
@@ -196,7 +179,7 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     outline: none;
     transition: border-color .18s, background .18s;
 }
-.ef-inv-search:focus { border-color: var(--ef-gold); background: #fff; box-shadow: 0 0 0 3px rgba(160,114,56,.12); }
+.ef-inv-search:focus { border-color: var(--ef-gold); background: #fff; box-shadow: 0 0 0 3px rgba(184,137,62,.12); }
 .ef-inv-select {
     border: 1px solid var(--ef-border);
     border-radius: 8px;
@@ -209,7 +192,7 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     cursor: pointer;
     min-width: 140px;
 }
-.ef-inv-select:focus { border-color: var(--ef-gold); background: #fff; box-shadow: 0 0 0 3px rgba(160,114,56,.12); }
+.ef-inv-select:focus { border-color: var(--ef-gold); background: #fff; box-shadow: 0 0 0 3px rgba(184,137,62,.12); }
 .ef-inv-adv-toggle {
     border: 1px solid var(--ef-border);
     border-radius: 8px;
@@ -226,7 +209,7 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     white-space: nowrap;
     position: relative;
 }
-.ef-inv-adv-toggle:hover { border-color: var(--ef-gold); color: var(--ef-gold); background: rgba(160,114,56,.06); }
+.ef-inv-adv-toggle:hover { border-color: var(--ef-gold); color: var(--ef-gold); background: rgba(184,137,62,.06); }
 .ef-inv-adv-dot {
     width: 6px; height: 6px; border-radius: 50%;
     background: var(--ef-gold);
@@ -288,7 +271,7 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
 @media (max-width: 767px)  { .ef-inv-grid { grid-template-columns: 1fr; } }
 
 .ef-inv-card {
-    background: #fff;
+    background: var(--ef-surface);
     border: 1px solid var(--ef-border);
     border-radius: var(--ef-radius);
     box-shadow: var(--ef-shadow);
@@ -319,8 +302,8 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     letter-spacing: .03em;
     text-transform: uppercase;
     color: var(--ef-gold);
-    background: rgba(160,114,56,.09);
-    border: 1px solid rgba(160,114,56,.18);
+    background: rgba(184,137,62,.09);
+    border: 1px solid rgba(184,137,62,.18);
     border-radius: 5px;
     padding: .18rem .55rem;
     white-space: nowrap;
@@ -434,7 +417,7 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
 .ef-inv-foot-btn.--primary { background: var(--ef-gold); color: #fff; }
 .ef-inv-foot-btn.--primary:hover { background: var(--ef-gold-hi); color: #fff; }
 .ef-inv-foot-btn.--outline { background: transparent; color: var(--ef-muted); border: 1px solid var(--ef-border); }
-.ef-inv-foot-btn.--outline:hover { border-color: var(--ef-gold); color: var(--ef-gold); background: rgba(160,114,56,.05); }
+.ef-inv-foot-btn.--outline:hover { border-color: var(--ef-gold); color: var(--ef-gold); background: rgba(184,137,62,.05); }
 .ef-inv-foot-menu {
     width: 34px; height: 34px;
     border-radius: 7px;
@@ -446,11 +429,11 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     transition: all .18s;
     flex-shrink: 0;
 }
-.ef-inv-foot-menu:hover { border-color: var(--ef-gold); color: var(--ef-gold); background: rgba(160,114,56,.05); }
+.ef-inv-foot-menu:hover { border-color: var(--ef-gold); color: var(--ef-gold); background: rgba(184,137,62,.05); }
 
 /* ── Empty state ─────────────────────────────────────────── */
 .ef-inv-empty {
-    background: #fff;
+    background: var(--ef-surface);
     border: 1px solid var(--ef-border);
     border-radius: var(--ef-radius);
     box-shadow: var(--ef-shadow);
@@ -463,7 +446,7 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
 
 /* ── Pagination bar ──────────────────────────────────────── */
 .ef-inv-pagination {
-    background: #fff;
+    background: var(--ef-surface);
     border: 1px solid var(--ef-border);
     border-radius: var(--ef-radius);
     padding: .85rem 1.2rem;
@@ -747,7 +730,7 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
                     style="font-size:.82rem;border-color:var(--ef-border);border-radius:10px;min-width:180px">
                     <li>
                         <a class="dropdown-item" href="{{ route('admin.inventory.items.show', $item) }}">
-                            <i class="bi bi-clock-history me-2 text-muted"></i>Transaction History
+                            <i class="bi bi-clock-history me-2"></i>Transaction History
                         </a>
                     </li>
                     <li><hr class="dropdown-divider my-1"></li>
@@ -757,9 +740,9 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
                             @csrf @method('PATCH')
                             <button type="submit" class="dropdown-item">
                                 @if($item->status === 'active')
-                                    <i class="bi bi-pause-circle me-2 text-muted"></i>Deactivate
+                                    <i class="bi bi-pause-circle me-2"></i>Deactivate
                                 @else
-                                    <i class="bi bi-play-circle me-2 text-muted"></i>Activate
+                                    <i class="bi bi-play-circle me-2"></i>Activate
                                 @endif
                             </button>
                         </form>

@@ -2,19 +2,19 @@
 @push('styles')
 <style>
 :root {
-    --pp-gold: #a07238;
-    --pp-gold-hi: #b8854a;
-    --pp-emerald: #1a6645;
-    --pp-danger: #b91c1c;
+    --pp-gold: #B8893E;
+    --pp-gold-hi: #D6B97A;
+    --pp-emerald: #0F7B5F;
     --pp-indigo: #4338ca;
+    --pp-cyan: #0891b2;
 }
 
 /* ── Hero ─────────────────────────────────────────────── */
 .ef-pp-hero {
-    background: linear-gradient(135deg, #1a1410 0%, #2a2218 50%, #1e1812 100%);
+    background: var(--ef-hero-grad);
     border: 1px solid rgba(255,255,255,.07);
     border-radius: 20px;
-    box-shadow: 0 4px 24px rgba(26,22,18,.16), 0 1px 4px rgba(26,22,18,.1);
+    box-shadow: 0 4px 24px rgba(4,27,20,.24), 0 1px 4px rgba(4,27,20,.12);
     padding: 32px;
     position: relative;
     overflow: hidden;
@@ -23,7 +23,7 @@
 .ef-pp-hero::before {
     content: '';
     position: absolute;
-    background: radial-gradient(circle, rgba(160,114,56,.16) 0%, transparent 68%);
+    background: radial-gradient(circle, rgba(184,137,62,.16) 0%, transparent 68%);
     height: 480px; width: 480px;
     right: -80px; top: -140px;
     pointer-events: none;
@@ -31,7 +31,7 @@
 .ef-pp-hero::after {
     content: '';
     position: absolute;
-    background: radial-gradient(circle, rgba(26,102,69,.1) 0%, transparent 68%);
+    background: radial-gradient(circle, rgba(15,123,95,.1) 0%, transparent 68%);
     height: 320px; width: 320px;
     bottom: -80px; left: 30%;
     pointer-events: none;
@@ -41,7 +41,7 @@
     font-weight: 700;
     letter-spacing: .12em;
     text-transform: uppercase;
-    color: rgba(160,114,56,.9);
+    color: rgba(184,137,62,.9);
     margin-bottom: 6px;
 }
 .ef-pp-title {
@@ -94,8 +94,8 @@
     margin-bottom: 24px;
 }
 .ef-pp-kpi-card {
-    background: #fff;
-    border: 1px solid #e8e3dc;
+    background: var(--ef-surface);
+    border: 1px solid var(--ef-border);
     border-radius: 14px;
     padding: 18px 20px;
     position: relative;
@@ -103,7 +103,7 @@
     transition: box-shadow .15s, transform .15s;
 }
 .ef-pp-kpi-card:hover {
-    box-shadow: 0 4px 16px rgba(160,114,56,.1);
+    box-shadow: 0 4px 16px rgba(184,137,62,.1);
     transform: translateY(-1px);
 }
 .ef-pp-kpi-card::before {
@@ -113,28 +113,28 @@
     height: 3px;
     border-radius: 14px 14px 0 0;
 }
-.ef-pp-kpi-card.kpi-draft::before    { background: #9ca3af; }
+.ef-pp-kpi-card.kpi-draft::before    { background: var(--ef-border-strong); }
 .ef-pp-kpi-card.kpi-approved::before { background: var(--pp-emerald); }
 .ef-pp-kpi-card.kpi-ordered::before  { background: var(--pp-indigo); }
-.ef-pp-kpi-card.kpi-done::before     { background: #0891b2; }
+.ef-pp-kpi-card.kpi-done::before     { background: var(--pp-cyan); }
 .ef-pp-kpi-card.kpi-total::before    { background: var(--pp-gold); }
 .ef-pp-kpi-label {
     font-size: .68rem;
     font-weight: 700;
     letter-spacing: .08em;
     text-transform: uppercase;
-    color: #9c8e7e;
+    color: var(--ef-muted);
     margin-bottom: 6px;
 }
 .ef-pp-kpi-value {
     font-size: 1.75rem;
     font-weight: 700;
-    color: #1c1612;
+    color: var(--ef-ink);
     line-height: 1;
 }
 .ef-pp-kpi-sub {
     font-size: .72rem;
-    color: #b0a090;
+    color: var(--ef-faint);
     margin-top: 4px;
 }
 
@@ -151,9 +151,9 @@
     font-weight: 600;
     padding: 5px 14px;
     border-radius: 20px;
-    border: 1px solid #e2ddd6;
-    background: #f9f6f2;
-    color: #6b5e4e;
+    border: 1px solid var(--ef-border);
+    background: var(--ef-bg-subtle);
+    color: var(--ef-muted);
     cursor: pointer;
     text-decoration: none;
     transition: all .15s;
@@ -163,10 +163,10 @@
     border-color: var(--pp-gold);
     color: #fff;
 }
-.ef-pp-chip.chip-draft.active    { background: #6b7280; border-color: #6b7280; color: #fff; }
+.ef-pp-chip.chip-draft.active    { background: var(--ef-border-strong); border-color: var(--ef-border-strong); color: #fff; }
 .ef-pp-chip.chip-approved.active { background: var(--pp-emerald); border-color: var(--pp-emerald); color: #fff; }
 .ef-pp-chip.chip-ordered.active  { background: var(--pp-indigo); border-color: var(--pp-indigo); color: #fff; }
-.ef-pp-chip.chip-done.active     { background: #0891b2; border-color: #0891b2; color: #fff; }
+.ef-pp-chip.chip-done.active     { background: var(--pp-cyan); border-color: var(--pp-cyan); color: #fff; }
 
 /* ── Plan cards ───────────────────────────────────────── */
 .ef-pp-grid {
@@ -175,24 +175,24 @@
     gap: 16px;
 }
 .ef-pp-card {
-    background: #fff;
-    border: 1px solid #e8e3dc;
+    background: var(--ef-surface);
+    border: 1px solid var(--ef-border);
     border-radius: 16px;
     overflow: hidden;
     transition: box-shadow .18s, transform .18s;
 }
 .ef-pp-card:hover {
-    box-shadow: 0 6px 24px rgba(160,114,56,.12);
+    box-shadow: 0 6px 24px rgba(184,137,62,.12);
     transform: translateY(-2px);
 }
 .ef-pp-card-stripe {
     height: 4px;
 }
-.stripe-draft     { background: #9ca3af; }
+.stripe-draft     { background: var(--ef-border-strong); }
 .stripe-approved  { background: var(--pp-emerald); }
 .stripe-ordered   { background: var(--pp-indigo); }
-.stripe-completed { background: #0891b2; }
-.stripe-cancelled { background: var(--pp-danger); }
+.stripe-completed { background: var(--pp-cyan); }
+.stripe-cancelled { background: var(--ef-danger); }
 
 .ef-pp-card-body { padding: 20px; }
 .ef-pp-card-head {
@@ -204,12 +204,12 @@
 .ef-pp-card-title {
     font-size: .95rem;
     font-weight: 700;
-    color: #1c1612;
+    color: var(--ef-ink);
     margin-bottom: 2px;
 }
 .ef-pp-card-meta {
     font-size: .75rem;
-    color: #9c8e7e;
+    color: var(--ef-muted);
 }
 .ef-pp-status-badge {
     font-size: .65rem;
@@ -221,32 +221,32 @@
     border: 1px solid;
     white-space: nowrap;
 }
-.badge-draft     { background: #f3f4f6; color: #6b7280; border-color: #d1d5db; }
-.badge-approved  { background: #dcfce7; color: #15803d; border-color: #bbf7d0; }
-.badge-ordered   { background: #ede9fe; color: #5b21b6; border-color: #ddd6fe; }
-.badge-completed { background: #cffafe; color: #0e7490; border-color: #a5f3fc; }
-.badge-cancelled { background: #fee2e2; color: #b91c1c; border-color: #fecaca; }
+.badge-draft     { background: rgba(107,114,128,.08); color: var(--ef-muted); border-color: var(--ef-border-strong); }
+.badge-approved  { background: rgba(15,123,95,.08); color: var(--ef-emerald); border-color: rgba(15,123,95,.25); }
+.badge-ordered   { background: rgba(67,56,202,.08); color: var(--pp-indigo); border-color: rgba(67,56,202,.2); }
+.badge-completed { background: rgba(8,145,178,.08); color: var(--pp-cyan); border-color: rgba(8,145,178,.2); }
+.badge-cancelled { background: rgba(200,75,68,.08); color: var(--ef-danger); border-color: rgba(200,75,68,.2); }
 
 .ef-pp-card-stats {
     display: flex;
     gap: 16px;
     padding: 12px 0;
-    border-top: 1px solid #f0ece6;
-    border-bottom: 1px solid #f0ece6;
+    border-top: 1px solid var(--ef-border);
+    border-bottom: 1px solid var(--ef-border);
     margin-bottom: 14px;
 }
 .ef-pp-stat-item { text-align: center; flex: 1; }
 .ef-pp-stat-val {
     font-size: .9rem;
     font-weight: 700;
-    color: #1c1612;
+    color: var(--ef-ink);
 }
 .ef-pp-stat-lbl {
     font-size: .65rem;
     font-weight: 600;
     letter-spacing: .06em;
     text-transform: uppercase;
-    color: #b0a090;
+    color: var(--ef-faint);
 }
 .ef-pp-card-footer {
     display: flex;
@@ -255,7 +255,7 @@
 }
 .ef-pp-creator {
     font-size: .75rem;
-    color: #9c8e7e;
+    color: var(--ef-muted);
     display: flex;
     align-items: center;
     gap: 5px;
@@ -280,7 +280,7 @@
     align-items: center;
     gap: 4px;
     padding: 5px 12px;
-    border: 1px solid rgba(160,114,56,.3);
+    border: 1px solid rgba(184,137,62,.3);
     border-radius: 8px;
     transition: all .15s;
 }
@@ -294,13 +294,13 @@
 .ef-pp-empty {
     text-align: center;
     padding: 64px 24px;
-    color: #9c8e7e;
+    color: var(--ef-muted);
     grid-column: 1 / -1;
 }
 .ef-pp-empty-icon {
     width: 64px; height: 64px;
     border-radius: 50%;
-    background: #f5f1eb;
+    background: var(--ef-bg-subtle);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -326,13 +326,13 @@
 
 {{-- Hero --}}
 <header class="ef-pp-hero">
-    <div class="d-flex align-items-start justify-content-between flex-wrap gap-3">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px">
         <div style="position:relative;z-index:1">
             <p class="ef-pp-kicker">Procurement</p>
             <h1 class="ef-pp-title">Purchase Plans</h1>
             <p class="ef-pp-subtitle">Planned procurement from low stock suggestions &amp; manual requests</p>
         </div>
-        <div class="d-flex gap-2 flex-wrap" style="position:relative;z-index:1">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;position:relative;z-index:1">
             <a href="{{ route('admin.purchase-plans.suggestions') }}" class="ef-btn">
                 <i class="bi bi-lightbulb"></i> Suggestions
             </a>
@@ -375,10 +375,10 @@
 {{-- Filter chips --}}
 <div class="ef-pp-filters">
     <span class="ef-pp-chip active">All</span>
-    <a href="#" class="ef-pp-chip chip-draft">Draft <span class="ms-1 opacity-75">{{ $stats['draft'] }}</span></a>
-    <a href="#" class="ef-pp-chip chip-approved">Approved <span class="ms-1 opacity-75">{{ $stats['approved'] }}</span></a>
-    <a href="#" class="ef-pp-chip chip-ordered">Ordered <span class="ms-1 opacity-75">{{ $stats['ordered'] }}</span></a>
-    <a href="#" class="ef-pp-chip chip-done">Completed <span class="ms-1 opacity-75">{{ $stats['completed'] }}</span></a>
+    <a href="#" class="ef-pp-chip chip-draft">Draft <span style="margin-left:4px;opacity:.75">{{ $stats['draft'] }}</span></a>
+    <a href="#" class="ef-pp-chip chip-approved">Approved <span style="margin-left:4px;opacity:.75">{{ $stats['approved'] }}</span></a>
+    <a href="#" class="ef-pp-chip chip-ordered">Ordered <span style="margin-left:4px;opacity:.75">{{ $stats['ordered'] }}</span></a>
+    <a href="#" class="ef-pp-chip chip-done">Completed <span style="margin-left:4px;opacity:.75">{{ $stats['completed'] }}</span></a>
 </div>
 
 {{-- Plan cards --}}
@@ -436,8 +436,8 @@
     @empty
     <div class="ef-pp-empty">
         <div class="ef-pp-empty-icon"><i class="bi bi-cart3"></i></div>
-        <p class="fw-semibold mb-1" style="color:#3d3528">No purchase plans yet</p>
-        <p class="small mb-0">Create a plan from low-stock suggestions or manually.</p>
+        <p style="font-weight:700;color:var(--ef-ink-2);margin-bottom:4px">No purchase plans yet</p>
+        <p style="font-size:.85rem;color:var(--ef-muted);margin-bottom:0">Create a plan from low-stock suggestions or manually.</p>
     </div>
     @endforelse
 </div>

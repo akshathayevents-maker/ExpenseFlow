@@ -18,7 +18,7 @@ class WalletTransactionRequest extends FormRequest
         $rules = [
             'type'   => ['required', 'in:credit,debit,adjustment'],
             'amount' => ['required', 'numeric', 'min:0.01', 'max:9999999'],
-            'notes'  => ['required', 'string', 'min:3', 'max:500'],
+            'notes'  => ['nullable', 'string', 'max:500'],
         ];
 
         if ($type === 'adjustment') {

@@ -6,10 +6,10 @@
    Premium productivity workspace, distinct from admin UI
    ════════════════════════════════════════════════════════════ */
 :root {
-    --ew-emerald:    #1a6645;
+    --ew-emerald:    #0F7B5F;
     --ew-emerald-hi: #22845a;
-    --ew-gold:       #a07238;
-    --ew-gold-hi:    #b8854a;
+    --ew-gold:       #B8893E;
+    --ew-gold-hi:    #D6B97A;
     --ew-danger:     #b91c1c;
     --ew-amber:      #d97706;
     --ew-indigo:     #4338ca;

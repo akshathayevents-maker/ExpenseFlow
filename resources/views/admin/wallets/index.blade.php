@@ -1,24 +1,6 @@
 <x-admin-layout title="Wallets">
 @push('styles')
 <style>
-/* ── Design tokens ─────────────────────────────────────── */
-:root {
-    --ef-bg:            #f7f4f0;
-    --ef-ink:           #1a1612;
-    --ef-gold:          #a07238;
-    --ef-gold-hi:       #b8854a;
-    --ef-muted:         #6b6560;
-    --ef-faint:         #ede9e3;
-    --ef-border:        rgba(160,114,56,.15);
-    --ef-border-strong: rgba(160,114,56,.30);
-    --ef-shadow:        0 1px 3px rgba(26,22,18,.08),0 4px 12px rgba(26,22,18,.06);
-    --ef-shadow-hover:  0 4px 16px rgba(26,22,18,.14),0 1px 4px rgba(26,22,18,.08);
-    --ef-radius:        14px;
-    --ef-ease:          cubic-bezier(.25,.46,.45,.94);
-    --ef-danger:        #c0392b;
-    --ef-success:       #16a34a;
-}
-
 /* ── Hero ──────────────────────────────────────────────── */
 .ef-wlt-hero {
     background: linear-gradient(135deg, #0e0f0d 0%, #1a1e15 55%, #242b18 100%);
@@ -122,7 +104,7 @@ a.ef-wlt-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     font-size: .85rem; margin-bottom: .65rem;
 }
 .ef-wlt-kpi-icon.--green  { background: rgba(22,163,74,.1);   color: #15803d; }
-.ef-wlt-kpi-icon.--gold   { background: rgba(160,114,56,.12); color: var(--ef-gold); }
+.ef-wlt-kpi-icon.--gold   { background: rgba(184,137,62,.12); color: var(--ef-gold); }
 .ef-wlt-kpi-icon.--warn   { background: rgba(217,119,6,.12);  color: #b45309; }
 .ef-wlt-kpi-icon.--danger { background: rgba(192,57,43,.10);  color: var(--ef-danger); }
 .ef-wlt-kpi-icon.--indigo { background: rgba(99,102,241,.1);  color: #4338ca; }
@@ -155,7 +137,7 @@ a.ef-wlt-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     transition: all .18s var(--ef-ease); text-decoration: none;
     white-space: nowrap; display: inline-flex; align-items: center; gap: .3rem;
 }
-.ef-wlt-chip:hover { border-color: var(--ef-gold); color: var(--ef-gold); background: rgba(160,114,56,.06); }
+.ef-wlt-chip:hover { border-color: var(--ef-gold); color: var(--ef-gold); background: rgba(184,137,62,.06); }
 .ef-wlt-chip.--active  { background: var(--ef-gold); border-color: var(--ef-gold); color: #fff; }
 .ef-wlt-chip.--warn    { background: rgba(217,119,6,.08);  border-color: rgba(217,119,6,.3);  color: #92400e; }
 .ef-wlt-chip.--warn.--active   { background: #b45309; border-color: #b45309; color: #fff; }
@@ -176,7 +158,7 @@ a.ef-wlt-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     outline: none; transition: border-color .18s, background .18s, box-shadow .18s;
 }
 .ef-wlt-search::placeholder { color: #b5afa8; }
-.ef-wlt-search:focus { border-color: var(--ef-gold); background: #fff; box-shadow: 0 0 0 3px rgba(160,114,56,.12); }
+.ef-wlt-search:focus { border-color: var(--ef-gold); background: #fff; box-shadow: 0 0 0 3px rgba(184,137,62,.12); }
 .ef-wlt-btn-search {
     background: var(--ef-gold); color: #fff; border: none;
     border-radius: 9px; padding: .55rem 1.1rem;
@@ -248,7 +230,7 @@ a.ef-wlt-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     padding: .15rem .5rem; white-space: nowrap; flex-shrink: 0;
 }
 .ef-wlt-role-badge.--employee { background: rgba(37,99,235,.09);  color: #1d4ed8; border: 1px solid rgba(37,99,235,.18);  }
-.ef-wlt-role-badge.--manager  { background: rgba(160,114,56,.1);  color: var(--ef-gold); border: 1px solid rgba(160,114,56,.2); }
+.ef-wlt-role-badge.--manager  { background: rgba(184,137,62,.1);  color: var(--ef-gold); border: 1px solid rgba(184,137,62,.2); }
 .ef-wlt-role-badge.--admin    { background: rgba(107,114,128,.1); color: #374151; border: 1px solid rgba(107,114,128,.18); }
 
 /* Card body — balance */
@@ -287,7 +269,7 @@ a.ef-wlt-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     padding: .18rem .55rem; display: inline-flex; align-items: center; gap: .25rem;
 }
 .ef-wlt-health-chip.--healthy  { background: rgba(22,163,74,.1);  color: #15803d; border: 1px solid rgba(22,163,74,.2);  }
-.ef-wlt-health-chip.--good     { background: rgba(160,114,56,.1); color: var(--ef-gold); border: 1px solid rgba(160,114,56,.2); }
+.ef-wlt-health-chip.--good     { background: rgba(184,137,62,.1); color: var(--ef-gold); border: 1px solid rgba(184,137,62,.2); }
 .ef-wlt-health-chip.--low      { background: rgba(217,119,6,.1);  color: #92400e; border: 1px solid rgba(217,119,6,.2);  }
 .ef-wlt-health-chip.--critical { background: rgba(234,88,12,.1);  color: #c2410c; border: 1px solid rgba(234,88,12,.2);  }
 .ef-wlt-health-chip.--negative { background: rgba(192,57,43,.08); color: var(--ef-danger); border: 1px solid rgba(192,57,43,.18); }
@@ -317,14 +299,14 @@ a.ef-wlt-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
 .ef-wlt-foot-btn.--gold    { background: var(--ef-gold); color: #fff; }
 .ef-wlt-foot-btn.--gold:hover { background: var(--ef-gold-hi); color: #fff; }
 .ef-wlt-foot-btn.--outline { background: transparent; color: var(--ef-muted); border: 1px solid var(--ef-border); }
-.ef-wlt-foot-btn.--outline:hover { border-color: var(--ef-gold); color: var(--ef-gold); background: rgba(160,114,56,.05); }
+.ef-wlt-foot-btn.--outline:hover { border-color: var(--ef-gold); color: var(--ef-gold); background: rgba(184,137,62,.05); }
 .ef-wlt-foot-menu {
     width: 32px; height: 32px; border-radius: 7px;
     background: var(--ef-faint); border: 1px solid var(--ef-border);
     color: var(--ef-muted); display: flex; align-items: center;
     justify-content: center; cursor: pointer; transition: all .18s; flex-shrink: 0;
 }
-.ef-wlt-foot-menu:hover { border-color: var(--ef-gold); color: var(--ef-gold); background: rgba(160,114,56,.05); }
+.ef-wlt-foot-menu:hover { border-color: var(--ef-gold); color: var(--ef-gold); background: rgba(184,137,62,.05); }
 
 /* Needs Attention section header */
 .ef-wlt-section-head {
@@ -376,7 +358,7 @@ a.ef-wlt-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
 @endpush
 
 @php
-    $avatarTones = ['#a07238','#4e7a96','#3e8a60','#6a5e8c','#807050','#5a7a64','#7a5a4e'];
+    $avatarTones = ['#B8893E','#4e7a96','#3e8a60','#6a5e8c','#807050','#5a7a64','#7a5a4e'];
 
     $fmt = fn(float $v): string =>
         $v >= 100000 ? '₹' . number_format($v/100000, 1) . 'L'
@@ -468,6 +450,17 @@ a.ef-wlt-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
         <div class="ef-wlt-kpi-label">Avg Balance</div>
     </div>
 </div>
+
+@if (session('success'))
+    <div style="display:flex;align-items:center;gap:12px;background:rgba(15,123,95,.08);border:1px solid rgba(15,123,95,.2);border-radius:10px;padding:12px 16px;margin-bottom:16px;color:var(--ef-emerald);font-size:.875rem;font-weight:500">
+        <i class="bi bi-check-circle-fill"></i>{{ session('success') }}
+    </div>
+@endif
+@if (session('error'))
+    <div style="display:flex;align-items:center;gap:12px;background:rgba(200,75,68,.08);border:1px solid rgba(200,75,68,.2);border-radius:10px;padding:12px 16px;margin-bottom:16px;color:var(--ef-danger);font-size:.875rem;font-weight:500">
+        <i class="bi bi-exclamation-triangle-fill"></i>{{ session('error') }}
+    </div>
+@endif
 
 {{-- ── Filter bar ──────────────────────────────────────────────── --}}
 <form method="GET" action="{{ route('admin.wallets.index') }}" id="wltFilterForm">
@@ -634,12 +627,20 @@ a.ef-wlt-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
             <form method="POST" id="fundModalForm">
                 @csrf
                 <div class="modal-body" style="padding:1.4rem 1.5rem">
+                    @if ($errors->any())
+                    <div style="background:rgba(200,75,68,.08);border:1px solid rgba(200,75,68,.2);border-radius:8px;padding:10px 14px;margin-bottom:14px;color:var(--ef-danger);font-size:.82rem">
+                        <strong>Please fix:</strong>
+                        <ul style="margin:4px 0 0 16px;padding:0">
+                            @foreach ($errors->all() as $e)<li>{{ $e }}</li>@endforeach
+                        </ul>
+                    </div>
+                    @endif
                     <div style="display:flex;flex-direction:column;gap:1rem">
                         <div>
                             <label style="font-size:.78rem;font-weight:600;color:var(--ef-ink);display:block;margin-bottom:.4rem">
                                 Transaction Type
                             </label>
-                            <select name="type" class="form-select" style="border:1px solid var(--ef-border-strong);border-radius:9px;font-size:.875rem;background:var(--ef-faint);padding:.55rem .85rem;outline:none">
+                            <select name="type" class="ef-select" style="border:1px solid var(--ef-border-strong);border-radius:9px;font-size:.875rem;background:var(--ef-faint);padding:.55rem .85rem;outline:none">
                                 <option value="credit">Credit — Add Funds</option>
                                 <option value="debit">Debit — Deduct Funds</option>
                                 <option value="adjustment">Adjustment — Set Balance</option>
@@ -650,7 +651,7 @@ a.ef-wlt-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
                                 Amount (₹) <span style="color:var(--ef-danger)">*</span>
                             </label>
                             <input type="number" name="amount" step="0.01" min="0.01"
-                                   class="form-control"
+                                   class="ef-input"
                                    style="border:1px solid var(--ef-border-strong);border-radius:9px;font-size:.9rem;font-weight:700;background:var(--ef-faint);padding:.6rem .85rem;outline:none"
                                    placeholder="0.00" required>
                         </div>
@@ -659,7 +660,7 @@ a.ef-wlt-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
                                 Notes
                             </label>
                             <textarea name="notes" rows="2"
-                                      class="form-control"
+                                      class="ef-textarea"
                                       style="border:1px solid var(--ef-border-strong);border-radius:9px;font-size:.85rem;background:var(--ef-faint);padding:.55rem .85rem;outline:none;resize:none"
                                       placeholder="Optional — reason for transaction"></textarea>
                         </div>
@@ -670,8 +671,7 @@ a.ef-wlt-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
                     </div>
                 </div>
                 <div class="modal-footer" style="border-top:1px solid var(--ef-border);padding:.9rem 1.5rem;gap:.5rem">
-                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal"
-                            style="border-radius:8px;font-size:.82rem;border-color:var(--ef-border-strong)">
+                    <button type="button" class="ef-btn" data-bs-dismiss="modal">
                         Cancel
                     </button>
                     <button type="submit"
@@ -695,6 +695,11 @@ function wltSetModal(btn) {
     document.getElementById('fundModalForm').action =
         '{{ url('admin/wallets') }}/' + userId + '/transact';
 }
+@if ($errors->any())
+document.addEventListener('DOMContentLoaded', function () {
+    new bootstrap.Modal(document.getElementById('fundModal')).show();
+});
+@endif
 </script>
 @endpush
 </x-admin-layout>

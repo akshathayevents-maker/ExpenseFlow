@@ -1,12 +1,12 @@
 <x-admin-layout title="Settings">
-<div class="page-header">
-    <h4 class="mb-0 fw-bold">Application Settings</h4>
-    <p class="text-muted mb-0 small">Configure system-wide preferences</p>
-</div>
+
+<x-ds.hero eyebrow="System" title="Application Settings"
+    :meta="[['icon' => 'bi-gear', 'text' => 'Configure system-wide preferences']]">
+</x-ds.hero>
 
 @if(session('success'))
-<div class="alert alert-success border-0 shadow-sm">
-    <i class="bi bi-check-circle me-1"></i> {{ session('success') }}
+<div style="background:rgba(15,123,95,.08);border:1px solid rgba(15,123,95,.22);border-radius:var(--ef-radius);color:var(--ef-emerald);display:flex;align-items:center;gap:10px;padding:12px 16px;margin-bottom:16px;font-size:.88rem;font-weight:500">
+    <i class="bi bi-check-circle"></i> {{ session('success') }}
 </div>
 @endif
 
@@ -14,52 +14,47 @@
     @csrf @method('PUT')
 
     @foreach($settings as $group => $groupSettings)
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-transparent fw-semibold text-capitalize">
-            <i class="bi bi-gear me-1 text-secondary"></i> {{ ucfirst($group) }} Settings
-        </div>
-        <div class="card-body">
-            @foreach($groupSettings as $setting)
-            <div class="row mb-3 align-items-center">
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold mb-0">{{ $setting->label }}</label>
-                    <div class="text-muted" style="font-size:.75rem">{{ $setting->key }}</div>
-                </div>
-                <div class="col-md-8">
-                    @if($setting->type === 'boolean')
-                    <div class="form-check form-switch">
-                        <input type="checkbox" name="{{ $setting->key }}" id="setting_{{ $setting->key }}"
-                               class="form-check-input" value="1"
-                               {{ $setting->value === '1' || $setting->value === 'true' ? 'checked' : '' }}>
-                        <label class="form-check-label" for="setting_{{ $setting->key }}">
-                            {{ $setting->value === '1' || $setting->value === 'true' ? 'Enabled' : 'Disabled' }}
-                        </label>
-                    </div>
-                    @elseif($setting->type === 'integer')
-                    <input type="number" name="{{ $setting->key }}"
-                           class="form-control @error($setting->key) is-invalid @enderror"
-                           value="{{ old($setting->key, $setting->value) }}"
-                           min="0">
-                    @else
-                    <input type="text" name="{{ $setting->key }}"
-                           class="form-control @error($setting->key) is-invalid @enderror"
-                           value="{{ old($setting->key, $setting->value) }}">
-                    @endif
-                    @error($setting->key)
-                    <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
+    <x-ds.card :title="ucfirst($group) . ' Settings'" style="margin-bottom:14px">
+
+        @foreach($groupSettings as $setting)
+        <div style="display:grid;grid-template-columns:1fr 1.4fr;gap:12px 24px;align-items:center;{{ !$loop->last ? 'padding-bottom:14px;border-bottom:1px solid var(--ef-border);margin-bottom:14px' : '' }}">
+            <div>
+                <div style="color:var(--ef-ink-2);font-size:.9rem;font-weight:600;margin-bottom:2px">{{ $setting->label }}</div>
+                <div style="color:var(--ef-faint);font-size:.72rem;font-family:monospace">{{ $setting->key }}</div>
             </div>
-            @if(!$loop->last)<hr class="my-2">@endif
-            @endforeach
+            <div>
+                @if($setting->type === 'boolean')
+                <label class="ef-switch">
+                    <input type="checkbox" name="{{ $setting->key }}" id="setting_{{ $setting->key }}"
+                           value="1"
+                           {{ $setting->value === '1' || $setting->value === 'true' ? 'checked' : '' }}>
+                    <span>{{ $setting->value === '1' || $setting->value === 'true' ? 'Enabled' : 'Disabled' }}</span>
+                </label>
+                @elseif($setting->type === 'integer')
+                <input type="number" name="{{ $setting->key }}"
+                       class="ef-input @error($setting->key) --error @enderror"
+                       value="{{ old($setting->key, $setting->value) }}"
+                       min="0">
+                @else
+                <input type="text" name="{{ $setting->key }}"
+                       class="ef-input @error($setting->key) --error @enderror"
+                       value="{{ old($setting->key, $setting->value) }}">
+                @endif
+                @error($setting->key)
+                <div class="ef-field-error">{{ $message }}</div>
+                @enderror
+            </div>
         </div>
-    </div>
+        @endforeach
+
+    </x-ds.card>
     @endforeach
 
-    <div class="d-flex gap-2">
-        <button type="submit" class="btn btn-primary">
-            <i class="bi bi-save me-1"></i> Save Settings
+    <div style="display:flex;gap:10px;margin-top:8px">
+        <button type="submit" class="ef-btn ef-btn-dark">
+            <i class="bi bi-save"></i> Save Settings
         </button>
     </div>
 </form>
+
 </x-admin-layout>

@@ -1,92 +1,74 @@
 <x-admin-layout title="Edit Closing — {{ $dailyClosing->date->format('d M Y') }}">
-<div class="page-header">
-    <nav aria-label="breadcrumb"><ol class="breadcrumb mb-1 small">
-        <li class="breadcrumb-item"><a href="{{ route('admin.daily-closings.index') }}">Daily Closings</a></li>
-        <li class="breadcrumb-item"><a href="{{ route('admin.daily-closings.show', $dailyClosing) }}">{{ $dailyClosing->date->format('d M Y') }}</a></li>
-        <li class="breadcrumb-item active">Edit</li>
-    </ol></nav>
-    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+
+<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:20px;padding-top:8px">
+    <div style="display:flex;align-items:center;gap:12px">
+        <a href="{{ route('admin.daily-closings.show', $dailyClosing) }}" class="ef-back" title="Back">
+            <i class="bi bi-arrow-left"></i>
+        </a>
         <div>
-            <h4 class="mb-0 fw-bold">Daily Closing — {{ $dailyClosing->date->format('d M Y') }}</h4>
-            <div class="mt-1">
-                <span class="badge bg-{{ \App\Models\DailyClosing::statusColors()[$dailyClosing->status] ?? 'secondary' }}">
-                    {{ ucfirst($dailyClosing->status) }}
-                </span>
+            <h1 style="font-size:1.25rem;font-weight:760;color:var(--ef-ink);margin:0;letter-spacing:-.02em">
+                Daily Closing — {{ $dailyClosing->date->format('d M Y') }}
+            </h1>
+            <div style="margin-top:4px;display:flex;align-items:center;gap:8px">
+                <x-status-badge :status="$dailyClosing->status" />
                 @if ($dailyClosing->isFinalized())
-                    <span class="badge bg-dark ms-1"><i class="bi bi-lock-fill me-1"></i>Finalized {{ $dailyClosing->finalized_at->format('d M Y') }}</span>
+                    <span style="font-size:.72rem;background:rgba(30,30,30,.07);color:var(--ef-ink-2);border-radius:5px;padding:2px 8px;font-weight:600">
+                        <i class="bi bi-lock-fill me-1"></i>Finalized {{ $dailyClosing->finalized_at->format('d M Y') }}
+                    </span>
                 @endif
             </div>
         </div>
-        <div class="d-flex gap-2 flex-wrap">
-            <a href="{{ route('admin.daily-closings.show', $dailyClosing) }}" class="btn btn-sm btn-outline-secondary">
-                <i class="bi bi-eye me-1"></i>View
-            </a>
-            @if ($dailyClosing->canEdit())
-                <button type="button" class="btn btn-sm btn-outline-info" id="btnSyncSnapshot">
-                    <i class="bi bi-arrow-repeat me-1"></i>Sync Live Expenses
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-warning" id="btnPreview">
-                    <i class="bi bi-bar-chart me-1"></i>Preview Changes
-                </button>
-            @endif
-            @if ($dailyClosing->canFinalize())
-                <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#finalizeModal">
-                    <i class="bi bi-lock me-1"></i>Finalize &amp; Lock
-                </button>
-            @endif
-        </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+        @if ($dailyClosing->canEdit())
+            <button type="button" class="ef-btn" id="btnSyncSnapshot">
+                <i class="bi bi-arrow-repeat"></i> Sync
+            </button>
+            <button type="button" class="ef-btn" id="btnPreview">
+                <i class="bi bi-bar-chart"></i> Preview
+            </button>
+        @endif
+        @if ($dailyClosing->canFinalize())
+            <button type="button" class="ef-btn ef-btn-dark" data-bs-toggle="modal" data-bs-target="#finalizeModal">
+                <i class="bi bi-lock"></i> Finalize &amp; Lock
+            </button>
+        @endif
     </div>
 </div>
 
 @if (session('success'))
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        {{ session('success') }} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(15,123,95,.08);border:1px solid rgba(15,123,95,.2);border-radius:10px;padding:12px 16px;margin-bottom:16px;color:var(--ef-emerald);font-size:.875rem;font-weight:500">
+        <span><i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}</span>
     </div>
 @endif
 @if (session('error'))
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        {{ session('error') }} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(200,75,68,.08);border:1px solid rgba(200,75,68,.2);border-radius:10px;padding:12px 16px;margin-bottom:16px;color:var(--ef-danger);font-size:.875rem;font-weight:500">
+        <span><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ session('error') }}</span>
     </div>
 @endif
 
 {{-- Balance Cards --}}
-<div class="row g-3 mb-3" id="balanceCards">
-    <div class="col-6 col-md-3">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body text-center py-3">
-                <div class="text-muted small mb-1">Opening Balance</div>
-                <div class="fs-5 fw-bold" id="cardOpening">₹{{ number_format($totals['opening_balance'], 2) }}</div>
-            </div>
+<div id="balanceCards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+    <div class="ef-ds-kpi" data-accent="gold">
+        <div class="ef-ds-kpi-label"><i class="bi bi-wallet2 ef-ds-kpi-icon"></i> Opening Balance</div>
+        <div class="ef-ds-kpi-value c-gold" id="cardOpening">₹{{ number_format($totals['opening_balance'], 2) }}</div>
+    </div>
+    <div class="ef-ds-kpi" data-accent="danger">
+        <div class="ef-ds-kpi-label"><i class="bi bi-receipt ef-ds-kpi-icon"></i> Expenses</div>
+        <div class="ef-ds-kpi-value c-danger" id="cardExpenses">₹{{ number_format($totals['expense_total'], 2) }}</div>
+        <div class="ef-ds-kpi-note" id="cardExpenseCount">{{ $totals['expense_count'] }} item(s)</div>
+    </div>
+    <div class="ef-ds-kpi" data-accent="amber">
+        <div class="ef-ds-kpi-label"><i class="bi bi-credit-card ef-ds-kpi-icon"></i> Payments Out</div>
+        <div class="ef-ds-kpi-value c-amber" id="cardPayments">₹{{ number_format($totals['payment_total'], 2) }}</div>
+        <div class="ef-ds-kpi-note">
+            Adj: <span style="color:var(--ef-emerald)" id="cardCredit">+₹{{ number_format($totals['total_credit'], 2) }}</span>
+            / <span style="color:var(--ef-danger)" id="cardDebit">-₹{{ number_format($totals['total_debit'], 2) }}</span>
         </div>
     </div>
-    <div class="col-6 col-md-3">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body text-center py-3">
-                <div class="text-muted small mb-1">Expenses</div>
-                <div class="fs-5 fw-bold text-danger" id="cardExpenses">₹{{ number_format($totals['expense_total'], 2) }}</div>
-                <div class="text-muted" style="font-size:.75rem" id="cardExpenseCount">{{ $totals['expense_count'] }} item(s)</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body text-center py-3">
-                <div class="text-muted small mb-1">Payments Out</div>
-                <div class="fs-5 fw-bold text-warning" id="cardPayments">₹{{ number_format($totals['payment_total'], 2) }}</div>
-                <div class="text-muted" style="font-size:.75rem">
-                    Adj: <span class="text-success" id="cardCredit">+₹{{ number_format($totals['total_credit'], 2) }}</span>
-                    / <span class="text-danger" id="cardDebit">-₹{{ number_format($totals['total_debit'], 2) }}</span>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="card border-0 bg-primary text-white shadow-sm h-100">
-            <div class="card-body text-center py-3">
-                <div class="small mb-1 opacity-75">Closing Balance</div>
-                <div class="fs-5 fw-bold" id="cardClosing">₹{{ number_format($totals['closing_balance'], 2) }}</div>
-            </div>
-        </div>
+    <div class="ef-ds-kpi" data-accent="emerald" style="background:var(--ef-hero-grad)">
+        <div class="ef-ds-kpi-label" style="color:var(--ef-on-dark-muted)"><i class="bi bi-lock ef-ds-kpi-icon"></i> Closing Balance</div>
+        <div class="ef-ds-kpi-value" style="color:var(--ef-on-dark-gold)" id="cardClosing">₹{{ number_format($totals['closing_balance'], 2) }}</div>
     </div>
 </div>
 
@@ -100,13 +82,13 @@
     <li class="nav-item" role="presentation">
         <button class="nav-link" data-bs-toggle="tab" data-bs-target="#pane-expenses" type="button" role="tab">
             <i class="bi bi-receipt me-1"></i>Expenses
-            <span class="badge bg-secondary ms-1" id="expenseBadge">{{ $dailyClosing->snapshotExpenses->count() }}</span>
+            <span style="display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:rgba(107,114,128,.12);color:var(--ef-muted);font-size:.65rem;font-weight:700;margin-left:6px" id="expenseBadge">{{ $dailyClosing->snapshotExpenses->count() }}</span>
         </button>
     </li>
     <li class="nav-item" role="presentation">
         <button class="nav-link" data-bs-toggle="tab" data-bs-target="#pane-adjustments" type="button" role="tab">
             <i class="bi bi-sliders me-1"></i>Adjustments
-            <span class="badge bg-secondary ms-1" id="adjBadge">{{ $dailyClosing->adjustments->count() }}</span>
+            <span style="display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:rgba(107,114,128,.12);color:var(--ef-muted);font-size:.65rem;font-weight:700;margin-left:6px" id="adjBadge">{{ $dailyClosing->adjustments->count() }}</span>
         </button>
     </li>
     <li class="nav-item" role="presentation">
@@ -116,79 +98,68 @@
     </li>
 </ul>
 
-<div class="tab-content border border-top-0 rounded-bottom bg-white p-3 shadow-sm mb-4">
+<div style="background:var(--ef-surface);border:1px solid var(--ef-border);border-top:none;border-radius:0 0 12px 12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:24px">
 
     {{-- ── Summary Tab ──────────────────────────────────────────────────────── --}}
     <div class="tab-pane fade show active" id="pane-summary" role="tabpanel">
         @if ($dailyClosing->canEdit())
             <form method="POST" action="{{ route('admin.daily-closings.update', $dailyClosing) }}">
                 @csrf @method('PUT')
-                <div class="row g-3">
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Opening Balance (₹)</label>
+                <div style="display:grid;grid-template-columns:1fr 3fr;gap:12px;align-items:start">
+                    <div>
+                        <label class="ef-label">Opening Balance (₹)</label>
                         <input type="number" name="opening_balance"
-                            class="form-control @error('opening_balance') is-invalid @enderror"
+                            class="ef-input @error('opening_balance') --error @enderror"
                             step="0.01" min="0"
                             value="{{ old('opening_balance', number_format((float)$dailyClosing->opening_balance, 2, '.', '')) }}">
-                        @error('opening_balance')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        @error('opening_balance')<div class="ef-field-error">{{ $message }}</div>@enderror
                     </div>
-                    <div class="col-md-9">
-                        <label class="form-label fw-semibold">Notes</label>
+                    <div>
+                        <label class="ef-label">Notes</label>
                         <textarea name="notes" rows="2"
-                            class="form-control @error('notes') is-invalid @enderror"
+                            class="ef-textarea @error('notes') --error @enderror"
                             placeholder="Optional internal notes…">{{ old('notes', $dailyClosing->notes) }}</textarea>
-                        @error('notes')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        @error('notes')<div class="ef-field-error">{{ $message }}</div>@enderror
                     </div>
                 </div>
                 <div class="mt-3">
-                    <button type="submit" class="btn btn-primary btn-sm" data-loading-text="Saving…">
-                        <i class="bi bi-save me-1"></i>Save Changes
+                    <button type="submit" class="ef-btn ef-btn-dark" data-loading-text="Saving…">
+                        <i class="bi bi-save"></i> Save Changes
                     </button>
                 </div>
             </form>
             <hr>
         @endif
 
-        <div class="row g-2 text-center">
-            <div class="col-6 col-md-2">
-                <div class="p-2 border rounded bg-light">
-                    <div class="small text-muted">Expense Total</div>
-                    <strong>₹{{ number_format($dailyClosing->expense_total, 2) }}</strong>
-                </div>
+        <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;text-align:center">
+            @php $statCard = 'background:var(--ef-bg-subtle);border:1px solid var(--ef-border);border-radius:10px;padding:10px 8px'; @endphp
+            <div style="{{ $statCard }}">
+                <div style="font-size:.72rem;color:var(--ef-muted);margin-bottom:3px">Expense Total</div>
+                <strong style="font-size:.9rem;color:var(--ef-ink)">₹{{ number_format($dailyClosing->expense_total, 2) }}</strong>
             </div>
-            <div class="col-6 col-md-2">
-                <div class="p-2 border rounded bg-light">
-                    <div class="small text-muted">Payment Total</div>
-                    <strong>₹{{ number_format($dailyClosing->payment_total, 2) }}</strong>
-                </div>
+            <div style="{{ $statCard }}">
+                <div style="font-size:.72rem;color:var(--ef-muted);margin-bottom:3px">Payment Total</div>
+                <strong style="font-size:.9rem;color:var(--ef-ink)">₹{{ number_format($dailyClosing->payment_total, 2) }}</strong>
             </div>
-            <div class="col-6 col-md-2">
-                <div class="p-2 border rounded bg-light">
-                    <div class="small text-muted">Credits</div>
-                    <strong class="text-success">+₹{{ number_format($dailyClosing->total_credit, 2) }}</strong>
-                </div>
+            <div style="{{ $statCard }}">
+                <div style="font-size:.72rem;color:var(--ef-muted);margin-bottom:3px">Credits</div>
+                <strong style="font-size:.9rem;color:var(--ef-emerald)">+₹{{ number_format($dailyClosing->total_credit, 2) }}</strong>
             </div>
-            <div class="col-6 col-md-2">
-                <div class="p-2 border rounded bg-light">
-                    <div class="small text-muted">Debits</div>
-                    <strong class="text-danger">-₹{{ number_format($dailyClosing->total_debit, 2) }}</strong>
-                </div>
+            <div style="{{ $statCard }}">
+                <div style="font-size:.72rem;color:var(--ef-muted);margin-bottom:3px">Debits</div>
+                <strong style="font-size:.9rem;color:var(--ef-danger)">-₹{{ number_format($dailyClosing->total_debit, 2) }}</strong>
             </div>
-            <div class="col-6 col-md-2">
-                <div class="p-2 border rounded bg-light">
-                    <div class="small text-muted">Expense Count</div>
-                    <strong>{{ $dailyClosing->expense_count }}</strong>
-                </div>
+            <div style="{{ $statCard }}">
+                <div style="font-size:.72rem;color:var(--ef-muted);margin-bottom:3px">Expense Count</div>
+                <strong style="font-size:.9rem;color:var(--ef-ink)">{{ $dailyClosing->expense_count }}</strong>
             </div>
-            <div class="col-6 col-md-2">
-                <div class="p-2 border rounded bg-primary text-white">
-                    <div class="small opacity-75">Closing Balance</div>
-                    <strong>₹{{ number_format($dailyClosing->closing_balance, 2) }}</strong>
-                </div>
+            <div style="background:var(--ef-hero-grad);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 8px;text-align:center">
+                <div style="font-size:.72rem;color:rgba(255,253,250,.55);margin-bottom:3px">Closing Balance</div>
+                <strong style="font-size:.9rem;color:var(--ef-on-dark-gold)">₹{{ number_format($dailyClosing->closing_balance, 2) }}</strong>
             </div>
         </div>
 
-        <div class="mt-3 text-muted small">
+        <div style="margin-top:12px;font-size:.8rem;color:var(--ef-muted)">
             Created by {{ optional($dailyClosing->creator)->name ?? '—' }} on {{ $dailyClosing->created_at->format('d M Y, h:i A') }}.
             @if ($dailyClosing->updater)
                 Last updated by {{ $dailyClosing->updater->name }} on {{ $dailyClosing->updated_at->format('d M Y, h:i A') }}.
@@ -200,23 +171,23 @@
     <div class="tab-pane fade" id="pane-expenses" role="tabpanel">
         @if ($dailyClosing->canEdit())
             <div class="mb-3">
-                <button type="button" class="btn btn-sm btn-outline-success" id="btnAddExpense">
-                    <i class="bi bi-plus-circle me-1"></i>Add Expense
+                <button type="button" class="ef-btn" style="color:var(--ef-emerald)" id="btnAddExpense">
+                    <i class="bi bi-plus-circle"></i> Add Expense
                 </button>
             </div>
         @endif
 
-        <div class="table-responsive">
-            <table class="table table-sm table-hover align-middle mb-0">
-                <thead class="table-light">
+        <div style="overflow-x:auto">
+            <table class="ef-an-trend-table">
+                <thead>
                     <tr>
-                        <th>Status</th>
+                        <th style="text-align:center">Status</th>
                         <th>Title</th>
                         <th>Category</th>
                         <th>Employee</th>
-                        <th class="text-end">Amount</th>
+                        <th class="r">Amount</th>
                         <th>Remarks</th>
-                        @unless ($dailyClosing->isFinalized())<th class="text-center">Actions</th>@endunless
+                        @unless ($dailyClosing->isFinalized())<th style="text-align:center">Actions</th>@endunless
                     </tr>
                 </thead>
                 <tbody id="expenseTableBody">
@@ -224,7 +195,7 @@
                         @include('admin.daily-closings.partials.expense-row', ['closing' => $dailyClosing])
                     @empty
                         <tr id="noExpensesRow">
-                            <td colspan="7" class="text-center text-muted py-4">No expenses in this closing.</td>
+                            <td colspan="7" style="text-align:center;color:var(--ef-faint);padding:32px">No expenses in this closing.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -235,44 +206,44 @@
     {{-- ── Adjustments Tab ──────────────────────────────────────────────────── --}}
     <div class="tab-pane fade" id="pane-adjustments" role="tabpanel">
         @if ($dailyClosing->canEdit())
-            <div class="card mb-3 border-0 bg-light">
-                <div class="card-body py-2 px-3">
-                    <h6 class="card-title mb-2">Add Adjustment</h6>
-                    <form id="formAddAdjustment" class="row g-2 align-items-end">
-                        <div class="col-md-2">
-                            <label class="form-label form-label-sm">Type</label>
-                            <select name="type" class="form-select form-select-sm" required>
+            <div style="background:var(--ef-bg-subtle);border:1px solid var(--ef-border);border-radius:var(--ef-radius);padding:12px 14px;margin-bottom:14px">
+                <div>
+                    <div style="font-size:.86rem;font-weight:680;color:var(--ef-ink-2);margin-bottom:10px">Add Adjustment</div>
+                    <form id="formAddAdjustment" style="display:grid;grid-template-columns:1fr 1fr 2fr 2fr auto;gap:8px;align-items:end">
+                        <div>
+                            <label class="ef-label" style="font-size:.72rem">Type</label>
+                            <select name="type" class="ef-select" style="min-height:36px;padding:6px 10px" required>
                                 <option value="credit">Credit (+)</option>
                                 <option value="debit">Debit (−)</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
-                            <label class="form-label form-label-sm">Amount (₹)</label>
-                            <input type="number" name="amount" class="form-control form-control-sm" step="0.01" min="0.01" required>
+                        <div>
+                            <label class="ef-label" style="font-size:.72rem">Amount (₹)</label>
+                            <input type="number" name="amount" class="ef-input" style="min-height:36px;padding:6px 10px" step="0.01" min="0.01" required>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label form-label-sm">Reason</label>
-                            <input type="text" name="reason" class="form-control form-control-sm" maxlength="255" required>
+                        <div>
+                            <label class="ef-label" style="font-size:.72rem">Reason</label>
+                            <input type="text" name="reason" class="ef-input" style="min-height:36px;padding:6px 10px" maxlength="255" required>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label form-label-sm">Notes (optional)</label>
-                            <input type="text" name="notes" class="form-control form-control-sm" maxlength="1000">
+                        <div>
+                            <label class="ef-label" style="font-size:.72rem">Notes (optional)</label>
+                            <input type="text" name="notes" class="ef-input" style="min-height:36px;padding:6px 10px" maxlength="1000">
                         </div>
-                        <div class="col-md-1">
-                            <button type="submit" class="btn btn-sm btn-primary w-100">Add</button>
+                        <div>
+                            <button type="submit" class="ef-btn ef-btn-dark" style="white-space:nowrap">Add</button>
                         </div>
                     </form>
-                    <div id="adjFormError" class="text-danger small mt-1 d-none"></div>
+                    <div id="adjFormError" class="d-none" style="color:var(--ef-danger);font-size:.8rem;margin-top:4px"></div>
                 </div>
             </div>
         @endif
 
-        <div class="table-responsive">
-            <table class="table table-sm align-middle mb-0">
-                <thead class="table-light">
+        <div style="overflow-x:auto">
+            <table class="ef-an-trend-table">
+                <thead>
                     <tr>
                         <th>Type</th>
-                        <th class="text-end">Amount</th>
+                        <th class="r">Amount</th>
                         <th>Reason</th>
                         <th>Notes</th>
                         <th>By</th>
@@ -285,19 +256,19 @@
                         <tr data-adj-id="{{ $adj->id }}">
                             <td>
                                 @if ($adj->isCredit())
-                                    <span class="badge bg-success">Credit</span>
+                                    <span style="background:rgba(15,123,95,.1);border:1px solid rgba(15,123,95,.2);border-radius:5px;color:var(--ef-emerald);font-size:.68rem;font-weight:700;padding:2px 8px;text-transform:uppercase">Credit</span>
                                 @else
-                                    <span class="badge bg-danger">Debit</span>
+                                    <span style="background:rgba(220,53,69,.08);border:1px solid rgba(220,53,69,.15);border-radius:5px;color:var(--ef-danger);font-size:.68rem;font-weight:700;padding:2px 8px;text-transform:uppercase">Debit</span>
                                 @endif
                             </td>
-                            <td class="text-end">₹{{ number_format($adj->amount, 2) }}</td>
+                            <td class="r fw">₹{{ number_format($adj->amount, 2) }}</td>
                             <td>{{ $adj->reason }}</td>
-                            <td class="text-muted small">{{ $adj->notes ?: '—' }}</td>
-                            <td class="text-muted small">{{ optional($adj->creator)->name ?? '—' }}</td>
-                            <td class="text-muted small">{{ $adj->created_at->format('d M Y') }}</td>
+                            <td style="color:var(--ef-faint);font-size:.84rem">{{ $adj->notes ?: '—' }}</td>
+                            <td style="color:var(--ef-faint);font-size:.84rem">{{ optional($adj->creator)->name ?? '—' }}</td>
+                            <td style="color:var(--ef-faint);font-size:.84rem">{{ $adj->created_at->format('d M Y') }}</td>
                             @unless ($dailyClosing->isFinalized())
-                            <td class="text-center">
-                                <button type="button" class="btn btn-sm btn-outline-danger btn-del-adj" data-id="{{ $adj->id }}">
+                            <td style="text-align:center">
+                                <button type="button" class="ef-btn ef-btn-icon btn-del-adj" style="color:var(--ef-danger)" data-id="{{ $adj->id }}">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </td>
@@ -305,7 +276,7 @@
                         </tr>
                     @empty
                         <tr id="noAdjRow">
-                            <td colspan="7" class="text-center text-muted py-4">No adjustments recorded.</td>
+                            <td colspan="7" style="text-align:center;color:var(--ef-faint);padding:32px">No adjustments recorded.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -315,9 +286,19 @@
 
     {{-- ── Audit History Tab ────────────────────────────────────────────────── --}}
     <div class="tab-pane fade" id="pane-audit" role="tabpanel">
-        <div class="table-responsive">
-            <table class="table table-sm align-middle mb-0">
-                <thead class="table-light">
+        @php
+        $auditDsColors = [
+            'success'   => 'background:rgba(15,123,95,.1);border:1px solid rgba(15,123,95,.2);color:var(--ef-emerald)',
+            'warning'   => 'background:rgba(216,154,61,.1);border:1px solid rgba(216,154,61,.2);color:var(--ef-amber)',
+            'danger'    => 'background:rgba(220,53,69,.08);border:1px solid rgba(220,53,69,.15);color:var(--ef-danger)',
+            'secondary' => 'background:rgba(100,116,139,.08);border:1px solid rgba(100,116,139,.15);color:#64748b',
+            'primary'   => 'background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.15);color:#3b82f6',
+            'info'      => 'background:rgba(13,148,136,.08);border:1px solid rgba(13,148,136,.15);color:var(--ef-teal)',
+        ];
+        @endphp
+        <div style="overflow-x:auto">
+            <table class="ef-an-trend-table">
+                <thead>
                     <tr>
                         <th>Action</th>
                         <th>Field</th>
@@ -330,22 +311,23 @@
                 </thead>
                 <tbody>
                     @forelse ($audits as $a)
+                    @php $auditColor = \App\Models\DailyClosingAudit::actionColors()[$a->action_type] ?? 'secondary'; @endphp
                         <tr>
                             <td>
-                                <span class="badge bg-{{ \App\Models\DailyClosingAudit::actionColors()[$a->action_type] ?? 'secondary' }}">
+                                <span style="{{ $auditDsColors[$auditColor] ?? $auditDsColors['secondary'] }};border-radius:5px;font-size:.68rem;font-weight:700;padding:2px 8px;text-transform:uppercase">
                                     {{ \App\Models\DailyClosingAudit::actionLabels()[$a->action_type] ?? ucfirst($a->action_type) }}
                                 </span>
                             </td>
-                            <td class="text-muted small">{{ $a->field_name ?: '—' }}</td>
-                            <td class="text-muted small">{{ $a->old_value ?: '—' }}</td>
-                            <td class="text-muted small">{{ $a->new_value ?: '—' }}</td>
-                            <td class="text-muted small">{{ $a->remarks ?: '—' }}</td>
-                            <td class="small">{{ optional($a->user)->name ?? '—' }}</td>
-                            <td class="text-muted small">{{ $a->created_at->format('d M Y, h:i A') }}</td>
+                            <td style="color:var(--ef-faint);font-size:.84rem">{{ $a->field_name ?: '—' }}</td>
+                            <td style="color:var(--ef-faint);font-size:.84rem">{{ $a->old_value ?: '—' }}</td>
+                            <td style="color:var(--ef-faint);font-size:.84rem">{{ $a->new_value ?: '—' }}</td>
+                            <td style="color:var(--ef-faint);font-size:.84rem">{{ $a->remarks ?: '—' }}</td>
+                            <td style="font-size:.84rem">{{ optional($a->user)->name ?? '—' }}</td>
+                            <td style="color:var(--ef-faint);font-size:.84rem">{{ $a->created_at->format('d M Y, h:i A') }}</td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-4">No audit records yet.</td>
+                            <td colspan="7" style="text-align:center;color:var(--ef-faint);padding:32px">No audit records yet.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -369,58 +351,60 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div id="expModalError" class="alert alert-danger py-2 d-none"></div>
-                <div class="mb-3">
-                    <label class="form-label">Title <span class="text-danger">*</span></label>
-                    <input type="text" id="expTitle" class="form-control" maxlength="255" required>
-                    <div class="invalid-feedback" id="errTitle"></div>
-                </div>
-                <div class="row g-2 mb-3">
-                    <div class="col">
-                        <label class="form-label">Amount (₹) <span class="text-danger">*</span></label>
-                        <input type="number" id="expAmount" class="form-control" step="0.01" min="0.01" required>
-                        <div class="invalid-feedback" id="errAmount"></div>
+                <div id="expModalError" style="background:rgba(220,53,69,.08);border:1px solid rgba(220,53,69,.2);border-radius:6px;padding:8px 14px;font-size:.84rem;color:var(--ef-danger);margin-bottom:12px;display:none"></div>
+                <div style="display:flex;flex-direction:column;gap:12px">
+                    <div>
+                        <label class="ef-label">Title <span style="color:var(--ef-danger)">*</span></label>
+                        <input type="text" id="expTitle" class="ef-input" maxlength="255" required>
+                        <div class="ef-field-error" id="errTitle"></div>
                     </div>
-                    <div class="col">
-                        <label class="form-label">Status <span class="text-danger">*</span></label>
-                        <select id="expStatus" class="form-select" required>
-                            <option value="approved">Approved</option>
-                            <option value="paid">Paid</option>
-                            <option value="reimbursement_pending">Reimbursement Pending</option>
-                            <option value="reimbursed">Reimbursed</option>
-                            <option value="completed">Completed</option>
-                        </select>
-                        <div class="invalid-feedback" id="errStatus"></div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                        <div>
+                            <label class="ef-label">Amount (₹) <span style="color:var(--ef-danger)">*</span></label>
+                            <input type="number" id="expAmount" class="ef-input" step="0.01" min="0.01" required>
+                            <div class="ef-field-error" id="errAmount"></div>
+                        </div>
+                        <div>
+                            <label class="ef-label">Status <span style="color:var(--ef-danger)">*</span></label>
+                            <select id="expStatus" class="ef-select" required>
+                                <option value="approved">Approved</option>
+                                <option value="paid">Paid</option>
+                                <option value="reimbursement_pending">Reimbursement Pending</option>
+                                <option value="reimbursed">Reimbursed</option>
+                                <option value="completed">Completed</option>
+                            </select>
+                            <div class="ef-field-error" id="errStatus"></div>
+                        </div>
                     </div>
-                </div>
-                <div class="row g-2 mb-3">
-                    <div class="col">
-                        <label class="form-label">Category</label>
-                        <select id="expCategory" class="form-select">
-                            <option value="">— None —</option>
-                            @foreach ($categories as $catId => $catName)
-                                <option value="{{ $catId }}">{{ $catName }}</option>
-                            @endforeach
-                        </select>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                        <div>
+                            <label class="ef-label">Category</label>
+                            <select id="expCategory" class="ef-select">
+                                <option value="">— None —</option>
+                                @foreach ($categories as $catId => $catName)
+                                    <option value="{{ $catId }}">{{ $catName }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="ef-label">Employee</label>
+                            <select id="expEmployee" class="ef-select">
+                                <option value="">— None —</option>
+                                @foreach ($employees as $empId => $empName)
+                                    <option value="{{ $empId }}">{{ $empName }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
-                    <div class="col">
-                        <label class="form-label">Employee</label>
-                        <select id="expEmployee" class="form-select">
-                            <option value="">— None —</option>
-                            @foreach ($employees as $empId => $empName)
-                                <option value="{{ $empId }}">{{ $empName }}</option>
-                            @endforeach
-                        </select>
+                    <div>
+                        <label class="ef-label">Remarks</label>
+                        <textarea id="expRemarks" class="ef-textarea" rows="2" maxlength="1000"></textarea>
                     </div>
-                </div>
-                <div class="mb-2">
-                    <label class="form-label">Remarks</label>
-                    <textarea id="expRemarks" class="form-control" rows="2" maxlength="1000"></textarea>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="btnSaveExpense">Save Expense</button>
+                <button type="button" class="ef-btn" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="ef-btn ef-btn-dark" id="btnSaveExpense">Save Expense</button>
             </div>
         </div>
     </div>
@@ -435,10 +419,10 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body" id="previewBody">
-                <div class="text-center py-4"><span class="spinner-border"></span></div>
+                <div style="text-align:center;padding:24px 0"><span class="spinner-border"></span></div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="ef-btn" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -448,20 +432,20 @@
 <div class="modal fade" id="finalizeModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title"><i class="bi bi-lock me-2"></i>Finalize &amp; Lock</h5>
+            <div class="modal-header" style="background:var(--ef-hero-grad);border-bottom:1px solid rgba(255,255,255,.1)">
+                <h5 class="modal-title" style="color:#fffdfa"><i class="bi bi-lock me-2"></i>Finalize &amp; Lock</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <p>This will <strong>lock</strong> the closing for <strong>{{ $dailyClosing->date->format('d M Y') }}</strong>. No further edits will be possible.</p>
-                <p class="mb-0 text-muted small">Totals will be recalculated one final time before locking.</p>
+                <p style="margin-bottom:0;color:var(--ef-muted);font-size:.84rem">Totals will be recalculated one final time before locking.</p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form method="POST" action="{{ route('admin.daily-closings.finalize', $dailyClosing) }}" class="d-inline">
+                <button type="button" class="ef-btn" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" action="{{ route('admin.daily-closings.finalize', $dailyClosing) }}" style="display:inline">
                     @csrf @method('PATCH')
-                    <button type="submit" class="btn btn-success" data-loading-text="Finalizing…">
-                        <i class="bi bi-lock me-1"></i>Yes, Finalize
+                    <button type="submit" class="ef-btn ef-btn-dark" data-loading-text="Finalizing…">
+                        <i class="bi bi-lock"></i> Yes, Finalize
                     </button>
                 </form>
             </div>
@@ -471,10 +455,10 @@
 
 {{-- Toast --}}
 <div class="position-fixed bottom-0 end-0 p-3" style="z-index:1100">
-    <div id="ajaxToast" class="toast align-items-center text-bg-success border-0" role="alert">
-        <div class="d-flex">
-            <div class="toast-body" id="ajaxToastBody">Done.</div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+    <div id="ajaxToast" class="toast" role="alert" style="background:var(--ef-hero-grad);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#fffdfa;min-width:220px">
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 14px">
+            <div id="ajaxToastBody" style="flex:1;font-size:.875rem;font-weight:500">Done.</div>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
         </div>
     </div>
 </div>
@@ -493,7 +477,7 @@ const URLS = {
 
 function showToast(msg, ok = true) {
     const t = document.getElementById('ajaxToast');
-    t.className = `toast align-items-center border-0 text-bg-${ok ? 'success' : 'danger'}`;
+    t.style.background = ok ? 'var(--ef-hero-grad)' : 'rgba(200,75,68,.95)';
     document.getElementById('ajaxToastBody').textContent = msg;
     bootstrap.Toast.getOrCreateInstance(t, { delay: 3500 }).show();
 }
@@ -570,7 +554,7 @@ document.getElementById('btnSyncSnapshot')?.addEventListener('click', async func
 // ── Preview ────────────────────────────────────────────────────────────────
 
 document.getElementById('btnPreview')?.addEventListener('click', async function () {
-    document.getElementById('previewBody').innerHTML = '<div class="text-center py-4"><span class="spinner-border"></span></div>';
+    document.getElementById('previewBody').innerHTML = '<div style="text-align:center;padding:24px 0"><span class="spinner-border"></span></div>';
     new bootstrap.Modal(document.getElementById('previewModal')).show();
     try {
         const data = await apiFetch(URLS.preview);
@@ -582,22 +566,22 @@ document.getElementById('btnPreview')?.addEventListener('click', async function 
             ['Opening Balance',  'opening_balance'],
             ['Closing Balance',  'closing_balance'],
         ];
-        let html = '<table class="table table-sm table-bordered"><thead class="table-light"><tr><th>Field</th><th>Stored</th><th>Computed</th><th></th></tr></thead><tbody>';
+        let html = '<table class="ef-an-trend-table"><thead><tr><th>Field</th><th>Stored</th><th>Computed</th><th></th></tr></thead><tbody>';
         for (const [label, key] of fields) {
             const oldVal = parseFloat(data.old[key] || 0);
             const newVal = parseFloat(data.new[key] || 0);
             const diff   = Math.abs(newVal - oldVal) > 0.005;
-            html += `<tr class="${diff ? 'table-warning' : ''}">
+            html += `<tr ${diff ? 'style="background:rgba(184,137,62,.06)"' : ''}>
                 <td>${label}</td>
                 <td>${fmt(oldVal)}</td>
                 <td>${fmt(newVal)}</td>
-                <td>${diff ? '<span class="badge bg-warning text-dark">Changed</span>' : '<span class="badge bg-light text-muted">Same</span>'}</td>
+                <td>${diff ? '<span style="background:rgba(184,137,62,.12);color:#7a5a1e;border:1px solid rgba(184,137,62,.3);border-radius:5px;font-size:.68rem;font-weight:700;padding:2px 8px">Changed</span>' : '<span style="background:rgba(107,114,128,.08);color:var(--ef-muted);border:1px solid var(--ef-border);border-radius:5px;font-size:.68rem;font-weight:700;padding:2px 8px">Same</span>'}</td>
             </tr>`;
         }
         html += '</tbody></table>';
         document.getElementById('previewBody').innerHTML = html;
     } catch (e) {
-        document.getElementById('previewBody').innerHTML = '<div class="alert alert-danger">Failed to load preview.</div>';
+        document.getElementById('previewBody').innerHTML = '<div style="background:rgba(200,75,68,.08);border:1px solid rgba(200,75,68,.2);border-radius:8px;padding:12px 16px;color:var(--ef-danger);font-size:.875rem">Failed to load preview.</div>';
     }
 });
 
@@ -723,18 +707,20 @@ document.getElementById('formAddAdjustment')?.addEventListener('submit', async f
         const data = await apiFetch(URLS.adjustments, 'POST', new FormData(this));
         document.getElementById('noAdjRow')?.remove();
         const adj    = data.adjustment;
-        const badge  = adj.type === 'credit' ? 'bg-success' : 'bg-danger';
+        const badgeStyle = adj.type === 'credit'
+            ? 'background:rgba(15,123,95,.1);border:1px solid rgba(15,123,95,.2);color:var(--ef-emerald)'
+            : 'background:rgba(220,53,69,.08);border:1px solid rgba(220,53,69,.15);color:var(--ef-danger)';
         const label  = adj.type === 'credit' ? 'Credit' : 'Debit';
         document.getElementById('adjTableBody').insertAdjacentHTML('beforeend', `
             <tr data-adj-id="${adj.id}">
-                <td><span class="badge ${badge}">${label}</span></td>
-                <td class="text-end">₹${parseFloat(adj.amount).toFixed(2)}</td>
+                <td><span style="${badgeStyle};border-radius:5px;font-size:.68rem;font-weight:700;padding:2px 8px;text-transform:uppercase">${label}</span></td>
+                <td class="r fw">₹${parseFloat(adj.amount).toFixed(2)}</td>
                 <td>${adj.reason}</td>
-                <td class="text-muted small">${adj.notes || '—'}</td>
-                <td class="text-muted small">${adj.created_by}</td>
-                <td class="text-muted small">${adj.created_at}</td>
-                <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-outline-danger btn-del-adj" data-id="${adj.id}">
+                <td style="color:var(--ef-faint);font-size:.84rem">${adj.notes || '—'}</td>
+                <td style="color:var(--ef-faint);font-size:.84rem">${adj.created_by}</td>
+                <td style="color:var(--ef-faint);font-size:.84rem">${adj.created_at}</td>
+                <td style="text-align:center">
+                    <button type="button" class="ef-btn ef-btn-icon btn-del-adj" style="color:var(--ef-danger)" data-id="${adj.id}">
                         <i class="bi bi-trash"></i>
                     </button>
                 </td>

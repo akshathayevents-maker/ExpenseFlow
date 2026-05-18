@@ -25,7 +25,7 @@ class WalletService
     public function credit(
         Wallet $wallet,
         float $amount,
-        string $notes,
+        ?string $notes,
         User $createdBy,
         ?ExpenseRequest $expenseRequest = null
     ): WalletTransaction {
@@ -65,7 +65,7 @@ class WalletService
     public function debit(
         Wallet $wallet,
         float $amount,
-        string $notes,
+        ?string $notes,
         User $createdBy,
         ?ExpenseRequest $expenseRequest = null
     ): WalletTransaction {
@@ -119,7 +119,7 @@ class WalletService
     public function adjust(
         Wallet $wallet,
         float $newBalance,
-        string $notes,
+        ?string $notes,
         User $createdBy
     ): WalletTransaction {
         return DB::transaction(function () use ($wallet, $newBalance, $notes, $createdBy) {
@@ -148,7 +148,7 @@ class WalletService
     public function recordReimbursement(
         Wallet $wallet,
         float $amount,
-        string $notes,
+        ?string $notes,
         User $createdBy,
         ExpenseRequest $expenseRequest
     ): WalletTransaction {

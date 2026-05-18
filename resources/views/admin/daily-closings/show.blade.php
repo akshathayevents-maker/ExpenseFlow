@@ -1,249 +1,271 @@
 <x-admin-layout title="Daily Closing — {{ $dailyClosing->date->format('d M Y') }}">
-<div class="page-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-    <div class="d-flex align-items-center gap-2">
-        <a href="{{ route('admin.daily-closings.index') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i></a>
-        <div>
-            <h4 class="mb-0 fw-bold">{{ $dailyClosing->date->format('d M Y') }}</h4>
-            <p class="text-muted mb-0 small">Daily Closing Report</p>
-        </div>
-    </div>
-    @php $colors = \App\Models\DailyClosing::statusColors(); $color = $colors[$dailyClosing->status] ?? 'secondary'; @endphp
-    <div class="d-flex align-items-center gap-2 flex-wrap">
-        <span class="badge bg-{{ $color }}-subtle text-{{ $color }} border border-{{ $color }}-subtle py-2 px-3"
-              style="font-size:.8rem;text-transform:uppercase">{{ $dailyClosing->status }}</span>
 
-        @if($hasDrift)
-            <span class="badge bg-warning-subtle text-warning border border-warning-subtle py-2 px-3"
-                  style="font-size:.75rem">
-                <i class="bi bi-exclamation-triangle me-1"></i>Data drift detected
-            </span>
-        @endif
+@push('styles')
+<style>
+.ef-dc-show-split { display: grid; gap: 14px; grid-template-columns: 1fr 300px; align-items: start; }
+.ef-dc-meta-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--ef-border); font-size: .86rem; }
+.ef-dc-meta-row:last-child { border-bottom: none; }
+.ef-dc-meta-label { color: var(--ef-faint); font-weight: 500; }
+.ef-dc-meta-val { color: var(--ef-ink-2); font-weight: 600; text-align: right; }
+.ef-dc-drift-banner {
+    align-items: flex-start;
+    background: rgba(255,200,0,.06);
+    border: 1px solid rgba(255,200,0,.28);
+    border-radius: var(--ef-radius);
+    color: #7d6400;
+    display: flex;
+    font-size: .84rem;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding: 12px 16px;
+}
+.ef-dc-notes-banner {
+    align-items: center;
+    background: var(--ef-bg-subtle);
+    border: 1px solid var(--ef-border);
+    border-radius: var(--ef-radius);
+    display: flex;
+    font-size: .88rem;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding: 12px 16px;
+    color: var(--ef-ink-2);
+}
+@media (max-width: 991.98px) { .ef-dc-show-split { grid-template-columns: 1fr; } }
+</style>
+@endpush
+
+@php $colors = \App\Models\DailyClosing::statusColors(); $color = $colors[$dailyClosing->status] ?? 'secondary'; @endphp
+
+<x-ds.hero eyebrow="Daily Closings" title="{{ $dailyClosing->date->format('d M Y') }}"
+    :meta="[['icon' => 'bi-calendar3', 'text' => 'Daily Closing Report']]">
+    <x-slot:actions>
+        <a href="{{ route('admin.daily-closings.index') }}" class="ef-btn">
+            <i class="bi bi-arrow-left"></i> Back
+        </a>
 
         @if($dailyClosing->isDraft())
-            <form method="POST" action="{{ route('admin.daily-closings.verify', $dailyClosing) }}">
-                @csrf @method('PATCH')
-                <button type="submit" class="btn btn-sm btn-success" data-loading-text="Verifying…">
-                    <i class="bi bi-check-circle me-1"></i> Verify Closing
-                </button>
-            </form>
+        <form method="POST" action="{{ route('admin.daily-closings.verify', $dailyClosing) }}" style="display:inline">
+            @csrf @method('PATCH')
+            <button type="submit" class="ef-btn ef-btn-dark" data-loading-text="Verifying…">
+                <i class="bi bi-check-circle"></i> Verify Closing
+            </button>
+        </form>
         @endif
 
         @if($dailyClosing->canEdit())
-            <a href="{{ route('admin.daily-closings.edit', $dailyClosing) }}" class="btn btn-sm btn-outline-secondary">
-                <i class="bi bi-pencil me-1"></i> Edit
-            </a>
-            <form method="POST" action="{{ route('admin.daily-closings.recalculate', $dailyClosing) }}">
-                @csrf @method('PATCH')
-                <button type="submit" class="btn btn-sm btn-outline-info" data-loading-text="Recalculating…">
-                    <i class="bi bi-arrow-repeat me-1"></i> Recalculate
-                </button>
-            </form>
-            <button type="button" class="btn btn-sm btn-outline-danger"
-                    data-bs-toggle="modal" data-bs-target="#deleteModal">
-                <i class="bi bi-trash me-1"></i> Delete
+        <a href="{{ route('admin.daily-closings.edit', $dailyClosing) }}" class="ef-btn">
+            <i class="bi bi-pencil"></i> Edit
+        </a>
+        <form method="POST" action="{{ route('admin.daily-closings.recalculate', $dailyClosing) }}" style="display:inline">
+            @csrf @method('PATCH')
+            <button type="submit" class="ef-btn" data-loading-text="Recalculating…">
+                <i class="bi bi-arrow-repeat"></i> Recalculate
             </button>
+        </form>
+        @if($dailyClosing->canDelete())
+        <button type="button" class="ef-btn" style="color:var(--ef-danger)"
+                data-bs-toggle="modal" data-bs-target="#deleteModal">
+            <i class="bi bi-trash"></i>
+        </button>
         @endif
-    </div>
-</div>
+        @endif
+    </x-slot:actions>
+</x-ds.hero>
 
 {{-- Drift alert --}}
 @if($hasDrift)
-<div class="alert alert-warning border-warning d-flex align-items-start gap-2 mb-3">
+<div class="ef-dc-drift-banner">
     <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
     <div>
         <strong>Data drift detected.</strong>
-        The stored figures differ from current live data (expense records or payments may have been modified after this closing was created).
-        <form method="POST" action="{{ route('admin.daily-closings.recalculate', $dailyClosing) }}" class="d-inline">
+        The stored figures differ from current live data — expense records or payments may have been modified after this closing was created.
+        <form method="POST" action="{{ route('admin.daily-closings.recalculate', $dailyClosing) }}" style="display:inline;margin-left:8px">
             @csrf @method('PATCH')
-            <button type="submit" class="btn btn-sm btn-warning ms-2" data-loading-text="Recalculating…">
-                <i class="bi bi-arrow-repeat me-1"></i> Recalculate Now
+            <button type="submit" class="ef-btn ef-btn-dark" style="padding:3px 12px;font-size:.8rem" data-loading-text="Recalculating…">
+                <i class="bi bi-arrow-repeat"></i> Recalculate Now
             </button>
         </form>
     </div>
 </div>
 @endif
 
-{{-- Summary cards --}}
-<div class="row g-3 mb-4">
-    <div class="col-sm-6 col-lg-3">
-        <div class="card border-0 shadow-sm text-center py-3">
-            <div class="text-muted small mb-1">Expense Total</div>
-            <div class="fs-5 fw-bold text-primary">₹{{ number_format($dailyClosing->expense_total, 2) }}</div>
-            <div class="text-muted" style="font-size:.75rem">{{ $dailyClosing->expense_count }} requests</div>
-            @if(abs($liveFigures['expense_total'] - (float)$dailyClosing->expense_total) > 0.005)
-                <div class="text-warning" style="font-size:.7rem">Live: ₹{{ number_format($liveFigures['expense_total'], 2) }}</div>
-            @endif
-        </div>
-    </div>
-    <div class="col-sm-6 col-lg-3">
-        <div class="card border-0 shadow-sm text-center py-3">
-            <div class="text-muted small mb-1">Payments Made</div>
-            <div class="fs-5 fw-bold text-success">₹{{ number_format($dailyClosing->payment_total, 2) }}</div>
-            @if(abs($liveFigures['payment_total'] - (float)$dailyClosing->payment_total) > 0.005)
-                <div class="text-warning" style="font-size:.7rem">Live: ₹{{ number_format($liveFigures['payment_total'], 2) }}</div>
-            @endif
-        </div>
-    </div>
-    <div class="col-sm-6 col-lg-3">
-        <div class="card border-0 shadow-sm text-center py-3">
-            <div class="text-muted small mb-1">Stock Added</div>
-            <div class="fs-5 fw-bold text-info">{{ number_format($dailyClosing->stock_additions, 3) + 0 }}</div>
-        </div>
-    </div>
-    <div class="col-sm-6 col-lg-3">
-        <div class="card border-0 shadow-sm text-center py-3">
-            <div class="text-muted small mb-1">Stock Deducted</div>
-            <div class="fs-5 fw-bold text-warning">{{ number_format($dailyClosing->stock_deductions, 3) + 0 }}</div>
-        </div>
-    </div>
-</div>
-
 @if($dailyClosing->notes)
-<div class="alert alert-light border mb-3">
-    <i class="bi bi-sticky me-1"></i> {{ $dailyClosing->notes }}
+<div class="ef-dc-notes-banner">
+    <i class="bi bi-sticky flex-shrink-0"></i>
+    {{ $dailyClosing->notes }}
 </div>
 @endif
 
-<div class="row g-3">
-    <div class="col-lg-8">
+{{-- Summary KPIs --}}
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px">
+    <x-ds.kpi-card icon="bi-receipt" label="Expense Total"
+        value="₹{{ number_format($dailyClosing->expense_total, 2) }}"
+        :note="$dailyClosing->expense_count . ' requests' . (abs($liveFigures['expense_total'] - (float)$dailyClosing->expense_total) > 0.005 ? ' · Live: ₹' . number_format($liveFigures['expense_total'], 2) : '')"
+        accent="emerald" value-color="c-emerald" />
+    <x-ds.kpi-card icon="bi-credit-card" label="Payments Made"
+        value="₹{{ number_format($dailyClosing->payment_total, 2) }}"
+        :note="abs($liveFigures['payment_total'] - (float)$dailyClosing->payment_total) > 0.005 ? 'Live: ₹' . number_format($liveFigures['payment_total'], 2) : null"
+        accent="gold" value-color="c-gold" />
+    <x-ds.kpi-card icon="bi-box-arrow-in-down" label="Stock Added"
+        value="{{ number_format($dailyClosing->stock_additions, 3) + 0 }}"
+        accent="teal" />
+    <x-ds.kpi-card icon="bi-box-arrow-up" label="Stock Deducted"
+        value="{{ number_format($dailyClosing->stock_deductions, 3) + 0 }}"
+        accent="amber" value-color="c-amber" />
+</div>
+
+<div class="ef-dc-show-split">
+    <div>
         {{-- Expenses --}}
-        <div class="card border-0 shadow-sm mb-3">
-            <div class="card-header bg-transparent fw-semibold">
-                <i class="bi bi-receipt me-1 text-primary"></i> Expenses
-                <span class="badge bg-secondary ms-1">{{ $expenses->count() }}</span>
-            </div>
-            <div class="card-body p-0">
-                @if($expenses->isEmpty())
-                <div class="text-center py-3 text-muted small">No expenses for this date.</div>
-                @else
-                <div class="table-responsive">
-                    <table class="table table-sm mb-0">
-                        <thead>
-                            <tr>
-                                <th>Employee</th>
-                                <th>Category</th>
-                                <th class="text-end">Amount</th>
-                                <th class="text-center">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($expenses as $exp)
-                            <tr>
-                                <td class="small">{{ $exp->requester->name }}</td>
-                                <td class="text-muted small">{{ $exp->category->name }}</td>
-                                <td class="text-end fw-semibold small">₹{{ number_format($exp->amount, 2) }}</td>
-                                <td class="text-center"><x-status-badge :status="$exp->status" /></td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                        <tfoot>
-                            <tr class="table-light fw-semibold">
-                                <td colspan="2">Total</td>
-                                <td class="text-end">₹{{ number_format($expenses->sum('amount'), 2) }}</td>
-                                <td></td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-                @endif
-            </div>
-        </div>
-
-        {{-- Payments --}}
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-transparent fw-semibold">
-                <i class="bi bi-credit-card me-1 text-success"></i> Payments
-                <span class="badge bg-secondary ms-1">{{ $payments->count() }}</span>
-            </div>
-            <div class="card-body p-0">
-                @if($payments->isEmpty())
-                <div class="text-center py-3 text-muted small">No payments for this date.</div>
-                @else
-                <div class="table-responsive">
-                    <table class="table table-sm mb-0">
-                        <thead>
-                            <tr>
-                                <th>Employee</th>
-                                <th>Mode</th>
-                                <th>Reference</th>
-                                <th class="text-end">Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($payments as $payment)
-                            <tr>
-                                <td class="small">{{ $payment->expenseRequest?->requester?->name ?? '—' }}</td>
-                                <td class="text-muted small">{{ $payment->payment_mode }}</td>
-                                <td class="text-muted small">{{ $payment->transaction_reference ?? '—' }}</td>
-                                <td class="text-end fw-semibold small">₹{{ number_format($payment->amount, 2) }}</td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                        <tfoot>
-                            <tr class="table-light fw-semibold">
-                                <td colspan="3">Total</td>
-                                <td class="text-end">₹{{ number_format($payments->sum('amount'), 2) }}</td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-                @endif
-            </div>
-        </div>
-    </div>
-
-    <div class="col-lg-4">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-transparent fw-semibold">Closing Details</div>
-            <div class="card-body">
-                <table class="table table-sm table-borderless mb-0">
-                    <tr><td class="text-muted">Date</td><td class="fw-semibold">{{ $dailyClosing->date->format('d M Y') }}</td></tr>
-                    <tr><td class="text-muted">Status</td>
-                        <td><span class="badge bg-{{ $color }}-subtle text-{{ $color }}" style="text-transform:uppercase">{{ $dailyClosing->status }}</span></td>
-                    </tr>
-                    <tr><td class="text-muted">Recorded by</td><td>{{ $dailyClosing->creator->name }}</td></tr>
-                    <tr><td class="text-muted">Recorded at</td><td class="small">{{ $dailyClosing->created_at->format('d M Y, h:i A') }}</td></tr>
-                    @if($dailyClosing->updater)
-                    <tr>
-                        <td class="text-muted">Last edited by</td>
-                        <td class="fw-semibold text-warning">{{ $dailyClosing->updater->name }}</td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted">Edited at</td>
-                        <td class="small">{{ $dailyClosing->updated_at->format('d M Y, h:i A') }}</td>
-                    </tr>
-                    @endif
-                    @if($dailyClosing->verifier)
-                    <tr><td class="text-muted">Verified by</td><td class="fw-semibold text-success">{{ $dailyClosing->verifier->name }}</td></tr>
-                    <tr><td class="text-muted">Verified at</td><td class="small">{{ $dailyClosing->verified_at->format('d M Y, h:i A') }}</td></tr>
-                    @endif
+        <x-ds.card :no-pad="true" style="margin-bottom:14px">
+            <x-slot:head_right>
+                <x-ds.section-head title="Expenses" :count="$expenses->count()" />
+            </x-slot:head_right>
+            @if($expenses->isEmpty())
+                <div style="text-align:center;padding:24px;color:var(--ef-faint);font-size:.84rem">No expenses for this date.</div>
+            @else
+            <div style="overflow-x:auto">
+                <table class="ef-an-trend-table">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Category</th>
+                            <th class="r">Amount</th>
+                            <th style="text-align:center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($expenses as $exp)
+                        <tr>
+                            <td class="fw">{{ $exp->requester->name }}</td>
+                            <td style="color:var(--ef-faint);font-size:.84rem">{{ $exp->category->name }}</td>
+                            <td class="r fw">₹{{ number_format($exp->amount, 2) }}</td>
+                            <td style="text-align:center"><x-status-badge :status="$exp->status" /></td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="2" class="fw" style="background:var(--ef-bg-subtle)">Total</td>
+                            <td class="r fw" style="background:var(--ef-bg-subtle)">₹{{ number_format($expenses->sum('amount'), 2) }}</td>
+                            <td style="background:var(--ef-bg-subtle)"></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
-        </div>
+            @endif
+        </x-ds.card>
+
+        {{-- Payments --}}
+        <x-ds.card :no-pad="true">
+            <x-slot:head_right>
+                <x-ds.section-head title="Payments" :count="$payments->count()" />
+            </x-slot:head_right>
+            @if($payments->isEmpty())
+                <div style="text-align:center;padding:24px;color:var(--ef-faint);font-size:.84rem">No payments for this date.</div>
+            @else
+            <div style="overflow-x:auto">
+                <table class="ef-an-trend-table">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Mode</th>
+                            <th>Reference</th>
+                            <th class="r">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($payments as $payment)
+                        <tr>
+                            <td class="fw">{{ $payment->expenseRequest?->requester?->name ?? '—' }}</td>
+                            <td style="color:var(--ef-faint)">{{ $payment->payment_mode }}</td>
+                            <td style="color:var(--ef-faint);font-size:.84rem">{{ $payment->transaction_reference ?? '—' }}</td>
+                            <td class="r fw">₹{{ number_format($payment->amount, 2) }}</td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3" class="fw" style="background:var(--ef-bg-subtle)">Total</td>
+                            <td class="r fw" style="background:var(--ef-bg-subtle)">₹{{ number_format($payments->sum('amount'), 2) }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            @endif
+        </x-ds.card>
     </div>
+
+    {{-- Closing details sidebar --}}
+    <x-ds.card title="Closing Details">
+        <div class="ef-dc-meta-row">
+            <span class="ef-dc-meta-label">Date</span>
+            <span class="ef-dc-meta-val">{{ $dailyClosing->date->format('d M Y') }}</span>
+        </div>
+        <div class="ef-dc-meta-row">
+            <span class="ef-dc-meta-label">Status</span>
+            <span class="ef-dc-meta-val">
+                <x-status-badge :status="$dailyClosing->status" />
+                @if($hasDrift)
+                    <span style="font-size:.7rem;color:var(--ef-amber);display:block;margin-top:3px">
+                        <i class="bi bi-exclamation-triangle"></i> Drift
+                    </span>
+                @endif
+            </span>
+        </div>
+        <div class="ef-dc-meta-row">
+            <span class="ef-dc-meta-label">Recorded by</span>
+            <span class="ef-dc-meta-val">{{ $dailyClosing->creator->name }}</span>
+        </div>
+        <div class="ef-dc-meta-row">
+            <span class="ef-dc-meta-label">Recorded at</span>
+            <span class="ef-dc-meta-val" style="font-size:.8rem">{{ $dailyClosing->created_at->format('d M Y, h:i A') }}</span>
+        </div>
+        @if($dailyClosing->updater)
+        <div class="ef-dc-meta-row">
+            <span class="ef-dc-meta-label">Last edited by</span>
+            <span class="ef-dc-meta-val" style="color:var(--ef-amber)">{{ $dailyClosing->updater->name }}</span>
+        </div>
+        <div class="ef-dc-meta-row">
+            <span class="ef-dc-meta-label">Edited at</span>
+            <span class="ef-dc-meta-val" style="font-size:.8rem">{{ $dailyClosing->updated_at->format('d M Y, h:i A') }}</span>
+        </div>
+        @endif
+        @if($dailyClosing->verifier)
+        <div class="ef-dc-meta-row">
+            <span class="ef-dc-meta-label">Verified by</span>
+            <span class="ef-dc-meta-val" style="color:var(--ef-emerald)">{{ $dailyClosing->verifier->name }}</span>
+        </div>
+        <div class="ef-dc-meta-row">
+            <span class="ef-dc-meta-label">Verified at</span>
+            <span class="ef-dc-meta-val" style="font-size:.8rem">{{ $dailyClosing->verified_at->format('d M Y, h:i A') }}</span>
+        </div>
+        @endif
+    </x-ds.card>
 </div>
 
 {{-- Delete Modal --}}
 @if($dailyClosing->canDelete())
 <div class="modal fade" id="deleteModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content">
-            <div class="modal-header border-0">
-                <h6 class="modal-title"><i class="bi bi-trash text-danger me-2"></i>Delete Closing</h6>
+        <div class="modal-content" style="border-radius:16px;border:none;box-shadow:0 20px 60px rgba(0,0,0,.18)">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title" style="color:var(--ef-danger)"><i class="bi bi-trash me-2"></i>Delete Closing</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body small">
-                <div class="alert alert-danger py-2 mb-2 small">
+            <div class="modal-body" style="font-size:.88rem">
+                <div style="background:rgba(220,53,69,.06);border:1px solid rgba(220,53,69,.2);border-radius:10px;padding:8px 12px;margin-bottom:10px;color:var(--ef-danger);font-size:.8rem">
                     <i class="bi bi-exclamation-triangle-fill me-1"></i> Cannot be undone.
                 </div>
                 Delete closing for <strong>{{ $dailyClosing->date->format('d M Y') }}</strong>?
             </div>
-            <div class="modal-footer border-0 py-2">
-                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="ef-btn" data-bs-dismiss="modal">Cancel</button>
                 <form method="POST" action="{{ route('admin.daily-closings.destroy', $dailyClosing) }}">
                     @csrf @method('DELETE')
-                    <button type="submit" class="btn btn-sm btn-danger" data-loading-text="Deleting…">
-                        <i class="bi bi-trash me-1"></i> Delete
+                    <button type="submit" class="ef-btn ef-btn-dark" style="background:var(--ef-danger);border-color:var(--ef-danger)" data-loading-text="Deleting…">
+                        <i class="bi bi-trash"></i> Delete
                     </button>
                 </form>
             </div>
@@ -251,4 +273,5 @@
     </div>
 </div>
 @endif
+
 </x-admin-layout>
