@@ -336,8 +336,12 @@
             <i class="bi bi-shop"></i> Vendors
         </a>
         <a href="{{ route('admin.expense-requests.index') }}"
-           class="nav-link {{ request()->routeIs('admin.expense-requests.*') ? 'active' : '' }}">
+           class="nav-link {{ request()->routeIs('admin.expense-requests.*') && !request()->routeIs('admin.expense-requests.create','admin.expense-requests.success') ? 'active' : '' }}">
             <i class="bi bi-file-earmark-text"></i> Expense Requests
+        </a>
+        <a href="{{ route('admin.expense-requests.create') }}"
+           class="nav-link {{ request()->routeIs('admin.expense-requests.create','admin.expense-requests.success') ? 'active' : '' }}">
+            <i class="bi bi-plus-circle"></i> Create Expense
         </a>
         <a href="{{ route('admin.wallets.index') }}"
            class="nav-link {{ request()->routeIs('admin.wallets.*') ? 'active' : '' }}">
@@ -436,8 +440,12 @@
             <i class="bi bi-speedometer2"></i> Dashboard
         </a>
         <a href="{{ route('manager.expense-requests.index') }}"
-           class="nav-link {{ request()->routeIs('manager.expense-requests.*') ? 'active' : '' }}">
+           class="nav-link {{ request()->routeIs('manager.expense-requests.*') && !request()->routeIs('manager.expense-requests.create','manager.expense-requests.success') ? 'active' : '' }}">
             <i class="bi bi-file-earmark-text"></i> Expense Requests
+        </a>
+        <a href="{{ route('manager.expense-requests.create') }}"
+           class="nav-link {{ request()->routeIs('manager.expense-requests.create','manager.expense-requests.success') ? 'active' : '' }}">
+            <i class="bi bi-plus-circle"></i> Create Expense
         </a>
     </div>
 

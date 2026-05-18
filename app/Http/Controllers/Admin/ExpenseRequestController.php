@@ -7,11 +7,13 @@ use App\Http\Requests\Admin\RecordPaymentRequest;
 use App\Http\Requests\Admin\ReimburseRequest;
 use App\Http\Requests\Expense\ApproveExpenseRequest;
 use App\Http\Requests\Expense\RejectExpenseRequest;
+use App\Http\Requests\Expense\StoreExpenseRequestRequest;
 use App\Models\ExpenseCategory;
 use App\Models\ExpenseRequest;
 use App\Models\User;
 use App\Services\ExpenseRequestService;
 use App\Services\ExpenseSettlementService;
+use App\Services\WalletService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -20,7 +22,8 @@ class ExpenseRequestController extends Controller
 {
     public function __construct(
         private ExpenseRequestService    $service,
-        private ExpenseSettlementService $settlementService
+        private ExpenseSettlementService $settlementService,
+        private WalletService            $walletService,
     ) {}
 
     public function index(Request $request): View
@@ -71,6 +74,45 @@ class ExpenseRequestController extends Controller
         $employees  = User::whereIn('role', ['employee', 'manager'])->orderBy('name')->get();
 
         return view('admin.expense-requests.index', compact('requests', 'filters', 'categories', 'employees', 'stats'));
+    }
+
+    public function create(): View
+    {
+        $wallet = $this->walletService->getOrCreate(auth()->user());
+        return view('employee.expense-requests.create', [
+            'walletBalance'  => $wallet->balance,
+            'walletLow'      => $wallet->isLow(),
+            'walletNegative' => $wallet->isNegative(),
+            'formAction'     => route('admin.expense-requests.store'),
+            'backUrl'        => route('admin.dashboard'),
+        ]);
+    }
+
+    public function store(StoreExpenseRequestRequest $request): RedirectResponse
+    {
+        $expenseRequest = $this->service->create(
+            $request->validated(),
+            auth()->user(),
+            $request->file('qr'),
+        );
+
+        return redirect()->route('admin.expense-requests.success', $expenseRequest);
+    }
+
+    public function success(ExpenseRequest $expenseRequest): View
+    {
+        $this->authorize('view', $expenseRequest);
+
+        if (! $expenseRequest->whatsapp_sent_at) {
+            $expenseRequest->update(['whatsapp_sent_at' => now()]);
+        }
+
+        return view('employee.expense-requests.success', [
+            'expenseRequest' => $expenseRequest,
+            'dashboardUrl'   => route('admin.dashboard'),
+            'createUrl'      => route('admin.expense-requests.create'),
+            'showUrl'        => route('admin.expense-requests.show', $expenseRequest),
+        ]);
     }
 
     public function show(ExpenseRequest $expenseRequest): View

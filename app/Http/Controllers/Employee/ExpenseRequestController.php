@@ -57,6 +57,8 @@ class ExpenseRequestController extends Controller
             'walletBalance'  => $wallet->balance,
             'walletLow'      => $wallet->isLow(),
             'walletNegative' => $wallet->isNegative(),
+            'formAction'     => route('employee.expense-requests.store'),
+            'backUrl'        => route('employee.dashboard'),
         ]);
     }
 
@@ -75,12 +77,16 @@ class ExpenseRequestController extends Controller
     {
         $this->authorize('view', $expenseRequest);
 
-        // Record first WhatsApp prompt time
         if (! $expenseRequest->whatsapp_sent_at) {
             $expenseRequest->update(['whatsapp_sent_at' => now()]);
         }
 
-        return view('employee.expense-requests.success', compact('expenseRequest'));
+        return view('employee.expense-requests.success', [
+            'expenseRequest' => $expenseRequest,
+            'dashboardUrl'   => route('employee.dashboard'),
+            'createUrl'      => route('employee.expense-requests.create'),
+            'showUrl'        => route('employee.expense-requests.show', $expenseRequest),
+        ]);
     }
 
     public function show(ExpenseRequest $expenseRequest): View

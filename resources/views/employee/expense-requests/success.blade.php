@@ -163,15 +163,15 @@
 
         {{-- Action buttons --}}
         <div class="d-flex gap-2 flex-wrap">
-            <a href="{{ route('employee.dashboard') }}"
+            <a href="{{ $dashboardUrl }}"
                class="btn btn-outline-secondary rounded-3 flex-fill">
                 <i class="bi bi-house me-1"></i>Dashboard
             </a>
-            <a href="{{ route('employee.expense-requests.create') }}"
+            <a href="{{ $createUrl }}"
                class="btn btn-outline-primary rounded-3 flex-fill">
                 <i class="bi bi-plus-circle me-1"></i>New Request
             </a>
-            <a href="{{ route('employee.expense-requests.show', $expenseRequest) }}"
+            <a href="{{ $showUrl }}"
                class="btn btn-outline-secondary rounded-3 flex-fill">
                 <i class="bi bi-eye me-1"></i>View Request
             </a>

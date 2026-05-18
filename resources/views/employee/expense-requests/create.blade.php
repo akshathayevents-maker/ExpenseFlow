@@ -401,7 +401,7 @@
 
     {{-- Top bar --}}
     <div class="ef-upi-topbar">
-        <a href="{{ route('employee.dashboard') }}" class="ef-upi-back">
+        <a href="{{ $backUrl }}" class="ef-upi-back">
             <i class="bi bi-arrow-left"></i>
         </a>
         <span class="ef-upi-heading">Submit Expense</span>
@@ -427,7 +427,7 @@
     @endif
 
     <form method="POST"
-          action="{{ route('employee.expense-requests.store') }}"
+          action="{{ $formAction }}"
           enctype="multipart/form-data"
           id="upiForm"
           novalidate>

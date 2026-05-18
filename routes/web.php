@@ -65,6 +65,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'role.ad
 
     // Expense Requests
     Route::get('expense-requests', [AdminExpenseRequestController::class, 'index'])->name('expense-requests.index');
+    Route::get('expense-requests/create', [AdminExpenseRequestController::class, 'create'])->name('expense-requests.create');
+    Route::post('expense-requests', [AdminExpenseRequestController::class, 'store'])->name('expense-requests.store');
+    Route::get('expense-requests/{expenseRequest}/success', [AdminExpenseRequestController::class, 'success'])->name('expense-requests.success');
     Route::get('expense-requests/{expenseRequest}', [AdminExpenseRequestController::class, 'show'])->name('expense-requests.show');
     Route::patch('expense-requests/{expenseRequest}/approve', [AdminExpenseRequestController::class, 'approve'])->name('expense-requests.approve');
     Route::patch('expense-requests/{expenseRequest}/reject', [AdminExpenseRequestController::class, 'reject'])->name('expense-requests.reject');
@@ -172,6 +175,9 @@ Route::prefix('manager')->name('manager.')->middleware(['auth', 'verified', 'rol
     Route::get('/dashboard', [ManagerDashboardController::class, 'index'])->name('dashboard');
 
     Route::get('expense-requests', [ManagerExpenseRequestController::class, 'index'])->name('expense-requests.index');
+    Route::get('expense-requests/create', [ManagerExpenseRequestController::class, 'create'])->name('expense-requests.create');
+    Route::post('expense-requests', [ManagerExpenseRequestController::class, 'store'])->name('expense-requests.store');
+    Route::get('expense-requests/{expenseRequest}/success', [ManagerExpenseRequestController::class, 'success'])->name('expense-requests.success');
     Route::get('expense-requests/{expenseRequest}', [ManagerExpenseRequestController::class, 'show'])->name('expense-requests.show');
     Route::patch('expense-requests/{expenseRequest}/approve', [ManagerExpenseRequestController::class, 'approve'])->name('expense-requests.approve');
     Route::patch('expense-requests/{expenseRequest}/reject', [ManagerExpenseRequestController::class, 'reject'])->name('expense-requests.reject');

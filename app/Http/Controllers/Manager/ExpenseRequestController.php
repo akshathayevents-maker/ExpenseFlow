@@ -5,17 +5,22 @@ namespace App\Http\Controllers\Manager;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Expense\ApproveExpenseRequest;
 use App\Http\Requests\Expense\RejectExpenseRequest;
+use App\Http\Requests\Expense\StoreExpenseRequestRequest;
 use App\Models\ExpenseCategory;
 use App\Models\ExpenseRequest;
 use App\Models\User;
 use App\Services\ExpenseRequestService;
+use App\Services\WalletService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class ExpenseRequestController extends Controller
 {
-    public function __construct(private ExpenseRequestService $service) {}
+    public function __construct(
+        private ExpenseRequestService $service,
+        private WalletService $walletService,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -56,6 +61,45 @@ class ExpenseRequestController extends Controller
         $expenseRequest->load(['category', 'vendor', 'requester', 'approver', 'bills.uploader']);
 
         return view('manager.expense-requests.show', compact('expenseRequest'));
+    }
+
+    public function create(): View
+    {
+        $wallet = $this->walletService->getOrCreate(auth()->user());
+        return view('employee.expense-requests.create', [
+            'walletBalance'  => $wallet->balance,
+            'walletLow'      => $wallet->isLow(),
+            'walletNegative' => $wallet->isNegative(),
+            'formAction'     => route('manager.expense-requests.store'),
+            'backUrl'        => route('manager.dashboard'),
+        ]);
+    }
+
+    public function store(StoreExpenseRequestRequest $request): RedirectResponse
+    {
+        $expenseRequest = $this->service->create(
+            $request->validated(),
+            auth()->user(),
+            $request->file('qr'),
+        );
+
+        return redirect()->route('manager.expense-requests.success', $expenseRequest);
+    }
+
+    public function success(ExpenseRequest $expenseRequest): View
+    {
+        $this->authorize('view', $expenseRequest);
+
+        if (! $expenseRequest->whatsapp_sent_at) {
+            $expenseRequest->update(['whatsapp_sent_at' => now()]);
+        }
+
+        return view('employee.expense-requests.success', [
+            'expenseRequest' => $expenseRequest,
+            'dashboardUrl'   => route('manager.dashboard'),
+            'createUrl'      => route('manager.expense-requests.create'),
+            'showUrl'        => route('manager.expense-requests.show', $expenseRequest),
+        ]);
     }
 
     public function approve(ApproveExpenseRequest $request, ExpenseRequest $expenseRequest): RedirectResponse
