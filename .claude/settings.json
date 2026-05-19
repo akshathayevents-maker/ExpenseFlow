@@ -61,7 +61,10 @@
       "Bash(xargs ls)",
       "Bash(php -r \"echo 'PHP OK';\")",
       "Bash(grep -n '$filters' /home/qc7107-l/Projects/ExpenseFlow/resources/views/admin/reports/ledger.blade.php)",
-      "Bash(grep -n '$filters' /home/qc7107-l/Projects/ExpenseFlow/app/Http/Controllers/Admin/ReportController.php)"
+      "Bash(grep -n '$filters' /home/qc7107-l/Projects/ExpenseFlow/app/Http/Controllers/Admin/ReportController.php)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }
