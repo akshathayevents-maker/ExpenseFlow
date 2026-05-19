@@ -443,12 +443,21 @@ fi
 # ── 1.6 Shared public dir for storage:link ───────────────────────────────────
 mkdir -p "${SHARED_DIR}/public/storage"
 
-# ── 1.7 Node.js check (non-fatal) ────────────────────────────────────────────
+# ── 1.7 Node.js check (non-fatal, but version-validated) ─────────────────────
+REQUIRED_NODE_MAJOR=20
 if command -v node &>/dev/null; then
-    log_ok "Node.js: $(node --version)"
+    NODE_ACTUAL=$(node --version)          # e.g. v20.20.2
+    NODE_MAJOR=$(node -e "process.stdout.write(String(process.versions.node.split('.')[0]))")
+    if [[ "${NODE_MAJOR}" -lt "${REQUIRED_NODE_MAJOR}" ]]; then
+        log_warn "Node.js ${NODE_ACTUAL} found but v${REQUIRED_NODE_MAJOR}+ required (vite 8 / tailwind 3 need it)"
+        log_warn "Upgrade: curl -fsSL https://deb.nodesource.com/setup_${REQUIRED_NODE_MAJOR}.x | sudo bash - && sudo apt-get install -y nodejs"
+        log_warn "Frontend build will be attempted anyway — expect possible failures"
+    else
+        log_ok "Node.js ${NODE_ACTUAL} (>= v${REQUIRED_NODE_MAJOR} ✓)"
+    fi
 else
     log_warn "Node.js not found — frontend build will be skipped"
-    log_warn "Install: curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash - && sudo apt-get install -y nodejs"
+    log_warn "Install: curl -fsSL https://deb.nodesource.com/setup_${REQUIRED_NODE_MAJOR}.x | sudo bash - && sudo apt-get install -y nodejs"
 fi
 
 # ── 1.8 DB connectivity (non-fatal) ──────────────────────────────────────────
@@ -690,7 +699,7 @@ _validate "public/storage symlink valid" \
 _validate "Vite manifest present" \
     test -f "${CURRENT_LINK}/public/build/manifest.json"
 
-# CSS asset file exists (derive from manifest)
+# CSS asset file exists and is non-trivially sized (derive from manifest)
 if [[ -f "${CURRENT_LINK}/public/build/manifest.json" ]]; then
     CSS_FILE=$(python3 -c "
 import json,sys
@@ -699,8 +708,20 @@ k=[k for k in m if 'app.css' in k]
 print(m[k[0]]['file'] if k else '')
 " 2>/dev/null || true)
     if [[ -n "${CSS_FILE}" ]]; then
+        CSS_FULL="${CURRENT_LINK}/public/build/${CSS_FILE}"
         _validate "CSS asset exists (${CSS_FILE})" \
-            test -f "${CURRENT_LINK}/public/build/${CSS_FILE}"
+            test -f "${CSS_FULL}"
+        # Abort if CSS is suspiciously small (< 10 KB = incomplete build)
+        if [[ -f "${CSS_FULL}" ]]; then
+            CSS_BYTES=$(wc -c < "${CSS_FULL}" 2>/dev/null || echo 0)
+            if [[ ${CSS_BYTES} -lt 10240 ]]; then
+                log_err "CSS asset is only ${CSS_BYTES} bytes — build appears incomplete (expected > 10 KB)"
+                log_err "This usually means Vite built without source files or Tailwind generated nothing."
+                VALIDATION_FAILED=1
+            else
+                log_ok "  ✓ CSS asset size: ${CSS_BYTES} bytes"
+            fi
+        fi
     fi
 fi
 

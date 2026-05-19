@@ -64,7 +64,14 @@
       "Bash(grep -n '$filters' /home/qc7107-l/Projects/ExpenseFlow/app/Http/Controllers/Admin/ReportController.php)",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(npm --version)",
+      "Bash(awk -F: '{print $1}')",
+      "Bash(node -e \"const p=require\\('./node_modules/tailwindcss/package.json'\\); console.log\\('TW installed:',p.version\\)\")",
+      "Bash(node -e \"const p=require\\('./node_modules/@tailwindcss/vite/package.json'\\); console.log\\('@tailwindcss/vite installed:',p.version\\)\")",
+      "Bash(node -e ' *)",
+      "Bash(php -r \"echo class_exists\\('App\\\\\\\\\\\\\\\\View\\\\\\\\\\\\\\\\Components\\\\\\\\\\\\\\\\GuestLayout'\\) ? 'component exists' : 'no component';\")",
+      "Bash(npm install *)"
     ]
   }
 }
