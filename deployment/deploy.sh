@@ -493,13 +493,14 @@ fi
 # PHASE 3 — FETCH AND CHECKOUT CODE
 # =============================================================================
 step "Fetching code (branch: ${BRANCH})"
-git -C "${REPO_DIR}" fetch --all --prune
-COMMIT=$(git -C "${REPO_DIR}" rev-parse "origin/${BRANCH}")
+# Fetch the specific branch — bare repos store refs at refs/heads/* not refs/remotes/origin/*
+git -C "${REPO_DIR}" fetch origin "${BRANCH}"
+COMMIT=$(git -C "${REPO_DIR}" rev-parse FETCH_HEAD)
 log_info "Deploying commit: ${COMMIT}"
 
 step "Creating release: ${TIMESTAMP}"
 mkdir -p "${RELEASE_DIR}"
-git -C "${REPO_DIR}" --work-tree="${RELEASE_DIR}" checkout -f "origin/${BRANCH}"
+git -C "${REPO_DIR}" --work-tree="${RELEASE_DIR}" checkout -f FETCH_HEAD
 log_ok "Code checked out to ${RELEASE_DIR}"
 
 # =============================================================================
