@@ -71,7 +71,9 @@
       "Bash(node -e \"const p=require\\('./node_modules/@tailwindcss/vite/package.json'\\); console.log\\('@tailwindcss/vite installed:',p.version\\)\")",
       "Bash(node -e ' *)",
       "Bash(php -r \"echo class_exists\\('App\\\\\\\\\\\\\\\\View\\\\\\\\\\\\\\\\Components\\\\\\\\\\\\\\\\GuestLayout'\\) ? 'component exists' : 'no component';\")",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(grep -rn 'class.*\\\\$\\\\|class.*{{\\\\|@class' /home/qc7107-l/Projects/ExpenseFlow/resources/views/ --include=\"*.blade.php\")",
+      "Bash(grep -rn 'bg-{{\\\\|text-{{\\\\|border-{{\\\\|\"bg-\\\\$\\\\|\"text-\\\\$' /home/qc7107-l/Projects/ExpenseFlow/resources/views/ --include=\"*.blade.php\")"
     ]
   }
 }

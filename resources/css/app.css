@@ -1,6 +1,7 @@
 /* ExpenseFlow premium hospitality interface layer. Bootstrap remains the base reset/grid. */
 
-/* Tailwind utilities only — base/components omitted; Bootstrap 5 handles reset/grid/components */
+@tailwind base;
+@tailwind components;
 @tailwind utilities;
 
 :root {

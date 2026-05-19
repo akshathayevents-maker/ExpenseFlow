@@ -543,6 +543,11 @@ step "Building frontend assets"
 if [[ -f "${RELEASE_DIR}/package.json" ]] && command -v node &>/dev/null; then
     cd "${RELEASE_DIR}"
 
+    # Wipe stale build artifacts so no old hashed files carry over
+    rm -rf "${RELEASE_DIR}/public/build"
+    rm -rf "${RELEASE_DIR}/node_modules/.vite"
+    log_info "Cleared stale public/build and node_modules/.vite"
+
     # Cap heap to avoid OOM-kill on low-memory VPS
     export NODE_OPTIONS="--max-old-space-size=512"
 
@@ -584,6 +589,19 @@ if [[ -f "${RELEASE_DIR}/package.json" ]] && command -v node &>/dev/null; then
         free -h 2>/dev/null || true
         die "Frontend build incomplete — manifest.json not generated. Aborting deploy."
     fi
+
+    # Validate Tailwind utilities compiled — if grep fails, CSS is broken/incomplete
+    CSS_GLOB="${RELEASE_DIR}/public/build/assets/*.css"
+    if ! grep -ql "\.flex" ${CSS_GLOB} 2>/dev/null; then
+        die "Tailwind validation failed: .flex not found in compiled CSS — @tailwind utilities; may be missing from app.css"
+    fi
+    if ! grep -ql "\.grid" ${CSS_GLOB} 2>/dev/null; then
+        die "Tailwind validation failed: .grid not found in compiled CSS"
+    fi
+    if ! grep -ql "\.text-sm" ${CSS_GLOB} 2>/dev/null; then
+        die "Tailwind validation failed: .text-sm not found in compiled CSS"
+    fi
+    log_ok "Tailwind utilities validated (.flex / .grid / .text-sm present)"
 
     cd - >/dev/null
     log_ok "Frontend build done — manifest.json verified"
@@ -628,6 +646,10 @@ log_ok "Current → ${TIMESTAMP}"
 # =============================================================================
 step "Running post-deploy optimizations"
 ARTISAN="${PHP} ${CURRENT_LINK}/artisan"
+
+# Flush ALL stale caches before rebuilding — prevents old config/routes/views
+# from surviving if cache files from a previous release are still present
+${ARTISAN} optimize:clear     && log_ok "All caches cleared"
 
 ${ARTISAN} storage:link       2>/dev/null || true
 ${ARTISAN} config:cache       && log_ok "Config cached"
@@ -720,6 +742,15 @@ print(m[k[0]]['file'] if k else '')
                 VALIDATION_FAILED=1
             else
                 log_ok "  ✓ CSS asset size: ${CSS_BYTES} bytes"
+            fi
+
+            # Ensure app-specific classes compiled — catches stale/wrong source build
+            if ! grep -q "ef-cal-insight" "${CSS_FULL}" 2>/dev/null; then
+                log_err "Custom ExpenseFlow classes missing from CSS (ef-cal-insight not found)"
+                log_err "CSS was built from the wrong source or app.css was not included."
+                VALIDATION_FAILED=1
+            else
+                log_ok "  ✓ ExpenseFlow custom classes present (ef-cal-insight)"
             fi
         fi
     fi
