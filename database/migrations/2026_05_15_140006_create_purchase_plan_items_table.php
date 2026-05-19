@@ -13,13 +13,10 @@ return new class extends Migration {
             $table->foreignId('inventory_item_id')->constrained()->restrictOnDelete();
             $table->decimal('suggested_quantity', 12, 3);
             $table->decimal('estimated_unit_cost', 12, 2)->nullable();
-            $table->string('priority')->default('normal'); // urgent, high, normal, low
+            $table->enum('priority', ['urgent', 'high', 'normal', 'low'])->default('normal');
             $table->text('notes')->nullable();
             $table->timestamps();
         });
-
-        DB::statement("ALTER TABLE purchase_plan_items ADD CONSTRAINT purchase_plan_items_priority_check
-            CHECK (priority IN ('urgent','high','normal','low'))");
     }
 
     public function down(): void

@@ -10,14 +10,14 @@ return new class extends Migration {
         Schema::create('inventory_transactions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('inventory_item_id')->constrained()->restrictOnDelete();
-            $table->string('type'); // purchase, usage, adjustment, wastage, transfer
+            $table->enum('type', ['purchase', 'usage', 'adjustment', 'wastage', 'transfer']);
             $table->decimal('quantity', 12, 3);
             $table->decimal('balance_before', 12, 3);
             $table->decimal('balance_after', 12, 3);
             $table->decimal('unit_cost', 12, 2)->nullable();
             $table->text('notes')->nullable();
             $table->foreignId('created_by')->constrained('users')->restrictOnDelete();
-            $table->string('reference_type')->nullable(); // App\Models\ExpenseRequest, etc.
+            $table->string('reference_type')->nullable();
             $table->unsignedBigInteger('reference_id')->nullable();
             $table->timestamps();
 
@@ -25,9 +25,6 @@ return new class extends Migration {
             $table->index('type');
             $table->index(['reference_type', 'reference_id']);
         });
-
-        DB::statement("ALTER TABLE inventory_transactions ADD CONSTRAINT inventory_transactions_type_check
-            CHECK (type IN ('purchase','usage','adjustment','wastage','transfer'))");
     }
 
     public function down(): void

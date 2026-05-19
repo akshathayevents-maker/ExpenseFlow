@@ -12,24 +12,18 @@ return new class extends Migration {
             $table->string('name');
             $table->string('sku')->nullable()->unique();
             $table->foreignId('inventory_category_id')->constrained()->restrictOnDelete();
-            $table->string('unit'); // kg, gram, litre, ml, packet, piece, box, bundle, cylinder, dozen
+            $table->enum('unit', ['kg', 'gram', 'litre', 'ml', 'packet', 'piece', 'box', 'bundle', 'cylinder', 'dozen']);
             $table->decimal('current_stock', 12, 3)->default(0);
             $table->decimal('minimum_stock', 12, 3)->default(0);
             $table->decimal('maximum_stock', 12, 3)->nullable();
             $table->decimal('average_cost', 12, 2)->nullable();
             $table->text('description')->nullable();
-            $table->string('status')->default('active'); // active, inactive
+            $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamps();
 
             $table->index('inventory_category_id');
             $table->index('status');
         });
-
-        DB::statement("ALTER TABLE inventory_items ADD CONSTRAINT inventory_items_unit_check
-            CHECK (unit IN ('kg','gram','litre','ml','packet','piece','box','bundle','cylinder','dozen'))");
-
-        DB::statement("ALTER TABLE inventory_items ADD CONSTRAINT inventory_items_status_check
-            CHECK (status IN ('active','inactive'))");
     }
 
     public function down(): void
