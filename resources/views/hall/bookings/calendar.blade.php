@@ -1,6 +1,6 @@
 <x-admin-layout title="Venue Operations Calendar">
 @push('styles')
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css">
+{{-- FullCalendar 6 global bundle injects its own CSS via JS — no separate stylesheet needed --}}
 <style>
 /* ── Calendar header: dark dramatic override ───────────────────── */
 .ef-cal-header {
