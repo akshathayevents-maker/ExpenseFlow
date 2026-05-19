@@ -243,14 +243,19 @@ class HallBookingController extends Controller
             'occupancy'        => $monthEnd->day > 0 ? round(($occupiedDates / $monthEnd->day) * 100) : 0,
             'pending_payments' => $monthBookings->where('payment_status', '!=', 'paid')->count(),
             'catering_load'    => $monthBookings->sum('number_of_people'),
+            'today_count'      => 0, // filled after todayBookings query below
+            'today_revenue'    => 0,
         ];
 
-        // Today's bookings for Share Brief feature
+        // Today's bookings for Share Brief feature + today's ops strip
         $todayBookings = HallBooking::with(['hall', 'mealPlan', 'payments'])
             ->whereDate('booking_date', today())
             ->where('status', '!=', 'cancelled')
             ->orderBy('start_time')
             ->get();
+
+        $summary['today_count']   = $todayBookings->count();
+        $summary['today_revenue'] = $todayBookings->sum('total_amount');
 
         $now = now();
         // Prefer: currently active > next upcoming > null

@@ -71,13 +71,127 @@
     box-shadow: 0 0 0 3px rgba(160,114,56,.12);
 }
 
+/* ── Quick actions row ──────────────────────────────────────────── */
+.ef-cal-qactions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+.ef-cal-qa {
+    align-items: center;
+    background: var(--ef-surface);
+    border: 1px solid var(--ef-border);
+    border-radius: 10px;
+    box-shadow: var(--ef-shadow);
+    color: var(--ef-ink-2);
+    display: inline-flex;
+    font-size: .78rem;
+    font-weight: 680;
+    gap: 7px;
+    height: 36px;
+    padding: 0 14px;
+    text-decoration: none;
+    transition: background .13s, box-shadow .13s, transform .13s;
+}
+.ef-cal-qa:hover { background: var(--ef-surface-2); box-shadow: var(--ef-shadow-hover); color: var(--ef-ink); transform: translateY(-1px); }
+.ef-cal-qa i { color: var(--ef-faint); font-size: .8rem; }
+.ef-cal-qa.--primary {
+    background: var(--ef-ink);
+    border-color: var(--ef-ink);
+    color: #fffdfa;
+    font-weight: 760;
+}
+.ef-cal-qa.--primary i { color: rgba(255,253,250,.7); }
+.ef-cal-qa.--primary:hover { background: var(--ef-ink-2); border-color: var(--ef-ink-2); color: #fffdfa; }
+.ef-cal-qa-sep { background: var(--ef-border); height: 28px; width: 1px; }
+
+/* ── Today's ops strip ──────────────────────────────────────────── */
+.ef-cal-today-strip {
+    background: var(--ef-surface);
+    border: 1px solid var(--ef-border);
+    border-left: 3px solid #a07238;
+    border-radius: var(--ef-radius);
+    box-shadow: var(--ef-shadow);
+    margin-bottom: 18px;
+    overflow: hidden;
+}
+.ef-cal-today-head {
+    align-items: center;
+    border-bottom: 1px solid var(--ef-border);
+    display: flex;
+    gap: 10px;
+    justify-content: space-between;
+    padding: 11px 18px;
+}
+.ef-cal-today-title {
+    align-items: center;
+    color: var(--ef-ink);
+    display: flex;
+    font-size: .84rem;
+    font-weight: 780;
+    gap: 8px;
+}
+.ef-cal-today-badge {
+    background: rgba(160,114,56,.12);
+    border: 1px solid rgba(160,114,56,.25);
+    border-radius: 20px;
+    color: #a07238;
+    font-size: .62rem;
+    font-weight: 720;
+    padding: 2px 9px;
+}
+.ef-cal-today-kpi {
+    align-items: center;
+    display: flex;
+    gap: 16px;
+}
+.ef-cal-today-kpi-item {
+    text-align: right;
+}
+.ef-cal-today-kpi-val { color: var(--ef-ink); font-size: .9rem; font-variant-numeric: tabular-nums; font-weight: 760; line-height: 1; }
+.ef-cal-today-kpi-lbl { color: var(--ef-faint); font-size: .58rem; font-weight: 720; letter-spacing: .1em; margin-top: 2px; text-transform: uppercase; }
+.ef-cal-today-rows { display: flex; flex-wrap: wrap; gap: 0; }
+.ef-cal-today-row {
+    align-items: center;
+    border-right: 1px solid var(--ef-border);
+    display: flex;
+    flex: 1;
+    gap: 10px;
+    min-width: 220px;
+    padding: 12px 18px;
+    text-decoration: none;
+    transition: background .12s;
+}
+.ef-cal-today-row:hover { background: var(--ef-surface-2); }
+.ef-cal-today-row:last-child { border-right: none; }
+.ef-cal-today-live {
+    background: rgba(220,38,38,.1);
+    border: 1px solid rgba(220,38,38,.25);
+    border-radius: 6px;
+    color: #dc2626;
+    flex-shrink: 0;
+    font-size: .58rem;
+    font-weight: 760;
+    letter-spacing: .06em;
+    padding: 2px 6px;
+    text-transform: uppercase;
+}
+.ef-cal-today-time { color: var(--ef-muted); flex-shrink: 0; font-size: .72rem; font-weight: 700; min-width: 60px; }
+.ef-cal-today-name { color: var(--ef-ink-2); font-size: .84rem; font-weight: 660; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ef-cal-today-meta { color: var(--ef-faint); font-size: .68rem; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ef-cal-today-empty { color: var(--ef-faint); font-size: .82rem; padding: 16px 18px; text-align: center; }
+
 /* ── Mobile overrides (hide desktop elements) ─────────────────── */
 @media (max-width: 767.98px) {
-    .ef-cal-header   { display: none !important; }
-    .ef-cal-insights { display: none !important; }
-    .ef-calendar-card { display: none !important; }
-    .ef-agenda-panel  { display: none !important; }
-    .ef-preview       { display: none !important; }
+    .ef-cal-header      { display: none !important; }
+    .ef-cal-insights    { display: none !important; }
+    .ef-cal-qactions    { display: none !important; }
+    .ef-cal-today-strip { display: none !important; }
+    .ef-calendar-card   { display: none !important; }
+    .ef-agenda-panel    { display: none !important; }
+    .ef-preview         { display: none !important; }
 }
 
 /* ── Mobile shell (hidden on desktop) ─────────────────────────── */
@@ -88,7 +202,7 @@
         display: flex;
         flex-direction: column;
         overflow-x: hidden;
-        padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+        padding-bottom: calc(180px + env(safe-area-inset-bottom, 0px));
     }
 }
 
@@ -739,7 +853,7 @@
         align-items: center;
         background: linear-gradient(135deg, #111111 0%, #2a2a2a 100%);
         border-radius: 999px;
-        bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+        bottom: calc(76px + env(safe-area-inset-bottom, 0px));
         box-shadow:
             0 8px 32px rgba(0,0,0,.35),
             0 2px 8px rgba(0,0,0,.18),
@@ -758,7 +872,7 @@
         right: 16px;
         text-decoration: none;
         transition: transform .1s, box-shadow .1s;
-        z-index: 1040;
+        z-index: 1050;
     }
     .ef-mob-fab-pill i { color: #c8a857; font-size: 1rem; }
     .ef-mob-fab-pill:hover { color: #fff; }
@@ -885,6 +999,81 @@
             <div class="ef-cal-insight-caption">guest covers planned</div>
         </div>
     </section>
+
+    {{-- ══ QUICK ACTIONS ══════════════════════════════════════════════ --}}
+    <div class="ef-cal-qactions">
+        <a href="{{ route('hall.bookings.create') }}" class="ef-cal-qa --primary">
+            <i class="bi bi-plus-lg"></i> Create Booking
+        </a>
+        <div class="ef-cal-qa-sep"></div>
+        <a href="{{ route('hall.bookings.index') }}" class="ef-cal-qa">
+            <i class="bi bi-list-ul"></i> All Bookings
+        </a>
+        <a href="{{ route('hall.bookings.kitchen') }}" class="ef-cal-qa">
+            <i class="bi bi-fire"></i> Kitchen Summary
+        </a>
+        <a href="{{ route('hall.reports.index') }}" class="ef-cal-qa">
+            <i class="bi bi-bar-chart-line"></i> Reports
+        </a>
+        <a href="{{ route('hall.meal-plans.index') }}" class="ef-cal-qa">
+            <i class="bi bi-card-list"></i> Meal Plans
+        </a>
+    </div>
+
+    {{-- ══ TODAY'S OPERATIONS STRIP ══════════════════════════════════ --}}
+    <div class="ef-cal-today-strip">
+        <div class="ef-cal-today-head">
+            <div class="ef-cal-today-title">
+                <i class="bi bi-calendar-day"></i>
+                Today's Operations
+                <span class="ef-cal-today-badge">{{ now()->format('D, d M') }}</span>
+            </div>
+            <div class="ef-cal-today-kpi">
+                <div class="ef-cal-today-kpi-item">
+                    <div class="ef-cal-today-kpi-val">{{ $summary['today_count'] }}</div>
+                    <div class="ef-cal-today-kpi-lbl">Bookings</div>
+                </div>
+                <div class="ef-cal-today-kpi-item">
+                    <div class="ef-cal-today-kpi-val">₹{{ number_format($summary['today_revenue'], 0) }}</div>
+                    <div class="ef-cal-today-kpi-lbl">Revenue</div>
+                </div>
+            </div>
+        </div>
+        @if($todayBookings->isEmpty())
+            <div class="ef-cal-today-empty">
+                <i class="bi bi-moon-stars"></i> No bookings scheduled for today
+            </div>
+        @else
+            <div class="ef-cal-today-rows">
+                @foreach($todayBookings as $tb)
+                    @php
+                        $tbNow    = now();
+                        $tbStart  = \Carbon\Carbon::parse($tb->start_time);
+                        $tbEnd    = \Carbon\Carbon::parse($tb->end_time);
+                        $tbIsLive = $tbStart->isPast() && $tbEnd->isFuture();
+                    @endphp
+                    <a href="{{ route('hall.bookings.show', $tb) }}" class="ef-cal-today-row">
+                        @if($tbIsLive)
+                            <span class="ef-cal-today-live">Live</span>
+                        @endif
+                        <span class="ef-cal-today-time">
+                            {{ \Carbon\Carbon::parse($tb->start_time)->format('g:i A') }}
+                        </span>
+                        <div style="min-width:0;flex:1;">
+                            <div class="ef-cal-today-name">{{ $tb->customer_name }}</div>
+                            <div class="ef-cal-today-meta">
+                                {{ $tb->event_type }} &middot; {{ number_format($tb->number_of_people) }} pax
+                                @if($tb->hall) &middot; {{ $tb->hall->name }} @endif
+                            </div>
+                        </div>
+                        <span style="color:var(--ef-faint);font-size:.72rem;white-space:nowrap;">
+                            ₹{{ number_format($tb->total_amount, 0) }}
+                        </span>
+                    </a>
+                @endforeach
+            </div>
+        @endif
+    </div>
 
     {{-- ══ DESKTOP FULLCALENDAR ════════════════════════════════════ --}}
     <section class="ef-calendar-card">
