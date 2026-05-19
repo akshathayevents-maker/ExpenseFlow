@@ -1738,18 +1738,20 @@ document.addEventListener('DOMContentLoaded', function () {
             dateClick:    info => openQuick(info.dateStr),
             eventClick:   info => { info.jsEvent.preventDefault(); showPv(info.event, info.jsEvent, true); },
             eventMouseEnter: info => { if (!lockedPv) showPv(info.event, info.jsEvent, false); },
-            eventMouseMove:  info => {
-                if (!lockedPv) {
-                    const mg = 18, w = 320;
-                    preview.style.left = Math.max(mg, Math.min(info.jsEvent.clientX + 16, window.innerWidth - w - mg)) + 'px';
-                    preview.style.top  = Math.max(mg, Math.min(info.jsEvent.clientY + 16, window.innerHeight - preview.offsetHeight - mg)) + 'px';
-                }
-            },
             eventMouseLeave: () => hidePv(),
         });
 
         calendar.render();
         updateTitles();
+
+        // Reposition preview on native mouse move (eventMouseMove is not a FullCalendar option)
+        document.getElementById('venueCalendar').addEventListener('mousemove', e => {
+            if (!lockedPv && preview && preview.classList.contains('show')) {
+                const mg = 18, w = 320;
+                preview.style.left = Math.max(mg, Math.min(e.clientX + 16, window.innerWidth  - w - mg)) + 'px';
+                preview.style.top  = Math.max(mg, Math.min(e.clientY + 16,  window.innerHeight - preview.offsetHeight - mg)) + 'px';
+            }
+        });
 
         document.getElementById('calPrev').addEventListener('click', () => { hidePv(true); calendar.prev(); });
         document.getElementById('calNext').addEventListener('click', () => { hidePv(true); calendar.next(); });
