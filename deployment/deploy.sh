@@ -309,8 +309,14 @@ log_ok "Composer done"
 step "Building frontend assets"
 if [[ -f "${RELEASE_DIR}/package.json" ]]; then
     cd "${RELEASE_DIR}"
-    npm ci --prefer-offline
+    export NODE_OPTIONS=--max-old-space-size=512
+    npm ci
     npm run build
+    # Abort deploy if manifest is missing — silent OOM-kill leaves no manifest
+    if [[ ! -f "${RELEASE_DIR}/public/build/manifest.json" ]]; then
+        log_warn "Frontend build failed: public/build/manifest.json not found. Aborting deploy."
+        exit 1
+    fi
     cd - >/dev/null
     log_ok "Frontend build done"
 else
