@@ -73,7 +73,11 @@
       "Bash(php -r \"echo class_exists\\('App\\\\\\\\\\\\\\\\View\\\\\\\\\\\\\\\\Components\\\\\\\\\\\\\\\\GuestLayout'\\) ? 'component exists' : 'no component';\")",
       "Bash(npm install *)",
       "Bash(grep -rn 'class.*\\\\$\\\\|class.*{{\\\\|@class' /home/qc7107-l/Projects/ExpenseFlow/resources/views/ --include=\"*.blade.php\")",
-      "Bash(grep -rn 'bg-{{\\\\|text-{{\\\\|border-{{\\\\|\"bg-\\\\$\\\\|\"text-\\\\$' /home/qc7107-l/Projects/ExpenseFlow/resources/views/ --include=\"*.blade.php\")"
+      "Bash(grep -rn 'bg-{{\\\\|text-{{\\\\|border-{{\\\\|\"bg-\\\\$\\\\|\"text-\\\\$' /home/qc7107-l/Projects/ExpenseFlow/resources/views/ --include=\"*.blade.php\")",
+      "Bash(sed -n '133,140p' /home/qc7107-l/Projects/ExpenseFlow/resources/views/hall/bookings/calendar.blade.php)",
+      "Bash(sed -n '378,385p' /home/qc7107-l/Projects/ExpenseFlow/resources/views/hall/bookings/calendar.blade.php)",
+      "Bash(sed -n '52,75p' /home/qc7107-l/Projects/ExpenseFlow/resources/views/components/admin-layout.blade.php)",
+      "Bash(sed -n '163,175p' /home/qc7107-l/Projects/ExpenseFlow/resources/views/components/admin-layout.blade.php)"
     ]
   }
 }

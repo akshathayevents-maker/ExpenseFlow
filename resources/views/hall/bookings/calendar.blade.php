@@ -9,36 +9,48 @@
     border-radius: 20px;
     box-shadow: 0 4px 24px rgba(26,22,18,.16), 0 1px 4px rgba(26,22,18,.1);
     margin-bottom: 24px;
-    overflow: hidden;
+    /* NO overflow:hidden — it clips positioned dropdowns AND makes native <select>
+       option text inherit dark color, rendering invisible on OS light popup background */
+    overflow: visible;
     padding: 32px;
     position: relative;
+    z-index: 10;
 }
 .ef-cal-header::before {
     background: radial-gradient(circle, rgba(160,114,56,.16) 0%, transparent 68%);
     border-radius: 50%;
     content: "";
-    height: 420px;
+    /* keep orb within header bounds: was right:-80px top:-140px which bled outside */
+    height: 360px;
     pointer-events: none;
     position: absolute;
-    right: -80px;
-    top: -140px;
-    width: 420px;
+    right: 0;
+    top: -60px;
+    width: 360px;
+    z-index: 0;
 }
 .ef-cal-header::after {
     background: radial-gradient(circle, rgba(26,102,69,.1) 0%, transparent 70%);
     border-radius: 50%;
-    bottom: -80px;
+    /* keep orb within header bounds: was bottom:-80px which bled outside */
+    bottom: -20px;
     content: "";
-    height: 260px;
+    height: 220px;
     left: 28%;
     pointer-events: none;
     position: absolute;
-    width: 260px;
+    width: 220px;
+    z-index: 0;
 }
 .ef-cal-kicker  { color: rgba(160,114,56,.9) !important; }
 .ef-cal-title   { color: #fffdfa !important; }
 .ef-cal-subtitle { color: rgba(255,253,250,.52) !important; }
-.ef-cal-controls { position: relative; z-index: 1; }
+/* Controls need a high z-index so any dropdown/popover renders above the
+   insights strip, quick actions, and calendar grid that follow in DOM order */
+.ef-cal-controls {
+    position: relative;
+    z-index: 50;
+}
 .ef-cal-controls .ef-btn {
     background: rgba(255,255,255,.08);
     border-color: rgba(255,255,255,.14);
@@ -69,6 +81,94 @@
 .ef-cal-search:focus {
     border-color: rgba(160,114,56,.6);
     box-shadow: 0 0 0 3px rgba(160,114,56,.12);
+}
+/* ── Custom hall filter dropdown ───────────────────────────────── */
+/* Trigger button lives inside the header — menu is portalled to body via JS  */
+/* using position:fixed so NO parent overflow/transform/stacking context clips it */
+.ef-cal-dd { position: relative; }
+.ef-cal-dd-trigger {
+    align-items: center;
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.16);
+    border-radius: 10px;
+    color: rgba(255,253,250,.9);
+    cursor: pointer;
+    display: inline-flex;
+    font-size: .8rem;
+    font-weight: 680;
+    gap: 7px;
+    height: 36px;
+    letter-spacing: .01em;
+    padding: 0 13px;
+    transition: background .13s, border-color .13s;
+    white-space: nowrap;
+}
+.ef-cal-dd-trigger:hover { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.26); }
+.ef-cal-dd-trigger[aria-expanded="true"] {
+    background: rgba(255,255,255,.14);
+    border-color: rgba(160,114,56,.55);
+    box-shadow: 0 0 0 3px rgba(160,114,56,.15);
+}
+.ef-cal-dd-icon { color: rgba(160,114,56,.8); font-size: .75rem; }
+.ef-cal-dd-arrow {
+    color: rgba(255,253,250,.45);
+    font-size: .65rem;
+    margin-left: 2px;
+    transition: transform .18s;
+}
+.ef-cal-dd-trigger[aria-expanded="true"] .ef-cal-dd-arrow { transform: rotate(180deg); }
+
+/* Menu — appended to <body> by JS, positioned via getBoundingClientRect + fixed */
+.ef-cal-dd-menu {
+    background: rgba(18,16,14,.96);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 14px;
+    box-shadow:
+        0 2px 8px rgba(0,0,0,.22),
+        0 12px 40px rgba(0,0,0,.38),
+        inset 0 1px 0 rgba(255,255,255,.06);
+    display: none;
+    min-width: 180px;
+    overflow: hidden;
+    padding: 6px;
+    position: fixed;          /* escape every overflow/stacking context */
+    z-index: 99999;
+}
+.ef-cal-dd-menu.--open { display: block; }
+.ef-cal-dd-item {
+    align-items: center;
+    background: none;
+    border: none;
+    border-radius: 9px;
+    color: rgba(255,253,250,.78);
+    cursor: pointer;
+    display: flex;
+    font-size: .8rem;
+    font-weight: 580;
+    gap: 8px;
+    padding: 9px 12px;
+    text-align: left;
+    transition: background .1s, color .1s;
+    width: 100%;
+}
+.ef-cal-dd-item:hover { background: rgba(255,255,255,.08); color: #fffdfa; }
+.ef-cal-dd-item.--active {
+    background: rgba(160,114,56,.18);
+    color: #c8a857;
+    font-weight: 700;
+}
+.ef-cal-dd-item.--active::after {
+    content: "\F633";           /* bi-check-lg unicode */
+    font-family: "bootstrap-icons";
+    font-size: .75rem;
+    margin-left: auto;
+}
+@media (min-width: 768px) { .ef-cal-dd-menu { animation: ddFadeIn .14s ease; } }
+@keyframes ddFadeIn {
+    from { opacity: 0; transform: translateY(-6px) scale(.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* ── Quick actions row ──────────────────────────────────────────── */
@@ -947,12 +1047,22 @@
             </div>
         </div>
         <div class="ef-cal-controls">
-            <select id="hallFilter" class="ef-cal-select" aria-label="Filter by hall">
+            {{-- Hidden native select: keeps all existing JS (hallFilter.value / change events) unchanged --}}
+            <select id="hallFilter" style="display:none" aria-hidden="true">
                 <option value="">All Halls</option>
                 @foreach($halls as $hall)
                     <option value="{{ $hall->id }}">{{ $hall->name }}</option>
                 @endforeach
             </select>
+            {{-- Custom dropdown trigger — menu is portalled to body via JS (position:fixed) --}}
+            <div class="ef-cal-dd" id="hallDd">
+                <button type="button" class="ef-cal-dd-trigger" id="hallDdTrigger"
+                        aria-haspopup="listbox" aria-expanded="false" aria-label="Filter by hall">
+                    <i class="bi bi-building-fill ef-cal-dd-icon"></i>
+                    <span id="hallDdLabel">All Halls</span>
+                    <i class="bi bi-chevron-down ef-cal-dd-arrow"></i>
+                </button>
+            </div>
             <input id="calendarSearch" type="search" class="ef-cal-search" placeholder="Search customer, hall, event">
             <button type="button" class="ef-btn" id="printSchedule"><i class="bi bi-printer"></i> Print</button>
             <button type="button" class="ef-btn" id="exportSchedule"><i class="bi bi-download"></i> Export</button>
@@ -1766,6 +1876,105 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         hallFilter.addEventListener('change', () => { hidePv(true); calendar.refetchEvents(); });
+
+        // ── Portal dropdown for "All Halls" filter ──────────────────────────
+        // Menu is appended to <body> and positioned via position:fixed so NO
+        // parent overflow/transform/stacking context can clip or hide it.
+        (function () {
+            const trigger  = document.getElementById('hallDdTrigger');
+            const label    = document.getElementById('hallDdLabel');
+            if (!trigger || !label) return;
+
+            // Build menu element and append to body (portal)
+            const menu = document.createElement('div');
+            menu.className = 'ef-cal-dd-menu';
+            menu.setAttribute('role', 'listbox');
+            menu.setAttribute('aria-label', 'Select hall');
+
+            Array.from(hallFilter.options).forEach(opt => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'ef-cal-dd-item' + (opt.value === '' ? ' --active' : '');
+                btn.dataset.value = opt.value;
+                btn.textContent = opt.text;
+                btn.setAttribute('role', 'option');
+                btn.setAttribute('aria-selected', opt.value === '' ? 'true' : 'false');
+                menu.appendChild(btn);
+            });
+            document.body.appendChild(menu);
+
+            function positionMenu() {
+                const r = trigger.getBoundingClientRect();
+                const menuH = menu.offsetHeight || 200;
+                const spaceBelow = window.innerHeight - r.bottom - 8;
+                const above = spaceBelow < menuH && r.top > menuH;
+                menu.style.left   = r.left + 'px';
+                menu.style.minWidth = r.width + 'px';
+                if (above) {
+                    menu.style.top    = '';
+                    menu.style.bottom = (window.innerHeight - r.top + 6) + 'px';
+                } else {
+                    menu.style.bottom = '';
+                    menu.style.top    = (r.bottom + 6) + 'px';
+                }
+            }
+
+            function openDd() {
+                menu.classList.add('--open');
+                trigger.setAttribute('aria-expanded', 'true');
+                positionMenu();
+            }
+            function closeDd() {
+                menu.classList.remove('--open');
+                trigger.setAttribute('aria-expanded', 'false');
+            }
+            function isOpen() { return menu.classList.contains('--open'); }
+
+            trigger.addEventListener('click', e => {
+                e.stopPropagation();
+                isOpen() ? closeDd() : openDd();
+            });
+
+            menu.addEventListener('click', e => {
+                const btn = e.target.closest('.ef-cal-dd-item');
+                if (!btn) return;
+                const val = btn.dataset.value;
+
+                // Sync hidden native select (triggers existing change listener)
+                hallFilter.value = val;
+                hallFilter.dispatchEvent(new Event('change'));
+
+                // Update visual state
+                label.textContent = btn.textContent;
+                menu.querySelectorAll('.ef-cal-dd-item').forEach(b => {
+                    b.classList.toggle('--active', b === btn);
+                    b.setAttribute('aria-selected', b === btn ? 'true' : 'false');
+                });
+                closeDd();
+            });
+
+            // Close on outside click or Escape
+            document.addEventListener('click', e => {
+                if (!trigger.contains(e.target) && !menu.contains(e.target)) closeDd();
+            });
+            document.addEventListener('keydown', e => {
+                if (e.key === 'Escape' && isOpen()) { closeDd(); trigger.focus(); }
+                if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && isOpen()) {
+                    e.preventDefault();
+                    const items = Array.from(menu.querySelectorAll('.ef-cal-dd-item'));
+                    const cur = menu.querySelector('.ef-cal-dd-item:focus') || menu.querySelector('.ef-cal-dd-item.--active');
+                    const idx = items.indexOf(cur);
+                    const next = e.key === 'ArrowDown'
+                        ? items[Math.min(idx + 1, items.length - 1)]
+                        : items[Math.max(idx - 1, 0)];
+                    next && next.focus();
+                }
+            });
+
+            // Reposition on scroll/resize
+            window.addEventListener('scroll', () => { if (isOpen()) positionMenu(); }, { passive: true });
+            window.addEventListener('resize', () => { if (isOpen()) positionMenu(); }, { passive: true });
+        })();
         searchInput.addEventListener('input', () => {
             searchTerm = searchInput.value.trim().toLowerCase();
             calendar.removeAllEvents();
