@@ -620,152 +620,337 @@ $inits     = fn($n) => implode('', array_map(fn($p) => strtoupper(substr($p,0,1)
 </div>{{-- /ef-man-view --}}
 
 {{-- ══════════════════════════════════════════════════════
-     DESKTOP VIEW  (hidden ≤ 767px, unchanged)
+     DESKTOP VIEW  (hidden ≤ 767px)
      ══════════════════════════════════════════════════════ --}}
 <div class="ef-an-desktop-view">
+<div class="ef-and-wrap">
 
-<x-ds.hero eyebrow="Reports" title="Analytics & Insights"
-    :meta="[['icon' => 'bi-calendar3', 'text' => 'Period: ' . \Carbon\Carbon::parse($from)->format('d M') . ' — ' . \Carbon\Carbon::parse($to)->format('d M Y')]]">
-    <x-slot:actions>
-        <a href="{{ route('admin.analytics.inventory') }}" class="ef-btn">
-            <i class="bi bi-boxes"></i> Inventory Analytics
-        </a>
-    </x-slot:actions>
-</x-ds.hero>
+    {{-- ── Hero ──────────────────────────────────────────── --}}
+    <div class="ef-and-hero">
+        <div class="ef-and-hero-top">
+            <div class="ef-and-hero-left">
+                <div class="ef-and-hero-eyebrow">
+                    <i class="bi bi-bar-chart-line"></i> Expense Analytics
+                </div>
+                <div class="ef-and-hero-title">Analytics &amp; Insights</div>
+                <div class="ef-and-hero-period">
+                    <i class="bi bi-calendar3"></i> {{ $periodLbl }}
+                    &nbsp;·&nbsp;
+                    <i class="bi bi-receipt"></i> {{ number_format($totalTxns) }} requests
+                    &nbsp;·&nbsp;
+                    <i class="bi bi-clock"></i> {{ $dayCount }}-day period
+                </div>
+            </div>
+            <div class="ef-and-hero-total">
+                <div class="ef-and-hero-total-lbl">Total Settled Expenses</div>
+                <div class="ef-and-hero-total-val">
+                    <span class="ef-and-hero-total-cur">₹</span>{{ number_format($grandTotal, 0) }}
+                </div>
+                <div class="ef-and-hero-total-sub">
+                    <i class="bi bi-graph-up-arrow"></i>
+                    ₹{{ number_format($avgDaily, 0) }} daily avg
+                </div>
+                <a href="{{ route('admin.analytics.inventory') }}" class="ef-and-inv-btn">
+                    <i class="bi bi-boxes"></i> Inventory Analytics
+                </a>
+            </div>
+        </div>
 
-{{-- Date filter --}}
-<x-ds.card>
-    <form method="GET" class="ef-an-filter">
-        <div class="ef-an-filter-field">
-            <label class="ef-label" for="from">From</label>
-            <input type="date" name="from" id="from" class="ef-input" style="min-height:38px;padding:7px 12px" value="{{ $from }}">
-        </div>
-        <div class="ef-an-filter-field">
-            <label class="ef-label" for="to">To</label>
-            <input type="date" name="to" id="to" class="ef-input" style="min-height:38px;padding:7px 12px" value="{{ $to }}">
-        </div>
-        <div class="ef-an-filter-actions">
-            <button class="ef-btn ef-btn-dark" style="height:38px">Apply</button>
-            <a href="{{ route('admin.analytics.index') }}" class="ef-btn" style="height:38px;display:inline-flex;align-items:center">Reset</a>
-        </div>
-    </form>
-</x-ds.card>
-
-{{-- Grand total --}}
-<div class="ef-an-total">
-    <div class="ef-an-total-icon"><i class="bi bi-cash-stack"></i></div>
-    <div>
-        <div class="ef-an-total-label">
-            Total Settled Expenses &middot; {{ \Carbon\Carbon::parse($from)->format('d M') }} &mdash; {{ \Carbon\Carbon::parse($to)->format('d M Y') }}
-        </div>
-        <div class="ef-an-total-value">₹{{ number_format($grandTotal, 2) }}</div>
+        {{-- filter toolbar --}}
+        <hr class="ef-and-hero-divider">
+        <form method="GET" action="{{ route('admin.analytics.index') }}">
+            <div class="ef-and-toolbar">
+                <span class="ef-and-toolbar-label">Period</span>
+                <div class="ef-and-chips">
+                    <a href="{{ route('admin.analytics.index') }}?from={{ $r7d }}&to={{ $today }}"
+                       class="ef-and-chip {{ $activeRange === '7d'  ? '--active' : '' }}">7D</a>
+                    <a href="{{ route('admin.analytics.index') }}?from={{ $r30d }}&to={{ $today }}"
+                       class="ef-and-chip {{ $activeRange === '30d' ? '--active' : '' }}">30D</a>
+                    <a href="{{ route('admin.analytics.index') }}?from={{ $r90d }}&to={{ $today }}"
+                       class="ef-and-chip {{ $activeRange === '90d' ? '--active' : '' }}">90D</a>
+                    <a href="{{ route('admin.analytics.index') }}?from={{ $ytdStart }}&to={{ $today }}"
+                       class="ef-and-chip {{ $activeRange === 'ytd' ? '--active' : '' }}">YTD</a>
+                </div>
+                <div class="ef-and-toolbar-sep"></div>
+                <div class="ef-and-date-wrap">
+                    <input type="date" name="from" value="{{ $from }}" class="ef-and-date-input">
+                    <div class="ef-and-date-sep-inner"></div>
+                    <input type="date" name="to"   value="{{ $to }}"   class="ef-and-date-input">
+                </div>
+                <button type="submit" class="ef-and-btn-apply">
+                    <i class="bi bi-check2"></i> Apply
+                </button>
+                <a href="{{ route('admin.analytics.index') }}" class="ef-and-btn-reset">
+                    <i class="bi bi-x"></i> Reset
+                </a>
+            </div>
+        </form>
     </div>
-</div>
 
-{{-- Top 3 breakdown --}}
-<div class="ef-an-grid">
+    {{-- ── KPI Strip ────────────────────────────────────── --}}
+    <div class="ef-and-kpi-row">
 
-    {{-- Top categories --}}
-    <x-ds.card title="Top Categories">
-        @forelse($topCategories as $i => $cat)
-            <div class="ef-an-rank-item">
-                <div class="ef-an-rank-row">
-                    <div class="ef-an-rank-name">
-                        <span class="ef-an-rank-num">{{ $i + 1 }}</span>
-                        {{ $cat->name }}
+        <div class="ef-and-kpi">
+            <div class="ef-and-kpi-header">
+                <div class="ef-and-kpi-icon --em"><i class="bi bi-cash-stack"></i></div>
+                <div class="ef-and-kpi-trend --up"><i class="bi bi-check-circle"></i> Settled</div>
+            </div>
+            <div class="ef-and-kpi-val">₹{{ number_format($grandTotal, 0) }}</div>
+            <div class="ef-and-kpi-lbl">Total Expenses</div>
+            <div class="ef-and-kpi-sub">{{ $periodLbl }}</div>
+        </div>
+
+        <div class="ef-and-kpi">
+            <div class="ef-and-kpi-header">
+                <div class="ef-and-kpi-icon --gd"><i class="bi bi-graph-up-arrow"></i></div>
+                <div class="ef-and-kpi-trend --neu">{{ $dayCount }}d avg</div>
+            </div>
+            <div class="ef-and-kpi-val">₹{{ number_format($avgDaily, 0) }}</div>
+            <div class="ef-and-kpi-lbl">Daily Average</div>
+            <div class="ef-and-kpi-sub">over {{ $dayCount }}-day period</div>
+        </div>
+
+        <div class="ef-and-kpi">
+            <div class="ef-and-kpi-header">
+                <div class="ef-and-kpi-icon --sl"><i class="bi bi-receipt"></i></div>
+                <div class="ef-and-kpi-trend --neu">Requests</div>
+            </div>
+            <div class="ef-and-kpi-val">{{ number_format($totalTxns) }}</div>
+            <div class="ef-and-kpi-lbl">Total Requests</div>
+            @if($totalTxns > 0)
+            <div class="ef-and-kpi-sub">₹{{ number_format($grandTotal / max(1,$totalTxns), 0) }} avg/request</div>
+            @endif
+        </div>
+
+        <div class="ef-and-kpi">
+            <div class="ef-and-kpi-header">
+                <div class="ef-and-kpi-icon --am"><i class="bi bi-tag"></i></div>
+                <div class="ef-and-kpi-trend --neu">Active</div>
+            </div>
+            <div class="ef-and-kpi-val">{{ $topCategories->count() }}</div>
+            <div class="ef-and-kpi-lbl">Categories</div>
+            @if($topCategories->first())
+            <div class="ef-and-kpi-sub">Top: {{ $topCategories->first()->name }}</div>
+            @endif
+        </div>
+
+    </div>
+
+    {{-- ── Main 2-col: Trend | Categories ──────────────── --}}
+    <div class="ef-and-main-grid">
+
+        {{-- Monthly spend trend (visual bar chart) --}}
+        <div class="ef-and-card">
+            <div class="ef-and-card-head">
+                <span class="ef-and-card-title">
+                    <i class="bi bi-calendar-range" style="color:var(--ef-emerald)"></i>
+                    Monthly Spend Trend
+                </span>
+                <span class="ef-and-card-badge">{{ $monthlyTrend->count() }} months</span>
+            </div>
+            <div class="ef-and-card-body">
+                @if($monthlyTrend->isNotEmpty())
+                @php $maxT = $monthlyTrend->max('total') ?: 1; @endphp
+                @foreach($monthlyTrend as $row)
+                @php $bw = round(($row->total / $maxT) * 100); @endphp
+                <div class="ef-and-chart-row">
+                    <span class="ef-and-chart-month">{{ $row->month }}</span>
+                    <div class="ef-and-chart-track">
+                        <div class="ef-and-chart-fill" style="width:{{ $bw }}%"></div>
                     </div>
-                    <div class="ef-an-rank-val">₹{{ number_format($cat->total, 2) }}</div>
+                    <span class="ef-and-chart-amt">₹{{ number_format($row->total, 0) }}</span>
+                    <span class="ef-and-chart-cnt">{{ $row->count }}req</span>
                 </div>
-                @if($grandTotal > 0)
-                <div class="ef-an-bar-wrap">
-                    <div class="ef-an-bar --emerald" style="width:{{ ($cat->total / $grandTotal) * 100 }}%"></div>
-                </div>
+                @endforeach
+                @else
+                <div class="ef-and-empty">No trend data for this period.</div>
                 @endif
             </div>
-        @empty
-            <div style="color:var(--ef-faint);font-size:.84rem;padding:12px 0;text-align:center">No data for period.</div>
-        @endforelse
-    </x-ds.card>
+        </div>
 
-    {{-- Top spenders --}}
-    <x-ds.card title="Top Spenders">
-        @forelse($topEmployees as $i => $emp)
-            <div class="ef-an-rank-item">
-                <div class="ef-an-rank-row">
-                    <div class="ef-an-rank-name">
-                        <span class="ef-an-rank-num">{{ $i + 1 }}</span>
-                        {{ $emp->name }}
-                    </div>
-                    <div class="ef-an-rank-val">₹{{ number_format($emp->total, 2) }}</div>
-                </div>
-                @if($grandTotal > 0)
-                <div class="ef-an-bar-wrap">
-                    <div class="ef-an-bar --gold" style="width:{{ ($emp->total / $grandTotal) * 100 }}%"></div>
-                </div>
-                @endif
+        {{-- Top Categories --}}
+        <div class="ef-and-card">
+            <div class="ef-and-card-head">
+                <span class="ef-and-card-title">
+                    <i class="bi bi-tag" style="color:var(--ef-emerald)"></i> Top Categories
+                </span>
+                <span class="ef-and-card-badge">{{ $topCategories->count() }}</span>
             </div>
-        @empty
-            <div style="color:var(--ef-faint);font-size:.84rem;padding:12px 0;text-align:center">No data for period.</div>
-        @endforelse
-    </x-ds.card>
-
-    {{-- Top vendors --}}
-    <x-ds.card title="Top Vendors">
-        @forelse($topVendors as $i => $vendor)
-            <div class="ef-an-rank-item">
-                <div class="ef-an-rank-row">
-                    <div class="ef-an-rank-name">
-                        <span class="ef-an-rank-num --amber">{{ $i + 1 }}</span>
-                        {{ $vendor->name }}
-                    </div>
-                    <div class="ef-an-rank-val">₹{{ number_format($vendor->total, 2) }}</div>
-                </div>
-                @if($grandTotal > 0)
-                <div class="ef-an-bar-wrap">
-                    <div class="ef-an-bar --amber" style="width:{{ ($vendor->total / $grandTotal) * 100 }}%"></div>
-                </div>
-                @endif
-            </div>
-        @empty
-            <div style="color:var(--ef-faint);font-size:.84rem;padding:12px 0;text-align:center">No data for period.</div>
-        @endforelse
-    </x-ds.card>
-
-</div>
-
-{{-- Monthly trend --}}
-<x-ds.card title="Monthly Expense Trend" :no-pad="true">
-    <div style="overflow-x:auto">
-        <table class="ef-an-trend-table">
-            <thead>
-                <tr>
-                    <th>Month</th>
-                    <th class="r">Requests</th>
-                    <th class="r">Total</th>
-                    <th style="width:180px">Relative</th>
-                </tr>
-            </thead>
-            <tbody>
-                @php $maxTotal = $monthlyTrend->max('total') ?: 1; @endphp
-                @forelse($monthlyTrend as $row)
-                <tr>
-                    <td class="fw">{{ $row->month }}</td>
-                    <td class="r">{{ $row->count }}</td>
-                    <td class="r fw">₹{{ number_format($row->total, 2) }}</td>
-                    <td>
-                        <div class="ef-an-trend-bar-wrap">
-                            <div class="ef-an-trend-bar" style="width:{{ ($row->total / $maxTotal) * 100 }}%"></div>
+            <div class="ef-and-card-body">
+                @forelse($topCategories as $i => $cat)
+                @php
+                    $bw = $maxCat > 0 ? round(($cat->total / $maxCat) * 100) : 0;
+                    $sh = $grandTotal > 0 ? round(($cat->total / $grandTotal) * 100, 1) : 0;
+                    $av = substr($inits($cat->name), 0, 2);
+                @endphp
+                <div class="ef-and-lb">
+                    <div class="ef-and-lb-top">
+                        <div class="ef-and-lb-rank {{ $rankCls($i) }}">{{ $i + 1 }}</div>
+                        <div class="ef-and-lb-av --cat">{{ $av }}</div>
+                        <div class="ef-and-lb-body">
+                            <div class="ef-and-lb-name">{{ $cat->name }}</div>
                         </div>
-                    </td>
-                </tr>
+                        <div class="ef-and-lb-right">
+                            <div class="ef-and-lb-amt">₹{{ number_format($cat->total, 0) }}</div>
+                            <div class="ef-and-lb-pct">{{ $sh }}% of total</div>
+                        </div>
+                    </div>
+                    <div class="ef-and-lb-barrow">
+                        <div class="ef-and-lb-track">
+                            <div class="ef-and-lb-fill --cat" style="width:{{ $bw }}%"></div>
+                        </div>
+                    </div>
+                </div>
                 @empty
-                <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--ef-faint)">No data for period.</td></tr>
+                <div class="ef-and-empty">No category data for this period.</div>
                 @endforelse
-            </tbody>
-        </table>
-    </div>
-</x-ds.card>
+            </div>
+        </div>
 
+    </div>
+
+    {{-- ── Secondary 3-col: Spenders | Vendors | Stats ─── --}}
+    <div class="ef-and-secondary-grid">
+
+        {{-- Top Spenders --}}
+        <div class="ef-and-card">
+            <div class="ef-and-card-head">
+                <span class="ef-and-card-title">
+                    <i class="bi bi-people" style="color:var(--ef-gold)"></i> Top Spenders
+                </span>
+                <span class="ef-and-card-badge">{{ $topEmployees->count() }}</span>
+            </div>
+            <div class="ef-and-card-body">
+                @forelse($topEmployees as $i => $emp)
+                @php
+                    $bw = $maxEmp > 0 ? round(($emp->total / $maxEmp) * 100) : 0;
+                    $sh = $grandTotal > 0 ? round(($emp->total / $grandTotal) * 100, 1) : 0;
+                    $av = substr($inits($emp->name), 0, 2);
+                @endphp
+                <div class="ef-and-lb">
+                    <div class="ef-and-lb-top">
+                        <div class="ef-and-lb-rank {{ $rankCls($i) }}">{{ $i + 1 }}</div>
+                        <div class="ef-and-lb-av --emp">{{ $av }}</div>
+                        <div class="ef-and-lb-body">
+                            <div class="ef-and-lb-name">{{ $emp->name }}</div>
+                            <div class="ef-and-lb-meta">{{ ucfirst($emp->role) }}</div>
+                        </div>
+                        <div class="ef-and-lb-right">
+                            <div class="ef-and-lb-amt">₹{{ number_format($emp->total, 0) }}</div>
+                            <div class="ef-and-lb-pct">{{ $sh }}%</div>
+                        </div>
+                    </div>
+                    <div class="ef-and-lb-barrow">
+                        <div class="ef-and-lb-track">
+                            <div class="ef-and-lb-fill --emp" style="width:{{ $bw }}%"></div>
+                        </div>
+                    </div>
+                </div>
+                @empty
+                <div class="ef-and-empty">No spend data for this period.</div>
+                @endforelse
+            </div>
+        </div>
+
+        {{-- Top Vendors --}}
+        <div class="ef-and-card">
+            <div class="ef-and-card-head">
+                <span class="ef-and-card-title">
+                    <i class="bi bi-shop" style="color:#8090a0"></i> Top Vendors
+                </span>
+                <span class="ef-and-card-badge">{{ $topVendors->count() }}</span>
+            </div>
+            <div class="ef-and-card-body">
+                @forelse($topVendors as $i => $vendor)
+                @php
+                    $bw = $maxVnd > 0 ? round(($vendor->total / $maxVnd) * 100) : 0;
+                    $sh = $grandTotal > 0 ? round(($vendor->total / $grandTotal) * 100, 1) : 0;
+                    $av = substr($inits($vendor->name), 0, 2);
+                @endphp
+                <div class="ef-and-lb">
+                    <div class="ef-and-lb-top">
+                        <div class="ef-and-lb-rank {{ $rankCls($i) }}">{{ $i + 1 }}</div>
+                        <div class="ef-and-lb-av --vnd">{{ $av }}</div>
+                        <div class="ef-and-lb-body">
+                            <div class="ef-and-lb-name">{{ $vendor->name }}</div>
+                        </div>
+                        <div class="ef-and-lb-right">
+                            <div class="ef-and-lb-amt">₹{{ number_format($vendor->total, 0) }}</div>
+                            <div class="ef-and-lb-pct">{{ $sh }}%</div>
+                        </div>
+                    </div>
+                    <div class="ef-and-lb-barrow">
+                        <div class="ef-and-lb-track">
+                            <div class="ef-and-lb-fill --vnd" style="width:{{ $bw }}%"></div>
+                        </div>
+                    </div>
+                </div>
+                @empty
+                <div class="ef-and-empty">No vendor data for this period.</div>
+                @endforelse
+            </div>
+        </div>
+
+        {{-- Period Summary Stats --}}
+        <div class="ef-and-card">
+            <div class="ef-and-card-head">
+                <span class="ef-and-card-title">
+                    <i class="bi bi-clipboard-data"></i> Period Summary
+                </span>
+            </div>
+            <div class="ef-and-card-body">
+                <div class="ef-and-stat">
+                    <span class="ef-and-stat-lbl">Date Range</span>
+                    <span class="ef-and-stat-val">{{ $periodLbl }}</span>
+                </div>
+                <div class="ef-and-stat">
+                    <span class="ef-and-stat-lbl">Duration</span>
+                    <span class="ef-and-stat-val">{{ $dayCount }} days</span>
+                </div>
+                <div class="ef-and-stat">
+                    <span class="ef-and-stat-lbl">Total Settled</span>
+                    <span class="ef-and-stat-val">₹{{ number_format($grandTotal, 0) }}</span>
+                </div>
+                <div class="ef-and-stat">
+                    <span class="ef-and-stat-lbl">Daily Average</span>
+                    <span class="ef-and-stat-val">₹{{ number_format($avgDaily, 0) }}</span>
+                </div>
+                <div class="ef-and-stat">
+                    <span class="ef-and-stat-lbl">Total Requests</span>
+                    <span class="ef-and-stat-val">{{ number_format($totalTxns) }}</span>
+                </div>
+                @if($totalTxns > 0)
+                <div class="ef-and-stat">
+                    <span class="ef-and-stat-lbl">Avg per Request</span>
+                    <span class="ef-and-stat-val">₹{{ number_format($grandTotal / $totalTxns, 0) }}</span>
+                </div>
+                @endif
+                <div class="ef-and-stat">
+                    <span class="ef-and-stat-lbl">Categories</span>
+                    <span class="ef-and-stat-val">{{ $topCategories->count() }} active</span>
+                </div>
+                <div class="ef-and-stat">
+                    <span class="ef-and-stat-lbl">Vendors</span>
+                    <span class="ef-and-stat-val">{{ $topVendors->count() }} active</span>
+                </div>
+                @if($topCategories->first())
+                <div class="ef-and-stat">
+                    <span class="ef-and-stat-lbl">Top Category</span>
+                    <span class="ef-and-stat-val">{{ $topCategories->first()->name }}</span>
+                </div>
+                @endif
+                @if($topEmployees->first())
+                <div class="ef-and-stat">
+                    <span class="ef-and-stat-lbl">Top Spender</span>
+                    <span class="ef-and-stat-val">{{ $topEmployees->first()->name }}</span>
+                </div>
+                @endif
+            </div>
+        </div>
+
+    </div>
+
+</div>{{-- /ef-and-wrap --}}
 </div>{{-- /ef-an-desktop-view --}}
 
 </x-admin-layout>
