@@ -196,6 +196,10 @@
             margin-bottom: 1.75rem; padding-bottom: 1.25rem;
             border-bottom: 1px solid var(--border);
         }
+
+        .collapse {
+            visibility: visible !important;
+        }
     </style>
     @stack('styles')
 </head>
