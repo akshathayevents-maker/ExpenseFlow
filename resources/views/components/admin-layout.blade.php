@@ -29,6 +29,8 @@
     @endphp
     @if($appCss)
         <link rel="stylesheet" href="{{ asset('build/' . $appCss) }}">
+    @else
+        {{-- ASSET LOADING FAILED: manifest.json not found at {{ public_path('build/manifest.json') }} — run: npm ci && npm run build --}}
     @endif
     @if($appJs)
         <script type="module" src="{{ asset('build/' . $appJs) }}"></script>

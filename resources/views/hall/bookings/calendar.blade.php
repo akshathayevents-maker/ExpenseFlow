@@ -165,10 +165,14 @@
     font-size: .75rem;
     margin-left: auto;
 }
-@media (min-width: 768px) { .ef-cal-dd-menu { animation: ddFadeIn .14s ease; } }
-@keyframes ddFadeIn {
-    from { opacity: 0; transform: translateY(-6px) scale(.97); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
+@media (min-width: 768px) {
+    /* No opacity:0 start — menu must be visible immediately on open.
+       Only use transform so there's no invisible flash frame. */
+    .ef-cal-dd-menu.--open { animation: ddSlideIn .13s cubic-bezier(.16,.84,.44,1); }
+}
+@keyframes ddSlideIn {
+    from { transform: translateY(-5px) scale(.97); }
+    to   { transform: translateY(0) scale(1); }
 }
 
 /* ── Quick actions row ──────────────────────────────────────────── */
@@ -1904,13 +1908,14 @@ document.addEventListener('DOMContentLoaded', function () {
             document.body.appendChild(menu);
 
             function positionMenu() {
-                const r = trigger.getBoundingClientRect();
-                const menuH = menu.offsetHeight || 200;
+                const r   = trigger.getBoundingClientRect();
+                // Read offsetHeight AFTER menu is display:block so it's accurate
+                const menuH = menu.offsetHeight;
                 const spaceBelow = window.innerHeight - r.bottom - 8;
-                const above = spaceBelow < menuH && r.top > menuH;
-                menu.style.left   = r.left + 'px';
-                menu.style.minWidth = r.width + 'px';
-                if (above) {
+                const openUp = menuH > 0 && spaceBelow < menuH && r.top > menuH;
+                menu.style.left     = r.left + 'px';
+                menu.style.minWidth = Math.max(r.width, 160) + 'px';
+                if (openUp) {
                     menu.style.top    = '';
                     menu.style.bottom = (window.innerHeight - r.top + 6) + 'px';
                 } else {
@@ -1922,7 +1927,11 @@ document.addEventListener('DOMContentLoaded', function () {
             function openDd() {
                 menu.classList.add('--open');
                 trigger.setAttribute('aria-expanded', 'true');
+                // Two-pass position: first sets a rough position immediately so
+                // the menu isn't at 0,0 on the first paint, then rAF refines
+                // using the real offsetHeight after the browser has laid it out.
                 positionMenu();
+                requestAnimationFrame(positionMenu);
             }
             function closeDd() {
                 menu.classList.remove('--open');
@@ -1930,11 +1939,24 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             function isOpen() { return menu.classList.contains('--open'); }
 
-            trigger.addEventListener('click', e => {
-                e.stopPropagation();
+            // Use mousedown for the trigger so the menu opens on press,
+            // before any click-based outside-close listeners can interfere.
+            trigger.addEventListener('mousedown', e => {
+                e.preventDefault(); // prevent focus shift / blur events
                 isOpen() ? closeDd() : openDd();
             });
+            // Keyboard: Enter/Space on focused trigger
+            trigger.addEventListener('keydown', e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    isOpen() ? closeDd() : openDd();
+                }
+            });
 
+            menu.addEventListener('mousedown', e => {
+                // Prevent trigger's blur from firing before item click registers
+                e.preventDefault();
+            });
             menu.addEventListener('click', e => {
                 const btn = e.target.closest('.ef-cal-dd-item');
                 if (!btn) return;
@@ -1953,13 +1975,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 closeDd();
             });
 
-            // Close on outside click or Escape
-            document.addEventListener('click', e => {
-                if (!trigger.contains(e.target) && !menu.contains(e.target)) closeDd();
+            // Close on outside click — mousedown so it fires before blur/focus shuffle
+            document.addEventListener('mousedown', e => {
+                if (isOpen() && !trigger.contains(e.target) && !menu.contains(e.target)) {
+                    closeDd();
+                }
             });
             document.addEventListener('keydown', e => {
-                if (e.key === 'Escape' && isOpen()) { closeDd(); trigger.focus(); }
-                if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && isOpen()) {
+                if (!isOpen()) return;
+                if (e.key === 'Escape') { closeDd(); trigger.focus(); return; }
+                if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
                     e.preventDefault();
                     const items = Array.from(menu.querySelectorAll('.ef-cal-dd-item'));
                     const cur = menu.querySelector('.ef-cal-dd-item:focus') || menu.querySelector('.ef-cal-dd-item.--active');
