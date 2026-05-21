@@ -243,6 +243,11 @@ Route::get('/pay/{id}', [PaymentRequestController::class, 'show'])
     ->name('payment-request.show')
     ->middleware('signed');
 
+// Admin/manager confirm payment directly from the payment page (requires login)
+Route::post('/pay/{expenseRequest}/mark-paid', [PaymentRequestController::class, 'markPaid'])
+    ->name('payment-request.mark-paid')
+    ->middleware(['auth', 'verified']);
+
 // ── Profile ───────────────────────────────────────────────────────────────────
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

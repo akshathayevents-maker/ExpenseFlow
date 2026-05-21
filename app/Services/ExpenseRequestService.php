@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\ExpenseRequest;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class ExpenseRequestService
 {
@@ -19,7 +21,27 @@ class ExpenseRequestService
         return DB::transaction(function () use ($data, $requester, $qrFile) {
             $qrPath = null;
             if ($qrFile) {
-                $qrPath = $qrFile->store('temp-qr', 'public');
+                try {
+                    $ext      = strtolower($qrFile->getClientOriginalExtension()) ?: 'jpg';
+                    $safeName = Str::slug(pathinfo($qrFile->getClientOriginalName(), PATHINFO_FILENAME));
+                    $safeName = substr($safeName ?: 'qr', 0, 40);
+                    $filename = $safeName . '_' . uniqid() . '.' . $ext;
+
+                    $qrPath = $qrFile->storeAs('temp-qr', $filename, 'public');
+
+                    if ($qrPath === false) {
+                        throw new \RuntimeException('Storage::storeAs returned false.');
+                    }
+                } catch (\Throwable $e) {
+                    Log::error('QR file storage failed', [
+                        'user'      => $requester->id,
+                        'file'      => $qrFile->getClientOriginalName(),
+                        'mime'      => $qrFile->getMimeType(),
+                        'size'      => $qrFile->getSize(),
+                        'exception' => $e->getMessage(),
+                    ]);
+                    throw new \RuntimeException('The QR image could not be saved. Please try again.', 0, $e);
+                }
             }
 
             return ExpenseRequest::create([

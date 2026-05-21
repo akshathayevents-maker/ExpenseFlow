@@ -598,6 +598,159 @@
     const previewName = document.getElementById('previewName');
     const btnChange   = document.getElementById('btnChange');
 
+    // ── EXIF orientation reader (pure ArrayBuffer, no deps) ──────────────────
+    function readExifOrientation(buf) {
+        try {
+            const v = new DataView(buf);
+            if (v.getUint16(0, false) !== 0xFFD8) return 1;
+            let off = 2;
+            while (off < Math.min(v.byteLength, 131072)) {
+                const marker = v.getUint16(off, false);
+                off += 2;
+                if (marker === 0xFFE1) {
+                    if (v.getUint32(off + 2, false) !== 0x45786966 ||
+                        v.getUint16(off + 6, false) !== 0x0000) break;
+                    const tiff = off + 8;
+                    const le   = v.getUint16(tiff, false) === 0x4949;
+                    const ifd  = v.getUint32(tiff + 4, le);
+                    const n    = v.getUint16(tiff + ifd, le);
+                    for (let i = 0; i < n; i++) {
+                        const tag = v.getUint16(tiff + ifd + 2 + i * 12, le);
+                        if (tag === 0x0112) {
+                            return v.getUint16(tiff + ifd + 2 + i * 12 + 8, le);
+                        }
+                    }
+                    break;
+                }
+                if ((marker & 0xFF00) !== 0xFF00) break;
+                off += v.getUint16(off, false);
+            }
+        } catch (_) {}
+        return 1;
+    }
+
+    // ── Normalize image: fix EXIF orientation + compress if >3 MB ───────────
+    function normalizeImage(file) {
+        return new Promise(function (resolve) {
+            if (file.type === 'application/pdf') { resolve(file); return; }
+            if (!file.type.startsWith('image/') && file.type !== '') { resolve(file); return; }
+
+            const reader = new FileReader();
+            reader.onerror = function () { resolve(file); };
+            reader.onload = function (e) {
+                const buf         = e.target.result;
+                const orientation = readExifOrientation(buf);
+                const blob        = new Blob([buf], { type: file.type || 'image/jpeg' });
+                const url         = URL.createObjectURL(blob);
+                const img         = new Image();
+
+                img.onerror = function () {
+                    URL.revokeObjectURL(url);
+                    // HEIC on non-Safari: can't decode — resolve original so server gives a clear error
+                    resolve(file);
+                };
+                img.onload = function () {
+                    URL.revokeObjectURL(url);
+
+                    const w = img.naturalWidth, h = img.naturalHeight;
+                    if (!w || !h) { resolve(file); return; }
+
+                    const swapDims = [5, 6, 7, 8].includes(orientation);
+                    const outW = swapDims ? h : w;
+                    const outH = swapDims ? w : h;
+
+                    // Scale down only if original > 3 MB or dimensions > 2500 px
+                    const needsScale = file.size > 3 * 1024 * 1024 || Math.max(outW, outH) > 2500;
+                    const scale = needsScale ? Math.min(1, 2000 / Math.max(outW, outH)) : 1;
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width  = Math.round(outW * scale);
+                    canvas.height = Math.round(outH * scale);
+                    const ctx = canvas.getContext('2d');
+
+                    // Apply EXIF rotation (cases 5/7 treated as 6/8 — mirror ignored, QR still scannable)
+                    switch (orientation) {
+                        case 3: case 4:
+                            ctx.translate(canvas.width, canvas.height);
+                            ctx.rotate(Math.PI); break;
+                        case 5: case 6:
+                            ctx.translate(canvas.width, 0);
+                            ctx.rotate(Math.PI / 2); break;
+                        case 7: case 8:
+                            ctx.translate(0, canvas.height);
+                            ctx.rotate(-Math.PI / 2); break;
+                    }
+
+                    ctx.drawImage(img, 0, 0, w * scale, h * scale);
+
+                    const quality = (scale < 1 || file.size > 3 * 1024 * 1024) ? 0.82 : 0.92;
+                    canvas.toBlob(function (outBlob) {
+                        if (!outBlob) { resolve(file); return; }
+                        const outName = file.name.replace(/\.[^.]+$/, '') + '.jpg';
+                        resolve(new File([outBlob], outName, { type: 'image/jpeg' }));
+                    }, 'image/jpeg', quality);
+                };
+                img.src = url;
+            };
+            reader.readAsArrayBuffer(file);
+        });
+    }
+
+    // ── Swap file into input via DataTransfer ────────────────────────────────
+    function assignFileToInput(input, file) {
+        try {
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            input.files = dt.files;
+        } catch (_) { /* older browsers: use original file */ }
+    }
+
+    // ── Show preview after normalisation ────────────────────────────────────
+    function showPreview(file) {
+        const sz = file.size < 1048576
+            ? (file.size / 1024).toFixed(1) + ' KB'
+            : (file.size / 1048576).toFixed(1) + ' MB';
+        previewName.textContent = file.name + ' · ' + sz;
+        if (file.type === 'application/pdf') {
+            previewImg.classList.add('d-none'); previewPdf.classList.remove('d-none');
+        } else {
+            const r = new FileReader();
+            r.onload = ev => {
+                previewImg.src = ev.target.result;
+                previewImg.classList.remove('d-none');
+                previewPdf.classList.add('d-none');
+            };
+            r.readAsDataURL(file);
+        }
+        placeholder.classList.add('d-none');
+        preview.classList.remove('d-none');
+        zone.classList.add('has-file');
+        zone.classList.remove('is-invalid');
+        zone.classList.remove('is-processing');
+    }
+
+    async function handleFile(file, activeInput, passiveInput) {
+        if (file.size > 20 * 1024 * 1024) {
+            alert('File too large (max 20 MB). Please compress or choose a smaller image.');
+            activeInput.value = '';
+            return;
+        }
+
+        // Mark active input as the QR carrier
+        activeInput.setAttribute('name', 'qr');
+        if (passiveInput) passiveInput.removeAttribute('name');
+
+        // Show processing indicator
+        zone.classList.add('is-processing');
+        placeholder.classList.add('d-none');
+        preview.classList.remove('d-none');
+        previewName.textContent = 'Processing image…';
+
+        const processed = await normalizeImage(file);
+        assignFileToInput(activeInput, processed);
+        showPreview(processed);
+    }
+
     zone.addEventListener('click', e => {
         if (btnCamera.contains(e.target) || btnChange.contains(e.target)) return;
         qrInput.click();
@@ -613,44 +766,24 @@
     zone.addEventListener('drop', e => {
         e.preventDefault();
         zone.classList.remove('drag-over');
-        if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0], qrInput);
+        const f = e.dataTransfer.files[0];
+        if (f) handleFile(f, qrInput, camInput);
     });
 
     qrInput.addEventListener('change', () => {
-        if (qrInput.files[0]) { handleFile(qrInput.files[0], qrInput); camInput.removeAttribute('name'); }
+        if (qrInput.files[0]) handleFile(qrInput.files[0], qrInput, camInput);
     });
     camInput.addEventListener('change', () => {
-        if (camInput.files[0]) {
-            handleFile(camInput.files[0], camInput);
-            qrInput.removeAttribute('name');
-            camInput.setAttribute('name', 'qr');
-        }
+        if (camInput.files[0]) handleFile(camInput.files[0], camInput, qrInput);
     });
-
-    function handleFile(file, src) {
-        if (file.size > 10 * 1024 * 1024) { alert('File too large. Max 10 MB.'); src.value = ''; return; }
-        const sz = file.size < 1048576
-            ? (file.size / 1024).toFixed(1) + ' KB'
-            : (file.size / 1048576).toFixed(1) + ' MB';
-        previewName.textContent = file.name + ' · ' + sz;
-        if (file.type === 'application/pdf') {
-            previewImg.classList.add('d-none'); previewPdf.classList.remove('d-none');
-        } else {
-            const r = new FileReader();
-            r.onload = ev => { previewImg.src = ev.target.result; previewImg.classList.remove('d-none'); previewPdf.classList.add('d-none'); };
-            r.readAsDataURL(file);
-        }
-        placeholder.classList.add('d-none');
-        preview.classList.remove('d-none');
-        zone.classList.add('has-file');
-        zone.classList.remove('is-invalid');
-    }
 
     // ── Submit guard ─────────────────────────────────────────────────────────
     let submitted = false;
     document.getElementById('upiForm').addEventListener('submit', function (e) {
         if (submitted) { e.preventDefault(); return; }
-        const hasQr = qrInput.files.length > 0 || camInput.files.length > 0;
+        if (zone.classList.contains('is-processing')) { e.preventDefault(); return; }
+        const hasQr = (qrInput.getAttribute('name') === 'qr' && qrInput.files.length > 0) ||
+                      (camInput.getAttribute('name') === 'qr' && camInput.files.length > 0);
         if (!titleInput.value.trim() || !parseFloat(document.getElementById('amount').value) || !hasQr) return;
         submitted = true;
         const btn = document.getElementById('btnSubmit');

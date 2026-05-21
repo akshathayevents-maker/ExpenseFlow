@@ -266,8 +266,170 @@ body {
     box-shadow: 0 4px 20px rgba(0,0,0,.08);
 }
 
+/* ── Payment action card ──────────────────────────────────── */
+.action-card {
+    padding: 20px;
+    border-top: 2px solid #f0fdf4;
+    background: linear-gradient(135deg, #f0fdf4 0%, #fff 100%);
+}
+.action-card-title {
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px 20px;
+    background: linear-gradient(135deg, var(--green) 0%, var(--green-hi) 100%);
+    color: #fff;
+    font-size: .9rem;
+    font-weight: 700;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(26,102,69,.30);
+    transition: transform .15s, box-shadow .15s;
+    -webkit-tap-highlight-color: transparent;
+}
+.action-btn:active { transform: scale(.97); box-shadow: 0 2px 8px rgba(26,102,69,.25); }
+.action-btn-icon { font-size: 1.1rem; }
+
+/* ── Confirmation modal ───────────────────────────────────── */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.55);
+    z-index: 1000;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0 0 env(safe-area-inset-bottom);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+}
+.modal-overlay.open { display: flex; }
+.modal-sheet {
+    background: #fff;
+    border-radius: 24px 24px 0 0;
+    width: 100%;
+    max-width: 480px;
+    padding: 24px 20px 32px;
+    box-shadow: 0 -8px 40px rgba(0,0,0,.15);
+    animation: slideUp .25s ease-out;
+}
+@keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+}
+.modal-handle {
+    width: 40px; height: 4px;
+    background: #e5e7eb;
+    border-radius: 2px;
+    margin: 0 auto 20px;
+}
+.modal-title {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 4px;
+}
+.modal-sub {
+    font-size: .8rem;
+    color: var(--sub);
+    margin-bottom: 18px;
+}
+.modal-summary {
+    background: #f9fafb;
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 18px;
+    font-size: .82rem;
+}
+.modal-summary-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+.modal-summary-row:last-child { margin-bottom: 0; }
+.modal-summary-lbl { color: var(--sub); }
+.modal-summary-val { font-weight: 700; color: var(--text); }
+.modal-input {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: .88rem;
+    color: var(--text);
+    margin-bottom: 10px;
+    outline: none;
+    font-family: inherit;
+    transition: border-color .15s;
+}
+.modal-input:focus { border-color: var(--green); }
+.modal-input::placeholder { color: #adb5bd; }
+.modal-actions {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 10px;
+    margin-top: 4px;
+}
+.modal-cancel {
+    padding: 13px;
+    background: #f3f4f6;
+    color: var(--sub);
+    font-weight: 700;
+    font-size: .88rem;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    font-family: inherit;
+}
+.modal-confirm {
+    padding: 13px;
+    background: linear-gradient(135deg, var(--green), var(--green-hi));
+    color: #fff;
+    font-weight: 700;
+    font-size: .88rem;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 3px 12px rgba(26,102,69,.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+.modal-confirm:disabled { opacity: .6; }
+
+/* ── Success banner ───────────────────────────────────────── */
+.paid-banner {
+    background: linear-gradient(135deg, #dcfce7, #f0fdf4);
+    border: 1.5px solid #86efac;
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 16px 20px;
+}
+.paid-banner-icon { font-size: 1.6rem; flex-shrink: 0; }
+.paid-banner-text { font-size: .85rem; font-weight: 600; color: #14532d; }
+
 @media (min-width: 480px) {
     .qr-img { max-width: 260px; max-height: 260px; }
+    .modal-overlay { align-items: center; padding: 20px; }
+    .modal-sheet { border-radius: 24px; max-width: 400px; }
 }
 </style>
 </head>
@@ -337,12 +499,105 @@ body {
         </span>
     </div>
 
+    {{-- Payment confirmation success banner --}}
+    @if(session('paid_success'))
+    <div class="paid-banner">
+        <div class="paid-banner-icon">✅</div>
+        <div class="paid-banner-text">Payment marked as received. Employee has been notified.</div>
+    </div>
+    @endif
+
+    {{-- Action card — visible only to logged-in admin/manager --}}
+    @auth
+    @if(in_array(auth()->user()->role, ['admin','manager']) && !$expense->isSettled())
+    <div class="action-card">
+        <p class="action-card-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Payment Confirmation
+        </p>
+        <button type="button" class="action-btn" id="btnMarkPaid">
+            <span class="action-btn-icon">💳</span>
+            Mark as Paid
+        </button>
+    </div>
+    @endif
+    @endauth
+
     {{-- Footer --}}
     <div class="page-footer">
         <span class="brand">{{ config('app.name') }}</span> · Request #{{ $expense->id }} · {{ $expense->created_at->format('d M Y') }}
     </div>
 
 </div>
+
+{{-- Mark as Paid modal --}}
+@auth
+@if(in_array(auth()->user()->role, ['admin','manager']) && !$expense->isSettled())
+<div class="modal-overlay" id="paidModal" role="dialog" aria-modal="true" aria-label="Confirm Payment">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <p class="modal-title">Confirm Payment Received</p>
+        <p class="modal-sub">This will mark the expense as paid and notify the employee.</p>
+
+        <div class="modal-summary">
+            <div class="modal-summary-row">
+                <span class="modal-summary-lbl">Employee</span>
+                <span class="modal-summary-val">{{ $expense->requester?->name ?? '—' }}</span>
+            </div>
+            <div class="modal-summary-row">
+                <span class="modal-summary-lbl">Amount</span>
+                <span class="modal-summary-val">₹{{ number_format((float)$expense->amount, 2) }}</span>
+            </div>
+            <div class="modal-summary-row">
+                <span class="modal-summary-lbl">Title</span>
+                <span class="modal-summary-val">{{ $expense->title }}</span>
+            </div>
+        </div>
+
+        <form method="POST" action="{{ route('payment-request.mark-paid', $expense) }}" id="markPaidForm">
+            @csrf
+            <input type="text"
+                   name="payment_reference"
+                   class="modal-input"
+                   placeholder="UTR / Reference No. (optional)"
+                   maxlength="100">
+            <textarea name="payment_note"
+                      class="modal-input"
+                      rows="2"
+                      placeholder="Payment note (optional)"
+                      maxlength="500"
+                      style="resize:none"></textarea>
+            <div class="modal-actions">
+                <button type="button" class="modal-cancel" id="btnModalCancel">Cancel</button>
+                <button type="submit" class="modal-confirm" id="btnModalConfirm">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    Confirm Paid
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function () {
+    const modal  = document.getElementById('paidModal');
+    const btnOpen   = document.getElementById('btnMarkPaid');
+    const btnCancel = document.getElementById('btnModalCancel');
+    const form   = document.getElementById('markPaidForm');
+    const btnConfirm = document.getElementById('btnModalConfirm');
+
+    btnOpen.addEventListener('click', () => modal.classList.add('open'));
+    btnCancel.addEventListener('click', () => modal.classList.remove('open'));
+    modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+
+    form.addEventListener('submit', () => {
+        btnConfirm.disabled = true;
+        btnConfirm.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Processing…';
+    });
+})();
+</script>
+@endif
+@endauth
 
 </body>
 </html>

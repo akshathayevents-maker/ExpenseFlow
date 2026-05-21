@@ -77,7 +77,12 @@
       "Bash(sed -n '133,140p' /home/qc7107-l/Projects/ExpenseFlow/resources/views/hall/bookings/calendar.blade.php)",
       "Bash(sed -n '378,385p' /home/qc7107-l/Projects/ExpenseFlow/resources/views/hall/bookings/calendar.blade.php)",
       "Bash(sed -n '52,75p' /home/qc7107-l/Projects/ExpenseFlow/resources/views/components/admin-layout.blade.php)",
-      "Bash(sed -n '163,175p' /home/qc7107-l/Projects/ExpenseFlow/resources/views/components/admin-layout.blade.php)"
+      "Bash(sed -n '163,175p' /home/qc7107-l/Projects/ExpenseFlow/resources/views/components/admin-layout.blade.php)",
+      "Bash(php -m)",
+      "Bash(php -r \"echo phpversion\\(\\);\")",
+      "Bash(php -r \"echo extension_loaded\\('gd'\\) ? 'GD: yes' : 'GD: no'; echo PHP_EOL; echo extension_loaded\\('imagick'\\) ? 'Imagick: yes' : 'Imagick: no'; echo PHP_EOL; echo extension_loaded\\('exif'\\) ? 'Exif: yes' : 'Exif: no';\")",
+      "Bash(convert --version)",
+      "Bash(php -r \"echo function_exists\\('imagecreatefromstring'\\) ? 'GD functions available' : 'GD not available';\")"
     ]
   }
 }
