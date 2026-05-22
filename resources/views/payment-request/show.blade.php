@@ -473,11 +473,27 @@ body {
     <div class="qr-section">
         <p class="qr-lbl">Scan QR to Pay</p>
         @if($expense->qrUrl())
-        <div class="qr-box">
+        <div class="qr-box" id="qrBox">
             <img src="{{ $expense->qrUrl() }}"
                  class="qr-img"
+                 id="qrImage"
                  alt="Payment QR — {{ $expense->title }}"
-                 loading="eager">
+                 loading="eager"
+                 onerror="document.getElementById('qrBox').style.display='none';document.getElementById('qrError').style.display='block';">
+        </div>
+        <div id="qrError" style="display:none">
+            <div class="no-qr">
+                <div class="no-qr-icon">⚠️</div>
+                <p style="font-weight:700;color:#374151;margin-bottom:6px">QR image unavailable</p>
+                <p style="font-size:.78rem;margin-bottom:14px">The image could not load. Try opening the original link.</p>
+                <a href="{{ $expense->qrUrl() }}"
+                   target="_blank"
+                   rel="noopener"
+                   style="display:inline-flex;align-items:center;gap:6px;background:#1a6645;color:#fff;font-size:.8rem;font-weight:700;padding:9px 16px;border-radius:10px;text-decoration:none">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Open / Download QR
+                </a>
+            </div>
         </div>
         <p class="qr-hint">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>

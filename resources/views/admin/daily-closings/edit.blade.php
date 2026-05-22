@@ -36,16 +36,7 @@
     </div>
 </div>
 
-@if (session('success'))
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(15,123,95,.08);border:1px solid rgba(15,123,95,.2);border-radius:10px;padding:12px 16px;margin-bottom:16px;color:var(--ef-emerald);font-size:.875rem;font-weight:500">
-        <span><i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}</span>
-    </div>
-@endif
-@if (session('error'))
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(200,75,68,.08);border:1px solid rgba(200,75,68,.2);border-radius:10px;padding:12px 16px;margin-bottom:16px;color:var(--ef-danger);font-size:.875rem;font-weight:500">
-        <span><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ session('error') }}</span>
-    </div>
-@endif
+{{-- Flash handled by global toast in admin-layout --}}
 
 {{-- Balance Cards --}}
 <div id="balanceCards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">

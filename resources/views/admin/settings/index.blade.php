@@ -4,11 +4,7 @@
     :meta="[['icon' => 'bi-gear', 'text' => 'Configure system-wide preferences']]">
 </x-ds.hero>
 
-@if(session('success'))
-<div style="background:rgba(15,123,95,.08);border:1px solid rgba(15,123,95,.22);border-radius:var(--ef-radius);color:var(--ef-emerald);display:flex;align-items:center;gap:10px;padding:12px 16px;margin-bottom:16px;font-size:.88rem;font-weight:500">
-    <i class="bi bi-check-circle"></i> {{ session('success') }}
-</div>
-@endif
+{{-- Flash handled by global toast in admin-layout --}}
 
 <form method="POST" action="{{ route('admin.settings.update') }}">
     @csrf @method('PUT')

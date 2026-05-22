@@ -556,17 +556,7 @@
         </div>
     </section>
 
-    {{-- ══ SUCCESS / ERROR FLASH ══════════════════════════════════ --}}
-    @if(session('success'))
-        <div class="alert border-0 mb-4" style="background:rgba(61,115,88,.08);border-left:3px solid var(--ef-emerald)!important;border-radius:10px;color:var(--ef-emerald);font-size:.85rem;padding:12px 16px;" role="alert">
-            <i class="bi bi-check2-circle me-2"></i>{{ session('success') }}
-        </div>
-    @endif
-    @if(session('error'))
-        <div class="alert border-0 mb-4" style="background:rgba(141,74,60,.07);border-left:3px solid var(--ef-danger)!important;border-radius:10px;color:var(--ef-danger);font-size:.85rem;padding:12px 16px;" role="alert">
-            <i class="bi bi-exclamation-circle me-2"></i>{{ session('error') }}
-        </div>
-    @endif
+    {{-- Flash handled by global toast in admin-layout — no page-level duplicate --}}
 
     {{-- ══ MEAL PLAN GRID ══════════════════════════════════════════ --}}
     @forelse($plans as $plan)

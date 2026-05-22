@@ -81,21 +81,40 @@ body {
     padding: 12px 14px calc(76px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
-/* Bottom nav: visible + positioned */
+/* Bottom nav: visible + permanently fixed */
 .ef-m-bottomnav {
+    /* Layout */
     align-items: center;
-    animation: mNavSlideUp .3s ease;
-    backdrop-filter: blur(24px) saturate(160%);
-    background: rgba(11, 15, 13, .97);
-    border-top: 1px solid rgba(184, 137, 62, .12);
-    bottom: 0;
     display: flex;
     gap: 4px;
-    left: 0;
     padding: 4px 8px calc(4px + env(safe-area-inset-bottom, 0px));
+
+    /* Anchoring — never scrolls */
     position: fixed;
+    bottom: 0;
+    left: 0;
     right: 0;
+    /* Explicit height keeps iOS from collapsing it during overscroll */
+    min-height: calc(52px + env(safe-area-inset-bottom, 0px));
+
+    /* Appearance */
+    background: rgba(11, 15, 13, .97);
+    border-top: 1px solid rgba(184, 137, 62, .12);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    backdrop-filter: blur(24px) saturate(160%);
+
+    /* GPU compositing layer — prevents scroll-jank on iOS Safari */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    will-change: transform;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+
+    /* Stacking */
     z-index: 1045;
+
+    /* Entrance animation */
+    animation: mNavSlideUp .3s ease both;
 }
 
 @keyframes mNavSlideUp {

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 
 class ExpenseRequest extends Model
@@ -88,9 +89,13 @@ class ExpenseRequest extends Model
 
     public function qrUrl(): ?string
     {
-        return $this->qr_file_path
-            ? asset('storage/' . $this->qr_file_path)
-            : null;
+        if (! $this->qr_file_path) {
+            return null;
+        }
+
+        // Storage::url() uses APP_URL + the public disk URL prefix, so it
+        // stays correct when APP_URL changes (dev → staging → prod).
+        return Storage::disk('public')->url($this->qr_file_path);
     }
 
     public function paymentPageUrl(): string

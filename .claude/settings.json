@@ -82,7 +82,8 @@
       "Bash(php -r \"echo phpversion\\(\\);\")",
       "Bash(php -r \"echo extension_loaded\\('gd'\\) ? 'GD: yes' : 'GD: no'; echo PHP_EOL; echo extension_loaded\\('imagick'\\) ? 'Imagick: yes' : 'Imagick: no'; echo PHP_EOL; echo extension_loaded\\('exif'\\) ? 'Exif: yes' : 'Exif: no';\")",
       "Bash(convert --version)",
-      "Bash(php -r \"echo function_exists\\('imagecreatefromstring'\\) ? 'GD functions available' : 'GD not available';\")"
+      "Bash(php -r \"echo function_exists\\('imagecreatefromstring'\\) ? 'GD functions available' : 'GD not available';\")",
+      "Bash(grep -E \"\\\\.\\(blade|php\\)$\")"
     ]
   }
 }

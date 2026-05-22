@@ -19,39 +19,45 @@ class ExpenseRequestService
     public function create(array $data, User $requester, ?\Illuminate\Http\UploadedFile $qrFile = null): ExpenseRequest
     {
         return DB::transaction(function () use ($data, $requester, $qrFile) {
-            $qrPath = null;
+            // Create the record first so we have an ID for the permanent path
+            $expense = ExpenseRequest::create([
+                'title'        => $data['title'],
+                'requested_by' => $requester->id,
+                'amount'       => $data['amount'],
+                'notes'        => $data['notes'] ?? null,
+                'qr_file_path' => null,
+                'status'       => 'pending_payment',
+            ]);
+
             if ($qrFile) {
                 try {
                     $ext      = strtolower($qrFile->getClientOriginalExtension()) ?: 'jpg';
                     $safeName = Str::slug(pathinfo($qrFile->getClientOriginalName(), PATHINFO_FILENAME));
                     $safeName = substr($safeName ?: 'qr', 0, 40);
-                    $filename = $safeName . '_' . uniqid() . '.' . $ext;
+                    // Permanent path keyed by expense ID — never auto-deleted
+                    $filename = "qr-codes/{$expense->id}/{$safeName}_" . uniqid() . ".{$ext}";
 
-                    $qrPath = $qrFile->storeAs('temp-qr', $filename, 'public');
+                    $stored = $qrFile->storeAs('', $filename, 'public');
 
-                    if ($qrPath === false) {
+                    if ($stored === false) {
                         throw new \RuntimeException('Storage::storeAs returned false.');
                     }
+
+                    $expense->update(['qr_file_path' => $filename]);
                 } catch (\Throwable $e) {
                     Log::error('QR file storage failed', [
-                        'user'      => $requester->id,
-                        'file'      => $qrFile->getClientOriginalName(),
-                        'mime'      => $qrFile->getMimeType(),
-                        'size'      => $qrFile->getSize(),
-                        'exception' => $e->getMessage(),
+                        'expense_id' => $expense->id,
+                        'user'       => $requester->id,
+                        'file'       => $qrFile->getClientOriginalName(),
+                        'mime'       => $qrFile->getMimeType(),
+                        'size'       => $qrFile->getSize(),
+                        'exception'  => $e->getMessage(),
                     ]);
                     throw new \RuntimeException('The QR image could not be saved. Please try again.', 0, $e);
                 }
             }
 
-            return ExpenseRequest::create([
-                'title'        => $data['title'],
-                'requested_by' => $requester->id,
-                'amount'       => $data['amount'],
-                'notes'        => $data['notes'] ?? null,
-                'qr_file_path' => $qrPath,
-                'status'       => 'pending_payment',
-            ]);
+            return $expense->fresh();
         });
     }
 

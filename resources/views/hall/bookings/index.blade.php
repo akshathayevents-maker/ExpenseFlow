@@ -667,19 +667,7 @@ $avatarTones = ['#7a5a28','#3e6a5a','#4a5e8a','#6a4e7a','#5a6840'];
 
 <div class="ef-bk-shell">
 
-{{-- Flash ─────────────────────────────────────────────────────── --}}
-@if(session('success'))
-    <div class="ef-bk-flash --success">
-        <i class="bi bi-check-circle-fill"></i>
-        <span>{{ session('success') }}</span>
-    </div>
-@endif
-@if(session('error'))
-    <div class="ef-bk-flash --error">
-        <i class="bi bi-exclamation-circle-fill"></i>
-        <span>{{ session('error') }}</span>
-    </div>
-@endif
+{{-- Flash handled by global toast in admin-layout — no page-level duplicate --}}
 
 {{-- Hero ───────────────────────────────────────────────────────── --}}
 <div class="ef-bk-hero">

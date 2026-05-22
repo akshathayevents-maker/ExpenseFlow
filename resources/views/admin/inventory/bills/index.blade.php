@@ -12,20 +12,7 @@
     </x-slot:actions>
 </x-ds.hero>
 
-@if(session('success'))
-<div style="background:rgba(15,123,95,.08);border:1px solid rgba(15,123,95,.2);border-radius:var(--ef-radius);padding:10px 16px;margin-bottom:14px;font-size:.86rem;color:var(--ef-emerald);display:flex;align-items:center;gap:10px">
-    <i class="bi bi-check-circle-fill flex-shrink-0"></i> {{ session('success') }}
-</div>
-@endif
-@if(session('warning'))
-<div style="background:rgba(216,154,61,.08);border:1px solid rgba(216,154,61,.25);border-radius:var(--ef-radius);padding:10px 16px;margin-bottom:14px;font-size:.86rem;color:var(--ef-amber);display:flex;align-items:center;gap:10px">
-    <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i> {{ session('warning') }}
-</div>
-@endif
-@if(session('error'))
-<div style="background:rgba(220,53,69,.08);border:1px solid rgba(220,53,69,.2);border-radius:var(--ef-radius);padding:10px 16px;margin-bottom:14px;font-size:.86rem;color:var(--ef-danger);display:flex;align-items:center;gap:10px">
-    <i class="bi bi-x-circle-fill flex-shrink-0"></i> {{ session('error') }}
-</div>
+{{-- Flash handled by global toast in admin-layout --}}
 @endif
 
 {{-- Filters --}}

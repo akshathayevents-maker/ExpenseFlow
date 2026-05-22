@@ -35,7 +35,86 @@
     @if($appJs)
         <script type="module" src="{{ asset('build/' . $appJs) }}"></script>
     @endif
-    <link rel="stylesheet" href="{{ asset('css/mobile.css') }}?v=1">
+    <link rel="stylesheet" href="{{ asset('css/mobile.css') }}?v=2">
+    <style>
+    /* ── Premium global toast ────────────────────────────────────── */
+    #ef-toast-wrap {
+        left: 50%;
+        max-width: 420px;
+        pointer-events: none;
+        position: fixed;
+        top: calc(var(--tb-height, 58px) + 12px);
+        transform: translateX(-50%);
+        width: calc(100% - 32px);
+        z-index: 1200;
+    }
+    .ef-toast {
+        align-items: center;
+        animation: efToastIn .28s cubic-bezier(.3,.7,.2,1) forwards;
+        border-radius: 14px;
+        box-shadow: 0 8px 32px rgba(0,0,0,.14), 0 2px 6px rgba(0,0,0,.08);
+        display: flex;
+        font-size: .875rem;
+        gap: 10px;
+        margin-bottom: 8px;
+        padding: 13px 14px 13px 16px;
+        pointer-events: auto;
+    }
+    .ef-toast.--out {
+        animation: efToastOut .25s ease forwards;
+    }
+    .ef-toast.--success {
+        background: #fff;
+        border-left: 4px solid #16a34a;
+    }
+    .ef-toast.--error {
+        background: #fff;
+        border-left: 4px solid #dc2626;
+    }
+    .ef-toast.--info {
+        background: #fff;
+        border-left: 4px solid #2563eb;
+    }
+    .ef-toast.--warning {
+        background: #fff;
+        border-left: 4px solid #d97706;
+    }
+    .ef-toast-icon {
+        flex-shrink: 0;
+        font-size: 1.05rem;
+        line-height: 1;
+    }
+    .ef-toast.--success .ef-toast-icon { color: #16a34a; }
+    .ef-toast.--error   .ef-toast-icon { color: #dc2626; }
+    .ef-toast.--info    .ef-toast-icon { color: #2563eb; }
+    .ef-toast.--warning .ef-toast-icon { color: #d97706; }
+    .ef-toast-msg {
+        color: #111827;
+        flex: 1;
+        font-weight: 500;
+        line-height: 1.4;
+    }
+    .ef-toast-close {
+        background: none;
+        border: none;
+        color: #9ca3af;
+        cursor: pointer;
+        flex-shrink: 0;
+        font-size: 1rem;
+        line-height: 1;
+        padding: 2px 0 2px 4px;
+        transition: color .15s;
+    }
+    .ef-toast-close:hover { color: #374151; }
+    @keyframes efToastIn {
+        from { opacity: 0; transform: translateY(-10px) scale(.97); }
+        to   { opacity: 1; transform: translateY(0)     scale(1); }
+    }
+    @keyframes efToastOut {
+        from { opacity: 1; transform: translateY(0)    scale(1); }
+        to   { opacity: 0; transform: translateY(-6px) scale(.97); }
+    }
+    </style>
 
     <style>
         :root {
@@ -537,25 +616,40 @@
 </div>
 </nav>
 
-{{-- Main content --}}
-<main id="main-content">
+{{-- Premium global toast (single source of truth for all flash messages) --}}
+<div id="ef-toast-wrap" role="status" aria-live="polite" aria-atomic="true">
     @if(session('success'))
-        <div class="alert alert-dismissible fade show" role="alert"
-             style="align-items:center;background:rgba(15,123,95,.08);border:1px solid rgba(15,123,95,.2);border-radius:12px;color:#0F7B5F;display:flex;font-size:.86rem;gap:10px;margin-bottom:16px;padding:10px 14px">
-            <i class="bi bi-check-circle-fill flex-shrink-0"></i>
-            <span style="flex:1">{{ session('success') }}</span>
-            <button type="button" class="btn-close btn-sm flex-shrink-0" data-bs-dismiss="alert" style="filter:invert(40%) sepia(80%) saturate(300%) hue-rotate(120deg);margin:0"></button>
-        </div>
+    <div class="ef-toast --success" role="alert">
+        <i class="bi bi-check-circle-fill ef-toast-icon"></i>
+        <span class="ef-toast-msg">{{ session('success') }}</span>
+        <button type="button" class="ef-toast-close" aria-label="Close">&#x2715;</button>
+    </div>
     @endif
     @if(session('error'))
-        <div class="alert alert-dismissible fade show" role="alert"
-             style="align-items:center;background:rgba(200,75,68,.08);border:1px solid rgba(200,75,68,.2);border-radius:12px;color:#C84B44;display:flex;font-size:.86rem;gap:10px;margin-bottom:16px;padding:10px 14px">
-            <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
-            <span style="flex:1">{{ session('error') }}</span>
-            <button type="button" class="btn-close btn-sm flex-shrink-0" data-bs-dismiss="alert" style="filter:invert(30%) sepia(80%) saturate(600%) hue-rotate(330deg);margin:0"></button>
-        </div>
+    <div class="ef-toast --error" role="alert">
+        <i class="bi bi-exclamation-triangle-fill ef-toast-icon"></i>
+        <span class="ef-toast-msg">{{ session('error') }}</span>
+        <button type="button" class="ef-toast-close" aria-label="Close">&#x2715;</button>
+    </div>
     @endif
+    @if(session('info'))
+    <div class="ef-toast --info" role="alert">
+        <i class="bi bi-info-circle-fill ef-toast-icon"></i>
+        <span class="ef-toast-msg">{{ session('info') }}</span>
+        <button type="button" class="ef-toast-close" aria-label="Close">&#x2715;</button>
+    </div>
+    @endif
+    @if(session('warning'))
+    <div class="ef-toast --warning" role="alert">
+        <i class="bi bi-exclamation-triangle-fill ef-toast-icon"></i>
+        <span class="ef-toast-msg">{{ session('warning') }}</span>
+        <button type="button" class="ef-toast-close" aria-label="Close">&#x2715;</button>
+    </div>
+    @endif
+</div>
 
+{{-- Main content --}}
+<main id="main-content">
     {{ $slot }}
 </main>
 
@@ -698,6 +792,27 @@
         overlay.classList.remove('show');
         document.body.style.overflow = '';
     });
+</script>
+<script>
+(function () {
+    var DISMISS_MS = 4500;
+    document.querySelectorAll('.ef-toast').forEach(function (toast) {
+        var timer = setTimeout(function () { dismiss(toast); }, DISMISS_MS);
+        var closeBtn = toast.querySelector('.ef-toast-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function () {
+                clearTimeout(timer);
+                dismiss(toast);
+            });
+        }
+    });
+    function dismiss(toast) {
+        toast.classList.add('--out');
+        setTimeout(function () {
+            if (toast.parentNode) toast.parentNode.removeChild(toast);
+        }, 260);
+    }
+}());
 </script>
 @stack('scripts')
 </body>

@@ -451,16 +451,7 @@ a.ef-wlt-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     </div>
 </div>
 
-@if (session('success'))
-    <div style="display:flex;align-items:center;gap:12px;background:rgba(15,123,95,.08);border:1px solid rgba(15,123,95,.2);border-radius:10px;padding:12px 16px;margin-bottom:16px;color:var(--ef-emerald);font-size:.875rem;font-weight:500">
-        <i class="bi bi-check-circle-fill"></i>{{ session('success') }}
-    </div>
-@endif
-@if (session('error'))
-    <div style="display:flex;align-items:center;gap:12px;background:rgba(200,75,68,.08);border:1px solid rgba(200,75,68,.2);border-radius:10px;padding:12px 16px;margin-bottom:16px;color:var(--ef-danger);font-size:.875rem;font-weight:500">
-        <i class="bi bi-exclamation-triangle-fill"></i>{{ session('error') }}
-    </div>
-@endif
+{{-- Flash handled by global toast in admin-layout --}}
 
 {{-- ── Filter bar ──────────────────────────────────────────────── --}}
 <form method="GET" action="{{ route('admin.wallets.index') }}" id="wltFilterForm">

@@ -504,10 +504,7 @@ $pendingPct = $pdistTotal > 0 ? round($summary['pay_pending'] / $pdistTotal * 10
         </div>
     </div>
 
-    {{-- Flash ────────────────────────────────────────────────── --}}
-    @if (session('success'))
-        <div class="ef-rp-flash --success"><i class="bi bi-check-circle-fill"></i><span>{{ session('success') }}</span></div>
-    @endif
+    {{-- Flash handled by global toast in admin-layout — no page-level duplicate --}}
 
     {{-- Date presets ──────────────────────────────────────────── --}}
     <div class="ef-rp-presets">
