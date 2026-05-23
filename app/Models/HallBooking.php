@@ -13,11 +13,12 @@ class HallBooking extends Model
         'customer_name', 'customer_mobile', 'customer_alt_mobile',
         'event_type', 'booking_date', 'start_time', 'end_time', 'number_of_people',
         'has_breakfast', 'has_lunch', 'has_dinner',
-        'total_amount', 'advance_amount', 'payment_status', 'status', 'notes',
+        'hall_cost', 'total_amount', 'advance_amount', 'payment_status', 'status', 'notes',
     ];
 
     protected $casts = [
         'booking_date'   => 'date',
+        'hall_cost'      => 'decimal:2',
         'total_amount'   => 'decimal:2',
         'advance_amount' => 'decimal:2',
         'has_breakfast'  => 'boolean',
@@ -48,6 +49,24 @@ class HallBooking extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(BookingPayment::class);
+    }
+
+    public function additionalServices(): HasMany
+    {
+        return $this->hasMany(BookingAdditionalService::class);
+    }
+
+    public function getMealCostAttribute(): float
+    {
+        $pricePerPerson = (float) ($this->mealPlan?->price_per_person ?? 0);
+        return $pricePerPerson * (int) $this->number_of_people;
+    }
+
+    public function getServicesTotalAttribute(): float
+    {
+        return $this->relationLoaded('additionalServices')
+            ? (float) $this->additionalServices->sum('amount')
+            : (float) $this->additionalServices()->sum('amount');
     }
 
     public function getBalanceAmountAttribute(): float

@@ -84,7 +84,14 @@
       "Bash(convert --version)",
       "Bash(php -r \"echo function_exists\\('imagecreatefromstring'\\) ? 'GD functions available' : 'GD not available';\")",
       "Bash(grep -E \"\\\\.\\(blade|php\\)$\")",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://127.0.0.1:8001/storage/qr-codes/14/qr_6a0fc277952d1.jpg\")"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://127.0.0.1:8001/storage/qr-codes/14/qr_6a0fc277952d1.jpg\")",
+      "Bash(grep -n '\\\\$rs\\\\|₹\\\\|&#8377;\\\\|\\\\\\\\\\\\\\\\u{20B9}\\\\|rupee\\\\|currency' /home/qc7107-l/Projects/ExpenseFlow/resources/views/hall/bookings/invoice.blade.php)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(list\\(d.keys\\(\\)\\)[:10]\\)\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); dv=[k for k in d.keys\\(\\) if 'dejavu' in k.lower\\(\\)]; print\\(dv\\); [print\\(d[k]\\) for k in dv[:3]]\")",
+      "Bash(chmod 775 /home/qc7107-l/Projects/ExpenseFlow/storage/fonts)",
+      "Bash(echo \"Exit: $?\")",
+      "Bash(read f *)",
+      "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/storage/framework/views/__TRACKED_VAR__)"
     ]
   }
 }

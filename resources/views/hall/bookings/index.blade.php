@@ -382,13 +382,50 @@
     box-shadow: var(--bk-shadow);
     display: flex;
     flex-direction: column;
-    overflow: hidden;
-    transition: box-shadow .16s var(--bk-ease), transform .16s var(--bk-ease);
+    /* overflow:hidden removed — it clips the dropdown menu */
+    /* transform on :hover removed — it creates a stacking context trapping dropdown z-index */
+    transition: box-shadow .16s var(--bk-ease);
+    position: relative; /* needed for z-index on hover */
 }
-.ef-bk-card:hover { box-shadow: var(--bk-shadow-h); transform: translateY(-1px); }
+.ef-bk-card:hover { box-shadow: var(--bk-shadow-h); }
 .ef-bk-card.--confirmed { border-left-color: #0F7B5F; }
 .ef-bk-card.--completed { border-left-color: #2F6FED; }
 .ef-bk-card.--cancelled { border-left-color: #C84B44; opacity: .7; }
+
+/* card with open dropdown rises above siblings and sticky filter */
+.ef-bk-card:has(.dropdown-menu.show) {
+    z-index: 50;
+}
+
+/* ── Dropdown menu polish ───────────────────────────────────────── */
+.ef-bk-card .dropdown-menu {
+    border: 1px solid var(--bk-border-s);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(18,14,8,.14), 0 2px 6px rgba(18,14,8,.06);
+    font-size: .8rem;
+    min-width: 170px;
+    padding: 4px;
+    z-index: 1000;
+}
+.ef-bk-card .dropdown-item {
+    border-radius: 6px;
+    color: var(--bk-sub);
+    font-weight: 580;
+    padding: 8px 12px;
+    transition: background .1s, color .1s;
+}
+.ef-bk-card .dropdown-item:hover {
+    background: var(--bk-cream);
+    color: var(--bk-ink);
+}
+.ef-bk-card .dropdown-item.--danger:hover {
+    background: rgba(200,75,68,.07);
+    color: #C84B44;
+}
+.ef-bk-card .dropdown-divider {
+    border-color: var(--bk-border);
+    margin: 3px 0;
+}
 
 /* Row 1: avatar + name + event + status */
 .ef-bk-r1 {
@@ -899,23 +936,35 @@ $avatarTones = ['#7a5a28','#3e6a5a','#4a5e8a','#6a4e7a','#5a6840'];
                 </a>
                 <div class="dropdown">
                     <button class="ef-bk-more" type="button"
-                            data-bs-toggle="dropdown" aria-expanded="false">
+                            data-bs-toggle="dropdown"
+                            data-bs-offset="0,4"
+                            aria-expanded="false">
                         <i class="bi bi-three-dots"></i>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end"
-                        style="border-radius:10px;border:1px solid var(--bk-border);box-shadow:var(--bk-shadow-h);font-size:.8rem;min-width:158px;">
+                    <ul class="dropdown-menu dropdown-menu-end">
                         <li>
-                            <a class="dropdown-item py-2" href="{{ route('hall.bookings.edit', $b) }}">
+                            <a class="dropdown-item" href="{{ route('hall.bookings.show', $b) }}">
+                                <i class="bi bi-eye me-2" style="color:var(--bk-faint)"></i>View Booking
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ route('hall.bookings.edit', $b) }}">
                                 <i class="bi bi-pencil me-2" style="color:var(--bk-faint)"></i>Edit Booking
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item py-2" href="{{ route('hall.bookings.show', $b) }}#record-payment">
+                            <a class="dropdown-item" href="{{ route('hall.bookings.show', $b) }}#record-payment">
                                 <i class="bi bi-cash-coin me-2" style="color:var(--bk-faint)"></i>Record Payment
                             </a>
                         </li>
+                        <li><hr class="dropdown-divider"></li>
                         <li>
-                            <a class="dropdown-item py-2" href="{{ route('hall.bookings.invoice.pdf', $b) }}">
+                            <a class="dropdown-item" href="{{ route('hall.bookings.invoice', $b) }}" target="_blank">
+                                <i class="bi bi-receipt me-2" style="color:var(--bk-faint)"></i>View Invoice
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ route('hall.bookings.invoice.pdf', $b) }}">
                                 <i class="bi bi-file-pdf me-2" style="color:var(--bk-faint)"></i>Download PDF
                             </a>
                         </li>

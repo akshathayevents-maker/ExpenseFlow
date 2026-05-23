@@ -89,11 +89,16 @@ class HallBookingController extends Controller
             'has_breakfast'        => ['boolean'],
             'has_lunch'            => ['boolean'],
             'has_dinner'           => ['boolean'],
+            'hall_cost'            => ['required', 'numeric', 'min:0'],
             'total_amount'         => ['required', 'numeric', 'min:0'],
             'advance_amount'       => ['required', 'numeric', 'min:0'],
             'payment_status'       => ['required', 'in:pending,partial,paid'],
             'status'               => ['required', 'in:confirmed,cancelled,completed'],
             'notes'                => ['nullable', 'string', 'max:2000'],
+            'services'             => ['nullable', 'array'],
+            'services.*.service_name' => ['required_with:services.*', 'string', 'max:150'],
+            'services.*.description'  => ['nullable', 'string', 'max:500'],
+            'services.*.amount'       => ['required_with:services.*', 'numeric', 'min:0'],
         ]);
 
         // Double-booking check
@@ -111,12 +116,26 @@ class HallBookingController extends Controller
         }
 
         DB::transaction(function () use ($data, $request) {
-            $data['created_by']  = Auth::id();
+            $data['created_by']    = Auth::id();
             $data['has_breakfast'] = $request->boolean('has_breakfast');
             $data['has_lunch']     = $request->boolean('has_lunch');
             $data['has_dinner']    = $request->boolean('has_dinner');
 
+            $services = $data['services'] ?? [];
+            unset($data['services']);
+
             $booking = HallBooking::create($data);
+
+            // Save additional services
+            foreach ($services as $service) {
+                if (!empty(trim($service['service_name'] ?? ''))) {
+                    $booking->additionalServices()->create([
+                        'service_name' => trim($service['service_name']),
+                        'description'  => trim($service['description'] ?? '') ?: null,
+                        'amount'       => (float) ($service['amount'] ?? 0),
+                    ]);
+                }
+            }
 
             // Record advance payment if > 0
             if ((float) $data['advance_amount'] > 0) {
@@ -137,26 +156,28 @@ class HallBookingController extends Controller
 
     public function show(HallBooking $booking): View
     {
-        $booking->load(['hall', 'mealPlan', 'creator', 'meals', 'payments.recorder']);
+        $booking->load(['hall', 'mealPlan', 'creator', 'meals', 'payments.recorder', 'additionalServices']);
         return view('hall.bookings.show', compact('booking'));
     }
 
     public function invoice(HallBooking $booking): View
     {
-        $booking->load(['hall', 'mealPlan', 'creator', 'meals', 'payments.recorder']);
+        $booking->load(['hall', 'mealPlan', 'creator', 'meals', 'payments.recorder', 'additionalServices']);
         return view('hall.bookings.invoice', compact('booking'));
     }
 
     public function downloadPdf(HallBooking $booking): Response
     {
-        $booking->load(['hall', 'mealPlan', 'creator', 'meals', 'payments.recorder']);
+        $booking->load(['hall', 'mealPlan', 'creator', 'meals', 'payments.recorder', 'additionalServices']);
         $pdf = Pdf::loadView('hall.bookings.invoice', compact('booking'))
             ->setPaper('a4', 'portrait')
             ->setOption('margin_top', 12)
             ->setOption('margin_bottom', 12)
             ->setOption('margin_left', 12)
             ->setOption('margin_right', 12)
-            ->setOption('defaultFont', 'sans-serif');
+            ->setOption('defaultFont', 'dejavu sans')   // DejaVu Sans TTF — has U+20B9 rupee glyph
+            ->setOption('isHtml5ParserEnabled', true)
+            ->setOption('isRemoteEnabled', false);
         return $pdf->download("Akshathay-Booking-{$booking->id}.pdf");
     }
 
@@ -183,11 +204,16 @@ class HallBookingController extends Controller
             'has_breakfast'        => ['boolean'],
             'has_lunch'            => ['boolean'],
             'has_dinner'           => ['boolean'],
+            'hall_cost'            => ['required', 'numeric', 'min:0'],
             'total_amount'         => ['required', 'numeric', 'min:0'],
             'advance_amount'       => ['required', 'numeric', 'min:0'],
             'payment_status'       => ['required', 'in:pending,partial,paid'],
             'status'               => ['required', 'in:confirmed,cancelled,completed'],
             'notes'                => ['nullable', 'string', 'max:2000'],
+            'services'             => ['nullable', 'array'],
+            'services.*.service_name' => ['required_with:services.*', 'string', 'max:150'],
+            'services.*.description'  => ['nullable', 'string', 'max:500'],
+            'services.*.amount'       => ['required_with:services.*', 'numeric', 'min:0'],
         ]);
 
         // Double-booking check (excluding current booking)
@@ -209,7 +235,24 @@ class HallBookingController extends Controller
         $data['has_lunch']     = $request->boolean('has_lunch');
         $data['has_dinner']    = $request->boolean('has_dinner');
 
-        $booking->update($data);
+        $services = $data['services'] ?? [];
+        unset($data['services']);
+
+        DB::transaction(function () use ($booking, $data, $services) {
+            $booking->update($data);
+
+            // Replace all additional services
+            $booking->additionalServices()->delete();
+            foreach ($services as $service) {
+                if (!empty(trim($service['service_name'] ?? ''))) {
+                    $booking->additionalServices()->create([
+                        'service_name' => trim($service['service_name']),
+                        'description'  => trim($service['description'] ?? '') ?: null,
+                        'amount'       => (float) ($service['amount'] ?? 0),
+                    ]);
+                }
+            }
+        });
 
         return redirect()->route('hall.bookings.show', $booking)->with('success', 'Booking updated.');
     }
