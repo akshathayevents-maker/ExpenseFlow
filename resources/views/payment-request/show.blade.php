@@ -164,14 +164,22 @@ body {
     color: var(--sub);
     margin-bottom: 16px;
 }
+
+/* Clickable QR container */
 .qr-box {
     background: #fff;
     border: 2px solid var(--border);
     border-radius: 16px;
-    padding: 16px;
+    cursor: zoom-in;
     display: inline-block;
+    padding: 16px;
     position: relative;
+    transition: border-color .18s, box-shadow .18s, transform .12s;
+    -webkit-tap-highlight-color: transparent;
 }
+.qr-box:hover  { border-color: rgba(26,102,69,.3); box-shadow: 0 4px 20px rgba(26,102,69,.10); }
+.qr-box:active { transform: scale(.97); }
+
 /* Corner accent marks */
 .qr-box::before, .qr-box::after {
     content: '';
@@ -190,34 +198,132 @@ body {
     border-width: 0 2px 2px 0;
     border-radius: 0 0 14px 0;
 }
-.qr-img {
-    max-width: 240px;
-    max-height: 240px;
-    width: 100%;
-    display: block;
+
+/* Skeleton loader */
+.qr-skeleton {
+    width: 200px;
+    height: 200px;
     border-radius: 8px;
+    background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: skeletonWave 1.4s infinite;
 }
-.qr-hint {
-    font-size: .75rem;
-    color: var(--sub);
-    margin-top: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
+@keyframes skeletonWave {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
 }
 
-/* No QR placeholder */
+/* QR image — hidden until loaded */
+.qr-img {
+    border-radius: 8px;
+    display: block;
+    max-width: 220px;
+    max-height: 220px;
+    object-fit: contain;
+    opacity: 0;
+    transition: opacity .25s ease;
+    width: 100%;
+}
+.qr-img.loaded { opacity: 1; }
+
+/* Tap-to-enlarge hint */
+.qr-tap-hint {
+    align-items: center;
+    color: var(--sub);
+    display: none;
+    font-size: .68rem;
+    gap: 4px;
+    justify-content: center;
+    margin-top: 8px;
+    opacity: .65;
+}
+
+/* UPI scan hint */
+.qr-hint {
+    align-items: center;
+    color: var(--sub);
+    display: flex;
+    font-size: .75rem;
+    gap: 5px;
+    justify-content: center;
+    margin-top: 12px;
+}
+
+/* No QR / error placeholder */
 .no-qr {
     background: #f9fafb;
     border: 2px dashed var(--border);
     border-radius: 16px;
-    padding: 32px 24px;
-    text-align: center;
     color: var(--sub);
     font-size: .85rem;
+    padding: 32px 24px;
+    text-align: center;
 }
 .no-qr-icon { font-size: 2.5rem; margin-bottom: 10px; opacity: .4; }
+
+/* ── Fullscreen QR preview ───────────────────────────────── */
+.qr-full-overlay {
+    align-items: center;
+    background: rgba(0,0,0,.93);
+    bottom: 0; left: 0; right: 0; top: 0;
+    display: none;
+    justify-content: center;
+    padding: 24px;
+    position: fixed;
+    z-index: 9999;
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+}
+.qr-full-overlay.open { display: flex; animation: qrFadeIn .2s ease; }
+@keyframes qrFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+.qr-full-img {
+    border-radius: 16px;
+    box-shadow: 0 24px 80px rgba(0,0,0,.6);
+    display: block;
+    max-height: 82vh;
+    max-width: 100%;
+    object-fit: contain;
+    touch-action: pinch-zoom;
+    -webkit-user-select: none;
+    user-select: none;
+}
+.qr-full-close {
+    align-items: center;
+    background: rgba(255,255,255,.14);
+    border: none;
+    border-radius: 50%;
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    font-size: 1.15rem;
+    height: 40px;
+    justify-content: center;
+    line-height: 1;
+    position: absolute;
+    right: 16px;
+    top: 16px;
+    width: 40px;
+    transition: background .15s;
+}
+.qr-full-close:hover { background: rgba(255,255,255,.25); }
+.qr-full-label {
+    bottom: 24px;
+    color: rgba(255,255,255,.45);
+    font-size: .72rem;
+    left: 0;
+    letter-spacing: .04em;
+    position: absolute;
+    right: 0;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+@media (min-width: 480px) {
+    .qr-img { max-width: 260px; max-height: 260px; }
+}
 
 /* ── Status row ──────────────────────────────────────────── */
 .status-row {
@@ -472,20 +578,34 @@ body {
     {{-- QR / Receipt --}}
     <div class="qr-section">
         <p class="qr-lbl">Scan QR to Pay</p>
+
         @if($expense->qrUrl())
-        <div class="qr-box" id="qrBox">
-            <img src="{{ $expense->qrUrl() }}"
+        {{-- Clickable QR box — tap opens fullscreen --}}
+        <div class="qr-box" id="qrBox" role="button" aria-label="Tap to enlarge QR" tabindex="0">
+            {{-- Skeleton shown while image loads --}}
+            <div class="qr-skeleton" id="qrSkeleton"></div>
+            {{-- Image starts hidden; JS fades in on load --}}
+            <img id="qrImage"
+                 src="{{ $expense->qrUrl() }}"
                  class="qr-img"
-                 id="qrImage"
                  alt="Payment QR — {{ $expense->title }}"
                  loading="eager"
-                 onerror="document.getElementById('qrBox').style.display='none';document.getElementById('qrError').style.display='block';">
+                 decoding="async"
+                 style="display:none">
         </div>
+
+        {{-- Tap-to-enlarge pill (shown after image loads) --}}
+        <div class="qr-tap-hint" id="qrTapHint">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+            Tap to enlarge
+        </div>
+
+        {{-- Error fallback — shown if image fails to load --}}
         <div id="qrError" style="display:none">
             <div class="no-qr">
                 <div class="no-qr-icon">⚠️</div>
                 <p style="font-weight:700;color:#374151;margin-bottom:6px">QR image unavailable</p>
-                <p style="font-size:.78rem;margin-bottom:14px">The image could not load. Try opening the original link.</p>
+                <p style="font-size:.78rem;margin-bottom:14px">The image could not load.</p>
                 <a href="{{ $expense->qrUrl() }}"
                    target="_blank"
                    rel="noopener"
@@ -495,10 +615,12 @@ body {
                 </a>
             </div>
         </div>
-        <p class="qr-hint">
+
+        <p class="qr-hint" id="qrHint">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
             Scan with any UPI app to pay
         </p>
+
         @else
         <div class="no-qr">
             <div class="no-qr-icon">🖼️</div>
@@ -506,6 +628,18 @@ body {
         </div>
         @endif
     </div>
+
+    {{-- Fullscreen QR viewer --}}
+    @if($expense->qrUrl())
+    <div class="qr-full-overlay" id="qrFullOverlay" role="dialog" aria-modal="true" aria-label="QR fullscreen">
+        <button class="qr-full-close" id="qrFullClose" aria-label="Close">&#x2715;</button>
+        <img id="qrFullImg"
+             src=""
+             class="qr-full-img"
+             alt="Payment QR fullscreen — {{ $expense->title }}">
+        <p class="qr-full-label">Tap anywhere to close</p>
+    </div>
+    @endif
 
     {{-- Status --}}
     <div class="status-row">
@@ -594,23 +728,97 @@ body {
     </div>
 </div>
 
+@endif
+@endauth
+
+{{-- QR image load + fullscreen — no inline handlers, works in WhatsApp/Safari WebView --}}
 <script>
 (function () {
-    const modal  = document.getElementById('paidModal');
-    const btnOpen   = document.getElementById('btnMarkPaid');
-    const btnCancel = document.getElementById('btnModalCancel');
-    const form   = document.getElementById('markPaidForm');
-    const btnConfirm = document.getElementById('btnModalConfirm');
+    var img      = document.getElementById('qrImage');
+    var skeleton = document.getElementById('qrSkeleton');
+    var qrBox    = document.getElementById('qrBox');
+    var qrError  = document.getElementById('qrError');
+    var qrHint   = document.getElementById('qrHint');
+    var tapHint  = document.getElementById('qrTapHint');
+    var overlay  = document.getElementById('qrFullOverlay');
+    var fullImg  = document.getElementById('qrFullImg');
+    var closeBtn = document.getElementById('qrFullClose');
 
-    btnOpen.addEventListener('click', () => modal.classList.add('open'));
-    btnCancel.addEventListener('click', () => modal.classList.remove('open'));
-    modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+    function showImage() {
+        if (skeleton) skeleton.style.display = 'none';
+        if (img) { img.style.display = 'block'; img.classList.add('loaded'); }
+        if (tapHint) tapHint.style.display = 'flex';
+    }
 
-    form.addEventListener('submit', () => {
+    function showError() {
+        if (skeleton) skeleton.style.display = 'none';
+        if (qrBox)    qrBox.style.display    = 'none';
+        if (qrError)  qrError.style.display  = 'block';
+        if (qrHint)   qrHint.style.display   = 'none';
+        if (tapHint)  tapHint.style.display  = 'none';
+    }
+
+    function openFull() {
+        if (!overlay || !fullImg || !img || !img.src) return;
+        fullImg.src = img.src;
+        overlay.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeFull() {
+        if (!overlay) return;
+        overlay.classList.remove('open');
+        document.body.style.overflow = '';
+        if (fullImg) setTimeout(function () { fullImg.src = ''; }, 250);
+    }
+
+    if (img) {
+        img.addEventListener('load',  showImage);
+        img.addEventListener('error', showError);
+        if (img.complete) {
+            img.naturalWidth > 0 ? showImage() : showError();
+        }
+    }
+
+    if (qrBox) {
+        qrBox.addEventListener('click', openFull);
+        qrBox.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openFull(); }
+        });
+    }
+
+    if (overlay) {
+        overlay.addEventListener('click', function (e) {
+            if (e.target === overlay) closeFull();
+        });
+    }
+    if (closeBtn) closeBtn.addEventListener('click', closeFull);
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeFull();
+    });
+}());
+</script>
+
+{{-- Admin mark-paid modal JS (guarded — safe when element absent) --}}
+@auth
+@if(in_array(auth()->user()->role ?? '', ['admin','manager']))
+<script>
+(function () {
+    var modal    = document.getElementById('paidModal');
+    var btnOpen  = document.getElementById('btnMarkPaid');
+    var btnCancel= document.getElementById('btnModalCancel');
+    var form     = document.getElementById('markPaidForm');
+    var btnConfirm=document.getElementById('btnModalConfirm');
+    if (!modal || !btnOpen) return;
+
+    btnOpen.addEventListener('click', function () { modal.classList.add('open'); });
+    btnCancel.addEventListener('click', function () { modal.classList.remove('open'); });
+    modal.addEventListener('click', function (e) { if (e.target === modal) modal.classList.remove('open'); });
+    form.addEventListener('submit', function () {
         btnConfirm.disabled = true;
         btnConfirm.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Processing…';
     });
-})();
+}());
 </script>
 @endif
 @endauth
