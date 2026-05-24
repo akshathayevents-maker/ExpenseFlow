@@ -65,7 +65,7 @@
         max-width: 420px;
         pointer-events: none;
         position: fixed;
-        top: calc(var(--tb-height, 58px) + 12px);
+        top: calc(var(--tb-height, 76px) + 12px);
         transform: translateX(-50%);
         width: calc(100% - 32px);
         z-index: 1200;
@@ -141,7 +141,17 @@
     <style>
         :root {
             --sb-width:     280px;
-            --tb-height:    58px;
+            /*
+             * ── Topbar height system ──────────────────────────────────────
+             * --tb-base    = content row height (no safe-area).
+             *               64px = premium height. On iOS (SAI ≥ 20px always),
+             *               total ≥ 84px. On notch (SAI 34px) = 98px.
+             *               On Android browser (SAI 0) = 64px.
+             * --tb-height  = total fixed height including safe-area inset.
+             *               Used for: topbar height, sidebar top, main-content margin.
+             */
+            --tb-base:      64px;
+            --tb-height:    calc(var(--tb-base) + env(safe-area-inset-top, 0px));
             --sb-gold:      #B8893E;
             --sb-gold-soft: #D6B97A;
             --pg-bg:        var(--ef-bg);
@@ -154,17 +164,77 @@
 
         /* ── Topbar ─────────────────────────────────────────────────────── */
         #topbar {
+            /*
+             * ─── Safe-area two-layer pattern (iOS / PWA / standalone) ────
+             *
+             * Problem: env(safe-area-inset-top) is the notch / Dynamic Island /
+             * status-bar height. Content must NOT appear there. Using
+             * align-items:center + padding-top on a fixed flex container is
+             * broken on iOS Safari: it centers in the TOTAL height (content +
+             * padding), so items land inside the status bar.
+             *
+             * Solution — two layers:
+             *   OUTER (#topbar)
+             *     height: var(--tb-height) = content + safe-area
+             *     flex-direction: column; justify-content: flex-end
+             *     padding-top: env(safe-area-inset-top)   ← absorbs the inset
+             *   INNER (.ef-topbar-inner)
+             *     height: var(--tb-base) = content only (64px)
+             *     flex-direction: row; align-items: center   ← centering is correct
+             *       because the inner has no padding-top
+             *
+             * Result: inner row always sits BELOW the notch, perfectly centered.
+             * Works in browser, PWA standalone, installed home-screen app.
+             * ──────────────────────────────────────────────────────────── */
             height: var(--tb-height);
             position: fixed; top: 0; left: 0; right: 0; z-index: 1030;
-            background: rgba(14,15,13,.97);
-            backdrop-filter: blur(20px) saturate(140%);
-            border-bottom: 1px solid rgba(184,137,62,.10);
+            /* Premium glassmorphism: dark translucent + blur + gold grain */
+            background: rgba(10, 12, 10, 0.96);
+            -webkit-backdrop-filter: blur(24px) saturate(160%);
+            backdrop-filter: blur(24px) saturate(160%);
+            /* Gold-tinted subtle border — brand identity cue */
+            border-bottom: 1px solid rgba(184, 137, 62, 0.18);
+            box-shadow: 0 1px 0 rgba(184, 137, 62, 0.06), 0 4px 24px rgba(0, 0, 0, 0.18);
+            /* Two-layer flex */
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            /* Absorb all safe-area sides */
+            padding-top:   env(safe-area-inset-top, 0px);
+            padding-left:  env(safe-area-inset-left, 0px);
+            padding-right: env(safe-area-inset-right, 0px);
+            /* Stacking context — no transform (transform breaks fixed positioning on iOS) */
+            isolation: isolate;
+        }
+        /* ── Inner content row — always 64px, always below the safe area ── */
+        .ef-topbar-inner {
+            height: var(--tb-base);    /* exactly 64px — never changes */
+            display: flex;
+            align-items: center;       /* safe: no padding-top on THIS element */
+            gap: 0.75rem;
+            padding: 0 1rem;
+            flex-shrink: 0;
+            width: 100%;
         }
         #topbar .brand {
             width: var(--sb-width); font-weight: 720; font-size: .96rem;
             letter-spacing: .02em; flex-shrink: 0; color: rgba(255,255,255,.92);
         }
         #topbar .brand .bi { color: var(--sb-gold); }
+
+        /* ── Hamburger touch target — 44px minimum (WCAG 2.5.5) ─────────── */
+        #sidebar-toggle {
+            min-width: 44px; min-height: 44px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 10px;
+            transition: background .15s ease;
+        }
+        #sidebar-toggle:hover, #sidebar-toggle:focus-visible {
+            background: rgba(255,255,255,.08);
+        }
+        #sidebar-toggle:active {
+            background: rgba(255,255,255,.14);
+        }
 
         /* ═══════════════════════════════════════════════════════════════════
            SIDEBAR  —  Premium dark drawer
@@ -382,8 +452,17 @@
         #main-content {
             margin-left: var(--sb-width);
             margin-top: var(--tb-height);
-            min-height: calc(100vh - var(--tb-height));
-            overflow-x: hidden;
+            /*
+             * ANDROID SCROLL FIX: Use 100dvh (dynamic viewport height).
+             * 100vh on Android Chrome = page height BEFORE the URL bar hides.
+             * When the URL bar hides (on scroll), 100vh doesn't update, causing
+             * content to be shorter than the visible viewport = blank gap.
+             * 100dvh tracks the actual visible viewport including URL-bar changes.
+             * Use clip not hidden: hidden creates a BFC that confuses Android
+             * Chrome's scroll container detection.
+             */
+            min-height: calc(100dvh - var(--tb-height));
+            overflow-x: clip;
             padding: 32px;
         }
 
@@ -391,7 +470,7 @@
         @media (max-width: 991.98px) {
             #sidebar { transform: translateX(-100%); }
             #sidebar.show { transform: translateX(0); }
-            #main-content { margin-left: 0; overflow-x: hidden; padding: 16px; }
+            #main-content { margin-left: 0; overflow-x: clip; padding: 16px; }
             #topbar .brand { width: auto; }
         }
         #sidebar-overlay {
@@ -434,7 +513,8 @@
 <body>
 
 {{-- Topbar --}}
-<nav id="topbar" class="d-flex align-items-center px-3 gap-2">
+<nav id="topbar">
+<div class="ef-topbar-inner">
     <div class="brand d-flex align-items-center gap-2">
         <button class="btn btn-sm text-white d-lg-none me-1" id="sidebar-toggle">
             <i class="bi bi-list fs-5"></i>
@@ -521,6 +601,7 @@
             </button>
         </form>
     </div>
+</div>{{-- /.ef-topbar-inner --}}
 </nav>
 
 <div id="sidebar-overlay"></div>
@@ -1027,18 +1108,30 @@
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebar-overlay');
 
-    // iOS-safe scroll lock: position:fixed pattern preserves fixed element behaviour.
-    // DO NOT use body.style.overflow = 'hidden' — iOS Safari reparents fixed elements
-    // into the scroll layer when body overflow changes, causing the bottom nav to scroll.
+    // Scroll lock: position:fixed pattern, class-based (safe on iOS + Android).
+    //
+    // WHY NOT body.style.overflow = 'hidden':
+    //   iOS Safari reparents fixed elements into the scroll layer when body
+    //   overflow changes — bottom nav scrolls with content.
+    //
+    // WHY NOT document.body.style.cssText = '...':
+    //   cssText REPLACES all existing inline styles — destroys Bootstrap modal's
+    //   padding-right compensation and any other dynamic inline styles, causing
+    //   layout jumps when the drawer closes while a modal is open.
+    //
+    // CLASS-BASED FIX: .ef-scroll-locked defined in app.css applies
+    //   position:fixed + overflow-y:scroll without touching other inline styles.
+    //   Only body.style.top is written as an inline property (minimal footprint).
     let _sidebarScrollY = 0;
 
     function lockBodyScroll() {
         _sidebarScrollY = window.scrollY;
-        document.body.style.cssText =
-            'position:fixed;top:-' + _sidebarScrollY + 'px;width:100%;overflow-y:scroll;';
+        document.body.style.top = '-' + _sidebarScrollY + 'px';
+        document.body.classList.add('ef-scroll-locked');
     }
     function unlockBodyScroll() {
-        document.body.style.cssText = '';
+        document.body.classList.remove('ef-scroll-locked');
+        document.body.style.top = '';
         window.scrollTo(0, _sidebarScrollY);
     }
 

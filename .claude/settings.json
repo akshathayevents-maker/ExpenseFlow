@@ -95,7 +95,10 @@
       "Bash(awk '/^@media/{d++} /^\\\\}/{c++} END{print \"Media opens:\"d, \"All braces:\", c}' /home/qc7107-l/Projects/ExpenseFlow/public/css/mobile.css)",
       "Bash(python3 -m json.tool /home/qc7107-l/Projects/ExpenseFlow/public/site.webmanifest)",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\([t['name'] for t in d.get\\('tables',[]\\) if 'session' in t['name'].lower\\(\\)]\\)\")",
-      "Bash(chmod +x /home/qc7107-l/Projects/ExpenseFlow/deployment/deploy.sh /home/qc7107-l/Projects/ExpenseFlow/deployment/rollback.sh /home/qc7107-l/Projects/ExpenseFlow/deployment/cleanup.sh /home/qc7107-l/Projects/ExpenseFlow/deployment/health-check.sh)"
+      "Bash(chmod +x /home/qc7107-l/Projects/ExpenseFlow/deployment/deploy.sh /home/qc7107-l/Projects/ExpenseFlow/deployment/rollback.sh /home/qc7107-l/Projects/ExpenseFlow/deployment/cleanup.sh /home/qc7107-l/Projects/ExpenseFlow/deployment/health-check.sh)",
+      "Bash(awk '/ef-m-bottom|ef-m-nav|ef\\\\.m\\\\.bottom/{found=1} found{print NR\": \"$0} /^<\\\\/style>/{found=0}' /home/qc7107-l/Projects/ExpenseFlow/resources/views/components/admin-layout.blade.php)",
+      "Bash(awk '/\\\\.ef-m-bottomnav/,/^[[:space:]]*}/' /home/qc7107-l/Projects/ExpenseFlow/resources/views/components/admin-layout.blade.php)",
+      "Bash(git commit -m 'fix: Android scroll, iOS safe-area topbar redesign, deploy.sh optimization *)"
     ]
   }
 }

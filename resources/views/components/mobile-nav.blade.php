@@ -72,96 +72,146 @@
      CSS  (scoped with .ef-mnav- prefix — safe to embed in body)
 ═══════════════════════════════════════════════════════════════════ --}}
 <style>
-/* ── Topbar ──────────────────────────────────────────────────────
-   Base height: 52px content.
-   Actual visual height on device: 52px + env(safe-area-inset-top).
-   Host body must add this as padding-top to avoid topbar overlap.
-──────────────────────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════
+   MOBILE NAV — Premium topbar system
+   ──────────────────────────────────────────────────────────────
+
+   HEIGHT SYSTEM
+   --ef-topbar-base   = content row height (no safe-area inset)
+                        64px = 44px min tap + comfortable padding
+                        Matches admin-layout --tb-base for consistency.
+   --ef-topbar-height = total fixed bar height including safe-area.
+                        On standard iOS  (SAI 20px): 84px total
+                        On iPhone notch  (SAI 34px): 98px total
+                        On Dynamic Island(SAI 59px): 123px total
+                        On Android/browser(SAI  0px): 64px total
+                        All cases ≥ 64px, iOS cases ≥ 84px.
+
+   Host body must pad-top = calc(--ef-topbar-base + env(SAI) + gap)
+   to ensure content clears the fixed bar.
+══════════════════════════════════════════════════════════════════ */
 :root {
-    --ef-topbar-base: 52px;
+    --ef-topbar-base:   64px;
+    --ef-topbar-height: calc(var(--ef-topbar-base) + env(safe-area-inset-top, 0px));
 }
 
+/* ── OUTER: fixed bar — absorbs safe-area via padding-top ────────
+   Two-layer pattern is the ONLY correct iOS approach:
+   • Outer: flex-column + justify-content:flex-end + padding-top:SAI
+     → pushes inner row BELOW the notch/Dynamic Island
+   • Inner: flex-row + align-items:center (no padding-top here)
+     → centering is correct because inner has no top padding
+
+   DO NOT use align-items:center on the outer with padding-top.
+   iOS Safari flex bug: centers relative to TOTAL height (incl padding),
+   not content area → items appear inside the status bar.
+──────────────────────────────────────────────────────────────── */
 .ef-mnav-topbar {
-    /* Fixed full-width bar — sits above all page content */
     position: fixed;
     top: 0; left: 0; right: 0;
     z-index: 300;
-    height: calc(var(--ef-topbar-base) + env(safe-area-inset-top, 0px));
-    padding-top: env(safe-area-inset-top, 0px);
+    height: var(--ef-topbar-height);
 
-    /* Dark translucent brand background */
-    background: rgba(12, 22, 16, 0.97);
-    -webkit-backdrop-filter: blur(14px) saturate(180%);
-    backdrop-filter: blur(14px) saturate(180%);
-    border-bottom: 1px solid rgba(255, 255, 255, .06);
+    /* Premium glassmorphism shell */
+    background: rgba(10, 16, 12, 0.97);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(24px) saturate(180%);
+    /* Subtle gold-tinted bottom border for brand identity */
+    border-bottom: 1px solid rgba(184, 137, 62, 0.18);
+    box-shadow: 0 1px 0 rgba(184, 137, 62, 0.06), 0 4px 28px rgba(0, 0, 0, 0.22);
 
-    /* Layout */
+    /* Two-layer flex — outer column */
     display: flex;
-    align-items: center;
-    gap: 0;
-    padding-left: env(safe-area-inset-left, 0px);
+    flex-direction: column;
+    justify-content: flex-end;
+
+    /* Absorb all safe-area sides (landscape notch / curved screen) */
+    padding-top:   env(safe-area-inset-top, 0px);
+    padding-left:  env(safe-area-inset-left, 0px);
     padding-right: env(safe-area-inset-right, 0px);
 
-    /* Stacking context without transform — iOS-safe */
+    /* Stacking context WITHOUT transform.
+       transform on a fixed element detaches it from the viewport
+       compositor on iOS — do NOT add transform/will-change here. */
     isolation: isolate;
 }
 
-/* Hamburger button */
+/* ── INNER: 64px content row — always below the safe area ───────── */
+.ef-mnav-topbar-inner {
+    height: var(--ef-topbar-base);   /* always exactly 64px */
+    display: flex;
+    align-items: center;             /* safe: no padding-top on this element */
+    flex-shrink: 0;
+    width: 100%;
+}
+
+/* ── Hamburger ───────────────────────────────────────────────────
+   Touch target = 48×64px (full bar height). Far exceeds 44px min.
+──────────────────────────────────────────────────────────────── */
 .ef-mnav-hamburger {
-    width: 52px; height: 52px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 4.5px;
+    /* Wide touch target — takes full bar height naturally */
+    width: 56px;
+    height: var(--ef-topbar-base);  /* 64px — vertically fills the row */
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 5px;
     background: none; border: none; cursor: pointer;
     padding: 0; flex-shrink: 0;
     -webkit-tap-highlight-color: transparent;
     border-radius: 0;
-    /* Touch target ≥ 44px (WCAG 2.5.5) */
+    transition: background .15s ease;
+}
+.ef-mnav-hamburger:active {
+    background: rgba(255, 255, 255, .08);
 }
 .ef-mnav-hamburger-line {
     display: block;
-    width: 20px; height: 2px;
+    width: 22px; height: 2px;
     background: rgba(255, 255, 255, .88);
     border-radius: 2px;
     transition: transform .22s ease, opacity .18s ease, width .18s ease;
     transform-origin: center;
 }
-/* Hamburger → X animation */
+/* Hamburger → X morph */
 .ef-mnav-hamburger[aria-expanded="true"] .ef-mnav-hamburger-line:nth-child(1) {
-    transform: translateY(6.5px) rotate(45deg);
+    transform: translateY(7px) rotate(45deg);
 }
 .ef-mnav-hamburger[aria-expanded="true"] .ef-mnav-hamburger-line:nth-child(2) {
     opacity: 0; width: 0;
 }
 .ef-mnav-hamburger[aria-expanded="true"] .ef-mnav-hamburger-line:nth-child(3) {
-    transform: translateY(-6.5px) rotate(-45deg);
+    transform: translateY(-7px) rotate(-45deg);
 }
 
-/* Page title in topbar */
+/* ── Page title — optically centred between equal-width side slots ─ */
 .ef-mnav-topbar-title {
     flex: 1;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-size: .88rem; font-weight: 700;
-    color: rgba(255, 255, 255, .9);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+    font-size: .9rem; font-weight: 700;
+    color: rgba(255, 255, 255, .92);
     letter-spacing: .01em;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    /* Centre between buttons — achieved by flex + equal-width side slots */
     text-align: center;
+    /* Subtle text shadow — depth on glassmorphic surface */
+    text-shadow: 0 1px 4px rgba(0, 0, 0, .3);
 }
 
-/* Right slot (avatar or spacer) */
+/* ── Right slot — matches hamburger width for optical centering ─── */
 .ef-mnav-topbar-right {
-    width: 52px; height: 52px;
+    width: 56px;
+    height: var(--ef-topbar-base);  /* 64px — vertically fills the row */
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
 }
 .ef-mnav-user-badge {
-    width: 30px; height: 30px; border-radius: 50%;
+    width: 34px; height: 34px; border-radius: 50%;
     background: linear-gradient(135deg, #1a6645, #22845a);
-    color: #fff; font-size: .72rem; font-weight: 800;
+    color: #fff; font-size: .74rem; font-weight: 800;
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
     cursor: pointer;
-    border: 1.5px solid rgba(255,255,255,.15);
+    border: 1.5px solid rgba(255,255,255,.18);
+    box-shadow: 0 2px 8px rgba(0,0,0,.24);
 }
 
 /* ── Backdrop ────────────────────────────────────────────────────
@@ -195,14 +245,21 @@
     z-index: 500;
     width: min(82vw, 300px);
 
-    /* Extend into safe areas */
-    padding-top: env(safe-area-inset-top, 0px);
-    padding-left: env(safe-area-inset-left, 0px);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    /*
+     * Safe-area: do NOT add padding-top here.
+     * The drawer-header uses the two-layer pattern to absorb SAI top
+     * (height = 64px + SAI, padding-top = SAI, justify-content:flex-end).
+     * Adding padding-top BOTH here AND in the header doubles the offset,
+     * pushing the close button too far down.
+     *
+     * Side/bottom safe-areas: add here since the drawer extends to edges.
+     */
+    padding-left:   env(safe-area-inset-left,   0px);
+    padding-bottom: env(safe-area-inset-bottom,  0px);
 
-    background: #0b1710;
-    border-right: 1px solid rgba(255, 255, 255, .07);
-    box-shadow: 4px 0 32px rgba(0, 0, 0, .4);
+    background: linear-gradient(180deg, #0c1511 0%, #0b1710 40%, #090f0d 100%);
+    border-right: 1px solid rgba(184, 137, 62, .1);
+    box-shadow: 4px 0 40px rgba(0, 0, 0, .45);
 
     display: flex; flex-direction: column;
     overflow: hidden;
@@ -210,21 +267,42 @@
     /* Closed state */
     transform: translateX(-100%);
     transition: transform .28s cubic-bezier(.4, 0, .2, 1);
-    will-change: transform; /* GPU layer — safe on drawer, NOT on fixed page elements */
+    /*
+     * will-change: transform — GPU layer is SAFE on the drawer because
+     * it is NOT a viewport-fixed element that serves as the scroll container.
+     * The topbar and bottom nav must NOT use will-change (they break iOS
+     * compositor), but the drawer slides in/out and doesn't scroll content.
+     */
+    will-change: transform;
 }
 .ef-mnav-drawer.open {
     transform: translateX(0);
 }
 
-/* Drawer header row */
+/* ── Drawer header — two-layer pattern, mirrors topbar exactly ────
+   The drawer starts at top:0 (no padding-top on the drawer itself).
+   The header absorbs SAI exactly like the topbar:
+     outer: height = 64px + SAI, padding-top = SAI, justify-content:flex-end
+     inner: height = 64px (no padding-top) → aligns with topbar inner
+   Result: close button sits at the same visual position as the hamburger.
+──────────────────────────────────────────────────────────────── */
 .ef-mnav-drawer-header {
-    display: flex; align-items: center;
-    height: calc(var(--ef-topbar-base) + env(safe-area-inset-top, 0px));
+    height: var(--ef-topbar-height);    /* = 64px + env(SAI) */
     padding-top: env(safe-area-inset-top, 0px);
-    padding: env(safe-area-inset-top, 0px) 20px 0 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
     flex-shrink: 0;
-    border-bottom: 1px solid rgba(255, 255, 255, .06);
-    min-height: 52px;
+    /* Dark header matching topbar background */
+    background: rgba(10, 16, 12, 0.6);
+}
+.ef-mnav-drawer-header-inner {
+    height: var(--ef-topbar-base);      /* exactly 64px — aligns with topbar inner */
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+    flex-shrink: 0;
 }
 .ef-mnav-brand-name {
     flex: 1;
@@ -376,6 +454,7 @@
      TOPBAR HTML
 ═══════════════════════════════════════════════════════════════════ --}}
 <div class="ef-mnav-topbar" id="efNavTopbar" role="banner" aria-label="Site navigation">
+<div class="ef-mnav-topbar-inner">
 
     {{-- Hamburger --}}
     <button class="ef-mnav-hamburger"
@@ -407,6 +486,7 @@
         @endif
     </div>
 
+</div>{{-- /.ef-mnav-topbar-inner --}}
 </div>
 
 {{-- ═══════════════════════════════════════════════════════════════
@@ -425,11 +505,13 @@
 
     {{-- Drawer header --}}
     <div class="ef-mnav-drawer-header">
-        <div class="ef-mnav-brand-name">
-            <span class="ef-mnav-brand-dot" aria-hidden="true"></span>
-            {{ config('app.name', 'ExpenseFlow') }}
+        <div class="ef-mnav-drawer-header-inner">
+            <div class="ef-mnav-brand-name">
+                <span class="ef-mnav-brand-dot" aria-hidden="true"></span>
+                {{ config('app.name', 'ExpenseFlow') }}
+            </div>
+            <button class="ef-mnav-close" id="efNavClose" type="button" aria-label="Close navigation">&#x2715;</button>
         </div>
-        <button class="ef-mnav-close" id="efNavClose" type="button" aria-label="Close navigation">&#x2715;</button>
     </div>
 
     {{-- User identity (authenticated only) --}}
@@ -513,23 +595,29 @@
 
     if (!hamburger || !drawer || !backdrop) return; // guard
 
-    /* ── Scroll lock (iOS-safe pattern) ──────────────────────────
-       body.overflow = hidden does NOT work on iOS Safari — fixed
-       elements re-composite into the scroll layer.
-       Pattern: position:fixed + saved scrollY is the only
-       reliable cross-browser solution.
+    /* ── Scroll lock — class-based (iOS + Android safe) ────────────
+       WHY NOT overflow:hidden — iOS reparents fixed elements into
+       the scroll layer, causing bottom nav to scroll with content.
+
+       WHY NOT cssText — replaces ALL inline styles, destroying
+       Bootstrap modal's padding-right and any other dynamic styles.
+       Layout jumps when drawer closes while modal is open.
+
+       CLASS-BASED: .ef-scroll-locked (defined in app.css) applies
+       position:fixed + overflow-y:scroll via CSS. Only body.style.top
+       is written as an inline property — minimal footprint, safe.
     ──────────────────────────────────────────────────────────── */
     var _savedScrollY = 0;
 
     function lockBodyScroll() {
         _savedScrollY = window.scrollY;
-        document.body.style.cssText =
-            'position:fixed;top:-' + _savedScrollY + 'px;' +
-            'width:100%;overflow-y:scroll;';
+        document.body.style.top = '-' + _savedScrollY + 'px';
+        document.body.classList.add('ef-scroll-locked');
     }
 
     function unlockBodyScroll() {
-        document.body.style.cssText = '';
+        document.body.classList.remove('ef-scroll-locked');
+        document.body.style.top = '';
         window.scrollTo(0, _savedScrollY);
     }
 

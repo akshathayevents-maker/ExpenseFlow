@@ -38,9 +38,13 @@ SUPERVISOR_GROUP="expenseflow-worker"
 TIMESTAMP=$(date +%Y%m%d%H%M%S)
 LOCK_FILE="/tmp/expenseflow_deploy.lock"
 DEPLOY_START=$(date +%s)
-T_COMPOSER_START=0; T_COMPOSER_END=0
-T_BUILD_START=0;    T_BUILD_END=0
-T_MIGRATE_START=0;  T_MIGRATE_END=0
+T_COMPOSER_START=0;  T_COMPOSER_END=0
+T_NPM_CI_START=0;    T_NPM_CI_END=0    # npm ci only
+T_NPM_BUILD_START=0; T_NPM_BUILD_END=0 # vite build only
+T_BUILD_START=0;     T_BUILD_END=0     # total frontend phase
+T_MIGRATE_START=0;   T_MIGRATE_END=0
+FE_SKIP_REASON=""    # why frontend build was skipped (empty = was built)
+NM_SKIP_REASON=""    # why npm ci was skipped (empty = was run)
 
 # Ensure common binary paths are available in non-interactive deploy shells
 export PATH="/usr/local/bin:/usr/bin:/bin:${PATH:-}"
@@ -393,6 +397,44 @@ restart_workers() {
     fi
 }
 
+# ── Helper: compute a combined fingerprint of all frontend source files ───────
+#
+# Returns a single MD5 that changes when ANY of the following change:
+#   package.json / package-lock.json  → triggers npm ci
+#   vite / tailwind / postcss configs → triggers full rebuild
+#   resources/js/**                   → JS source changed
+#   resources/css/**                  → CSS/SCSS changed
+#   resources/views/**/*.blade.php    → Tailwind class scanning
+#   public/sw.js                      → service worker source
+#
+# If the fingerprint matches ${SHARED_BUILD_CACHE}/.fe_hash, the build
+# output in ${SHARED_BUILD_CACHE}/build/ can be reused without running
+# Vite at all — saving 2–5 min per backend-only deploy.
+frontend_fingerprint() {
+    local dir="$1"
+    {
+        # Config files — any change in these invalidates both npm ci and build
+        for f in package.json package-lock.json \
+                  vite.config.js vite.config.ts vite.config.mjs \
+                  tailwind.config.js tailwind.config.ts tailwind.config.cjs \
+                  postcss.config.js postcss.config.cjs \
+                  tsconfig.json jsconfig.json; do
+            [[ -f "${dir}/${f}" ]] && md5sum "${dir}/${f}" || true
+        done
+        # JS source tree
+        find "${dir}/resources/js"  -type f 2>/dev/null | LC_ALL=C sort | \
+            xargs md5sum 2>/dev/null || true
+        # CSS / SCSS source tree
+        find "${dir}/resources/css" -type f 2>/dev/null | LC_ALL=C sort | \
+            xargs md5sum 2>/dev/null || true
+        # Blade templates — Tailwind purges/scans these for class names
+        find "${dir}/resources/views" -type f -name "*.blade.php" 2>/dev/null | \
+            LC_ALL=C sort | xargs md5sum 2>/dev/null || true
+        # Service worker source (deployed to public/ before sw.js is stamped)
+        [[ -f "${dir}/public/sw.js" ]] && md5sum "${dir}/public/sw.js" || true
+    } | md5sum | awk '{print $1}'
+}
+
 # ── Auto-rollback: restore previous release if deploy fails at any point ──────
 DEPLOY_PREVIOUS_RELEASE=""
 cleanup_on_failure() {
@@ -468,6 +510,15 @@ SHARED_DIR="${APP_DIR}/shared"
 CURRENT_LINK="${APP_DIR}/current"
 RELEASE_DIR="${RELEASES_DIR}/${TIMESTAMP}"
 
+# ── Persistent shared caches (survive across ALL releases) ────────────────────
+# node_modules_cache — stores the last npm-ci result indexed by package-lock hash.
+#   Eliminates the 15–20 min npm ci on every deploy when deps haven't changed.
+# build_cache        — stores the last Vite output (public/build) indexed by a
+#   fingerprint of ALL frontend source files. Eliminates ~2–5 min Vite build
+#   on backend-only deploys.
+SHARED_NM_CACHE="${SHARED_DIR}/node_modules_cache"
+SHARED_BUILD_CACHE="${SHARED_DIR}/build_cache"
+
 # ── Acquire deploy lock (prevent concurrent deploys) ─────────────────────────
 exec 200>"${LOCK_FILE}"
 if ! flock -n 200 2>/dev/null; then
@@ -505,6 +556,11 @@ for required_dir in "${RELEASES_DIR}" "${SHARED_DIR}" "${SHARED_DIR}/storage"; d
         log_ok "Created: ${required_dir}"
     fi
 done
+
+# Ensure persistent cache directories exist (created once, survive all releases)
+mkdir -p "${SHARED_NM_CACHE}"
+mkdir -p "${SHARED_BUILD_CACHE}"
+log_ok "Persistent caches: node_modules_cache + build_cache ready"
 
 # ── 1.3 Bare git repo ─────────────────────────────────────────────────────────
 if [[ ! -d "${REPO_DIR}" ]]; then
@@ -734,149 +790,256 @@ T_COMPOSER_END=$(date +%s)
 log_ok "Composer done ($((T_COMPOSER_END - T_COMPOSER_START))s)"
 
 # =============================================================================
-# PHASE 6 — FRONTEND BUILD (with OOM protection + validation)
+# PHASE 6 — FRONTEND BUILD  (smart cache + zero-wasted-npm-ci architecture)
+#
+# THREE-LAYER CACHE STRATEGY:
+#   Layer 1 — Frontend fingerprint:  if no source changed → skip Vite entirely
+#   Layer 2 — Shared node_modules:   if package-lock unchanged → skip npm ci
+#   Layer 3 — Previous release:      hardlink fallback for node_modules
+#
+# TARGET SAVINGS vs naïve "npm ci + vite build" every time:
+#   Backend-only change   → 100% skipped (fingerprint hit) = saves 15-20 min
+#   Frontend change only  → npm ci skipped (shared cache hit) = saves 15-20 min
+#   Full dep upgrade      → full npm ci + vite build (unavoidable)
 # =============================================================================
 step "Building frontend assets"
-if [[ ${SAFE_MODE} -eq 1 || "${DEPLOY_MODE}" == "backend" ]]; then
-    log_warn "${DEPLOY_MODE^^} mode — frontend build skipped (reusing assets from previous release)"
-    # Copy previous build artifacts so app has working assets
-    if [[ -n "${DEPLOY_PREVIOUS_RELEASE}" && -d "${DEPLOY_PREVIOUS_RELEASE}/public/build" ]]; then
-        cp -r "${DEPLOY_PREVIOUS_RELEASE}/public/build" "${RELEASE_DIR}/public/build"
-        log_ok "Previous build artifacts copied to new release"
-    fi
-elif [[ -f "${RELEASE_DIR}/package.json" ]] && command -v node &>/dev/null; then
-    cd "${RELEASE_DIR}"
+T_BUILD_START=$(date +%s)
 
-    # Wipe stale build artifacts so no old hashed files carry over
-    rm -rf "${RELEASE_DIR}/public/build"
-    rm -rf "${RELEASE_DIR}/node_modules/.vite"
-    log_info "Cleared stale public/build and node_modules/.vite"
-
-    # Cap heap to avoid OOM-kill on low-memory VPS
-    export NODE_OPTIONS="--max-old-space-size=512"
-
-    # Fast deploy: reuse node_modules via hardlinks when package-lock.json is identical
-    NPM_SKIP=0
-    if [[ -n "${DEPLOY_PREVIOUS_RELEASE}" && -d "${DEPLOY_PREVIOUS_RELEASE}/node_modules" ]]; then
-        PKG_HASH_NEW=$(md5sum "${RELEASE_DIR}/package-lock.json"           2>/dev/null | awk '{print $1}')
-        PKG_HASH_OLD=$(md5sum "${DEPLOY_PREVIOUS_RELEASE}/package-lock.json" 2>/dev/null | awk '{print $1}')
-        if [[ -n "${PKG_HASH_NEW}" && "${PKG_HASH_NEW}" == "${PKG_HASH_OLD}" ]]; then
-            cp -al "${DEPLOY_PREVIOUS_RELEASE}/node_modules" "${RELEASE_DIR}/node_modules"
-            NPM_SKIP=1
-            log_ok "node_modules copied via hardlinks (package-lock.json unchanged) — npm ci skipped"
-        fi
-    fi
-    if [[ ${NPM_SKIP} -eq 0 ]]; then
-        log_info "Running npm ci..."
-        npm ci 2>&1 || die_class "VITE_FAILURE" "npm ci failed — check package.json and package-lock.json are in sync"
-    fi
-
-    log_info "Running npm run build (timeout 600s)..."
-    T_BUILD_START=$(date +%s)
-    set +e
-    timeout 600 npm run build 2>&1
-    BUILD_EXIT=$?
-    set -e
+# ── No package.json → nothing to do ──────────────────────────────────────────
+if [[ ! -f "${RELEASE_DIR}/package.json" ]]; then
+    log_warn "No package.json — frontend build not applicable"
     T_BUILD_END=$(date +%s)
 
-    if [[ ${BUILD_EXIT} -eq 124 ]]; then
-        free -h 2>/dev/null || true
-        die_class "VITE_FAILURE" "npm run build timed out after 600s — server may be OOM-killing. Add swap space (see RAM warning above)."
-    fi
-
-    if [[ ${BUILD_EXIT} -ne 0 ]]; then
-        # Check if OOM-killed
-        if dmesg 2>/dev/null | tail -20 | grep -qi "oom\|killed process\|out of memory"; then
-            log_err "OOM kill detected during npm build. Available RAM:"
-            free -h 2>/dev/null || true
-            log_err "Fix: Add swap space or increase server RAM:"
-            log_err "  sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile"
-            log_err "  sudo mkswap /swapfile && sudo swapon /swapfile"
-        fi
-        die_class "VITE_FAILURE" "npm run build exited with code ${BUILD_EXIT}"
-    fi
-
-    # Hard abort if manifest missing — OOM-kill may exit 0 but leave incomplete build
-    if [[ ! -f "${RELEASE_DIR}/public/build/manifest.json" ]]; then
-        log_err "Build appeared to succeed but manifest.json is missing."
-        log_err "Expected: ${RELEASE_DIR}/public/build/manifest.json"
-        if [[ -d "${RELEASE_DIR}/public/build" ]]; then
-            log_err "Contents of public/build/:"
-            ls -la "${RELEASE_DIR}/public/build/" 2>/dev/null || true
-        else
-            log_err "public/build/ directory does not exist"
-        fi
-        # Check RAM
-        log_err "Available RAM at time of check:"
-        free -h 2>/dev/null || true
-        die "Frontend build incomplete — manifest.json not generated. Aborting deploy."
-    fi
-
-    # Validate Tailwind utilities compiled — if grep fails, CSS is broken/incomplete
-    CSS_GLOB="${RELEASE_DIR}/public/build/assets/*.css"
-    if ! grep -ql "\.flex" ${CSS_GLOB} 2>/dev/null; then
-        die "Tailwind validation failed: .flex not found in compiled CSS — @tailwind utilities; may be missing from app.css"
-    fi
-    if ! grep -ql "\.grid" ${CSS_GLOB} 2>/dev/null; then
-        die "Tailwind validation failed: .grid not found in compiled CSS"
-    fi
-    if ! grep -ql "\.text-sm" ${CSS_GLOB} 2>/dev/null; then
-        die "Tailwind validation failed: .text-sm not found in compiled CSS"
-    fi
-    log_ok "Tailwind utilities validated (.flex / .grid / .text-sm present)"
-
-    # Validate manifest.json is parseable JSON and has both entry points
-    if command -v jq &>/dev/null; then
-        jq empty "${RELEASE_DIR}/public/build/manifest.json" 2>/dev/null \
-            || die "manifest.json is not valid JSON — build is corrupt"
-        jq -e '[keys[]] | any(. == "resources/js/app.js")' \
-            "${RELEASE_DIR}/public/build/manifest.json" >/dev/null 2>&1 \
-            || die "manifest.json missing resources/js/app.js entry"
-        jq -e '[keys[]] | any(startswith("resources/css/app"))' \
-            "${RELEASE_DIR}/public/build/manifest.json" >/dev/null 2>&1 \
-            || die "manifest.json missing resources/css/app.css entry"
-        log_ok "Manifest JSON valid — app.js + app.css entries confirmed"
+# ── Backend / hotfix / safe mode → skip build, copy cached artifacts ──────────
+elif [[ ${SAFE_MODE} -eq 1 || "${DEPLOY_MODE}" == "backend" ]]; then
+    log_warn "${DEPLOY_MODE^^} mode — frontend build skipped; restoring cached artifacts"
+    FE_SKIP_REASON="${DEPLOY_MODE^^} mode (explicit)"
+    # Prefer shared build cache (survives release pruning), fall back to previous release
+    if [[ -d "${SHARED_BUILD_CACHE}/build" && -f "${SHARED_BUILD_CACHE}/build/manifest.json" ]]; then
+        cp -r "${SHARED_BUILD_CACHE}/build" "${RELEASE_DIR}/public/build"
+        log_ok "Build artifacts restored from shared cache"
+    elif [[ -n "${DEPLOY_PREVIOUS_RELEASE}" && -d "${DEPLOY_PREVIOUS_RELEASE}/public/build" ]]; then
+        cp -r "${DEPLOY_PREVIOUS_RELEASE}/public/build" "${RELEASE_DIR}/public/build"
+        log_ok "Build artifacts copied from previous release (fallback)"
     else
-        grep -q '"resources/js/app.js"' "${RELEASE_DIR}/public/build/manifest.json" \
-            || die "manifest.json missing resources/js/app.js entry"
-        grep -q '"resources/css/app' "${RELEASE_DIR}/public/build/manifest.json" \
-            || die "manifest.json missing resources/css/app.css entry"
-        log_ok "Manifest entries verified (grep fallback — install jq for JSON parse)"
+        log_warn "No cached build found — frontend assets may be missing on this release"
     fi
+    T_BUILD_END=$(date +%s)
 
-    # Detect zero-byte assets — symptom of partial/corrupt build
-    EMPTY_ASSETS=$(find "${RELEASE_DIR}/public/build/assets" -type f -size 0 2>/dev/null | head -5)
-    if [[ -n "${EMPTY_ASSETS}" ]]; then
-        log_err "Zero-byte build assets detected (corrupt build):"
-        echo "${EMPTY_ASSETS}" | while IFS= read -r f; do log_err "  ${f}"; done
-        die "Empty assets found — build incomplete. Free RAM and retry."
-    fi
-    log_ok "No zero-byte assets detected"
-
-    # Stamp build with git commit hash for traceability
-    echo "${COMMIT}" > "${RELEASE_DIR}/public/build/version.txt"
-    log_ok "Build stamped: ${COMMIT:0:12} → public/build/version.txt"
-
-    cd - >/dev/null
-    log_ok "Frontend build done — manifest.json verified"
-
-    # Flat-clone fallback: if nginx's document root points to APP_DIR/public instead of
-    # current/public, assets would 404. Copy build artifacts there as a safety net.
-    APP_PUBLIC_REAL="$(realpath "${APP_DIR}/public" 2>/dev/null || echo "")"
-    REL_PUBLIC_REAL="$(realpath "${RELEASE_DIR}/public" 2>/dev/null || echo "")"
-    if [[ -n "${APP_PUBLIC_REAL}" && "${APP_PUBLIC_REAL}" != "${REL_PUBLIC_REAL}" ]]; then
-        rm -rf "${APP_DIR}/public/build"
-        cp -r "${RELEASE_DIR}/public/build" "${APP_DIR}/public/build"
-        log_ok "Build artifacts also copied to ${APP_DIR}/public/build (flat-clone nginx fallback)"
-    fi
-elif [[ ! -f "${RELEASE_DIR}/package.json" ]]; then
-    log_warn "No package.json — skipping frontend build"
-else
-    log_err "Node.js not found — frontend build cannot be skipped (package.json present)."
-    log_err "Install Node.js with:"
-    log_err "  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash - && sudo apt-get install -y nodejs"
+# ── Node.js missing → cannot build ───────────────────────────────────────────
+elif ! command -v node &>/dev/null; then
+    log_err "Node.js not found — frontend build cannot run (package.json present)."
+    log_err "Install: curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash - && sudo apt-get install -y nodejs"
     die "Node.js required. Aborting deploy."
-fi
+
+# ── Full build path ────────────────────────────────────────────────────────────
+else
+    # ── LAYER 1: Frontend fingerprint check ───────────────────────────────────
+    # Compute a combined hash of ALL frontend inputs (JS/CSS/Blade/config).
+    # If the hash matches the shared build cache, Vite output is identical —
+    # skip the build entirely and copy the cached public/build.
+    log_info "Computing frontend source fingerprint..."
+    FE_FINGERPRINT=$(frontend_fingerprint "${RELEASE_DIR}")
+    FE_CACHED_HASH=$(cat "${SHARED_BUILD_CACHE}/.fe_hash" 2>/dev/null || echo "")
+
+    if [[ -n "${FE_FINGERPRINT}" && \
+          "${FE_FINGERPRINT}" == "${FE_CACHED_HASH}" && \
+          -d "${SHARED_BUILD_CACHE}/build" && \
+          -f "${SHARED_BUILD_CACHE}/build/manifest.json" ]]; then
+        # ── FINGERPRINT HIT: reuse cached build, skip Vite entirely ──────────
+        FE_SKIP_REASON="frontend source unchanged (fp: ${FE_FINGERPRINT:0:12})"
+        log_ok "Frontend fingerprint matched — ${FE_SKIP_REASON}"
+        log_ok "Skipping npm ci AND npm run build — restoring from shared build cache"
+        cp -r "${SHARED_BUILD_CACHE}/build" "${RELEASE_DIR}/public/build"
+        log_ok "Cached build artifacts restored to release"
+
+        # Also restore node_modules from shared cache so artisan/php can reference
+        # any node-based tooling if needed (non-critical, best-effort)
+        CURRENT_PKG_HASH=$(md5sum "${RELEASE_DIR}/package-lock.json" 2>/dev/null | awk '{print $1}')
+        CACHED_NM_PKG_HASH=$(cat "${SHARED_NM_CACHE}/.pkg_hash" 2>/dev/null || echo "")
+        if [[ "${CURRENT_PKG_HASH}" == "${CACHED_NM_PKG_HASH}" && \
+              -d "${SHARED_NM_CACHE}/node_modules" ]]; then
+            cp -al "${SHARED_NM_CACHE}/node_modules" "${RELEASE_DIR}/node_modules" 2>/dev/null || true
+            NM_SKIP_REASON="shared cache hit with fingerprint reuse"
+            log_info "node_modules also restored from shared cache (best-effort)"
+        fi
+        T_BUILD_END=$(date +%s)
+
+    else
+        # ── FINGERPRINT MISS: frontend changed — need to run Vite ─────────────
+        if [[ -z "${FE_CACHED_HASH}" ]]; then
+            log_info "No cached build found (first deploy or cache cleared) — full build required"
+        else
+            log_info "Frontend sources changed (fp: ${FE_FINGERPRINT:0:12} ≠ cached: ${FE_CACHED_HASH:0:12})"
+        fi
+
+        cd "${RELEASE_DIR}"
+        # Cap heap to avoid OOM-kill on low-memory VPS (512 MB is safe for Vite+Tailwind)
+        export NODE_OPTIONS="--max-old-space-size=512"
+
+        # ── LAYER 2: node_modules — shared persistent cache ───────────────────
+        # Shared cache survives release pruning. It's indexed by package-lock.json hash.
+        # If hash matches → restore via hardlinks (fast, zero extra disk usage).
+        # If hash differs → full npm ci, then update the shared cache.
+        CURRENT_PKG_HASH=$(md5sum "${RELEASE_DIR}/package-lock.json" 2>/dev/null | awk '{print $1}')
+        CACHED_NM_PKG_HASH=$(cat "${SHARED_NM_CACHE}/.pkg_hash" 2>/dev/null || echo "")
+        NM_INSTALLED=0
+
+        if [[ -n "${CURRENT_PKG_HASH}" && \
+              "${CURRENT_PKG_HASH}" == "${CACHED_NM_PKG_HASH}" && \
+              -d "${SHARED_NM_CACHE}/node_modules" ]]; then
+            # ── LAYER 2 HIT: restore from shared cache ────────────────────────
+            log_info "Shared node_modules cache hit — restoring via hardlinks..."
+            cp -al "${SHARED_NM_CACHE}/node_modules" "${RELEASE_DIR}/node_modules" \
+                && NM_INSTALLED=1 \
+                || log_warn "Hardlink restore failed (different filesystem?) — will fallback to npm ci"
+            if [[ ${NM_INSTALLED} -eq 1 ]]; then
+                NM_SKIP_REASON="shared cache hit (pkg-lock fp: ${CURRENT_PKG_HASH:0:12})"
+                log_ok "node_modules from shared cache — npm ci SKIPPED (${NM_SKIP_REASON})"
+            fi
+        fi
+
+        # ── LAYER 3: Fallback to previous release hardlinks ───────────────────
+        if [[ ${NM_INSTALLED} -eq 0 && \
+              -n "${DEPLOY_PREVIOUS_RELEASE}" && \
+              -d "${DEPLOY_PREVIOUS_RELEASE}/node_modules" ]]; then
+            PREV_PKG_HASH=$(md5sum "${DEPLOY_PREVIOUS_RELEASE}/package-lock.json" 2>/dev/null | awk '{print $1}')
+            if [[ -n "${CURRENT_PKG_HASH}" && "${CURRENT_PKG_HASH}" == "${PREV_PKG_HASH}" ]]; then
+                cp -al "${DEPLOY_PREVIOUS_RELEASE}/node_modules" "${RELEASE_DIR}/node_modules" \
+                    && NM_INSTALLED=1 \
+                    || log_warn "Hardlink from previous release failed — will run npm ci"
+                if [[ ${NM_INSTALLED} -eq 1 ]]; then
+                    NM_SKIP_REASON="previous release hardlinks (pkg-lock unchanged)"
+                    log_ok "node_modules via hardlinks from previous release — npm ci SKIPPED"
+                fi
+            fi
+        fi
+
+        # ── Fresh npm ci (optimized flags) ────────────────────────────────────
+        if [[ ${NM_INSTALLED} -eq 0 ]]; then
+            log_info "Running: npm ci --prefer-offline --no-audit --no-fund --progress=false"
+            log_info "(--prefer-offline reuses tarball cache; --no-audit skips slow security lookup)"
+            T_NPM_CI_START=$(date +%s)
+            npm ci --prefer-offline --no-audit --no-fund --progress=false 2>&1 \
+                || die_class "VITE_FAILURE" "npm ci failed — check package.json/package-lock.json are in sync"
+            T_NPM_CI_END=$(date +%s)
+            NM_INSTALLED=1
+            log_ok "npm ci complete ($((T_NPM_CI_END - T_NPM_CI_START))s)"
+
+            # Populate shared node_modules cache for ALL future deploys
+            log_info "Populating shared node_modules cache (${SHARED_NM_CACHE})..."
+            rm -rf "${SHARED_NM_CACHE}/node_modules"
+            mkdir -p "${SHARED_NM_CACHE}"
+            cp -al "${RELEASE_DIR}/node_modules" "${SHARED_NM_CACHE}/node_modules" 2>/dev/null \
+                || cp -r  "${RELEASE_DIR}/node_modules" "${SHARED_NM_CACHE}/node_modules"
+            echo "${CURRENT_PKG_HASH}" > "${SHARED_NM_CACHE}/.pkg_hash"
+            log_ok "Shared node_modules cache populated (next deploy skips npm ci automatically)"
+        fi
+
+        # ── Clear stale Vite OUTPUT (public/build) — always regenerate ────────
+        # DO NOT clear node_modules/.vite — that's Vite's dep-optimisation cache
+        # which is valid as long as node_modules haven't changed. Clearing it
+        # would force Vite to re-bundle all dependencies from scratch on every build.
+        rm -rf "${RELEASE_DIR}/public/build"
+        log_info "Cleared stale public/build (Vite dep cache in node_modules/.vite preserved)"
+
+        # ── Run Vite build ────────────────────────────────────────────────────
+        log_info "Running: npm run build (timeout 600s)..."
+        T_NPM_BUILD_START=$(date +%s)
+        set +e
+        timeout 600 npm run build 2>&1
+        BUILD_EXIT=$?
+        set -e
+        T_NPM_BUILD_END=$(date +%s)
+
+        if [[ ${BUILD_EXIT} -eq 124 ]]; then
+            free -h 2>/dev/null || true
+            die_class "VITE_FAILURE" "npm run build timed out after 600s — server may be OOM-killing. Add swap: sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile"
+        fi
+        if [[ ${BUILD_EXIT} -ne 0 ]]; then
+            if dmesg 2>/dev/null | tail -20 | grep -qi "oom\|killed process\|out of memory"; then
+                log_err "OOM kill detected during npm build. Available RAM:"; free -h 2>/dev/null || true
+                log_err "Fix: sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile"
+            fi
+            die_class "VITE_FAILURE" "npm run build exited with code ${BUILD_EXIT}"
+        fi
+
+        # ── Build validation (all original checks preserved) ──────────────────
+        if [[ ! -f "${RELEASE_DIR}/public/build/manifest.json" ]]; then
+            log_err "Build appeared to succeed but manifest.json is missing."
+            log_err "Expected: ${RELEASE_DIR}/public/build/manifest.json"
+            if [[ -d "${RELEASE_DIR}/public/build" ]]; then
+                log_err "Contents of public/build/:"; ls -la "${RELEASE_DIR}/public/build/" 2>/dev/null || true
+            else
+                log_err "public/build/ directory does not exist"
+            fi
+            log_err "Available RAM:"; free -h 2>/dev/null || true
+            die "Frontend build incomplete — manifest.json not generated. Aborting deploy."
+        fi
+
+        CSS_GLOB="${RELEASE_DIR}/public/build/assets/*.css"
+        grep -ql "\.flex"    ${CSS_GLOB} 2>/dev/null || die "Tailwind validation: .flex not found in compiled CSS"
+        grep -ql "\.grid"    ${CSS_GLOB} 2>/dev/null || die "Tailwind validation: .grid not found in compiled CSS"
+        grep -ql "\.text-sm" ${CSS_GLOB} 2>/dev/null || die "Tailwind validation: .text-sm not found in compiled CSS"
+        log_ok "Tailwind utilities validated (.flex / .grid / .text-sm present)"
+
+        if command -v jq &>/dev/null; then
+            jq empty "${RELEASE_DIR}/public/build/manifest.json" 2>/dev/null \
+                || die "manifest.json is not valid JSON — build is corrupt"
+            jq -e '[keys[]] | any(. == "resources/js/app.js")' \
+                "${RELEASE_DIR}/public/build/manifest.json" >/dev/null 2>&1 \
+                || die "manifest.json missing resources/js/app.js entry"
+            jq -e '[keys[]] | any(startswith("resources/css/app"))' \
+                "${RELEASE_DIR}/public/build/manifest.json" >/dev/null 2>&1 \
+                || die "manifest.json missing resources/css/app.css entry"
+            log_ok "Manifest JSON valid — app.js + app.css entries confirmed"
+        else
+            grep -q '"resources/js/app.js"' "${RELEASE_DIR}/public/build/manifest.json" \
+                || die "manifest.json missing resources/js/app.js entry"
+            grep -q '"resources/css/app'    "${RELEASE_DIR}/public/build/manifest.json" \
+                || die "manifest.json missing resources/css/app.css entry"
+            log_ok "Manifest entries verified (grep fallback — install jq for JSON parsing)"
+        fi
+
+        EMPTY_ASSETS=$(find "${RELEASE_DIR}/public/build/assets" -type f -size 0 2>/dev/null | head -5)
+        if [[ -n "${EMPTY_ASSETS}" ]]; then
+            log_err "Zero-byte build assets detected (corrupt build):"
+            echo "${EMPTY_ASSETS}" | while IFS= read -r f; do log_err "  ${f}"; done
+            die "Empty assets found — build incomplete. Free RAM and retry."
+        fi
+        log_ok "No zero-byte assets detected"
+
+        # Stamp with commit hash for traceability
+        echo "${COMMIT}" > "${RELEASE_DIR}/public/build/version.txt"
+        log_ok "Build stamped: ${COMMIT:0:12} → public/build/version.txt"
+
+        # ── Populate shared build cache for next deploy ───────────────────────
+        # This is the key to Layer 1: if next deploy has same frontend sources,
+        # it will hit this cache and skip npm ci + Vite entirely.
+        if [[ -n "${FE_FINGERPRINT}" ]]; then
+            log_info "Populating shared build cache (${SHARED_BUILD_CACHE})..."
+            rm -rf "${SHARED_BUILD_CACHE}/build"
+            mkdir -p "${SHARED_BUILD_CACHE}"
+            cp -r "${RELEASE_DIR}/public/build" "${SHARED_BUILD_CACHE}/build"
+            echo "${FE_FINGERPRINT}" > "${SHARED_BUILD_CACHE}/.fe_hash"
+            echo "${TIMESTAMP}"      > "${SHARED_BUILD_CACHE}/.build_ts"
+            log_ok "Shared build cache populated (fp: ${FE_FINGERPRINT:0:12}) — next backend deploy skips Vite"
+        fi
+
+        # ── Flat-clone fallback for nginx setups pointing to APP_DIR/public ───
+        APP_PUBLIC_REAL="$(realpath "${APP_DIR}/public" 2>/dev/null || echo "")"
+        REL_PUBLIC_REAL="$(realpath "${RELEASE_DIR}/public" 2>/dev/null || echo "")"
+        if [[ -n "${APP_PUBLIC_REAL}" && "${APP_PUBLIC_REAL}" != "${REL_PUBLIC_REAL}" ]]; then
+            rm -rf "${APP_DIR}/public/build"
+            cp -r "${RELEASE_DIR}/public/build" "${APP_DIR}/public/build"
+            log_ok "Build artifacts also copied to ${APP_DIR}/public/build (nginx flat-clone fallback)"
+        fi
+
+        cd - >/dev/null
+        T_BUILD_END=$(date +%s)
+        log_ok "Frontend build done ($((T_NPM_BUILD_END - T_NPM_BUILD_START))s) — manifest verified"
+    fi   # end fingerprint miss branch
+fi       # end full build path
 
 # =============================================================================
 # PHASE 6c — PWA SERVICE WORKER CACHE VERSION BUMP
@@ -1365,44 +1528,65 @@ _APP_URL=$(grep -E '^APP_URL=' "${SHARED_DIR}/.env" 2>/dev/null | cut -d= -f2 | 
 _BUILD_VERSION=$(cat "${_CURRENT_REAL}/public/build/version.txt" 2>/dev/null | head -c 12 || echo "n/a")
 DEPLOY_END=$(date +%s)
 DEPLOY_DURATION=$(( DEPLOY_END - DEPLOY_START ))
+
+# Compute all phase durations
 _T_COMPOSER=$(( T_COMPOSER_END - T_COMPOSER_START ))
-_T_BUILD=$(( T_BUILD_END - T_BUILD_START ))
+_T_BUILD=$(( T_BUILD_END > 0 ? T_BUILD_END - T_BUILD_START : 0 ))
+_T_NPM_CI=$(( T_NPM_CI_END > T_NPM_CI_START ? T_NPM_CI_END - T_NPM_CI_START : 0 ))
+_T_NPM_BUILD=$(( T_NPM_BUILD_END > T_NPM_BUILD_START ? T_NPM_BUILD_END - T_NPM_BUILD_START : 0 ))
 _T_MIGRATE=$(( T_MIGRATE_END - T_MIGRATE_START ))
+
+# Build human-readable labels for cache decisions
+_NM_LABEL="${NM_SKIP_REASON:-ran (${_T_NPM_CI}s)}"
+_FE_LABEL="${FE_SKIP_REASON:-built (${_T_NPM_BUILD}s)}"
+[[ "${_T_NPM_CI}" -eq 0 && -z "${NM_SKIP_REASON}" ]] && _NM_LABEL="skipped (no package.json)"
+[[ "${_T_NPM_BUILD}" -eq 0 && -z "${FE_SKIP_REASON}" ]] && _FE_LABEL="skipped (no package.json)"
 
 # Append to persistent deployment history
 _DEPLOY_RESULT="success"; [[ ${VALIDATION_FAILED} -ne 0 ]] && _DEPLOY_RESULT="success_with_warnings"
 _HISTORY_FILE="${SHARED_DIR}/storage/logs/deployments.log"
 mkdir -p "$(dirname "${_HISTORY_FILE}")"
-printf '%s | %-22s | %-20s | %s | %-12s | %-12s | %4ds\n' \
+printf '%s | %-22s | %-20s | %s | %-12s | %-12s | %4ds | npm-ci:%-3s | vite:%-3s\n' \
     "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "${_DEPLOY_RESULT}" "${DEPLOY_ID}" \
     "${COMMIT:0:12}" "${BRANCH}" "$(whoami 2>/dev/null)" "${DEPLOY_DURATION}" \
+    "$([ ${_T_NPM_CI} -gt 0 ] && echo "${_T_NPM_CI}s" || echo skip)" \
+    "$([ ${_T_NPM_BUILD} -gt 0 ] && echo "${_T_NPM_BUILD}s" || echo skip)" \
     >> "${_HISTORY_FILE}" 2>/dev/null || true
 
 echo ""
 if [[ ${VALIDATION_FAILED} -ne 0 ]]; then
-echo -e "${YELLOW}${BOLD}╔══════════════════════════════════════════════╗${NC}"
-echo -e "${YELLOW}${BOLD}║     DEPLOYED — WITH WARNINGS                 ║${NC}"
-echo -e "${YELLOW}${BOLD}╚══════════════════════════════════════════════╝${NC}"
+echo -e "${YELLOW}${BOLD}╔══════════════════════════════════════════════════════╗${NC}"
+echo -e "${YELLOW}${BOLD}║     DEPLOYED — WITH WARNINGS                         ║${NC}"
+echo -e "${YELLOW}${BOLD}╚══════════════════════════════════════════════════════╝${NC}"
 else
-echo -e "${GREEN}${BOLD}╔══════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}${BOLD}║     DEPLOYMENT SUCCESSFUL ✓                  ║${NC}"
-echo -e "${GREEN}${BOLD}╚══════════════════════════════════════════════╝${NC}"
+echo -e "${GREEN}${BOLD}╔══════════════════════════════════════════════════════╗${NC}"
+echo -e "${GREEN}${BOLD}║     DEPLOYMENT SUCCESSFUL ✓                          ║${NC}"
+echo -e "${GREEN}${BOLD}╚══════════════════════════════════════════════════════╝${NC}"
 fi
 echo ""
-echo -e "  ${BOLD}Deploy ID${NC} ${DEPLOY_ID}"
-echo -e "  ${BOLD}Commit${NC}    ${COMMIT:0:12}  (build: ${_BUILD_VERSION})"
-echo -e "  ${BOLD}Branch${NC}    ${BRANCH}"
-echo -e "  ${BOLD}App dir${NC}   ${APP_DIR}"
-echo -e "  ${BOLD}Live at${NC}   ${_CURRENT_REAL}"
-[[ -n "${_APP_URL}" ]] && echo -e "  ${BOLD}URL${NC}       ${_APP_URL}"
+echo -e "  ${BOLD}Deploy ID${NC}   ${DEPLOY_ID}"
+echo -e "  ${BOLD}Commit${NC}      ${COMMIT:0:12}  (build: ${_BUILD_VERSION})"
+echo -e "  ${BOLD}Branch${NC}      ${BRANCH}  |  mode: ${DEPLOY_MODE^^}"
+echo -e "  ${BOLD}App dir${NC}     ${APP_DIR}"
+echo -e "  ${BOLD}Live at${NC}     ${_CURRENT_REAL}"
+[[ -n "${_APP_URL}" ]] && echo -e "  ${BOLD}URL${NC}         ${_APP_URL}"
 echo ""
-echo -e "  ${BOLD}Build${NC}     $(test -f "${_CURRENT_REAL}/public/build/manifest.json" && echo "${GREEN}manifest.json ✓${NC}" || echo "${RED}manifest.json MISSING${NC}")"
-echo -e "  ${BOLD}Storage${NC}   $(test -L "${_CURRENT_REAL}/public/storage" && echo "${GREEN}symlink ✓${NC}" || echo "${YELLOW}symlink missing${NC}")"
-echo -e "  ${BOLD}Config${NC}    $(test -f "${_CURRENT_REAL}/bootstrap/cache/config.php" && echo "${GREEN}cached ✓${NC}" || echo "${YELLOW}not cached${NC}")"
+echo -e "  ${BOLD}Build${NC}       $(test -f "${_CURRENT_REAL}/public/build/manifest.json" && echo "${GREEN}manifest.json ✓${NC}" || echo "${RED}manifest.json MISSING${NC}")"
+echo -e "  ${BOLD}Storage${NC}     $(test -L "${_CURRENT_REAL}/public/storage" && echo "${GREEN}symlink ✓${NC}" || echo "${YELLOW}symlink missing${NC}")"
+echo -e "  ${BOLD}Config${NC}      $(test -f "${_CURRENT_REAL}/bootstrap/cache/config.php" && echo "${GREEN}cached ✓${NC}" || echo "${YELLOW}not cached${NC}")"
 echo ""
-echo -e "  ${BOLD}Timings${NC}   total: ${DEPLOY_DURATION}s  |  composer: ${_T_COMPOSER}s  |  build: ${_T_BUILD}s  |  migrate: ${_T_MIGRATE}s"
-echo -e "  ${BOLD}History${NC}   ${_HISTORY_FILE}"
-echo -e "  ${BOLD}DB backup${NC} ${DB_BACKUP_DIR}/pre-deploy-${TIMESTAMP}.sql.gz"
+echo -e "  ${CYAN}${BOLD}── Timing breakdown ─────────────────────────────────${NC}"
+printf  "  ${BOLD}%-14s${NC} %s\n"  "Total"     "${DEPLOY_DURATION}s"
+printf  "  ${BOLD}%-14s${NC} %s\n"  "Composer"  "${_T_COMPOSER}s$([ ${COMPOSER_SKIP:-0} -eq 1 ] && echo ' (hardlinks — lock unchanged)' || true)"
+printf  "  ${BOLD}%-14s${NC} %s\n"  "npm ci"    "${_NM_LABEL}"
+printf  "  ${BOLD}%-14s${NC} %s\n"  "Vite build" "${_FE_LABEL}"
+printf  "  ${BOLD}%-14s${NC} %s\n"  "Migrations" "${_T_MIGRATE}s$([ ${SAFE_MODE} -eq 1 ] && echo ' (skipped — safe/frontend mode)' || true)"
+echo -e "  ${CYAN}${BOLD}─────────────────────────────────────────────────────${NC}"
+echo ""
+echo -e "  ${BOLD}NM cache${NC}    ${SHARED_NM_CACHE}"
+echo -e "  ${BOLD}Build cache${NC} ${SHARED_BUILD_CACHE}  (fp: ${FE_FINGERPRINT:0:12})"
+echo -e "  ${BOLD}History${NC}     ${_HISTORY_FILE}"
+echo -e "  ${BOLD}DB backup${NC}   ${DB_BACKUP_DIR}/pre-deploy-${TIMESTAMP}.sql.gz"
 [[ ${VALIDATION_FAILED} -ne 0 ]] && echo -e "\n  ${YELLOW}${BOLD}Warnings detected — review output above.${NC}"
-echo -e "  ${BOLD}Rollback${NC}  bash deployment/deploy.sh --rollback"
+echo -e "  ${BOLD}Rollback${NC}    bash deployment/deploy.sh --rollback"
 echo ""

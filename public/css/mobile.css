@@ -6,6 +6,50 @@
    ═══════════════════════════════════════════════════════════════════ */
 
 /* ══════════════════════════════════════════════════════════════════
+   GLOBAL SAFE-AREA UTILITIES
+   Declared outside @media — active in all contexts including
+   PWA standalone mode and iOS in-app browser.
+
+   Usage:
+     class="safe-top"    → padding-top: env(safe-area-inset-top)
+     class="safe-bottom" → padding-bottom: env(safe-area-inset-bottom)
+     class="safe-x"      → padding-left/right: env(safe-area-inset-left/right)
+     class="safe-y"      → padding-top + bottom safe-area
+     class="mt-topbar-safe" → margin-top clears the topbar + safe-area
+     class="pt-topbar-safe" → padding-top clears the topbar + safe-area
+
+   These compose freely:
+     <div class="safe-top safe-x"> ... </div>
+     <footer class="safe-bottom"> ... </footer>
+══════════════════════════════════════════════════════════════════ */
+
+/* Safe-area padding shims */
+.safe-top    { padding-top:    env(safe-area-inset-top,    0px) !important; }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px) !important; }
+.safe-left   { padding-left:   env(safe-area-inset-left,   0px) !important; }
+.safe-right  { padding-right:  env(safe-area-inset-right,  0px) !important; }
+.safe-x {
+    padding-left:  env(safe-area-inset-left,  0px) !important;
+    padding-right: env(safe-area-inset-right, 0px) !important;
+}
+.safe-y {
+    padding-top:    env(safe-area-inset-top,    0px) !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+}
+
+/* Topbar clearance helpers */
+/* --ef-topbar-base shared across both topbar systems (admin-layout + mobile-nav) */
+:root {
+    --ef-topbar-base:   64px;   /* content row — matches admin --tb-base and mobile-nav base */
+    --ef-topbar-height: calc(var(--ef-topbar-base) + env(safe-area-inset-top, 0px));
+}
+/* Use these classes on page-level wrappers to clear the fixed topbar */
+.mt-topbar      { margin-top:  var(--ef-topbar-base); }
+.pt-topbar      { padding-top: var(--ef-topbar-base); }
+.mt-topbar-safe { margin-top:  var(--ef-topbar-height); }
+.pt-topbar-safe { padding-top: var(--ef-topbar-height); }
+
+/* ══════════════════════════════════════════════════════════════════
    BOTTOM NAV — hidden on desktop, shown on mobile.
    Declare position:fixed HERE (outside @media) so iOS never needs to
    "re-learn" the positioning when the media query activates.
@@ -114,7 +158,13 @@ body {
 }
 
 #main-content {
-    overflow-x: hidden;
+    /*
+     * ANDROID SCROLL FIX: clip instead of hidden.
+     * overflow-x: hidden creates a BFC — another scroll container candidate
+     * that confuses Android Chrome's touch-event routing.
+     * clip clips without BFC, preventing phantom scroll containers.
+     */
+    overflow-x: clip;
     /* pad bottom so content clears the nav bar:
        nav height (60px) + safe area + breathing room */
     padding: 12px 14px calc(68px + env(safe-area-inset-bottom, 0px)) !important;
@@ -518,12 +568,27 @@ nav[role="navigation"] {
 
 /* ── 22. Topbar: tighten on very small screens ─────────────────── */
 
-#topbar {
-    padding: 0 12px !important;
+/*
+ * SAFE-AREA FIX: do NOT override #topbar padding here.
+ * #topbar uses the two-layer safe-area pattern:
+ *   outer #topbar:        padding-top = env(safe-area-inset-top) — absorbs notch
+ *   inner .ef-topbar-inner: 64px row, centred below the notch
+ * Any `padding: ... !important` on #topbar would zero out padding-top,
+ * pushing content into the iPhone status bar.
+ * Tighten horizontal padding on the INNER row only.
+ */
+.ef-topbar-inner {
+    padding: 0 12px;
 }
 
 #topbar .brand {
     font-size: .88rem;
+}
+
+/* Hamburger button — ensure 44px min touch target on all screen sizes */
+#sidebar-toggle {
+    min-width: 44px !important;
+    min-height: 44px !important;
 }
 
 /* ── 23. Sidebar overlay: ensure proper stacking ──────────────── */

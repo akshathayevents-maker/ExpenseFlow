@@ -78,9 +78,10 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    /* Top pad = mobile topbar height (52px) + safe-area-inset-top + 16px gap.
-       Safe-area is also applied on the topbar itself, so the card clears it. */
-    padding: calc(52px + env(safe-area-inset-top, 0px) + 16px) 14px 120px;
+    /* Top pad = mobile topbar content row (64px) + safe-area-inset-top + 16px gap.
+       The topbar itself uses: height = 64px + env(safe-area-inset-top).
+       So body padding-top must match: 64px + SAI + 16px breathing room. */
+    padding: calc(var(--ef-topbar-base, 64px) + env(safe-area-inset-top, 0px) + 16px) 14px 120px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
