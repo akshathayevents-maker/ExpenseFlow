@@ -91,7 +91,11 @@
       "Bash(chmod 775 /home/qc7107-l/Projects/ExpenseFlow/storage/fonts)",
       "Bash(echo \"Exit: $?\")",
       "Bash(read f *)",
-      "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/storage/framework/views/__TRACKED_VAR__)"
+      "Bash(php -l /home/qc7107-l/Projects/ExpenseFlow/storage/framework/views/__TRACKED_VAR__)",
+      "Bash(awk '/^@media/{d++} /^\\\\}/{c++} END{print \"Media opens:\"d, \"All braces:\", c}' /home/qc7107-l/Projects/ExpenseFlow/public/css/mobile.css)",
+      "Bash(python3 -m json.tool /home/qc7107-l/Projects/ExpenseFlow/public/site.webmanifest)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\([t['name'] for t in d.get\\('tables',[]\\) if 'session' in t['name'].lower\\(\\)]\\)\")",
+      "Bash(chmod +x /home/qc7107-l/Projects/ExpenseFlow/deployment/deploy.sh /home/qc7107-l/Projects/ExpenseFlow/deployment/rollback.sh /home/qc7107-l/Projects/ExpenseFlow/deployment/cleanup.sh /home/qc7107-l/Projects/ExpenseFlow/deployment/health-check.sh)"
     ]
   }
 }

@@ -5,9 +5,21 @@
    Desktop remains untouched.
    ═══════════════════════════════════════════════════════════════════ */
 
-/* ── Global bottom nav (hidden on desktop, shown on mobile) ─────── */
+/* ══════════════════════════════════════════════════════════════════
+   BOTTOM NAV — hidden on desktop, shown on mobile.
+   Declare position:fixed HERE (outside @media) so iOS never needs to
+   "re-learn" the positioning when the media query activates.
+   ══════════════════════════════════════════════════════════════════ */
 .ef-m-bottomnav {
     display: none;
+    /* CRITICAL: declare fixed positioning outside the @media block.
+       iOS Safari can mis-composite fixed elements that first appear
+       inside a conditional rule — declaring here + showing in @media is safer. */
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1045;
 }
 
 /* ── Mobile nav items base (flex always for icon layout) ──────────── */
@@ -33,10 +45,23 @@
     border-radius: 10px;
 }
 
-.ef-m-bottomnav-item:hover,
+.ef-m-bottomnav-item:active {
+    /* Touch feedback — scale, not translate (translate would affect z-compositing) */
+    opacity: .7;
+    transition: opacity .08s ease;
+}
+
 .ef-m-bottomnav-item.active {
+    color: #E2C47E;
+    background: rgba(184, 137, 62, .13);
+    /* Pill indicator via box-shadow — no transform required */
+    box-shadow: inset 0 2px 0 rgba(184, 137, 62, .5);
+}
+
+
+.ef-m-bottomnav-item:hover {
     color: #D6B97A;
-    background: rgba(184, 137, 62, .1);
+    background: rgba(184, 137, 62, .08);
 }
 
 .ef-m-bottomnav-item i {
@@ -71,55 +96,80 @@
 
 /* ── 1. Base layout ────────────────────────────────────────────── */
 
+html {
+    /* -webkit-fill-available: the actual visual viewport height on iOS,
+       accounting for the shrinking/growing URL bar. Prevents layout jumps. */
+    height: -webkit-fill-available;
+    height: 100dvh;
+}
+
 body {
     -webkit-font-smoothing: antialiased;
     -webkit-text-size-adjust: 100%;
+    min-height: -webkit-fill-available;
+    min-height: 100dvh;
+    /* contain overscroll within the page — prevents pull-to-refresh from
+       kicking up the bottom nav */
+    overscroll-behavior-y: contain;
 }
 
 #main-content {
     overflow-x: hidden;
-    padding: 12px 14px calc(76px + env(safe-area-inset-bottom, 0px)) !important;
+    /* pad bottom so content clears the nav bar:
+       nav height (60px) + safe area + breathing room */
+    padding: 12px 14px calc(68px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
-/* Bottom nav: visible + permanently fixed */
+/* ── Bottom nav — fixed, glass, native feel ─────────────────────
+   ROOT CAUSE FIX:
+   • NO transform — transform on a fixed element creates an isolated
+     compositing layer in iOS Safari that scrolls with the document
+     during URL-bar animation instead of staying viewport-anchored.
+   • NO will-change:transform — same issue; tells iOS to composite into
+     a layer that can detach from the viewport.
+   • NO backface-visibility — unnecessary without transform.
+   • NO animation with transform — transforms during animation stamp
+     a compositing context that persists after the animation ends.
+   • Use isolation:isolate — creates stacking context without transform,
+     so z-index works correctly and the element stays viewport-fixed.
+   ──────────────────────────────────────────────────────────────── */
 .ef-m-bottomnav {
+    /* Show (was display:none outside @media) */
+    display: flex;
+
     /* Layout */
     align-items: center;
-    display: flex;
     gap: 4px;
-    padding: 4px 8px calc(4px + env(safe-area-inset-bottom, 0px));
 
-    /* Anchoring — never scrolls */
+    /* Safe-area padding for iPhone home indicator + notch */
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+    min-height: calc(54px + env(safe-area-inset-bottom, 0px));
+
+    /* Positioning — position:fixed is already declared outside @media.
+       Repeat here to be explicit; iOS applies it from the outside declaration. */
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    /* Explicit height keeps iOS from collapsing it during overscroll */
-    min-height: calc(52px + env(safe-area-inset-bottom, 0px));
-
-    /* Appearance */
-    background: rgba(11, 15, 13, .97);
-    border-top: 1px solid rgba(184, 137, 62, .12);
-    -webkit-backdrop-filter: blur(24px) saturate(160%);
-    backdrop-filter: blur(24px) saturate(160%);
-
-    /* GPU compositing layer — prevents scroll-jank on iOS Safari */
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
-    will-change: transform;
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
-
-    /* Stacking */
     z-index: 1045;
 
-    /* Entrance animation */
-    animation: mNavSlideUp .3s ease both;
+    /* Stacking context WITHOUT transform (isolation is the safe alternative) */
+    isolation: isolate;
+
+    /* Glass appearance */
+    background: rgba(10, 13, 11, .92);
+    border-top: 1px solid rgba(184, 137, 62, .15);
+    box-shadow: 0 -1px 0 rgba(255, 255, 255, .04), 0 -8px 32px rgba(0, 0, 0, .28);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    backdrop-filter: blur(28px) saturate(180%);
+
+    /* Fade-in ONLY — no transform in animation (see root cause note above) */
+    animation: mNavFadeIn .25s ease both;
 }
 
-@keyframes mNavSlideUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to   { opacity: 1; transform: translateY(0); }
+@keyframes mNavFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
 }
 
 /* Hide pages' own fixed bottom bars since global nav replaces navigation */
@@ -518,9 +568,9 @@ nav[role="navigation"] {
     z-index: 1040 !important;
 }
 
-} /* end @media max-width: 767.98px */
+/* ── Sections below were accidentally outside @media — moved in ─── */
 
-/* ── 24. Wallets index hero ─────────────────────────────────────── */
+/* ── 25b. Wallets index hero ────────────────────────────────────── */
 
 .ef-wlt-hero {
     border-radius: 16px !important;
@@ -634,6 +684,7 @@ textarea.ef-textarea {
 
 /* ═══════════════════════════════════════════════════════════════════
    Report sub-page mobile filter  (ef-rpf-*)
+   Global styles — not scoped to any breakpoint.
    Used on d-md-none wrapper — never rendered on desktop.
    ═══════════════════════════════════════════════════════════════════ */
 

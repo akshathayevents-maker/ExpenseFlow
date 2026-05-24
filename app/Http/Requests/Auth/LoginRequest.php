@@ -42,7 +42,13 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        // Always remember on mobile/PWA standalone mode.
+        // `pwa_context` is a hidden field set by JS in standalone mode.
+        // Falls back to the checkbox value; defaults to true if neither is sent
+        // (e.g. direct programmatic POST without a form).
+        $remember = $this->boolean('pwa_context') || $this->boolean('remember', true);
+
+        if (! Auth::attempt($this->only('email', 'password'), $remember)) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([

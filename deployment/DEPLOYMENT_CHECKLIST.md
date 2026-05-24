@@ -104,10 +104,30 @@ bash deployment/deploy.sh main
 - [ ] No breaking changes to shared `.env` keys
 - [ ] Storage symlink intact: `/var/www/expenseflow/current/public/storage → shared/public/storage`
 
-### Deploy
+### Deploy modes
+
+| Command | When to use |
+|---------|-------------|
+| `bash deployment/deploy.sh` | Full deploy (default — build + migrate + restart) |
+| `bash deployment/deploy.sh --backend` | PHP/DB changes only — reuses previous Vite build |
+| `bash deployment/deploy.sh --frontend` | CSS/JS changes only — skips composer + migrations |
+| `bash deployment/deploy.sh --hotfix` | Config/template fix — no build, no migrate, no queue restart |
+
 ```bash
+# Standard full deploy:
 bash deployment/deploy.sh main
+
+# Backend-only (PHP change, no front-end rebuild needed):
+bash deployment/deploy.sh --backend
+
+# Front-end only (CSS/JS change, no DB migration):
+bash deployment/deploy.sh --frontend
 ```
+
+All modes:
+- Bump `CACHE_VERSION` in `sw.js` automatically (PWA cache invalidation)
+- Tee all output to `deploy_logs/deploy_TIMESTAMP.log`
+- Auto-rollback on any failure
 
 ### Post-deploy verification
 - [ ] `curl -I https://yourdomain.com` returns 200
@@ -121,12 +141,54 @@ bash deployment/deploy.sh main
 ## Rollback
 
 ```bash
+# List available releases:
+bash deployment/rollback.sh --list
+
+# Roll back to previous release (prompts for confirmation):
+bash deployment/rollback.sh
+
+# Roll back two releases (skip confirmation):
+bash deployment/rollback.sh --release=2 --yes
+
+# Legacy inline rollback (no confirmation, no caches rebuilt):
 bash deployment/deploy.sh --rollback
 ```
 
-This atomically symlinks `current` to the previous release. Keeps last 5 releases by default.
+Rollback: atomically switches symlink, rebuilds caches on rolled-back release, restarts workers.
 
 > **Note:** Database migrations are NOT rolled back automatically. If the new migration is destructive, prepare a manual rollback migration.
+
+---
+
+## Health check
+
+```bash
+# Full interactive check (all 24 checks):
+bash deployment/health-check.sh
+
+# Quiet mode for CI/CD (prints only failures/warnings, exits 1 on fail):
+bash deployment/health-check.sh --quiet
+
+# JSON output for monitoring tools:
+bash deployment/health-check.sh --json
+```
+
+Checks: HTTP response, SSL cert expiry, DB connectivity, queue workers, scheduler, sw.js, webmanifest, CSS asset HTTP, manifest.json, disk space, php-fpm, nginx, signed URL key.
+
+---
+
+## Cleanup
+
+```bash
+# Dry-run (see what would be deleted):
+bash deployment/cleanup.sh
+
+# Actually delete (keeps 5 releases, 30 days of logs, 7 days of DB backups):
+bash deployment/cleanup.sh --force
+
+# Keep only 3 releases:
+bash deployment/cleanup.sh --force --keep=3
+```
 
 ---
 

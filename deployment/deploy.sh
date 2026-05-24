@@ -5,20 +5,31 @@
 #   --rollback  Restore previous release without building
 #   --safe      Skip build/migrations/queue restart (hotfix/CSS-only deploys)
 # =============================================================================
-set -euo pipefail
+set -Eeuo pipefail
 
 # ── Static config ─────────────────────────────────────────────────────────────
 BRANCH="main"
 SAFE_MODE=0
 ROLLBACK_MODE=0
+DEPLOY_MODE="full"            # full | backend | frontend | hotfix
 for _a in "$@"; do
     case "${_a}" in
-        --rollback) ROLLBACK_MODE=1 ;;
-        --safe)     SAFE_MODE=1 ;;
-        -*)         echo "[WARN] Unknown flag: ${_a}" >&2 ;;
-        *)          BRANCH="${_a}" ;;
+        --rollback)   ROLLBACK_MODE=1 ;;
+        --safe)       SAFE_MODE=1 ;;
+        --hotfix)     DEPLOY_MODE="hotfix" ;;
+        --backend)    DEPLOY_MODE="backend" ;;
+        --frontend)   DEPLOY_MODE="frontend" ;;
+        --mode=*)     DEPLOY_MODE="${_a#--mode=}" ;;
+        -*)           echo "[WARN] Unknown flag: ${_a}" >&2 ;;
+        *)            BRANCH="${_a}" ;;
     esac
 done
+# Validate and normalise mode
+case "${DEPLOY_MODE}" in
+    full|backend|frontend|hotfix) ;;
+    *) echo "[ERROR] Invalid --mode '${DEPLOY_MODE}'. Valid: full|backend|frontend|hotfix" >&2; exit 1 ;;
+esac
+[[ "${DEPLOY_MODE}" == "hotfix" ]] && SAFE_MODE=1
 REPO_URL="https://github.com/akshathayevents-maker/ExpenseFlow.git"
 KEEP_RELEASES=5
 KEEP_FAILED_RELEASES=3
@@ -466,6 +477,13 @@ fi
 echo $$ > "${LOCK_FILE}"
 log_ok "Deploy lock acquired (PID: $$)"
 
+# ── Tee all deploy output to timestamped log file ─────────────────────────────
+DEPLOY_LOG_DIR="${APP_DIR}/deploy_logs"
+mkdir -p "${DEPLOY_LOG_DIR}" 2>/dev/null || true
+DEPLOY_LOG_FILE="${DEPLOY_LOG_DIR}/deploy_${TIMESTAMP}.log"
+exec > >(tee -a "${DEPLOY_LOG_FILE}") 2>&1
+log_info "Deploy log: ${DEPLOY_LOG_FILE}  (mode: ${DEPLOY_MODE})"
+
 # =============================================================================
 # PHASE 1 — SELF-HEALING PRE-DEPLOY CHECKS
 # =============================================================================
@@ -571,7 +589,7 @@ fi
 log_info "Running as user: $(whoami 2>/dev/null || echo unknown)"
 log_info "Current release: $(readlink -f "${CURRENT_LINK}" 2>/dev/null || echo 'none (first deploy)')"
 log_info "New release dir: ${RELEASE_DIR}"
-[[ ${SAFE_MODE} -eq 1 ]] && log_warn "SAFE MODE active — build, migrations, queue restart will be skipped"
+log_info "Deploy mode: ${DEPLOY_MODE^^}$([[ ${SAFE_MODE} -eq 1 ]] && echo ' (safe/no-build)' || true)"
 
 # Capture log file position so error scan only reads NEW content written by this deploy
 _LOG_FILE_SCAN="${SHARED_DIR}/storage/logs/laravel.log"
@@ -680,6 +698,17 @@ log_ok "Shared links created"
 step "Installing Composer dependencies"
 T_COMPOSER_START=$(date +%s)
 
+# frontend mode: skip composer install entirely — reuse vendor from previous release
+if [[ "${DEPLOY_MODE}" == "frontend" ]]; then
+    if [[ -n "${DEPLOY_PREVIOUS_RELEASE}" && -d "${DEPLOY_PREVIOUS_RELEASE}/vendor" ]]; then
+        cp -al "${DEPLOY_PREVIOUS_RELEASE}/vendor" "${RELEASE_DIR}/vendor"
+        log_ok "frontend mode — vendor/ copied from previous release (composer install skipped)"
+        T_COMPOSER_END=$(date +%s)
+    else
+        log_warn "frontend mode but no previous vendor found — falling through to composer install"
+    fi
+fi
+
 # Fast deploy: reuse vendor/ via hardlinks when composer.lock is identical
 COMPOSER_SKIP=0
 if [[ -n "${DEPLOY_PREVIOUS_RELEASE}" && -d "${DEPLOY_PREVIOUS_RELEASE}/vendor" ]]; then
@@ -708,8 +737,8 @@ log_ok "Composer done ($((T_COMPOSER_END - T_COMPOSER_START))s)"
 # PHASE 6 — FRONTEND BUILD (with OOM protection + validation)
 # =============================================================================
 step "Building frontend assets"
-if [[ ${SAFE_MODE} -eq 1 ]]; then
-    log_warn "SAFE MODE active — frontend build skipped (reusing assets from previous release)"
+if [[ ${SAFE_MODE} -eq 1 || "${DEPLOY_MODE}" == "backend" ]]; then
+    log_warn "${DEPLOY_MODE^^} mode — frontend build skipped (reusing assets from previous release)"
     # Copy previous build artifacts so app has working assets
     if [[ -n "${DEPLOY_PREVIOUS_RELEASE}" && -d "${DEPLOY_PREVIOUS_RELEASE}/public/build" ]]; then
         cp -r "${DEPLOY_PREVIOUS_RELEASE}/public/build" "${RELEASE_DIR}/public/build"
@@ -850,6 +879,39 @@ else
 fi
 
 # =============================================================================
+# PHASE 6c — PWA SERVICE WORKER CACHE VERSION BUMP
+# IMPORTANT: must run AFTER the frontend build so sw.js is the deployed copy.
+# Bumping CACHE_VERSION forces all existing PWA clients to discard their stale
+# offline caches and re-fetch assets on next activation — prevents broken
+# cached responses after every deploy.
+# =============================================================================
+step "Bumping PWA service worker cache version"
+SW_FILE="${RELEASE_DIR}/public/sw.js"
+if [[ -f "${SW_FILE}" ]]; then
+    NEW_CACHE_VERSION="ef-v${TIMESTAMP}"
+    # Match: const CACHE_VERSION = 'ef-v1';  (single or double-quoted)
+    sed -i "s/const CACHE_VERSION\s*=\s*['\"][^'\"]*['\"]/const CACHE_VERSION = '${NEW_CACHE_VERSION}'/" "${SW_FILE}"
+    # Verify the substitution landed
+    if grep -q "const CACHE_VERSION = '${NEW_CACHE_VERSION}'" "${SW_FILE}"; then
+        log_ok "SW cache version → ${NEW_CACHE_VERSION}"
+    else
+        log_warn "SW CACHE_VERSION sed replacement failed — stale PWA caches will NOT be invalidated"
+        log_warn "Current sw.js CACHE_VERSION line:"
+        grep "CACHE_VERSION" "${SW_FILE}" | head -3 >&2 || true
+    fi
+    # Verify the flat-clone copy (nginx fallback) also gets the updated sw.js
+    FLAT_SW="${APP_DIR}/public/sw.js"
+    if [[ -f "${FLAT_SW}" ]] && \
+       [[ "$(realpath "${APP_DIR}/public" 2>/dev/null)" != "$(realpath "${RELEASE_DIR}/public" 2>/dev/null)" ]]; then
+        cp "${SW_FILE}" "${FLAT_SW}"
+        log_ok "Flat-clone public/sw.js also updated (nginx fallback)"
+    fi
+else
+    log_warn "public/sw.js not found in release — PWA cache version not bumped"
+    log_warn "Expected: ${SW_FILE}"
+fi
+
+# =============================================================================
 # PHASE 6b — ARTISAN HEALTH CHECK (catches boot failures before maintenance mode)
 # =============================================================================
 step "Artisan health check (new release)"
@@ -940,8 +1002,8 @@ if ! "${PHP}" -r "
 fi
 log_ok "Database connection verified"
 
-if [[ ${SAFE_MODE} -eq 1 ]]; then
-    log_warn "SAFE MODE active — migrations skipped"
+if [[ ${SAFE_MODE} -eq 1 || "${DEPLOY_MODE}" == "frontend" ]]; then
+    log_warn "${DEPLOY_MODE^^} mode — migrations skipped"
 else
     T_MIGRATE_START=$(date +%s)
     # --isolated prevents two simultaneous deploys running migrations concurrently

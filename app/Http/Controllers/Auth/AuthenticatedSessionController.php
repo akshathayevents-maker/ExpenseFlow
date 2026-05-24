@@ -21,6 +21,13 @@ class AuthenticatedSessionController extends Controller
 
     /**
      * Handle an incoming authentication request.
+     *
+     * Supports an `?intended=` query param on the login GET page so the
+     * payment-request "Login as Staff" button can pre-set the return URL
+     * without relying on the Authenticate middleware (which is not applied
+     * to the public payment route).  The /pay-login helper route stores the
+     * value in `url.intended` before arriving here; this is the fallback for
+     * any consumer that passes the raw ?intended= param directly.
      */
     public function store(LoginRequest $request): RedirectResponse
     {

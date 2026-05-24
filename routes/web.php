@@ -238,15 +238,60 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 // ── Public payment request page (no auth — WhatsApp shareable) ───────────────
-// Signed URL prevents enumeration; WhatsApp preview crawler accesses freely.
+//
+// SECURITY DESIGN:
+//   show       → signed middleware guards enumeration (HMAC + expiry).
+//                No auth required — public visitors see QR + status.
+//                Auth is resolved INSIDE the controller to decide which
+//                controls to render (hybrid access model).
+//
+//   mark-paid  → NO auth/verified middleware at route level (intentional).
+//                Auth is validated inside the controller so that the route
+//                is reachable without a session cookie — this prevents the
+//                "button disappears in WhatsApp browser" failure.
+//                CSRF is still enforced by the global web middleware.
+//                Controller gates on auth()->user()->role + Gate policy.
+//
+//   reject     → Same pattern as mark-paid.
+//   proof      → Same pattern; controller validates role.
+//   serve-proof→ Auth-gated (admin/manager); streams private-disk file.
+//
+//   login-redirect → Stores the payment URL as url.intended then
+//                    redirects to login — used by the "Login as Staff"
+//                    button on the payment page so the user is returned
+//                    here after authentication.
+
 Route::get('/pay/{id}', [PaymentRequestController::class, 'show'])
     ->name('payment-request.show')
     ->middleware('signed');
 
-// Admin/manager confirm payment directly from the payment page (requires login)
-Route::post('/pay/{expenseRequest}/mark-paid', [PaymentRequestController::class, 'markPaid'])
-    ->name('payment-request.mark-paid')
+// Staff actions — auth validated inside controller, CSRF via web middleware
+Route::post('/pay/{id}/mark-paid', [PaymentRequestController::class, 'markPaid'])
+    ->name('payment-request.mark-paid');
+
+Route::post('/pay/{id}/reject', [PaymentRequestController::class, 'reject'])
+    ->name('payment-request.reject');
+
+Route::post('/pay/{id}/proof', [PaymentRequestController::class, 'uploadProof'])
+    ->name('payment-request.proof');
+
+// Proof file download — private storage, auth required
+Route::get('/pay/{id}/proof', [PaymentRequestController::class, 'serveProof'])
+    ->name('payment-request.serve-proof')
     ->middleware(['auth', 'verified']);
+
+// Login-redirect helper: stores the payment URL as url.intended, then
+// redirects to login.  Used by "Login as Staff" button on the payment page.
+Route::get('/pay-login', function (Illuminate\Http\Request $request) {
+    $return = $request->query('return', '');
+
+    // Only accept same-origin /pay/ URLs — prevent open-redirect abuse
+    if ($return && str_starts_with($return, url('/pay/'))) {
+        session()->put('url.intended', $return);
+    }
+
+    return redirect()->route('login');
+})->name('payment-request.login-redirect');
 
 // ── Profile ───────────────────────────────────────────────────────────────────
 Route::middleware('auth')->group(function () {

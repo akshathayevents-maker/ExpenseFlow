@@ -8,8 +8,10 @@
     <h5 class="fw-bold mb-1">Sign In</h5>
     <p class="text-muted small mb-4">Enter your credentials to continue</p>
 
-    <form method="POST" action="{{ route('login') }}">
+    <form method="POST" action="{{ route('login') }}" id="loginForm">
         @csrf
+        {{-- JS sets this to 1 in PWA standalone mode → forces remember=true --}}
+        <input type="hidden" name="pwa_context" id="pwaContext" value="0">
 
         <div class="mb-3">
             <label for="email" class="form-label fw-semibold small">Email Address</label>
@@ -40,8 +42,9 @@
 
         <div class="d-flex align-items-center justify-content-between mb-4">
             <div class="form-check">
-                <input id="remember_me" type="checkbox" name="remember" class="form-check-input">
-                <label for="remember_me" class="form-check-label small">Remember me</label>
+                {{-- Checked by default — ERP staff should stay logged in. --}}
+                <input id="remember_me" type="checkbox" name="remember" class="form-check-input" checked>
+                <label for="remember_me" class="form-check-label small">Stay signed in</label>
             </div>
             @if(Route::has('password.request'))
             <a href="{{ route('password.request') }}" class="small text-decoration-none">Forgot password?</a>
@@ -52,4 +55,19 @@
             <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
         </button>
     </form>
+
+<script>
+// Detect PWA standalone mode; set hidden field so server forces remember=true.
+(function () {
+    var standalone = window.navigator.standalone === true
+        || window.matchMedia('(display-mode: standalone)').matches
+        || document.referrer.startsWith('android-app://');
+    if (standalone) {
+        document.getElementById('pwaContext').value = '1';
+        // In standalone, also force-check the remember checkbox
+        var cb = document.getElementById('remember_me');
+        if (cb) cb.checked = true;
+    }
+}());
+</script>
 </x-guest-layout>

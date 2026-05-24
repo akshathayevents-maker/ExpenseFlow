@@ -38,7 +38,21 @@ class ExpenseRequestPolicy
 
     public function markPaid(User $user, ExpenseRequest $request): bool
     {
-        return $user->isAdmin() && $request->isApproved();
+        // Accepts both 'approved' (normal workflow) and 'pending_payment'
+        // (QR-payment workflow — created directly in pending_payment state).
+        return ($user->isAdmin() || $user->isManager())
+            && ($request->isApproved() || $request->isPendingPayment());
+    }
+
+    /**
+     * Admin/manager can reject an expense from the public payment page
+     * as long as it is not already settled or previously rejected.
+     */
+    public function rejectFromPayPage(User $user, ExpenseRequest $request): bool
+    {
+        return ($user->isAdmin() || $user->isManager())
+            && ! $request->isSettled()
+            && ! $request->isRejected();
     }
 
     public function markCompleted(User $user, ExpenseRequest $request): bool
