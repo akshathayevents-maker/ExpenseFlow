@@ -145,6 +145,11 @@ html {
        accounting for the shrinking/growing URL bar. Prevents layout jumps. */
     height: -webkit-fill-available;
     height: 100dvh;
+    /* BOTTOM NAV STABILITY FIX (layer 1):
+       'contain' allows native iOS rubber-band elastic bounce on the element itself.
+       'none' eliminates the bounce entirely — fixed elements at bottom:0 no longer
+       shift during overscroll momentum because there's no viewport displacement. */
+    overscroll-behavior: none;
 }
 
 body {
@@ -152,9 +157,9 @@ body {
     -webkit-text-size-adjust: 100%;
     min-height: -webkit-fill-available;
     min-height: 100dvh;
-    /* contain overscroll within the page — prevents pull-to-refresh from
-       kicking up the bottom nav */
-    overscroll-behavior-y: contain;
+    /* Same as html — both must be none to fully suppress iOS elastic bounce.
+       Setting only body is insufficient; iOS propagates overscroll to html. */
+    overscroll-behavior: none;
 }
 
 #main-content {
@@ -220,6 +225,26 @@ body {
 @keyframes mNavFadeIn {
     from { opacity: 0; }
     to   { opacity: 1; }
+}
+
+/* BOTTOM NAV STABILITY FIX (layer 2): floor fill.
+   On iOS, if elastic bounce is NOT fully suppressed by overscroll-behavior:none
+   (e.g. WebView, some PWA modes), the gap below the nav that's normally
+   off-screen becomes visible as content bounces up. This ::after paints the
+   same dark background behind that gap — visually the nav appears stationary.
+   position:absolute + top:100% = just below the nav's bottom edge.
+   The 200px height exceeds the max elastic bounce depth on any iPhone.
+   pointer-events:none so taps pass through to content behind it. */
+.ef-m-bottomnav::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    height: 200px;
+    background: rgba(10, 13, 11, .92); /* match nav background */
+    pointer-events: none;
+    /* No z-index needed — ::after is already within nav's stacking context */
 }
 
 /* Hide pages' own fixed bottom bars since global nav replaces navigation */
