@@ -37,15 +37,22 @@ return new class extends Migration
         ");
 
         Schema::table('expense_requests', function (Blueprint $table) {
-            $table->string('qr_file_path')->nullable()->after('notes');
-            $table->timestamp('whatsapp_sent_at')->nullable()->after('approved_at');
+            if (!Schema::hasColumn('expense_requests', 'qr_file_path')) {
+                $table->string('qr_file_path')->nullable()->after('notes');
+            }
+            if (!Schema::hasColumn('expense_requests', 'whatsapp_sent_at')) {
+                $table->timestamp('whatsapp_sent_at')->nullable()->after('approved_at');
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('expense_requests', function (Blueprint $table) {
-            $table->dropColumn(['qr_file_path', 'whatsapp_sent_at']);
+            $cols = array_filter(['qr_file_path', 'whatsapp_sent_at'], fn($c) => Schema::hasColumn('expense_requests', $c));
+            if (!empty($cols)) {
+                $table->dropColumn(array_values($cols));
+            }
         });
 
         // Revert status (remove pending_payment)

@@ -15,14 +15,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('expense_payments', function (Blueprint $table) {
-            $table->string('proof_file_path', 500)->nullable()->after('payment_notes');
+            if (!Schema::hasColumn('expense_payments', 'proof_file_path')) {
+                $table->string('proof_file_path', 500)->nullable()->after('payment_notes');
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('expense_payments', function (Blueprint $table) {
-            $table->dropColumn('proof_file_path');
+            if (Schema::hasColumn('expense_payments', 'proof_file_path')) {
+                $table->dropColumn('proof_file_path');
+            }
         });
     }
 };

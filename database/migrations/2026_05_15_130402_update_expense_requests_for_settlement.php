@@ -28,16 +28,20 @@ return new class extends Migration
         ");
 
         Schema::table('expense_requests', function (Blueprint $table) {
-            $table->enum('settlement_type', ['direct_payment', 'wallet_deduction', 'reimbursement'])
-                  ->nullable()
-                  ->after('rejection_reason');
+            if (!Schema::hasColumn('expense_requests', 'settlement_type')) {
+                $table->enum('settlement_type', ['direct_payment', 'wallet_deduction', 'reimbursement'])
+                      ->nullable()
+                      ->after('rejection_reason');
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('expense_requests', function (Blueprint $table) {
-            $table->dropColumn('settlement_type');
+            if (Schema::hasColumn('expense_requests', 'settlement_type')) {
+                $table->dropColumn('settlement_type');
+            }
         });
 
         DB::statement("

@@ -8,18 +8,20 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('wallet_transactions', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('wallet_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('expense_request_id')->nullable()->constrained()->nullOnDelete();
-            $table->enum('type', ['credit', 'debit', 'adjustment', 'reimbursement']);
-            $table->decimal('amount', 12, 2);
-            $table->decimal('balance_before', 12, 2);
-            $table->decimal('balance_after', 12, 2);
-            $table->text('notes')->nullable();
-            $table->foreignId('created_by')->constrained('users')->restrictOnDelete();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('wallet_transactions')) {
+            Schema::create('wallet_transactions', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('wallet_id')->constrained()->cascadeOnDelete();
+                $table->foreignId('expense_request_id')->nullable()->constrained()->nullOnDelete();
+                $table->enum('type', ['credit', 'debit', 'adjustment', 'reimbursement']);
+                $table->decimal('amount', 12, 2);
+                $table->decimal('balance_before', 12, 2);
+                $table->decimal('balance_after', 12, 2);
+                $table->text('notes')->nullable();
+                $table->foreignId('created_by')->constrained('users')->restrictOnDelete();
+                $table->timestamps();
+            });
+        }
     }
 
     public function down(): void

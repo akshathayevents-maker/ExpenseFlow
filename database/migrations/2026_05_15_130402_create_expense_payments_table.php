@@ -8,17 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('expense_payments', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('expense_request_id')->constrained()->cascadeOnDelete();
-            $table->enum('payment_mode', ['cash', 'upi', 'bank_transfer', 'wallet']);
-            $table->decimal('amount', 12, 2);
-            $table->string('transaction_reference')->nullable();
-            $table->text('payment_notes')->nullable();
-            $table->foreignId('paid_by')->constrained('users')->restrictOnDelete();
-            $table->timestamp('paid_at');
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('expense_payments')) {
+            Schema::create('expense_payments', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('expense_request_id')->constrained()->cascadeOnDelete();
+                $table->enum('payment_mode', ['cash', 'upi', 'bank_transfer', 'wallet']);
+                $table->decimal('amount', 12, 2);
+                $table->string('transaction_reference')->nullable();
+                $table->text('payment_notes')->nullable();
+                $table->foreignId('paid_by')->constrained('users')->restrictOnDelete();
+                $table->timestamp('paid_at');
+                $table->timestamps();
+            });
+        }
     }
 
     public function down(): void

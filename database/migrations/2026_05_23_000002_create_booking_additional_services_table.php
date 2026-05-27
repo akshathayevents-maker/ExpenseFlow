@@ -8,14 +8,16 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('booking_additional_services', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('hall_booking_id')->constrained()->cascadeOnDelete();
-            $table->string('service_name');
-            $table->text('description')->nullable();
-            $table->decimal('amount', 12, 2)->default(0);
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('booking_additional_services')) {
+            Schema::create('booking_additional_services', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('hall_booking_id')->constrained()->cascadeOnDelete();
+                $table->string('service_name');
+                $table->text('description')->nullable();
+                $table->decimal('amount', 12, 2)->default(0);
+                $table->timestamps();
+            });
+        }
     }
 
     public function down(): void

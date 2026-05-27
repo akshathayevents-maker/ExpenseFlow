@@ -8,14 +8,16 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('hall_booking_meals', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('hall_booking_id')->constrained()->cascadeOnDelete();
-            $table->string('meal_type'); // breakfast, lunch, dinner
-            $table->unsignedInteger('guest_count')->nullable();
-            $table->text('special_requirements')->nullable();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('hall_booking_meals')) {
+            Schema::create('hall_booking_meals', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('hall_booking_id')->constrained()->cascadeOnDelete();
+                $table->string('meal_type'); // breakfast, lunch, dinner
+                $table->unsignedInteger('guest_count')->nullable();
+                $table->text('special_requirements')->nullable();
+                $table->timestamps();
+            });
+        }
     }
 
     public function down(): void
