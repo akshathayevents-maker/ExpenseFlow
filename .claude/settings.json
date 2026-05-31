@@ -107,7 +107,9 @@
       "Bash(git commit -m 'feat: complete Meal Plan management module *)",
       "Bash(read dir *)",
       "Bash(git commit -m 'fix: QR image broken + 403 on payment page *)",
-      "Bash(git commit -m 'fix: harden QR security + og:image crawler fix + fullscreen UX *)"
+      "Bash(git commit -m 'fix: harden QR security + og:image crawler fix + fullscreen UX *)",
+      "Bash(git commit -m 'feat: Kitchen Summary mobile redesign — operational density *)",
+      "Bash(git commit -m 'feat: Hall Bookings mobile-first redesign v3 *)"
     ]
   }
 }
