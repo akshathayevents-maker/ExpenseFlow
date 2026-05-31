@@ -143,6 +143,11 @@
                 <p class="section-label">Payment & Status</p>
                 <div class="row g-3">
                     <div class="col-md-3">
+                        <label class="form-label fw-semibold small">Hall Rental Cost (₹)</label>
+                        <input type="number" id="hall_cost" name="hall_cost" step="0.01" min="0" class="form-control rounded-3"
+                               value="{{ old('hall_cost', $booking->hall_cost ?? 0) }}" placeholder="0.00">
+                    </div>
+                    <div class="col-md-3">
                         <label class="form-label fw-semibold small">Total Amount (₹) <span class="text-danger">*</span></label>
                         <input type="number" id="total_amount" name="total_amount" step="0.01" min="0" class="form-control rounded-3"
                                value="{{ old('total_amount', $booking->total_amount) }}" required>

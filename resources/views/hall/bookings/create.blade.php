@@ -356,8 +356,7 @@
                                 <input id="hall_cost" name="hall_cost" type="number" step="0.01" min="0"
                                        class="ef-input ef-input-prefixed"
                                        value="{{ old('hall_cost', 0) }}"
-                                       placeholder="0.00"
-                                       required>
+                                       placeholder="0.00">
                             </div>
                             @error('hall_cost')<div class="ef-field-error">{{ $message }}</div>@enderror
                         </div>

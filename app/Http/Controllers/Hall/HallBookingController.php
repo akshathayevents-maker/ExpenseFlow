@@ -89,7 +89,7 @@ class HallBookingController extends Controller
             'has_breakfast'        => ['boolean'],
             'has_lunch'            => ['boolean'],
             'has_dinner'           => ['boolean'],
-            'hall_cost'            => ['required', 'numeric', 'min:0'],
+            'hall_cost'            => ['nullable', 'numeric', 'min:0'],
             'total_amount'         => ['required', 'numeric', 'min:0'],
             'advance_amount'       => ['required', 'numeric', 'min:0'],
             'payment_status'       => ['required', 'in:pending,partial,paid'],
@@ -120,6 +120,7 @@ class HallBookingController extends Controller
             $data['has_breakfast'] = $request->boolean('has_breakfast');
             $data['has_lunch']     = $request->boolean('has_lunch');
             $data['has_dinner']    = $request->boolean('has_dinner');
+            $data['hall_cost']     = (float) ($data['hall_cost'] ?? 0);
 
             $services = $data['services'] ?? [];
             unset($data['services']);
@@ -204,7 +205,7 @@ class HallBookingController extends Controller
             'has_breakfast'        => ['boolean'],
             'has_lunch'            => ['boolean'],
             'has_dinner'           => ['boolean'],
-            'hall_cost'            => ['required', 'numeric', 'min:0'],
+            'hall_cost'            => ['nullable', 'numeric', 'min:0'],
             'total_amount'         => ['required', 'numeric', 'min:0'],
             'advance_amount'       => ['required', 'numeric', 'min:0'],
             'payment_status'       => ['required', 'in:pending,partial,paid'],
@@ -234,6 +235,7 @@ class HallBookingController extends Controller
         $data['has_breakfast'] = $request->boolean('has_breakfast');
         $data['has_lunch']     = $request->boolean('has_lunch');
         $data['has_dinner']    = $request->boolean('has_dinner');
+        $data['hall_cost']     = (float) ($data['hall_cost'] ?? 0);
 
         $services = $data['services'] ?? [];
         unset($data['services']);
