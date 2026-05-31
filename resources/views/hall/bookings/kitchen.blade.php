@@ -1,12 +1,11 @@
 <x-admin-layout title="Kitchen Summary">
 @push('styles')
 <style>
-/*
- * KITCHEN COMMAND CENTER — ef-kit-* namespace
- * Aesthetic: warm amber · copper · kitchen heat
- */
+/* ── Kitchen Command Center — ef-kit-* ───────────────────────────
+   Mobile-first redesign: operational density over decoration.
+   Primary users: kitchen manager, catering staff, ops team.
+   ──────────────────────────────────────────────────────────────── */
 
-/* ── Design tokens ─────────────────────────────────────────────── */
 :root {
     --kit-amber:    #d97706;
     --kit-amber-hi: #f59e0b;
@@ -16,365 +15,374 @@
     --kit-danger:   #dc2626;
     --kit-ink:      #1c1007;
     --kit-muted:    #78716c;
-    --kit-faint:    #fefce8;
-    --kit-border:   rgba(217,119,6,.14);
-    --kit-border-s: rgba(217,119,6,.30);
-    --kit-shadow:   0 1px 3px rgba(28,16,7,.07),0 4px 12px rgba(28,16,7,.06);
-    --kit-shadow-h: 0 4px 20px rgba(28,16,7,.13),0 1px 4px rgba(28,16,7,.07);
+    --kit-faint:    #fffbf5;
+    --kit-border:   rgba(217,119,6,.13);
+    --kit-shadow:   0 1px 3px rgba(28,16,7,.06),0 2px 8px rgba(28,16,7,.05);
     --kit-radius:   14px;
     --kit-ease:     cubic-bezier(.25,.46,.45,.94);
 }
 
-/* ── Hero ──────────────────────────────────────────────────────── */
-.ef-kit-hero {
-    background: linear-gradient(135deg, #1a1208 0%, #2c1810 40%, #3d2314 100%);
-    border: 1px solid rgba(255,255,255,.07);
-    border-radius: 20px;
-    margin-bottom: 20px;
-    overflow: hidden;
-    padding: 28px 28px 24px;
-    position: relative;
-    display: flex;
+/* ── Command bar (replaces hero) ────────────────────────────────
+   Max 68px. Dark background. Left: title + date. Right: stats.
+   When empty → single-line "Kitchen clear" state.
+   ──────────────────────────────────────────────────────────────── */
+.ef-kit-bar {
     align-items: center;
-    gap: 24px;
-}
-.ef-kit-hero::before {
-    background: radial-gradient(circle, rgba(245,158,11,.18) 0%, transparent 65%);
-    border-radius: 50%;
-    content: "";
-    height: 440px;
-    pointer-events: none;
-    position: absolute;
-    right: -80px;
-    top: -140px;
-    width: 440px;
-}
-.ef-kit-hero::after {
-    background: radial-gradient(circle, rgba(180,83,9,.12) 0%, transparent 65%);
-    bottom: -90px;
-    content: "";
-    height: 260px;
-    left: 20%;
-    pointer-events: none;
-    position: absolute;
-    width: 260px;
-    border-radius: 50%;
-}
-.ef-kit-hero-main { flex: 1; position: relative; z-index: 1; }
-.ef-kit-eyebrow {
-    color: rgba(245,158,11,.85);
-    font-size: .65rem;
-    font-weight: 760;
-    letter-spacing: .18em;
-    margin-bottom: 6px;
-    text-transform: uppercase;
-}
-.ef-kit-hero-title {
-    color: #fef9f0;
-    font-size: 1.5rem;
-    font-weight: 800;
-    letter-spacing: -.02em;
-    line-height: 1.2;
-    margin-bottom: 4px;
-}
-.ef-kit-hero-sub {
-    color: rgba(254,249,240,.45);
-    font-size: .83rem;
-}
-.ef-kit-hero-chips {
+    background: linear-gradient(135deg, #1a1208 0%, #2e1a0e 100%);
+    border: 1px solid rgba(245,158,11,.12);
+    border-radius: 16px;
     display: flex;
     gap: 12px;
-    position: relative;
-    z-index: 1;
-    flex-shrink: 0;
-    align-items: center;
-}
-.ef-kit-hero-chip {
-    background: rgba(255,255,255,.07);
-    border: 1px solid rgba(255,255,255,.12);
-    border-radius: 12px;
-    padding: 10px 16px;
-    text-align: center;
-}
-.ef-kit-hero-chip-val {
-    color: #fef9f0;
-    font-size: 1.5rem;
-    font-weight: 800;
-    letter-spacing: -.02em;
-    line-height: 1;
-}
-.ef-kit-hero-chip-val.amber  { color: #fbbf24; }
-.ef-kit-hero-chip-val.orange { color: #fb923c; }
-.ef-kit-hero-chip-lbl {
-    color: rgba(254,249,240,.4);
-    font-size: .67rem;
-    font-weight: 700;
-    letter-spacing: .04em;
-    margin-top: 3px;
-    text-transform: uppercase;
-    white-space: nowrap;
-}
-
-/* ── Date navigator ────────────────────────────────────────────── */
-.ef-kit-date-nav {
-    align-items: center;
-    background: #fff;
-    border: 1px solid var(--kit-border);
-    border-radius: 16px;
-    box-shadow: var(--kit-shadow);
-    display: flex;
-    gap: 10px;
     justify-content: space-between;
-    margin-bottom: 20px;
-    padding: 12px 16px;
-    flex-wrap: wrap;
-}
-.ef-kit-date-nav-btn {
-    align-items: center;
-    background: #fef9f0;
-    border: 1.5px solid var(--kit-border);
-    border-radius: 10px;
-    color: var(--kit-amber);
-    cursor: pointer;
-    display: inline-flex;
-    font-size: .82rem;
-    font-weight: 700;
-    gap: 6px;
-    padding: 8px 16px;
-    text-decoration: none;
-    transition: all .15s var(--kit-ease);
-    white-space: nowrap;
-}
-.ef-kit-date-nav-btn:hover { background: var(--kit-faint); border-color: var(--kit-amber); color: var(--kit-copper); }
-.ef-kit-date-nav-btn.today {
-    background: var(--kit-amber);
-    border-color: var(--kit-amber);
-    color: #fff;
-}
-.ef-kit-date-nav-btn.today:hover { background: var(--kit-copper); border-color: var(--kit-copper); }
-.ef-kit-date-center { display: flex; align-items: center; gap: 12px; }
-.ef-kit-date-chip {
-    background: var(--kit-faint);
-    border: 1.5px solid var(--kit-border);
-    border-radius: 12px;
-    color: var(--kit-ink);
-    font-size: .9rem;
-    font-weight: 800;
-    padding: 8px 20px;
-    text-align: center;
-    white-space: nowrap;
-}
-.ef-kit-date-chip span {
-    color: var(--kit-muted);
-    font-size: .72rem;
-    font-weight: 600;
-    display: block;
-}
-.ef-kit-date-picker-btn {
-    align-items: center;
-    background: none;
-    border: 1.5px solid var(--kit-border);
-    border-radius: 8px;
-    color: var(--kit-muted);
-    cursor: pointer;
-    display: inline-flex;
-    font-size: .82rem;
-    padding: 8px 10px;
-    transition: border-color .14s, color .14s;
-}
-.ef-kit-date-picker-btn:hover { border-color: var(--kit-amber); color: var(--kit-amber); }
-/* hidden real input */
-.ef-kit-date-hidden { position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px; }
-
-/* ── Meal KPI cards ─────────────────────────────────────────────── */
-.ef-kit-meals {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
-    margin-bottom: 20px;
-}
-.ef-kit-meal-card {
-    border-radius: 16px;
-    border: 1px solid rgba(255,255,255,.1);
-    overflow: hidden;
-    padding: 20px 20px 16px;
+    margin-bottom: 12px;
+    padding: 14px 18px;
     position: relative;
+    overflow: hidden;
 }
-.ef-kit-meal-card.breakfast {
-    background: linear-gradient(135deg, #431407 0%, #7c2d12 100%);
-}
-.ef-kit-meal-card.lunch {
-    background: linear-gradient(135deg, #451a03 0%, #92400e 60%, #78350f 100%);
-}
-.ef-kit-meal-card.dinner {
-    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 60%, #1e1b4b 100%);
-}
-.ef-kit-meal-card::before {
-    background: radial-gradient(circle, rgba(255,255,255,.08) 0%, transparent 60%);
+.ef-kit-bar::after {
+    background: radial-gradient(circle, rgba(245,158,11,.10) 0%, transparent 65%);
     border-radius: 50%;
-    content: "";
+    content: '';
     height: 200px;
     pointer-events: none;
     position: absolute;
-    right: -40px;
-    top: -60px;
+    right: -50px;
+    top: -80px;
     width: 200px;
 }
-.ef-kit-meal-icon {
-    color: rgba(255,255,255,.5);
-    font-size: 1.4rem;
-    margin-bottom: 10px;
-    display: block;
+.ef-kit-bar-left { position: relative; z-index: 1; }
+.ef-kit-bar-eyebrow {
+    color: rgba(245,158,11,.7);
+    font-size: .58rem;
+    font-weight: 760;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    margin-bottom: 3px;
 }
-.ef-kit-meal-count {
-    color: #fff;
-    font-size: 2.2rem;
+.ef-kit-bar-title {
+    color: #fef9f0;
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    line-height: 1.1;
+}
+.ef-kit-bar-right {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+    position: relative;
+    z-index: 1;
+    flex-shrink: 0;
+}
+/* Stats when bookings exist */
+.ef-kit-stat {
+    text-align: center;
+    min-width: 44px;
+}
+.ef-kit-stat-val {
+    color: #fbbf24;
+    font-size: 1.3rem;
     font-weight: 900;
     letter-spacing: -.04em;
     line-height: 1;
-    margin-bottom: 2px;
 }
-.ef-kit-meal-label {
-    color: rgba(255,255,255,.6);
-    font-size: .72rem;
+.ef-kit-stat-lbl {
+    color: rgba(255,255,255,.45);
+    font-size: .58rem;
     font-weight: 700;
     letter-spacing: .06em;
     text-transform: uppercase;
-    margin-bottom: 8px;
+    margin-top: 2px;
 }
-.ef-kit-meal-time {
-    color: rgba(255,255,255,.45);
-    font-size: .72rem;
-    font-weight: 600;
+.ef-kit-stat-div {
+    background: rgba(255,255,255,.1);
+    height: 32px;
+    width: 1px;
 }
-.ef-kit-meal-bar-track {
-    background: rgba(255,255,255,.12);
-    border-radius: 4px;
-    height: 4px;
-    margin-top: 12px;
-    overflow: hidden;
-}
-.ef-kit-meal-bar-fill {
-    background: rgba(255,255,255,.55);
-    border-radius: 4px;
-    height: 4px;
-    transition: width .6s var(--kit-ease);
-}
-
-/* ── Section label ─────────────────────────────────────────────── */
-.ef-kit-section-label {
-    color: var(--kit-muted);
-    font-size: .7rem;
-    font-weight: 720;
-    letter-spacing: .06em;
-    margin-bottom: 12px;
-    text-transform: uppercase;
-    display: flex;
+/* Empty state inside bar */
+.ef-kit-bar-clear {
     align-items: center;
+    display: flex;
     gap: 8px;
+    color: rgba(245,158,11,.7);
+    font-size: .82rem;
+    font-weight: 700;
 }
-.ef-kit-section-label::after {
-    background: var(--kit-border);
-    content: "";
-    flex: 1;
-    height: 1px;
-}
+.ef-kit-bar-clear i { font-size: 1rem; }
 
-/* ── Event cards ───────────────────────────────────────────────── */
-.ef-kit-cards { display: flex; flex-direction: column; gap: 12px; }
-
-.ef-kit-event-card {
+/* ── Date navigator — single compact row ────────────────────────
+   [←] 31 May 2026, Saturday [📅] [→]
+   Today chip appears inline when not today.
+   ──────────────────────────────────────────────────────────────── */
+.ef-kit-date-row {
+    align-items: center;
     background: #fff;
     border: 1px solid var(--kit-border);
-    border-left: 4px solid var(--kit-amber);
+    border-radius: 12px;
+    box-shadow: var(--kit-shadow);
+    display: flex;
+    gap: 0;
+    margin-bottom: 12px;
+    overflow: hidden;
+    height: 44px;
+}
+.ef-kit-date-arrow {
+    align-items: center;
+    background: var(--kit-faint);
+    border: none;
+    color: var(--kit-amber);
+    cursor: pointer;
+    display: flex;
+    flex-shrink: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    height: 44px;
+    justify-content: center;
+    text-decoration: none;
+    transition: background .14s;
+    width: 44px;
+}
+.ef-kit-date-arrow:hover { background: #fef0d0; color: var(--kit-copper); }
+.ef-kit-date-arrow:first-child { border-right: 1px solid var(--kit-border); }
+.ef-kit-date-arrow:last-child  { border-left:  1px solid var(--kit-border); }
+.ef-kit-date-center {
+    align-items: center;
+    display: flex;
+    flex: 1;
+    gap: 8px;
+    justify-content: center;
+    padding: 0 10px;
+    overflow: hidden;
+}
+.ef-kit-date-text {
+    color: var(--kit-ink);
+    font-size: .88rem;
+    font-weight: 800;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.ef-kit-date-today-chip {
+    align-items: center;
+    background: var(--kit-amber);
+    border-radius: 6px;
+    color: #fff;
+    display: inline-flex;
+    font-size: .6rem;
+    font-weight: 800;
+    gap: 3px;
+    letter-spacing: .04em;
+    padding: 2px 7px;
+    text-decoration: none;
+    text-transform: uppercase;
+    white-space: nowrap;
+    transition: background .14s;
+    flex-shrink: 0;
+}
+.ef-kit-date-today-chip:hover { background: var(--kit-copper); color: #fff; }
+.ef-kit-date-picker-btn {
+    align-items: center;
+    background: none;
+    border: none;
+    border-left: 1px solid var(--kit-border);
+    color: var(--kit-muted);
+    cursor: pointer;
+    display: flex;
+    flex-shrink: 0;
+    font-size: .82rem;
+    height: 44px;
+    justify-content: center;
+    transition: color .14s;
+    width: 36px;
+}
+.ef-kit-date-picker-btn:hover { color: var(--kit-amber); }
+.ef-kit-date-hidden { position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px; }
+
+/* ── Meal strip — compact 3-column ─────────────────────────────
+   Replaced large gradient cards with a tight strip.
+   Hidden when all counts are zero (no point showing 0 / 0 / 0).
+   ──────────────────────────────────────────────────────────────── */
+.ef-kit-meal-strip {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(3, 1fr);
+    margin-bottom: 14px;
+}
+.ef-kit-meal-pill {
+    align-items: center;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    justify-content: center;
+    padding: 10px 6px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+.ef-kit-meal-pill.bf { background: #fff7ed; border: 1.5px solid #fed7aa; }
+.ef-kit-meal-pill.ln { background: #fefce8; border: 1.5px solid #fde68a; }
+.ef-kit-meal-pill.dn { background: #eef2ff; border: 1.5px solid #c7d2fe; }
+/* Zero-state dim */
+.ef-kit-meal-pill.zero { opacity: .5; }
+.ef-kit-meal-pill-icon { font-size: .95rem; line-height: 1; }
+.ef-kit-meal-pill.bf .ef-kit-meal-pill-icon { color: #c2410c; }
+.ef-kit-meal-pill.ln .ef-kit-meal-pill-icon { color: #a16207; }
+.ef-kit-meal-pill.dn .ef-kit-meal-pill-icon { color: #4338ca; }
+.ef-kit-meal-pill-count {
+    font-size: 1.15rem;
+    font-weight: 900;
+    letter-spacing: -.04em;
+    line-height: 1;
+    margin-top: 2px;
+}
+.ef-kit-meal-pill.bf .ef-kit-meal-pill-count { color: #9a3412; }
+.ef-kit-meal-pill.ln .ef-kit-meal-pill-count { color: #78350f; }
+.ef-kit-meal-pill.dn .ef-kit-meal-pill-count { color: #312e81; }
+.ef-kit-meal-pill-label {
+    font-size: .6rem;
+    font-weight: 760;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    opacity: .6;
+}
+.ef-kit-meal-pill.bf .ef-kit-meal-pill-label { color: #c2410c; }
+.ef-kit-meal-pill.ln .ef-kit-meal-pill-label { color: #a16207; }
+.ef-kit-meal-pill.dn .ef-kit-meal-pill-label { color: #4338ca; }
+/* Mini bar at bottom of pill */
+.ef-kit-meal-bar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 0 0 12px 12px;
+    overflow: hidden;
+}
+.ef-kit-meal-pill.bf .ef-kit-meal-bar { background: #fed7aa; }
+.ef-kit-meal-pill.ln .ef-kit-meal-bar { background: #fde68a; }
+.ef-kit-meal-pill.dn .ef-kit-meal-bar { background: #c7d2fe; }
+.ef-kit-meal-bar-fill {
+    height: 3px;
+    transition: width .5s var(--kit-ease);
+}
+.ef-kit-meal-pill.bf .ef-kit-meal-bar-fill { background: #c2410c; }
+.ef-kit-meal-pill.ln .ef-kit-meal-bar-fill { background: #a16207; }
+.ef-kit-meal-pill.dn .ef-kit-meal-bar-fill { background: #4338ca; }
+
+/* ── Section header ──────────────────────────────────────────── */
+.ef-kit-section {
+    align-items: center;
+    color: var(--kit-muted);
+    display: flex;
+    font-size: .68rem;
+    font-weight: 720;
+    gap: 8px;
+    letter-spacing: .05em;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+}
+.ef-kit-section::after { background: var(--kit-border); content: ''; flex: 1; height: 1px; }
+
+/* ── Event cards ────────────────────────────────────────────── */
+.ef-kit-cards { display: flex; flex-direction: column; gap: 10px; }
+
+.ef-kit-card {
+    background: #fff;
+    border: 1px solid var(--kit-border);
+    border-left: 3px solid var(--kit-amber);
     border-radius: var(--kit-radius);
     box-shadow: var(--kit-shadow);
     overflow: hidden;
-    transition: box-shadow .16s var(--kit-ease), transform .16s var(--kit-ease);
 }
-.ef-kit-event-card:hover { box-shadow: var(--kit-shadow-h); transform: translateY(-2px); }
+.ef-kit-card.urgent  { border-left-color: var(--kit-danger); }
+.ef-kit-card.warning { border-left-color: var(--kit-orange); }
+.ef-kit-card.normal  { border-left-color: var(--kit-green); }
+.ef-kit-card.active  { border-left-color: var(--kit-amber); }
+.ef-kit-card.past    { border-left-color: #94a3b8; opacity: .82; }
 
-/* urgency border tones */
-.ef-kit-event-card.urgent  { border-left-color: var(--kit-danger); }
-.ef-kit-event-card.warning { border-left-color: var(--kit-orange); }
-.ef-kit-event-card.normal  { border-left-color: var(--kit-green); }
-.ef-kit-event-card.past    { border-left-color: #94a3b8; opacity: .8; }
-
-.ef-kit-event-top {
-    align-items: flex-start;
-    display: flex;
-    gap: 16px;
-    padding: 18px 20px 14px;
+.ef-kit-card-top {
+    display: grid;
+    /* time | info | pax */
+    grid-template-columns: 64px 1fr auto;
+    gap: 12px;
+    align-items: start;
+    padding: 14px 16px 12px;
 }
-
-/* time column */
-.ef-kit-event-time-col {
-    flex-shrink: 0;
-    min-width: 68px;
-    text-align: center;
+.ef-kit-time {
     background: var(--kit-faint);
     border: 1px solid var(--kit-border);
-    border-radius: 10px;
-    padding: 8px 10px;
+    border-radius: 9px;
+    padding: 6px 6px;
+    text-align: center;
 }
-.ef-kit-event-time-val {
+.ef-kit-time-val {
     color: var(--kit-copper);
-    font-size: .95rem;
+    font-size: .84rem;
     font-weight: 800;
     line-height: 1.2;
 }
-.ef-kit-event-time-end {
+.ef-kit-time-end {
     color: var(--kit-muted);
-    font-size: .68rem;
+    font-size: .6rem;
     font-weight: 600;
-    margin-top: 2px;
+    margin-top: 1px;
 }
-
-/* main body */
-.ef-kit-event-main { flex: 1; min-width: 0; }
-.ef-kit-event-customer {
+.ef-kit-info { min-width: 0; }
+.ef-kit-customer {
     color: var(--kit-ink);
-    font-size: 1rem;
+    font-size: .92rem;
     font-weight: 800;
     margin-bottom: 2px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.ef-kit-event-meta {
+.ef-kit-evt-type {
     color: var(--kit-muted);
-    font-size: .78rem;
-    margin-bottom: 8px;
+    font-size: .72rem;
+    font-weight: 600;
+    margin-bottom: 6px;
 }
-.ef-kit-event-chips { display: flex; gap: 6px; flex-wrap: wrap; }
-
-/* right: pax + countdown */
-.ef-kit-event-right {
-    flex-shrink: 0;
+.ef-kit-chips { display: flex; gap: 5px; flex-wrap: wrap; }
+.ef-kit-chip {
+    border-radius: 5px;
+    display: inline-flex;
+    align-items: center;
+    font-size: .62rem;
+    font-weight: 760;
+    gap: 3px;
+    padding: 2px 6px;
+}
+.ef-kit-chip.bf { background: #fff7ed; color: #c2410c; }
+.ef-kit-chip.ln { background: #fefce8; color: #a16207; }
+.ef-kit-chip.dn { background: #eef2ff; color: #4338ca; }
+.ef-kit-chip.hall { background: #fef9f0; color: var(--kit-copper); }
+.ef-kit-chip.mp   { background: #f0fdf4; color: #166534; }
+.ef-kit-pax {
     text-align: right;
+    flex-shrink: 0;
 }
-.ef-kit-pax-val {
+.ef-kit-pax-num {
     color: var(--kit-ink);
-    font-size: 1.6rem;
+    font-size: 1.4rem;
     font-weight: 900;
     letter-spacing: -.04em;
     line-height: 1;
 }
-.ef-kit-pax-label {
+.ef-kit-pax-lbl {
     color: var(--kit-muted);
-    font-size: .68rem;
+    font-size: .58rem;
     font-weight: 700;
-    letter-spacing: .04em;
+    letter-spacing: .05em;
     text-transform: uppercase;
-    margin-top: 2px;
+    margin-top: 1px;
 }
 .ef-kit-countdown {
-    border-radius: 8px;
+    border-radius: 7px;
     display: inline-block;
-    font-size: .72rem;
+    font-size: .65rem;
     font-weight: 760;
-    margin-top: 6px;
-    padding: 3px 10px;
+    margin-top: 5px;
+    padding: 2px 8px;
     white-space: nowrap;
 }
 .ef-kit-countdown.soon   { background: #fef2f2; color: var(--kit-danger); }
@@ -388,38 +396,18 @@
     50%      { box-shadow: 0 0 0 4px rgba(217,119,6,0); }
 }
 
-/* chips */
-.ef-kit-chip {
-    border-radius: 6px;
-    display: inline-flex;
+.ef-kit-card-foot {
     align-items: center;
-    font-size: .68rem;
-    font-weight: 760;
-    gap: 4px;
-    letter-spacing: .03em;
-    padding: 3px 8px;
-}
-.ef-kit-chip.bf  { background: #fff7ed; color: #c2410c; }
-.ef-kit-chip.ln  { background: #fefce8; color: #a16207; }
-.ef-kit-chip.dn  { background: #eef2ff; color: #4338ca; }
-.ef-kit-chip.evt { background: #f1f5f9; color: #475569; }
-.ef-kit-chip.hall{ background: var(--kit-faint); color: var(--kit-copper); }
-.ef-kit-chip.mp  { background: #f0fdf4; color: #166534; }
-
-/* event footer */
-.ef-kit-event-footer {
-    align-items: center;
-    background: #fafaf9;
-    border-top: 1px solid #f5f0eb;
+    background: #fafaf8;
+    border-top: 1px solid #f5f0ea;
     display: flex;
-    gap: 10px;
+    gap: 8px;
     justify-content: space-between;
-    padding: 10px 20px;
-    flex-wrap: wrap;
+    padding: 8px 16px;
 }
-.ef-kit-event-note {
+.ef-kit-note {
     color: var(--kit-muted);
-    font-size: .76rem;
+    font-size: .72rem;
     font-style: italic;
     flex: 1;
     min-width: 0;
@@ -427,97 +415,93 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.ef-kit-event-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.ef-kit-actions { display: flex; gap: 6px; flex-shrink: 0; }
 .ef-kit-btn {
     align-items: center;
-    border-radius: 8px;
+    border-radius: 7px;
     cursor: pointer;
     display: inline-flex;
-    font-size: .78rem;
+    font-size: .72rem;
     font-weight: 700;
-    gap: 5px;
-    padding: 6px 12px;
+    gap: 4px;
+    padding: 5px 10px;
     text-decoration: none;
-    transition: all .14s;
+    transition: all .13s;
+    border: 1.5px solid;
 }
-.ef-kit-btn-view {
-    background: #f5f0e8;
-    border: 1.5px solid #e8d8c0;
-    color: var(--kit-copper);
-}
-.ef-kit-btn-view:hover { background: #eee0cc; color: var(--kit-copper); }
-.ef-kit-btn-primary {
-    background: var(--kit-amber);
-    border: 1.5px solid var(--kit-amber);
-    color: #fff;
-}
+.ef-kit-btn-view    { background: #f5f0e8; border-color: #e8d8c0; color: var(--kit-copper); }
+.ef-kit-btn-view:hover { background: #efe4d0; color: var(--kit-copper); }
+.ef-kit-btn-primary { background: var(--kit-amber); border-color: var(--kit-amber); color: #fff; }
 .ef-kit-btn-primary:hover { background: var(--kit-copper); border-color: var(--kit-copper); color: #fff; }
+.ef-kit-btn-outline { background: #fff; border-color: var(--kit-border); color: var(--kit-ink); }
+.ef-kit-btn-outline:hover { border-color: var(--kit-amber); color: var(--kit-amber); }
 
-/* ── Empty state ───────────────────────────────────────────────── */
+/* ── Empty state — compact + actionable ──────────────────────── */
 .ef-kit-empty {
     background: #fff;
     border: 1px solid var(--kit-border);
     border-radius: 16px;
     box-shadow: var(--kit-shadow);
-    padding: 64px 24px;
+    padding: 32px 20px 28px;
     text-align: center;
 }
-.ef-kit-empty-orb {
-    align-items: center;
-    background: linear-gradient(135deg, #1a1208, #3d2314);
-    border: 1px solid rgba(245,158,11,.2);
-    border-radius: 50%;
-    color: rgba(245,158,11,.6);
-    display: inline-flex;
+.ef-kit-empty-icon {
     font-size: 2rem;
-    height: 72px;
-    justify-content: center;
+    margin-bottom: 10px;
+    opacity: .45;
+}
+.ef-kit-empty-title {
+    color: var(--kit-ink);
+    font-size: .92rem;
+    font-weight: 800;
+    margin-bottom: 4px;
+}
+.ef-kit-empty-sub {
+    color: var(--kit-muted);
+    font-size: .8rem;
     margin-bottom: 18px;
-    width: 72px;
+    line-height: 1.5;
 }
-.ef-kit-empty h5 { color: var(--kit-ink); font-size: 1rem; font-weight: 800; margin-bottom: 6px; }
-.ef-kit-empty p  { color: var(--kit-muted); font-size: .86rem; margin-bottom: 24px; }
+.ef-kit-empty-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
 
-/* ── Responsive ────────────────────────────────────────────────── */
-@media (max-width: 767.98px) {
-    .ef-kit-hero { flex-direction: column; align-items: flex-start; gap: 16px; padding: 20px 18px; border-radius: 16px; }
-    .ef-kit-hero-title { font-size: 1.3rem; }
-    .ef-kit-hero-chips { gap: 8px; }
-    .ef-kit-meals { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    .ef-kit-meal-card { padding: 14px 12px 12px; }
-    .ef-kit-meal-count { font-size: 1.8rem; }
-    .ef-kit-date-nav { flex-direction: column; gap: 10px; align-items: stretch; }
-    .ef-kit-date-center { justify-content: center; }
-    .ef-kit-date-nav > div { display: flex; gap: 8px; justify-content: center; }
-    .ef-kit-event-top { flex-wrap: wrap; gap: 12px; }
-    .ef-kit-event-right { display: flex; align-items: center; gap: 12px; }
-    .ef-kit-pax-val { font-size: 1.3rem; }
-}
+/* ── Mobile: already mobile-first; add breakpoint tweaks ─────── */
 @media (max-width: 440px) {
-    .ef-kit-meals { grid-template-columns: repeat(3, 1fr); gap: 6px; }
-    .ef-kit-meal-card { padding: 12px 8px 10px; }
-    .ef-kit-meal-count { font-size: 1.5rem; }
-    .ef-kit-meal-icon { font-size: 1.1rem; }
+    .ef-kit-card-top { grid-template-columns: 56px 1fr auto; gap: 10px; padding: 12px 12px 10px; }
+    .ef-kit-card-foot { padding: 8px 12px; }
+    .ef-kit-pax-num { font-size: 1.2rem; }
+    .ef-kit-bar { padding: 12px 14px; }
+    .ef-kit-bar-title { font-size: 1rem; }
+    .ef-kit-stat-val { font-size: 1.1rem; }
+    .ef-kit-date-text { font-size: .82rem; }
+}
+
+/* ── Desktop: add a bit more breathing room ─────────────────── */
+@media (min-width: 768px) {
+    .ef-kit-bar { padding: 16px 24px; }
+    .ef-kit-meal-strip { gap: 12px; }
+    .ef-kit-card-top { grid-template-columns: 76px 1fr auto; gap: 16px; padding: 16px 20px 14px; }
+    .ef-kit-card-foot { padding: 10px 20px; }
+    .ef-kit-cards { gap: 12px; }
 }
 </style>
 @endpush
 
 @php
-    $eventTypes  = \App\Models\HallBooking::eventTypes();
-    $dateObj     = \Carbon\Carbon::parse($date);
-    $isToday     = $dateObj->isToday();
-    $prevDate    = $dateObj->copy()->subDay()->toDateString();
-    $nextDate    = $dateObj->copy()->addDay()->toDateString();
-    $todayDate   = today()->toDateString();
+    $eventTypes = \App\Models\HallBooking::eventTypes();
+    $dateObj    = \Carbon\Carbon::parse($date);
+    $isToday    = $dateObj->isToday();
+    $prevDate   = $dateObj->copy()->subDay()->toDateString();
+    $nextDate   = $dateObj->copy()->addDay()->toDateString();
+    $todayDate  = today()->toDateString();
 
     // Meal tallies
-    $bfCount = $bookings->where('has_breakfast', true)->sum('number_of_people');
-    $lnCount = $bookings->where('has_lunch',     true)->sum('number_of_people');
-    $dnCount = $bookings->where('has_dinner',    true)->sum('number_of_people');
+    $bfCount     = $bookings->where('has_breakfast', true)->sum('number_of_people');
+    $lnCount     = $bookings->where('has_lunch',     true)->sum('number_of_people');
+    $dnCount     = $bookings->where('has_dinner',    true)->sum('number_of_people');
     $totalCovers = $bfCount + $lnCount + $dnCount;
     $maxCovers   = max($bfCount, $lnCount, $dnCount, 1);
+    $hasMeals    = $totalCovers > 0;
 
-    // Now for urgency calc
     $now = now();
 
     function kitUrgency($startTime, $date, $now): string {
@@ -529,9 +513,7 @@
             if ($mins <= 90)  return 'urgent';
             if ($mins <= 360) return 'warning';
             return 'normal';
-        } catch (\Throwable $e) {
-            return 'normal';
-        }
+        } catch (\Throwable $e) { return 'normal'; }
     }
 
     function kitCountdownLabel($startTime, $date, $now): string {
@@ -540,13 +522,10 @@
             $mins  = $now->diffInMinutes($start, false);
             if ($start->isPast() && abs($mins) < 120) return 'In Progress';
             if ($start->isPast()) return 'Completed';
-            if ($mins < 60)  return "Starts in {$mins}m";
-            $hrs = floor($mins / 60);
-            $rem = $mins % 60;
-            return $rem > 0 ? "Starts in {$hrs}h {$rem}m" : "Starts in {$hrs}h";
-        } catch (\Throwable $e) {
-            return '—';
-        }
+            if ($mins < 60) return "{$mins}m away";
+            $hrs = floor($mins / 60); $rem = $mins % 60;
+            return $rem > 0 ? "{$hrs}h {$rem}m" : "{$hrs}h away";
+        } catch (\Throwable $e) { return '—'; }
     }
 
     function kitCountdownCls($urgency): string {
@@ -561,116 +540,149 @@
     }
 @endphp
 
-{{-- ── Hero ────────────────────────────────────────────────────── --}}
-<section class="ef-kit-hero">
-    <div class="ef-kit-hero-main">
-        <div class="ef-kit-eyebrow">Catering Operations</div>
-        <h1 class="ef-kit-hero-title">Kitchen Summary</h1>
-        <div class="ef-kit-hero-sub">Live meal planning and banquet preparation overview</div>
-    </div>
-    <div class="ef-kit-hero-chips">
-        <div class="ef-kit-hero-chip">
-            <div class="ef-kit-hero-chip-val amber">{{ $bookings->count() }}</div>
-            <div class="ef-kit-hero-chip-lbl">Events</div>
-        </div>
-        <div class="ef-kit-hero-chip">
-            <div class="ef-kit-hero-chip-val orange">{{ number_format($bookings->sum('number_of_people')) }}</div>
-            <div class="ef-kit-hero-chip-lbl">Total Guests</div>
-        </div>
-        <div class="ef-kit-hero-chip">
-            <div class="ef-kit-hero-chip-val">{{ number_format($totalCovers) }}</div>
-            <div class="ef-kit-hero-chip-lbl">Total Covers</div>
+{{-- ═══════════════════════════════════════════════════════════════
+     COMMAND BAR — replaces hero; stays compact on mobile
+═══════════════════════════════════════════════════════════════════ --}}
+<div class="ef-kit-bar">
+    <div class="ef-kit-bar-left">
+        <div class="ef-kit-bar-eyebrow">Kitchen</div>
+        <div class="ef-kit-bar-title">
+            @if($isToday)
+                Today's Operations
+            @else
+                {{ $dateObj->format('d M Y') }}
+            @endif
         </div>
     </div>
-</section>
 
-{{-- ── Date Navigator ──────────────────────────────────────────── --}}
-<div class="ef-kit-date-nav">
-    <div>
-        <a href="{{ route('hall.bookings.kitchen', ['date' => $prevDate]) }}" class="ef-kit-date-nav-btn">
-            <i class="bi bi-arrow-left"></i> Previous
-        </a>
+    <div class="ef-kit-bar-right">
+        @if($bookings->isNotEmpty())
+            <div class="ef-kit-stat">
+                <div class="ef-kit-stat-val">{{ $bookings->count() }}</div>
+                <div class="ef-kit-stat-lbl">Events</div>
+            </div>
+            <div class="ef-kit-stat-div"></div>
+            <div class="ef-kit-stat">
+                <div class="ef-kit-stat-val">{{ number_format($bookings->sum('number_of_people')) }}</div>
+                <div class="ef-kit-stat-lbl">Guests</div>
+            </div>
+            @if($hasMeals)
+                <div class="ef-kit-stat-div"></div>
+                <div class="ef-kit-stat">
+                    <div class="ef-kit-stat-val">{{ number_format($totalCovers) }}</div>
+                    <div class="ef-kit-stat-lbl">Covers</div>
+                </div>
+            @endif
+        @else
+            <div class="ef-kit-bar-clear">
+                <i class="bi bi-check-circle"></i>
+                Kitchen Clear
+            </div>
+        @endif
     </div>
+</div>
+
+{{-- ═══════════════════════════════════════════════════════════════
+     DATE NAVIGATOR — single 44px row
+═══════════════════════════════════════════════════════════════════ --}}
+<div class="ef-kit-date-row">
+    <a href="{{ route('hall.bookings.kitchen', ['date' => $prevDate]) }}"
+       class="ef-kit-date-arrow" aria-label="Previous day">
+        <i class="bi bi-chevron-left"></i>
+    </a>
+
     <div class="ef-kit-date-center">
+        <span class="ef-kit-date-text">
+            {{ $dateObj->format('d M') }}, {{ $dateObj->format('l') }}
+        </span>
         @if(!$isToday)
-            <a href="{{ route('hall.bookings.kitchen', ['date' => $todayDate]) }}" class="ef-kit-date-nav-btn today">
-                <i class="bi bi-calendar-check"></i> Today
+            <a href="{{ route('hall.bookings.kitchen', ['date' => $todayDate]) }}"
+               class="ef-kit-date-today-chip">
+                <i class="bi bi-calendar-check" style="font-size:.65rem"></i> Today
             </a>
         @endif
-        <div class="ef-kit-date-chip">
-            {{ $dateObj->format('d F Y') }}
-            <span>{{ $isToday ? 'Today' : $dateObj->format('l') }}</span>
-        </div>
-        <form method="GET" id="datePickerForm" style="position:relative">
-            <input type="date"
-                   name="date"
-                   id="datePicker"
-                   class="ef-kit-date-hidden"
-                   value="{{ $date }}"
-                   onchange="document.getElementById('datePickerForm').submit()">
-            <button type="button"
-                    class="ef-kit-date-picker-btn"
-                    onclick="document.getElementById('datePicker').showPicker()">
-                <i class="bi bi-calendar3"></i>
-            </button>
-        </form>
     </div>
-    <div>
-        <a href="{{ route('hall.bookings.kitchen', ['date' => $nextDate]) }}" class="ef-kit-date-nav-btn">
-            Next <i class="bi bi-arrow-right"></i>
-        </a>
-    </div>
+
+    <form method="GET" id="datePickerForm" style="position:relative;display:flex">
+        <input type="date" name="date" id="datePicker"
+               class="ef-kit-date-hidden"
+               value="{{ $date }}"
+               onchange="document.getElementById('datePickerForm').submit()">
+        <button type="button" class="ef-kit-date-picker-btn"
+                onclick="document.getElementById('datePicker').showPicker()"
+                aria-label="Pick date">
+            <i class="bi bi-calendar3"></i>
+        </button>
+    </form>
+
+    <a href="{{ route('hall.bookings.kitchen', ['date' => $nextDate]) }}"
+       class="ef-kit-date-arrow" aria-label="Next day">
+        <i class="bi bi-chevron-right"></i>
+    </a>
 </div>
 
-{{-- ── Meal KPI Cards ──────────────────────────────────────────── --}}
-<div class="ef-kit-meals">
-    <div class="ef-kit-meal-card breakfast">
-        <i class="bi bi-cup ef-kit-meal-icon"></i>
-        <div class="ef-kit-meal-count">{{ $bfCount }}</div>
-        <div class="ef-kit-meal-label">Breakfast</div>
-        <div class="ef-kit-meal-time">06:00 AM – 10:00 AM</div>
-        <div class="ef-kit-meal-bar-track">
-            <div class="ef-kit-meal-bar-fill" style="width:{{ $maxCovers > 0 ? round(($bfCount / $maxCovers) * 100) : 0 }}%"></div>
+{{-- ═══════════════════════════════════════════════════════════════
+     MEAL STRIP — compact 3-column, hidden when all zero + no events
+═══════════════════════════════════════════════════════════════════ --}}
+@if($bookings->isNotEmpty() || $hasMeals)
+<div class="ef-kit-meal-strip">
+    @php
+        $bfPct = $maxCovers > 0 ? round(($bfCount / $maxCovers) * 100) : 0;
+        $lnPct = $maxCovers > 0 ? round(($lnCount / $maxCovers) * 100) : 0;
+        $dnPct = $maxCovers > 0 ? round(($dnCount / $maxCovers) * 100) : 0;
+    @endphp
+    <div class="ef-kit-meal-pill bf {{ $bfCount === 0 ? 'zero' : '' }}">
+        <span class="ef-kit-meal-pill-icon"><i class="bi bi-cup-hot"></i></span>
+        <div class="ef-kit-meal-pill-count">{{ $bfCount }}</div>
+        <div class="ef-kit-meal-pill-label">Breakfast</div>
+        <div class="ef-kit-meal-bar">
+            <div class="ef-kit-meal-bar-fill" style="width:{{ $bfPct }}%"></div>
         </div>
     </div>
-    <div class="ef-kit-meal-card lunch">
-        <i class="bi bi-sun ef-kit-meal-icon"></i>
-        <div class="ef-kit-meal-count">{{ $lnCount }}</div>
-        <div class="ef-kit-meal-label">Lunch</div>
-        <div class="ef-kit-meal-time">11:30 AM – 03:00 PM</div>
-        <div class="ef-kit-meal-bar-track">
-            <div class="ef-kit-meal-bar-fill" style="width:{{ $maxCovers > 0 ? round(($lnCount / $maxCovers) * 100) : 0 }}%"></div>
+    <div class="ef-kit-meal-pill ln {{ $lnCount === 0 ? 'zero' : '' }}">
+        <span class="ef-kit-meal-pill-icon"><i class="bi bi-brightness-high"></i></span>
+        <div class="ef-kit-meal-pill-count">{{ $lnCount }}</div>
+        <div class="ef-kit-meal-pill-label">Lunch</div>
+        <div class="ef-kit-meal-bar">
+            <div class="ef-kit-meal-bar-fill" style="width:{{ $lnPct }}%"></div>
         </div>
     </div>
-    <div class="ef-kit-meal-card dinner">
-        <i class="bi bi-moon-stars ef-kit-meal-icon"></i>
-        <div class="ef-kit-meal-count">{{ $dnCount }}</div>
-        <div class="ef-kit-meal-label">Dinner</div>
-        <div class="ef-kit-meal-time">07:00 PM – 10:00 PM</div>
-        <div class="ef-kit-meal-bar-track">
-            <div class="ef-kit-meal-bar-fill" style="width:{{ $maxCovers > 0 ? round(($dnCount / $maxCovers) * 100) : 0 }}%"></div>
+    <div class="ef-kit-meal-pill dn {{ $dnCount === 0 ? 'zero' : '' }}">
+        <span class="ef-kit-meal-pill-icon"><i class="bi bi-moon-stars"></i></span>
+        <div class="ef-kit-meal-pill-count">{{ $dnCount }}</div>
+        <div class="ef-kit-meal-pill-label">Dinner</div>
+        <div class="ef-kit-meal-bar">
+            <div class="ef-kit-meal-bar-fill" style="width:{{ $dnPct }}%"></div>
         </div>
     </div>
 </div>
+@endif
 
-{{-- ── Event Timeline Cards ────────────────────────────────────── --}}
+{{-- ═══════════════════════════════════════════════════════════════
+     EVENT CARDS / EMPTY STATE
+═══════════════════════════════════════════════════════════════════ --}}
 @if($bookings->isEmpty())
+
+    {{-- Compact actionable empty state --}}
     <div class="ef-kit-empty">
-        <div class="ef-kit-empty-orb"><i class="bi bi-cup-hot"></i></div>
-        <h5>No catering operations scheduled</h5>
-        <p>No events on {{ $dateObj->format('d F Y') }}. Kitchen is clear.</p>
-        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-            <a href="{{ route('hall.bookings.kitchen', ['date' => $todayDate]) }}"
-               class="ef-kit-btn ef-kit-btn-primary">
-                <i class="bi bi-calendar-check"></i> Jump to Today
+        <div class="ef-kit-empty-icon">🍽</div>
+        <div class="ef-kit-empty-title">Kitchen Schedule Clear</div>
+        <div class="ef-kit-empty-sub">
+            No events on {{ $dateObj->format('d F Y') }}.
+        </div>
+        <div class="ef-kit-empty-actions">
+            <a href="{{ route('hall.bookings.index') }}" class="ef-kit-btn ef-kit-btn-outline">
+                <i class="bi bi-calendar3"></i> View Bookings
             </a>
-            <a href="{{ route('hall.bookings.create') }}" class="ef-kit-btn ef-kit-btn-view">
-                <i class="bi bi-plus-lg"></i> New Booking
+            <a href="{{ route('hall.bookings.create') }}" class="ef-kit-btn ef-kit-btn-primary">
+                <i class="bi bi-plus-lg"></i> Create Booking
             </a>
         </div>
     </div>
+
 @else
-    <div class="ef-kit-section-label">
+
+    <div class="ef-kit-section">
         <i class="bi bi-list-ul"></i>
         {{ $bookings->count() }} event{{ $bookings->count() === 1 ? '' : 's' }} · sorted by start time
     </div>
@@ -684,80 +696,69 @@
                 $startFmt     = \Carbon\Carbon::parse($b->start_time)->format('h:i A');
                 $endFmt       = \Carbon\Carbon::parse($b->end_time)->format('h:i A');
                 $evtLabel     = $eventTypes[$b->event_type] ?? ucfirst(str_replace('_',' ',$b->event_type));
-                $meals        = array_filter([
-                    $b->has_breakfast ? 'Breakfast' : null,
-                    $b->has_lunch     ? 'Lunch'     : null,
-                    $b->has_dinner    ? 'Dinner'    : null,
-                ]);
             @endphp
-            <div class="ef-kit-event-card {{ $urgency }}">
-                <div class="ef-kit-event-top">
+            <div class="ef-kit-card {{ $urgency }}">
+
+                <div class="ef-kit-card-top">
                     {{-- Time column --}}
-                    <div class="ef-kit-event-time-col">
-                        <div class="ef-kit-event-time-val">{{ $startFmt }}</div>
-                        <div class="ef-kit-event-time-end">to {{ $endFmt }}</div>
+                    <div class="ef-kit-time">
+                        <div class="ef-kit-time-val">{{ $startFmt }}</div>
+                        <div class="ef-kit-time-end">→ {{ $endFmt }}</div>
                     </div>
 
-                    {{-- Main info --}}
-                    <div class="ef-kit-event-main">
-                        <div class="ef-kit-event-customer">{{ $b->customer_name }}</div>
-                        <div class="ef-kit-event-meta">
-                            {{ $b->customer_mobile }}
-                        </div>
-                        <div class="ef-kit-event-chips">
-                            <span class="ef-kit-chip evt"><i class="bi bi-calendar-event" style="font-size:.6rem"></i> {{ $evtLabel }}</span>
-                            @if($b->hall)
-                                <span class="ef-kit-chip hall"><i class="bi bi-building" style="font-size:.6rem"></i> {{ $b->hall->name }}</span>
-                            @endif
-                            @if($b->mealPlan)
-                                <span class="ef-kit-chip mp"><i class="bi bi-grid" style="font-size:.6rem"></i> {{ $b->mealPlan->name }}</span>
-                            @endif
+                    {{-- Info --}}
+                    <div class="ef-kit-info">
+                        <div class="ef-kit-customer">{{ $b->customer_name }}</div>
+                        <div class="ef-kit-evt-type">{{ $evtLabel }}@if($b->hall) · {{ $b->hall->name }}@endif</div>
+                        <div class="ef-kit-chips">
                             @if($b->has_breakfast)
-                                <span class="ef-kit-chip bf"><i class="bi bi-cup"></i> BF</span>
+                                <span class="ef-kit-chip bf"><i class="bi bi-cup-hot"></i> BF</span>
                             @endif
                             @if($b->has_lunch)
-                                <span class="ef-kit-chip ln"><i class="bi bi-sun"></i> LN</span>
+                                <span class="ef-kit-chip ln"><i class="bi bi-brightness-high"></i> LN</span>
                             @endif
                             @if($b->has_dinner)
                                 <span class="ef-kit-chip dn"><i class="bi bi-moon-stars"></i> DN</span>
+                            @endif
+                            @if($b->mealPlan)
+                                <span class="ef-kit-chip mp"><i class="bi bi-grid-3x3-gap" style="font-size:.6rem"></i> {{ $b->mealPlan->name }}</span>
                             @endif
                         </div>
                     </div>
 
                     {{-- Pax + countdown --}}
-                    <div class="ef-kit-event-right">
-                        <div class="ef-kit-pax-val">{{ number_format($b->number_of_people) }}</div>
-                        <div class="ef-kit-pax-label">Covers</div>
+                    <div class="ef-kit-pax">
+                        <div class="ef-kit-pax-num">{{ number_format($b->number_of_people) }}</div>
+                        <div class="ef-kit-pax-lbl">Covers</div>
                         <span class="ef-kit-countdown {{ $countdownCls }}">{{ $countdown }}</span>
                     </div>
                 </div>
 
-                <div class="ef-kit-event-footer">
-                    <div class="ef-kit-event-note">
+                <div class="ef-kit-card-foot">
+                    <div class="ef-kit-note">
                         @if($b->notes)
-                            <i class="bi bi-chat-left-text" style="font-size:.72rem;margin-right:4px"></i>{{ $b->notes }}
+                            <i class="bi bi-chat-left-text" style="font-size:.68rem;margin-right:3px"></i>{{ $b->notes }}
                         @else
-                            <span style="opacity:.5">No kitchen notes</span>
+                            <span style="opacity:.45">No kitchen notes</span>
                         @endif
                     </div>
-                    <div class="ef-kit-event-actions">
-                        <a href="{{ route('hall.bookings.show', $b) }}" class="ef-kit-btn ef-kit-btn-view">
-                            <i class="bi bi-eye"></i> View
-                        </a>
+                    <div class="ef-kit-actions">
                         <a href="{{ route('hall.bookings.show', $b) }}" class="ef-kit-btn ef-kit-btn-primary">
                             <i class="bi bi-clipboard-check"></i> Details
                         </a>
                     </div>
                 </div>
+
             </div>
         @endforeach
     </div>
+
 @endif
 
 @push('scripts')
 <script>
-// Auto-refresh on today's view every 5 minutes to keep countdowns fresh
 @if($isToday)
+// Auto-refresh today's view every 5 min so countdowns stay current
 setTimeout(() => location.reload(), 5 * 60 * 1000);
 @endif
 </script>
