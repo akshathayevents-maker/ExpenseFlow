@@ -247,6 +247,45 @@ class PaymentRequestController extends Controller
     }
 
     /* ─────────────────────────────────────────────────────────────────
+     | SERVE QR IMAGE  (signed URL — no auth required)
+     |
+     | Security: route carries middleware('signed') — Laravel validates
+     | HMAC + expiry before reaching this method. No auth needed because
+     | the same signed URL that grants access to the payment PAGE also
+     | grants access to the QR image embedded in that page.
+     |
+     | Why not serve from public storage directly?
+     |   • Eliminates nginx 403/permission issues on the symlink.
+     |   • Eliminates APP_URL mismatch problems (image URL was being
+     |     generated from APP_URL which may differ from the public host).
+     |   • Single point of access control — only signed requests get in.
+     ──────────────────────────────────────────────────────────────── */
+    public function serveQr(int $id): mixed
+    {
+        $expense = ExpenseRequest::findOrFail($id);
+        $path    = $expense->qr_file_path;
+
+        Log::info('QR serve request', [
+            'expense_id' => $id,
+            'qr_path'    => $path,
+            'exists'     => $path ? Storage::disk('public')->exists($path) : false,
+        ]);
+
+        if (! $path || ! Storage::disk('public')->exists($path)) {
+            abort(404, 'QR image not found.');
+        }
+
+        $fullPath = Storage::disk('public')->path($path);
+        $mime     = mime_content_type($fullPath) ?: 'image/png';
+
+        return response()->file($fullPath, [
+            'Content-Type'        => $mime,
+            'Cache-Control'       => 'private, max-age=3600',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
+    /* ─────────────────────────────────────────────────────────────────
      | SERVE PROOF FILE  (auth-gated, private storage)
      ──────────────────────────────────────────────────────────────── */
     public function serveProof(int $id): mixed

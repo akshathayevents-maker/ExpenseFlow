@@ -1209,14 +1209,16 @@ function openFullscreen() {
     if (!overlay || !fullImg || !img || !img.src) return;
     fullImg.src = img.src;
     overlay.classList.add('open');
-    // iOS-safe scroll lock: position:fixed + save scrollY
+    // Class-based scroll lock — cssText would destroy all other inline styles
     window.__payScrollY = window.scrollY;
-    document.body.style.cssText = 'position:fixed;top:-' + window.__payScrollY + 'px;width:100%;overflow-y:scroll;';
+    document.body.style.top = '-' + window.__payScrollY + 'px';
+    document.body.classList.add('ef-scroll-locked');
 }
 function closeFullscreen() {
     if (!overlay) return;
     overlay.classList.remove('open');
-    document.body.style.cssText = '';
+    document.body.classList.remove('ef-scroll-locked');
+    document.body.style.top = '';
     window.scrollTo(0, window.__payScrollY || 0);
     if (fullImg) setTimeout(function () { fullImg.src = ''; }, 220);
 }

@@ -275,6 +275,13 @@ Route::post('/pay/{id}/reject', [PaymentRequestController::class, 'reject'])
 Route::post('/pay/{id}/proof', [PaymentRequestController::class, 'uploadProof'])
     ->name('payment-request.proof');
 
+// QR image — signed URL only, no auth required (public payment page access).
+// Streams the file from local storage, bypassing public symlink and nginx config.
+// Signed URL provides HMAC + expiry security without requiring login.
+Route::get('/pay/{id}/qr', [PaymentRequestController::class, 'serveQr'])
+    ->name('payment-request.serve-qr')
+    ->middleware('signed');
+
 // Proof file download — private storage, auth required
 Route::get('/pay/{id}/proof', [PaymentRequestController::class, 'serveProof'])
     ->name('payment-request.serve-proof')

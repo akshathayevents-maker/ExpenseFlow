@@ -93,9 +93,26 @@ class ExpenseRequest extends Model
             return null;
         }
 
-        // Storage::url() uses APP_URL + the public disk URL prefix, so it
-        // stays correct when APP_URL changes (dev → staging → prod).
-        return Storage::disk('public')->url($this->qr_file_path);
+        // Use a signed controller route instead of the public storage URL.
+        //
+        // WHY NOT Storage::disk('public')->url():
+        //   That method prepends APP_URL, which may differ from the actual
+        //   public hostname (e.g. APP_URL=http://127.0.0.1:8001 in dev,
+        //   or misconfigured on prod). The resulting URL is then embedded
+        //   in payment pages opened on phones/WhatsApp — if it points to
+        //   localhost the image is unreachable and shows a broken icon.
+        //
+        // The signed route approach:
+        //   • URL is always generated relative to the APP_URL that matches
+        //     the payment page URL (same origin, no mismatch possible).
+        //   • Controller streams the file directly — no nginx symlink or
+        //     public/storage permissions needed.
+        //   • HMAC + expiry from the payment page URL are reused (30 days).
+        return URL::temporarySignedRoute(
+            'payment-request.serve-qr',
+            now()->addDays(30),
+            ['id' => $this->id],
+        );
     }
 
     public function paymentPageUrl(): string
