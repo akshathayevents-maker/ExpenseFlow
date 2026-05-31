@@ -138,55 +138,66 @@
    ═══════════════════════════════════════════════════════════════════ */
 @media (max-width: 767.98px) {
 
-/* ── 1. Base layout ────────────────────────────────────────────── */
+/* ── 1. Base layout — SCROLL CONTAINER ARCHITECTURE ──────────────
+   ROOT CAUSE of "bottom nav scrolls with content on long pages":
+
+   iOS Safari corrupts position:fixed during momentum (kinetic) scroll
+   on long pages — the fixed element drifts upward with page content.
+   overscroll-behavior and ::after fills help with elastic bounce but
+   NOT with kinetic scroll corruption. No CSS-only fix exists for that.
+
+   CORRECT ARCHITECTURE (native app pattern):
+   • html + body = exact viewport size, overflow:hidden — NO body scroll
+   • #main-content = the ONLY scroll container (overflow-y:auto, flex:1)
+   • .ef-m-bottomnav = position:static inside body's flex column
+     → nav is always at the bottom of body; body never scrolls, so
+       the nav is physically incapable of scrolling with content.
+   ──────────────────────────────────────────────────────────────── */
 
 html {
-    /* -webkit-fill-available: the actual visual viewport height on iOS,
-       accounting for the shrinking/growing URL bar. Prevents layout jumps. */
-    height: -webkit-fill-available;
     height: 100dvh;
-    /* BOTTOM NAV STABILITY FIX (layer 1):
-       'contain' allows native iOS rubber-band elastic bounce on the element itself.
-       'none' eliminates the bounce entirely — fixed elements at bottom:0 no longer
-       shift during overscroll momentum because there's no viewport displacement. */
+    height: -webkit-fill-available;
+    overflow: hidden;
     overscroll-behavior: none;
 }
 
 body {
     -webkit-font-smoothing: antialiased;
     -webkit-text-size-adjust: 100%;
-    min-height: -webkit-fill-available;
-    min-height: 100dvh;
-    /* Same as html — both must be none to fully suppress iOS elastic bounce.
-       Setting only body is insufficient; iOS propagates overscroll to html. */
+    /* Exact viewport height — body MUST NOT scroll */
+    height: 100dvh;
+    height: -webkit-fill-available;
+    overflow: hidden;
     overscroll-behavior: none;
+    /* Flex column: topbar (fixed, out-of-flow) → main-content (flex:1) → bottom-nav */
+    display: flex;
+    flex-direction: column;
 }
 
 #main-content {
+    /* Fill remaining body height after bottom-nav, scroll internally */
+    flex: 1;
+    /* CRITICAL: without min-height:0, flex child grows to content size and
+       overflow-y:auto never triggers — body would overflow instead */
+    min-height: 0;
+    overflow-y: auto;
     /*
      * ANDROID SCROLL FIX: clip instead of hidden.
      * overflow-x: hidden creates a BFC — another scroll container candidate
      * that confuses Android Chrome's touch-event routing.
-     * clip clips without BFC, preventing phantom scroll containers.
      */
     overflow-x: clip;
-    /* pad bottom so content clears the nav bar:
-       nav height (60px) + safe area + breathing room */
-    padding: 12px 14px calc(68px + env(safe-area-inset-bottom, 0px)) !important;
+    -webkit-overflow-scrolling: touch;
+    /* Bottom padding: nav is now in flow, no need to clear fixed bar.
+       Just breathing room + safe-area for content at page bottom. */
+    padding: 12px 14px calc(16px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
-/* ── Bottom nav — fixed, glass, native feel ─────────────────────
-   ROOT CAUSE FIX:
-   • NO transform — transform on a fixed element creates an isolated
-     compositing layer in iOS Safari that scrolls with the document
-     during URL-bar animation instead of staying viewport-anchored.
-   • NO will-change:transform — same issue; tells iOS to composite into
-     a layer that can detach from the viewport.
-   • NO backface-visibility — unnecessary without transform.
-   • NO animation with transform — transforms during animation stamp
-     a compositing context that persists after the animation ends.
-   • Use isolation:isolate — creates stacking context without transform,
-     so z-index works correctly and the element stays viewport-fixed.
+/* ── Bottom nav — static in flex column (no longer position:fixed) ─
+   With body as a fixed-height flex container that never scrolls, the
+   nav sits permanently at the bottom as a static flex child.
+   position:fixed is no longer needed — the nav cannot drift because
+   there is no body scroll to drift with.
    ──────────────────────────────────────────────────────────────── */
 .ef-m-bottomnav {
     /* Show (was display:none outside @media) */
@@ -196,20 +207,19 @@ body {
     align-items: center;
     gap: 4px;
 
-    /* Safe-area padding for iPhone home indicator + notch */
+    /* Safe-area padding for iPhone home indicator */
     padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
     min-height: calc(54px + env(safe-area-inset-bottom, 0px));
 
-    /* Positioning — position:fixed is already declared outside @media.
-       Repeat here to be explicit; iOS applies it from the outside declaration. */
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    /* ARCHITECTURE CHANGE: override position:fixed from outside @media.
+       Nav is a static flex child of body — never scrolls, always visible. */
+    position: static;
+    width: 100%;
+    flex-shrink: 0;
+    bottom: auto;
+    left: auto;
+    right: auto;
     z-index: 1045;
-
-    /* Stacking context WITHOUT transform (isolation is the safe alternative) */
-    isolation: isolate;
 
     /* Glass appearance */
     background: rgba(10, 13, 11, .92);
@@ -218,33 +228,14 @@ body {
     -webkit-backdrop-filter: blur(28px) saturate(180%);
     backdrop-filter: blur(28px) saturate(180%);
 
-    /* Fade-in ONLY — no transform in animation (see root cause note above) */
-    animation: mNavFadeIn .25s ease both;
+    /* No animation needed — static element renders immediately */
 }
 
-@keyframes mNavFadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
-}
-
-/* BOTTOM NAV STABILITY FIX (layer 2): floor fill.
-   On iOS, if elastic bounce is NOT fully suppressed by overscroll-behavior:none
-   (e.g. WebView, some PWA modes), the gap below the nav that's normally
-   off-screen becomes visible as content bounces up. This ::after paints the
-   same dark background behind that gap — visually the nav appears stationary.
-   position:absolute + top:100% = just below the nav's bottom edge.
-   The 200px height exceeds the max elastic bounce depth on any iPhone.
-   pointer-events:none so taps pass through to content behind it. */
+/* ::after floor fill removed — no longer needed.
+   Previously patched elastic bounce reveal below a position:fixed nav.
+   Nav is now position:static in flex body; there is no gap below it. */
 .ef-m-bottomnav::after {
-    content: '';
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    height: 200px;
-    background: rgba(10, 13, 11, .92); /* match nav background */
-    pointer-events: none;
-    /* No z-index needed — ::after is already within nav's stacking context */
+    display: none;
 }
 
 /* Hide pages' own fixed bottom bars since global nav replaces navigation */

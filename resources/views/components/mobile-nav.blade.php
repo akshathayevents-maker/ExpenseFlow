@@ -607,18 +607,31 @@
        position:fixed + overflow-y:scroll via CSS. Only body.style.top
        is written as an inline property — minimal footprint, safe.
     ──────────────────────────────────────────────────────────── */
-    var _savedScrollY = 0;
+    var _savedScrollY  = 0;
+    var _mainContent   = document.getElementById('main-content');
 
     function lockBodyScroll() {
-        _savedScrollY = window.scrollY;
-        document.body.style.top = '-' + _savedScrollY + 'px';
-        document.body.classList.add('ef-scroll-locked');
+        if (_mainContent) {
+            // Mobile uses body-as-flex-container architecture — body never scrolls.
+            // Lock the #main-content scroll container instead.
+            _savedScrollY = _mainContent.scrollTop;
+            _mainContent.style.overflowY = 'hidden';
+        } else {
+            _savedScrollY = window.scrollY;
+            document.body.style.top = '-' + _savedScrollY + 'px';
+            document.body.classList.add('ef-scroll-locked');
+        }
     }
 
     function unlockBodyScroll() {
-        document.body.classList.remove('ef-scroll-locked');
-        document.body.style.top = '';
-        window.scrollTo(0, _savedScrollY);
+        if (_mainContent) {
+            _mainContent.style.overflowY = '';
+            _mainContent.scrollTop = _savedScrollY;
+        } else {
+            document.body.classList.remove('ef-scroll-locked');
+            document.body.style.top = '';
+            window.scrollTo(0, _savedScrollY);
+        }
     }
 
     /* ── Open drawer ──────────────────────────────────────────── */

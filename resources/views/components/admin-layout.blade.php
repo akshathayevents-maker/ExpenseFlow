@@ -1123,16 +1123,30 @@
     //   position:fixed + overflow-y:scroll without touching other inline styles.
     //   Only body.style.top is written as an inline property (minimal footprint).
     let _sidebarScrollY = 0;
+    const _mainContent   = document.getElementById('main-content');
 
     function lockBodyScroll() {
-        _sidebarScrollY = window.scrollY;
-        document.body.style.top = '-' + _sidebarScrollY + 'px';
-        document.body.classList.add('ef-scroll-locked');
+        if (window.innerWidth <= 767 && _mainContent) {
+            // Mobile: body is overflow:hidden (flex container) — body itself never scrolls.
+            // Lock the #main-content scroll container instead.
+            _sidebarScrollY = _mainContent.scrollTop;
+            _mainContent.style.overflowY = 'hidden';
+        } else {
+            // Desktop: classic body scroll lock.
+            _sidebarScrollY = window.scrollY;
+            document.body.style.top = '-' + _sidebarScrollY + 'px';
+            document.body.classList.add('ef-scroll-locked');
+        }
     }
     function unlockBodyScroll() {
-        document.body.classList.remove('ef-scroll-locked');
-        document.body.style.top = '';
-        window.scrollTo(0, _sidebarScrollY);
+        if (window.innerWidth <= 767 && _mainContent) {
+            _mainContent.style.overflowY = '';
+            _mainContent.scrollTop = _sidebarScrollY;
+        } else {
+            document.body.classList.remove('ef-scroll-locked');
+            document.body.style.top = '';
+            window.scrollTo(0, _sidebarScrollY);
+        }
     }
 
     document.getElementById('sidebar-toggle').addEventListener('click', () => {
