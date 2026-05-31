@@ -104,7 +104,10 @@
       "Bash(git commit -m 'fix: bottom nav jumps up on iOS overscroll *)",
       "Bash(git commit -m 'fix: add hall_cost field to edit booking form, make non-mandatory *)",
       "Bash(git commit -m 'fix: keyboard lifts bottom nav + redesign show-page action bar *)",
-      "Bash(git commit -m 'feat: complete Meal Plan management module *)"
+      "Bash(git commit -m 'feat: complete Meal Plan management module *)",
+      "Bash(read dir *)",
+      "Bash(git commit -m 'fix: QR image broken + 403 on payment page *)",
+      "Bash(git commit -m 'fix: harden QR security + og:image crawler fix + fullscreen UX *)"
     ]
   }
 }
