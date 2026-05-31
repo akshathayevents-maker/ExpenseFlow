@@ -74,7 +74,7 @@ class DbHealthCheck extends Command
         'inventory_bill_uploads'         => ['id','vendor_name','invoice_number','invoice_date','gst_number','subtotal','tax_amount','total_amount','original_filename','stored_path','file_type','file_hash','extracted_json','ocr_provider','status','notes','uploaded_by','reviewed_by','created_at','updated_at'],
         'inventory_bill_items'           => ['id','bill_upload_id','inventory_item_id','item_name','sku','quantity','unit','unit_price','tax_percent','total','category_id','raw_extracted_text','imported','created_at','updated_at'],
         'halls'                          => ['id','name','description','capacity','location','is_active','created_at','updated_at'],
-        'meal_plans'                     => ['id','name','category','description','price_per_person','is_active','created_at','updated_at'],
+        'meal_plans'                     => ['id','name','category','description','price_per_person','is_active','created_at','updated_at','deleted_at'],
         'hall_bookings'                  => [
             'id','hall_id','meal_plan_id','created_by','customer_name','customer_mobile','customer_alt_mobile',
             'event_type','booking_date','start_time','end_time','number_of_people',

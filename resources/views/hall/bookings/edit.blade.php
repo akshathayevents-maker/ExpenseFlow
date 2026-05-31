@@ -1,205 +1,389 @@
 <x-admin-layout title="Edit Booking #{{ $booking->id }}">
-
+@push('styles')
 <style>
-.booking-card { border-radius: 16px; border: none; box-shadow: 0 2px 16px rgba(0,0,0,.07); }
-.section-label { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #64748b; margin-bottom: .75rem; padding-bottom: .5rem; border-bottom: 1px solid #f1f5f9; }
+/* ── Edit Booking — ef-eb-* ──────────────────────────────────────── */
+.ef-eb-shell { max-width: 780px; margin: 0 auto; padding-bottom: 80px; }
+
+.ef-eb-card {
+    background: rgba(255,253,250,.96);
+    border: 1px solid var(--ef-border);
+    border-radius: 18px;
+    box-shadow: var(--ef-shadow);
+    margin-bottom: 16px;
+    overflow: hidden;
+}
+.ef-eb-section {
+    padding: 22px 26px;
+}
+.ef-eb-section + .ef-eb-section { border-top: 1px solid var(--ef-border); }
+
+.ef-eb-section-label {
+    color: var(--ef-faint);
+    font-size: .62rem;
+    font-weight: 760;
+    letter-spacing: .15em;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+}
+
+.ef-eb-grid { display: grid; gap: 14px; grid-template-columns: repeat(2, 1fr); }
+.ef-eb-span2 { grid-column: 1 / -1; }
+
+/* Meal plan cards */
+.ef-eb-meal-grid {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    margin-top: 10px;
+}
+.ef-eb-meal-card {
+    border: 2px solid var(--ef-border);
+    border-radius: 12px;
+    cursor: pointer;
+    padding: 12px 14px;
+    transition: border-color .15s, background .15s, box-shadow .15s;
+    user-select: none;
+    position: relative;
+}
+.ef-eb-meal-card:hover { border-color: var(--ef-border-strong); background: rgba(20,20,18,.02); }
+.ef-eb-meal-card.selected {
+    border-color: #3d7358;
+    background: rgba(61,115,88,.06);
+    box-shadow: 0 0 0 3px rgba(61,115,88,.12);
+}
+.ef-eb-meal-card.no-plan {
+    border-style: dashed;
+    color: var(--ef-muted);
+}
+.ef-eb-meal-card.no-plan.selected { border-color: var(--ef-faint); background: rgba(20,20,18,.03); }
+.ef-eb-meal-name { font-size: .88rem; font-weight: 700; color: var(--ef-ink); margin-bottom: 3px; }
+.ef-eb-meal-price { font-size: .78rem; color: var(--ef-emerald); font-weight: 640; }
+.ef-eb-meal-cat {
+    display: inline-block;
+    font-size: .56rem; font-weight: 760; letter-spacing: .1em; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 5px; margin-bottom: 6px;
+    background: rgba(20,20,18,.04); border: 1px solid rgba(20,20,18,.07); color: var(--ef-muted);
+}
+.ef-eb-meal-cat.--premium { background: rgba(169,131,56,.09); border-color: rgba(169,131,56,.22); color: var(--ef-gold); }
+.ef-eb-meal-cat.--custom  { background: rgba(61,115,88,.08);  border-color: rgba(61,115,88,.2);  color: var(--ef-emerald); }
+.ef-eb-meal-check {
+    position: absolute; top: 10px; right: 10px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--ef-emerald); color: #fff;
+    display: none; align-items: center; justify-content: center;
+    font-size: .55rem;
+}
+.ef-eb-meal-card.selected .ef-eb-meal-check { display: flex; }
+
+/* Catering estimate */
+.ef-eb-meal-estimate {
+    align-items: center;
+    background: rgba(61,115,88,.06);
+    border: 1px solid rgba(61,115,88,.2);
+    border-radius: 12px;
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+    margin-top: 14px;
+    padding: 12px 16px;
+}
+.ef-eb-meal-estimate-lbl { font-size: .8rem; font-weight: 600; color: var(--ef-ink-2); }
+.ef-eb-meal-estimate-sub { font-size: .72rem; color: var(--ef-muted); margin-top: 2px; }
+.ef-eb-meal-estimate-amt { font-size: 1.05rem; font-weight: 760; color: var(--ef-emerald); }
+
+/* Cost breakdown strip */
+.ef-eb-breakdown {
+    background: rgba(20,20,18,.025);
+    border: 1px solid var(--ef-border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-top: 6px;
+}
+.ef-eb-breakdown-row {
+    align-items: center;
+    display: flex;
+    font-size: .82rem;
+    justify-content: space-between;
+    padding: 4px 0;
+}
+.ef-eb-breakdown-row + .ef-eb-breakdown-row { border-top: 1px solid rgba(20,20,18,.05); }
+.ef-eb-breakdown-row.total {
+    border-top: 2px solid var(--ef-border-strong) !important;
+    font-weight: 760;
+    margin-top: 4px;
+    padding-top: 8px;
+    font-size: .9rem;
+}
+
+/* Avail indicator */
+#availStatus { min-height: 24px; }
+
+@media (max-width: 767.98px) {
+    .ef-eb-section { padding: 16px; }
+    .ef-eb-grid { grid-template-columns: 1fr; }
+    .ef-eb-meal-grid { grid-template-columns: 1fr 1fr; }
+}
 </style>
+@endpush
 
-<div class="page-header d-flex align-items-center gap-2 mb-3">
-    <a href="{{ route('hall.bookings.show', $booking) }}" class="btn btn-sm btn-outline-secondary rounded-circle" style="width:36px;height:36px;padding:0;display:inline-flex;align-items:center;justify-content:center">
-        <i class="bi bi-arrow-left"></i>
-    </a>
-    <div>
-        <h5 class="mb-0 fw-bold">Edit Booking #{{ $booking->id }}</h5>
-        <p class="text-muted mb-0" style="font-size:.8rem">{{ $booking->customer_name }}</p>
+<div class="ef-eb-shell">
+
+    {{-- Page header --}}
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+        <a href="{{ route('hall.bookings.show', $booking) }}" class="ef-back" title="Back">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <div>
+            <h1 style="font-size:1.22rem;font-weight:760;color:var(--ef-ink);margin:0;letter-spacing:-.01em">
+                Edit Booking #{{ str_pad($booking->id, 4, '0', STR_PAD_LEFT) }}
+            </h1>
+            <div style="font-size:.8rem;color:var(--ef-muted);margin-top:2px">{{ $booking->customer_name }} · {{ $booking->booking_date->format('d M Y') }}</div>
+        </div>
     </div>
-</div>
 
-@if ($errors->any())
-    <div class="alert alert-danger rounded-3 mb-3">
-        <i class="bi bi-exclamation-triangle-fill me-2"></i><strong>Please fix:</strong>
-        <ul class="mb-0 mt-1 ps-3">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul>
-    </div>
-@endif
+    @if ($errors->any())
+        <div style="background:rgba(141,74,60,.06);border:1px solid rgba(141,74,60,.18);border-radius:12px;color:var(--ef-danger);font-size:.82rem;margin-bottom:16px;padding:14px 18px">
+            <strong>Please fix:</strong>
+            <ul style="margin:6px 0 0;padding-left:16px">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul>
+        </div>
+    @endif
 
-<form method="POST" action="{{ route('hall.bookings.update', $booking) }}" id="bookingForm" novalidate>
-@csrf @method('PUT')
+    <form method="POST" action="{{ route('hall.bookings.update', $booking) }}" id="bookingForm" novalidate>
+    @csrf @method('PUT')
 
-<div class="row g-3" style="max-width:900px">
-    <div class="col-12">
-        <div class="booking-card card">
-            <div class="card-body p-4">
-                <p class="section-label">Customer Information</p>
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold small">Customer Name <span class="text-danger">*</span></label>
-                        <input type="text" name="customer_name" class="form-control rounded-3 @error('customer_name') is-invalid @enderror"
-                               value="{{ old('customer_name', $booking->customer_name) }}" required>
-                        @error('customer_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold small">Mobile <span class="text-danger">*</span></label>
-                        <input type="tel" name="customer_mobile" class="form-control rounded-3 @error('customer_mobile') is-invalid @enderror"
-                               value="{{ old('customer_mobile', $booking->customer_mobile) }}" required>
-                        @error('customer_mobile')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold small">Alt. Mobile</label>
-                        <input type="tel" name="customer_alt_mobile" class="form-control rounded-3"
-                               value="{{ old('customer_alt_mobile', $booking->customer_alt_mobile) }}">
-                    </div>
+    {{-- ── Customer ── --}}
+    <div class="ef-eb-card">
+        <div class="ef-eb-section">
+            <p class="ef-eb-section-label">Customer</p>
+            <div class="ef-eb-grid">
+                <div>
+                    <label class="ef-label">Customer Name <span style="color:var(--ef-danger)">*</span></label>
+                    <input type="text" name="customer_name" class="ef-input @error('customer_name') --error @enderror"
+                           value="{{ old('customer_name', $booking->customer_name) }}" required>
+                    @error('customer_name')<div class="ef-field-error">{{ $message }}</div>@enderror
+                </div>
+                <div>
+                    <label class="ef-label">Mobile <span style="color:var(--ef-danger)">*</span></label>
+                    <input type="text" name="customer_mobile" class="ef-input @error('customer_mobile') --error @enderror"
+                           value="{{ old('customer_mobile', $booking->customer_mobile) }}" required>
+                    @error('customer_mobile')<div class="ef-field-error">{{ $message }}</div>@enderror
+                </div>
+                <div class="ef-eb-span2">
+                    <label class="ef-label">Alternate Mobile</label>
+                    <input type="text" name="customer_alt_mobile" class="ef-input"
+                           value="{{ old('customer_alt_mobile', $booking->customer_alt_mobile) }}">
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="col-12">
-        <div class="booking-card card">
-            <div class="card-body p-4">
-                <p class="section-label">Event Details</p>
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <label class="form-label fw-semibold small">Event Type <span class="text-danger">*</span></label>
-                        <select name="event_type" class="form-select rounded-3 @error('event_type') is-invalid @enderror" required>
-                            @foreach(\App\Models\HallBooking::eventTypes() as $v => $l)
-                                <option value="{{ $v }}" {{ old('event_type', $booking->event_type) === $v ? 'selected' : '' }}>{{ $l }}</option>
-                            @endforeach
-                        </select>
-                        @error('event_type')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-semibold small">Hall <span class="text-danger">*</span></label>
-                        <select id="hall_id" name="hall_id" class="form-select rounded-3" required>
-                            @foreach($halls as $h)
-                                <option value="{{ $h->id }}" {{ old('hall_id', $booking->hall_id) == $h->id ? 'selected' : '' }}>{{ $h->name }} ({{ $h->capacity }} pax)</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-semibold small">Number of People <span class="text-danger">*</span></label>
-                        <input type="number" name="number_of_people" min="1" class="form-control rounded-3"
-                               value="{{ old('number_of_people', $booking->number_of_people) }}" required>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-semibold small">Booking Date <span class="text-danger">*</span></label>
-                        <input type="date" id="booking_date" name="booking_date" class="form-control rounded-3 @error('booking_date') is-invalid @enderror"
-                               value="{{ old('booking_date', $booking->booking_date->toDateString()) }}" required>
-                        @error('booking_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-semibold small">Start Time <span class="text-danger">*</span></label>
-                        <input type="time" id="start_time" name="start_time" class="form-control rounded-3"
-                               value="{{ old('start_time', $booking->start_time) }}" required>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-semibold small">End Time <span class="text-danger">*</span></label>
-                        <input type="time" id="end_time" name="end_time" class="form-control rounded-3"
-                               value="{{ old('end_time', $booking->end_time) }}" required>
-                    </div>
-                    <div class="col-12"><div id="availStatus"></div></div>
+    {{-- ── Event ── --}}
+    <div class="ef-eb-card">
+        <div class="ef-eb-section">
+            <p class="ef-eb-section-label">Event Details</p>
+            <div class="ef-eb-grid">
+                <div>
+                    <label class="ef-label">Hall <span style="color:var(--ef-danger)">*</span></label>
+                    <select id="hall_id" name="hall_id" class="ef-select" required>
+                        @foreach($halls as $hall)
+                            <option value="{{ $hall->id }}" {{ old('hall_id', $booking->hall_id) == $hall->id ? 'selected' : '' }}>{{ $hall->name }}</option>
+                        @endforeach
+                    </select>
                 </div>
+                <div>
+                    <label class="ef-label">Event Type <span style="color:var(--ef-danger)">*</span></label>
+                    <select name="event_type" class="ef-select" required>
+                        @foreach(\App\Models\HallBooking::eventTypes() as $v => $l)
+                            <option value="{{ $v }}" {{ old('event_type', $booking->event_type) === $v ? 'selected' : '' }}>{{ $l }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="ef-label">Booking Date <span style="color:var(--ef-danger)">*</span></label>
+                    <input type="date" id="booking_date" name="booking_date" class="ef-input @error('booking_date') --error @enderror"
+                           value="{{ old('booking_date', $booking->booking_date->format('Y-m-d')) }}" required>
+                </div>
+                <div>
+                    <label class="ef-label">Guests <span style="color:var(--ef-danger)">*</span></label>
+                    <input type="number" id="number_of_people" name="number_of_people" class="ef-input @error('number_of_people') --error @enderror"
+                           value="{{ old('number_of_people', $booking->number_of_people) }}" min="1" required>
+                </div>
+                <div>
+                    <label class="ef-label">Start Time <span style="color:var(--ef-danger)">*</span></label>
+                    <input type="time" id="start_time" name="start_time" class="ef-input @error('start_time') --error @enderror"
+                           value="{{ old('start_time', $booking->start_time) }}" required>
+                </div>
+                <div>
+                    <label class="ef-label">End Time <span style="color:var(--ef-danger)">*</span></label>
+                    <input type="time" id="end_time" name="end_time" class="ef-input @error('end_time') --error @enderror"
+                           value="{{ old('end_time', $booking->end_time) }}" required>
+                </div>
+                <div class="ef-eb-span2" id="availStatus"></div>
             </div>
         </div>
     </div>
 
-    <div class="col-12">
-        <div class="booking-card card">
-            <div class="card-body p-4">
-                <p class="section-label">Meal Plan</p>
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold small">Meal Plan</label>
-                        <select name="meal_plan_id" class="form-select rounded-3">
-                            <option value="">No meal plan</option>
-                            @foreach($mealPlans as $mp)
-                                <option value="{{ $mp->id }}" {{ old('meal_plan_id', $booking->meal_plan_id) == $mp->id ? 'selected' : '' }}>
-                                    {{ $mp->name }} — ₹{{ number_format($mp->price_per_person) }}/person
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-6 d-flex align-items-end gap-4 pb-1">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="has_breakfast" value="1" {{ old('has_breakfast', $booking->has_breakfast) ? 'checked' : '' }}>
-                            <label class="form-check-label small"><i class="bi bi-cup me-1"></i>Breakfast</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="has_lunch" value="1" {{ old('has_lunch', $booking->has_lunch) ? 'checked' : '' }}>
-                            <label class="form-check-label small"><i class="bi bi-sun me-1"></i>Lunch</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="has_dinner" value="1" {{ old('has_dinner', $booking->has_dinner) ? 'checked' : '' }}>
-                            <label class="form-check-label small"><i class="bi bi-moon-stars me-1"></i>Dinner</label>
-                        </div>
-                    </div>
+    {{-- ── Meal Plan ── --}}
+    <div class="ef-eb-card">
+        <div class="ef-eb-section">
+            <p class="ef-eb-section-label">Catering Package</p>
+
+            {{-- Hidden input carries the selected ID --}}
+            <input type="hidden" id="meal_plan_id" name="meal_plan_id" value="{{ old('meal_plan_id', $booking->meal_plan_id ?? '') }}">
+
+            <div class="ef-eb-meal-grid">
+                {{-- No plan option --}}
+                <div class="ef-eb-meal-card no-plan {{ old('meal_plan_id', $booking->meal_plan_id) == '' ? 'selected' : '' }}"
+                     data-id="" data-price="0" onclick="selectMealCard(this)">
+                    <div class="ef-eb-meal-check"><i class="bi bi-check"></i></div>
+                    <div class="ef-eb-meal-name" style="color:var(--ef-muted)">No Package</div>
+                    <div class="ef-eb-meal-price" style="color:var(--ef-faint)">No catering cost</div>
                 </div>
+                @foreach($mealPlans as $mp)
+                @php
+                    $catClass = $mp->category === 'premium' ? '--premium' : ($mp->category === 'custom' ? '--custom' : '');
+                    $selected = old('meal_plan_id', $booking->meal_plan_id) == $mp->id;
+                @endphp
+                <div class="ef-eb-meal-card {{ $selected ? 'selected' : '' }}"
+                     data-id="{{ $mp->id }}" data-price="{{ $mp->price_per_person }}"
+                     onclick="selectMealCard(this)">
+                    <div class="ef-eb-meal-check"><i class="bi bi-check"></i></div>
+                    <span class="ef-eb-meal-cat {{ $catClass }}">{{ ucfirst($mp->category) }}</span>
+                    <div class="ef-eb-meal-name">{{ $mp->name }}</div>
+                    <div class="ef-eb-meal-price">₹{{ number_format($mp->price_per_person, 0) }} / guest</div>
+                    @if($mp->description)
+                        <div style="font-size:.7rem;color:var(--ef-muted);margin-top:4px;line-height:1.4">{{ Str::limit($mp->description, 50) }}</div>
+                    @endif
+                </div>
+                @endforeach
+            </div>
+
+            {{-- Catering estimate box --}}
+            <div class="ef-eb-meal-estimate" id="mealEstimateBox" style="display:none">
+                <div>
+                    <div class="ef-eb-meal-estimate-lbl"><i class="bi bi-calculator me-1"></i>Catering Estimate</div>
+                    <div class="ef-eb-meal-estimate-sub" id="mealEstimateSub">—</div>
+                </div>
+                <div class="ef-eb-meal-estimate-amt" id="mealEstimateAmt">₹0</div>
+            </div>
+
+            {{-- Meal checkboxes --}}
+            <div style="display:flex;gap:20px;margin-top:16px;flex-wrap:wrap">
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.85rem;font-weight:600;color:var(--ef-ink-2)">
+                    <input type="checkbox" name="has_breakfast" value="1" {{ old('has_breakfast', $booking->has_breakfast) ? 'checked' : '' }}
+                           style="width:16px;height:16px;accent-color:var(--ef-emerald)">
+                    <i class="bi bi-cup-hot" style="color:#d97706"></i> Breakfast
+                </label>
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.85rem;font-weight:600;color:var(--ef-ink-2)">
+                    <input type="checkbox" name="has_lunch" value="1" {{ old('has_lunch', $booking->has_lunch) ? 'checked' : '' }}
+                           style="width:16px;height:16px;accent-color:var(--ef-emerald)">
+                    <i class="bi bi-sun" style="color:#f59e0b"></i> Lunch
+                </label>
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.85rem;font-weight:600;color:var(--ef-ink-2)">
+                    <input type="checkbox" name="has_dinner" value="1" {{ old('has_dinner', $booking->has_dinner) ? 'checked' : '' }}
+                           style="width:16px;height:16px;accent-color:var(--ef-emerald)">
+                    <i class="bi bi-moon-stars" style="color:#6366f1"></i> Dinner
+                </label>
             </div>
         </div>
     </div>
 
-    <div class="col-12">
-        <div class="booking-card card">
-            <div class="card-body p-4">
-                <p class="section-label">Payment & Status</p>
-                <div class="row g-3">
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold small">Hall Rental Cost (₹)</label>
-                        <input type="number" id="hall_cost" name="hall_cost" step="0.01" min="0" class="form-control rounded-3"
-                               value="{{ old('hall_cost', $booking->hall_cost ?? 0) }}" placeholder="0.00">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold small">Total Amount (₹) <span class="text-danger">*</span></label>
-                        <input type="number" id="total_amount" name="total_amount" step="0.01" min="0" class="form-control rounded-3"
-                               value="{{ old('total_amount', $booking->total_amount) }}" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold small">Advance Amount (₹) <span class="text-danger">*</span></label>
-                        <input type="number" id="advance_amount" name="advance_amount" step="0.01" min="0" class="form-control rounded-3"
-                               value="{{ old('advance_amount', $booking->advance_amount) }}" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold small">Payment Status</label>
-                        <select name="payment_status" class="form-select rounded-3">
-                            @foreach(\App\Models\HallBooking::paymentStatuses() as $v => $l)
-                                <option value="{{ $v }}" {{ old('payment_status', $booking->payment_status) === $v ? 'selected' : '' }}>{{ $l }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold small">Booking Status</label>
-                        <select name="status" class="form-select rounded-3">
-                            @foreach(\App\Models\HallBooking::statuses() as $v => $l)
-                                <option value="{{ $v }}" {{ old('status', $booking->status) === $v ? 'selected' : '' }}>{{ $l }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label fw-semibold small">Notes</label>
-                        <textarea name="notes" rows="2" class="form-control rounded-3">{{ old('notes', $booking->notes) }}</textarea>
-                    </div>
+    {{-- ── Payment & Status ── --}}
+    <div class="ef-eb-card">
+        <div class="ef-eb-section">
+            <p class="ef-eb-section-label">Payment & Status</p>
+
+            <div class="ef-eb-grid">
+                <div>
+                    <label class="ef-label">Hall Rental Cost (₹)</label>
+                    <input type="number" id="hall_cost" name="hall_cost" step="0.01" min="0" class="ef-input"
+                           value="{{ old('hall_cost', $booking->hall_cost ?? 0) }}" placeholder="0.00"
+                           oninput="recalcTotal()">
+                </div>
+                <div>
+                    <label class="ef-label">
+                        Total Amount (₹) <span style="color:var(--ef-danger)">*</span>
+                        <span style="font-size:.62rem;font-weight:500;color:var(--ef-muted);margin-left:4px">auto-calculated</span>
+                    </label>
+                    <input type="number" id="total_amount" name="total_amount" step="0.01" min="0" class="ef-input"
+                           value="{{ old('total_amount', $booking->total_amount) }}"
+                           style="background:rgba(20,20,18,.03);color:var(--ef-muted)" readonly tabindex="-1">
+                </div>
+                <div>
+                    <label class="ef-label">Advance Amount (₹) <span style="color:var(--ef-danger)">*</span></label>
+                    <input type="number" id="advance_amount" name="advance_amount" step="0.01" min="0" class="ef-input @error('advance_amount') --error @enderror"
+                           value="{{ old('advance_amount', $booking->advance_amount) }}" required oninput="recalcTotal()">
+                    @error('advance_amount')<div class="ef-field-error">{{ $message }}</div>@enderror
+                </div>
+                <div>
+                    <label class="ef-label">Payment Status</label>
+                    <select name="payment_status" class="ef-select">
+                        @foreach(\App\Models\HallBooking::paymentStatuses() as $v => $l)
+                            <option value="{{ $v }}" {{ old('payment_status', $booking->payment_status) === $v ? 'selected' : '' }}>{{ $l }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="ef-label">Booking Status</label>
+                    <select name="status" class="ef-select">
+                        @foreach(\App\Models\HallBooking::statuses() as $v => $l)
+                            <option value="{{ $v }}" {{ old('status', $booking->status) === $v ? 'selected' : '' }}>{{ $l }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div></div>
+            </div>
+
+            {{-- Cost breakdown --}}
+            <div class="ef-eb-breakdown" id="costBreakdown">
+                <div class="ef-eb-breakdown-row">
+                    <span style="color:var(--ef-muted)">Hall Rental</span>
+                    <span id="bdHall">₹0</span>
+                </div>
+                <div class="ef-eb-breakdown-row" id="bdMealRow" style="display:none">
+                    <span style="color:var(--ef-muted)">Catering</span>
+                    <span id="bdMeal" style="color:var(--ef-emerald)">₹0</span>
+                </div>
+                <div class="ef-eb-breakdown-row total">
+                    <span>Total</span>
+                    <span id="bdTotal" style="color:var(--ef-ink)">₹0</span>
+                </div>
+                <div class="ef-eb-breakdown-row" style="border-top:none;padding-top:2px">
+                    <span style="color:var(--ef-muted)">Balance Due</span>
+                    <span id="bdBalance" style="color:var(--ef-danger)">₹0</span>
                 </div>
             </div>
         </div>
+
+        <div class="ef-eb-section">
+            <label class="ef-label">Notes</label>
+            <textarea name="notes" rows="2" class="ef-textarea"
+                      placeholder="Seating, decor, catering preferences, customer requests…">{{ old('notes', $booking->notes) }}</textarea>
+        </div>
     </div>
 
-    <div class="col-12 d-flex gap-2 pb-4">
-        <button type="submit" class="btn btn-primary rounded-3 px-4">
-            <i class="bi bi-check-circle me-1"></i>Update Booking
+    {{-- Actions --}}
+    <div style="display:flex;gap:10px;align-items:center">
+        <button type="submit" class="ef-btn ef-btn-dark" data-loading-text="Updating…">
+            <i class="bi bi-check-circle"></i> Update Booking
         </button>
-        <a href="{{ route('hall.bookings.show', $booking) }}" class="btn btn-outline-secondary rounded-3">Cancel</a>
+        <a href="{{ route('hall.bookings.show', $booking) }}" class="ef-btn">Cancel</a>
     </div>
+
+    </form>
 </div>
-</form>
 
 @push('scripts')
 <script>
 (function () {
-    const hallSel   = document.getElementById('hall_id');
-    const dateFld   = document.getElementById('booking_date');
-    const startFld  = document.getElementById('start_time');
-    const endFld    = document.getElementById('end_time');
+
+    /* ── Availability check ── */
+    const hallSel  = document.getElementById('hall_id');
+    const dateFld  = document.getElementById('booking_date');
+    const startFld = document.getElementById('start_time');
+    const endFld   = document.getElementById('end_time');
     const statusDiv = document.getElementById('availStatus');
-    let checkTimer  = null;
+    let checkTimer = null;
 
     function checkAvailability() {
         if (!hallSel.value || !dateFld.value || !startFld.value || !endFld.value) return;
@@ -215,13 +399,70 @@
                 const res  = await fetch('{{ route("hall.bookings.check-availability") }}?' + params);
                 const data = await res.json();
                 statusDiv.innerHTML = data.available
-                    ? '<span class="badge bg-success rounded-pill"><i class="bi bi-check-circle me-1"></i>Hall is available</span>'
-                    : `<span class="badge bg-danger rounded-pill"><i class="bi bi-x-circle me-1"></i>Conflict detected</span>`;
+                    ? '<span style="color:var(--ef-emerald);font-size:.82rem;font-weight:600"><i class="bi bi-check-circle me-1"></i>Hall is available</span>'
+                    : '<span style="color:var(--ef-danger);font-size:.82rem;font-weight:600"><i class="bi bi-x-circle me-1"></i>Conflict detected</span>';
             } catch { statusDiv.innerHTML = ''; }
         }, 500);
     }
 
     [hallSel, dateFld, startFld, endFld].forEach(el => el.addEventListener('change', checkAvailability));
+
+    /* ── Meal plan card selector ── */
+    window.selectMealCard = function(card) {
+        document.querySelectorAll('.ef-eb-meal-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        document.getElementById('meal_plan_id').value = card.dataset.id || '';
+        recalcTotal();
+    };
+
+    /* ── Financial recalculation ── */
+    function rupee(n) {
+        return '₹' + Math.round(n).toLocaleString('en-IN');
+    }
+
+    window.recalcTotal = function() {
+        const guests    = parseInt(document.getElementById('number_of_people').value || 0);
+        const hallCost  = parseFloat(document.getElementById('hall_cost').value || 0);
+        const advance   = parseFloat(document.getElementById('advance_amount').value || 0);
+
+        const mealCard  = document.querySelector('.ef-eb-meal-card.selected');
+        const mealPrice = mealCard ? parseFloat(mealCard.dataset.price || 0) : 0;
+        const mealCost  = mealPrice * guests;
+
+        const total   = hallCost + mealCost;
+        const balance = Math.max(0, total - advance);
+
+        /* update total field */
+        document.getElementById('total_amount').value = total.toFixed(2);
+
+        /* breakdown */
+        document.getElementById('bdHall').textContent    = rupee(hallCost);
+        document.getElementById('bdMeal').textContent    = rupee(mealCost);
+        document.getElementById('bdTotal').textContent   = rupee(total);
+        document.getElementById('bdBalance').textContent = rupee(balance);
+        document.getElementById('bdMealRow').style.display = mealCost > 0 ? '' : 'none';
+
+        /* estimate box */
+        const box  = document.getElementById('mealEstimateBox');
+        const sub  = document.getElementById('mealEstimateSub');
+        const amt  = document.getElementById('mealEstimateAmt');
+        if (mealPrice > 0 && guests > 0) {
+            sub.textContent = guests.toLocaleString('en-IN') + ' guests × ₹' + mealPrice.toLocaleString('en-IN');
+            amt.textContent = rupee(mealCost);
+            box.style.display = 'flex';
+        } else {
+            box.style.display = 'none';
+        }
+    };
+
+    /* bind recalc to guest/hall cost inputs */
+    document.getElementById('number_of_people').addEventListener('input', recalcTotal);
+    document.getElementById('hall_cost').addEventListener('input', recalcTotal);
+    document.getElementById('advance_amount').addEventListener('input', recalcTotal);
+
+    /* initial calc on load */
+    recalcTotal();
+
 })();
 </script>
 @endpush

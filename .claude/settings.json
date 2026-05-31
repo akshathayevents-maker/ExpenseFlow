@@ -103,7 +103,8 @@
       "Bash(git commit -m 'feat: add db:health-check artisan command *)",
       "Bash(git commit -m 'fix: bottom nav jumps up on iOS overscroll *)",
       "Bash(git commit -m 'fix: add hall_cost field to edit booking form, make non-mandatory *)",
-      "Bash(git commit -m 'fix: keyboard lifts bottom nav + redesign show-page action bar *)"
+      "Bash(git commit -m 'fix: keyboard lifts bottom nav + redesign show-page action bar *)",
+      "Bash(git commit -m 'feat: complete Meal Plan management module *)"
     ]
   }
 }

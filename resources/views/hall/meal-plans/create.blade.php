@@ -313,7 +313,7 @@
             </div>
         </div>
 
-        {{-- Pricing --}}
+        {{-- Pricing + Live Preview --}}
         <div class="ef-mpf-section">
             <p class="ef-mpf-section-label">Pricing</p>
 
@@ -324,10 +324,33 @@
                     <input id="price_per_person" type="number" name="price_per_person"
                            step="0.01" min="0"
                            class="ef-mpf-input @error('price_per_person') is-invalid @enderror"
-                           value="{{ old('price_per_person', '') }}" placeholder="0.00" required>
+                           value="{{ old('price_per_person', '') }}" placeholder="0.00" required
+                           oninput="updatePreview()">
                 </div>
                 @error('price_per_person')<p class="ef-mpf-error">{{ $message }}</p>@enderror
                 <p class="ef-mpf-hint">Per-person rate multiplied by guest count at booking time.</p>
+            </div>
+
+            {{-- Live preview card --}}
+            <div id="livePreview" style="display:none;background:rgba(20,20,18,.028);border:1px solid var(--ef-border);border-radius:14px;padding:16px 18px;margin-top:4px">
+                <div style="font-size:.62rem;font-weight:760;letter-spacing:.14em;text-transform:uppercase;color:var(--ef-faint);margin-bottom:10px">Live Preview</div>
+                <div style="display:flex;align-items:start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+                    <div>
+                        <div id="prevName" style="font-size:1.05rem;font-weight:760;color:var(--ef-ink);margin-bottom:3px">Meal Plan Name</div>
+                        <div id="prevPrice" style="font-size:.88rem;color:var(--ef-emerald);font-weight:640">₹0 / guest</div>
+                    </div>
+                    <div style="text-align:right;min-width:140px">
+                        <div style="font-size:.72rem;color:var(--ef-muted);margin-bottom:4px">Estimate for</div>
+                        <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
+                            <input id="previewGuests" type="number" min="1" value="100"
+                                   style="width:64px;border:1px solid var(--ef-border);border-radius:8px;padding:4px 8px;font-size:.82rem;text-align:center;background:#fff;color:var(--ef-ink)"
+                                   oninput="updatePreview()">
+                            <span style="font-size:.8rem;color:var(--ef-muted)">guests</span>
+                        </div>
+                        <div id="prevEstimate" style="font-size:1.15rem;font-weight:760;color:var(--ef-ink);margin-top:6px">₹0</div>
+                        <div style="font-size:.68rem;color:var(--ef-muted)" id="prevFormula">0 × ₹0</div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -357,5 +380,26 @@
         </form>
     </div>
 </div>
+
+@push('scripts')
+<script>
+function updatePreview() {
+    const name  = document.getElementById('name').value.trim() || 'Meal Plan Name';
+    const price = parseFloat(document.getElementById('price_per_person').value || 0);
+    const guests = parseInt(document.getElementById('previewGuests').value || 0);
+    const est   = price * guests;
+
+    document.getElementById('prevName').textContent    = name;
+    document.getElementById('prevPrice').textContent   = '₹' + price.toLocaleString('en-IN') + ' / guest';
+    document.getElementById('prevEstimate').textContent = '₹' + Math.round(est).toLocaleString('en-IN');
+    document.getElementById('prevFormula').textContent  = guests.toLocaleString('en-IN') + ' × ₹' + price.toLocaleString('en-IN');
+
+    const preview = document.getElementById('livePreview');
+    preview.style.display = price > 0 ? '' : 'none';
+}
+
+document.getElementById('name').addEventListener('input', updatePreview);
+</script>
+@endpush
 
 </x-admin-layout>
