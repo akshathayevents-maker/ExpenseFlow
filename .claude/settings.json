@@ -101,7 +101,9 @@
       "Bash(git commit -m 'fix: Android scroll, iOS safe-area topbar redesign, deploy.sh optimization *)",
       "Bash(git commit -m 'fix: add idempotency guards to all migrations *)",
       "Bash(git commit -m 'feat: add db:health-check artisan command *)",
-      "Bash(git commit -m 'fix: bottom nav jumps up on iOS overscroll *)"
+      "Bash(git commit -m 'fix: bottom nav jumps up on iOS overscroll *)",
+      "Bash(git commit -m 'fix: add hall_cost field to edit booking form, make non-mandatory *)",
+      "Bash(git commit -m 'fix: keyboard lifts bottom nav + redesign show-page action bar *)"
     ]
   }
 }
