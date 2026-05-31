@@ -87,32 +87,59 @@ class ExpenseRequest extends Model
         return in_array($this->status, ['paid', 'reimbursement_pending', 'reimbursed', 'completed']);
     }
 
+    /**
+     * Signed URL to the QR-serving controller route.
+     *
+     * Used for <img src> in payment pages and authenticated employee views.
+     * The controller streams the file directly — no nginx symlink, no
+     * APP_URL dependency, no public/storage permissions needed.
+     *
+     * 30-day expiry matches paymentPageUrl() so both links expire together.
+     */
     public function qrUrl(): ?string
     {
         if (! $this->qr_file_path) {
             return null;
         }
 
-        // Use a signed controller route instead of the public storage URL.
-        //
-        // WHY NOT Storage::disk('public')->url():
-        //   That method prepends APP_URL, which may differ from the actual
-        //   public hostname (e.g. APP_URL=http://127.0.0.1:8001 in dev,
-        //   or misconfigured on prod). The resulting URL is then embedded
-        //   in payment pages opened on phones/WhatsApp — if it points to
-        //   localhost the image is unreachable and shows a broken icon.
-        //
-        // The signed route approach:
-        //   • URL is always generated relative to the APP_URL that matches
-        //     the payment page URL (same origin, no mismatch possible).
-        //   • Controller streams the file directly — no nginx symlink or
-        //     public/storage permissions needed.
-        //   • HMAC + expiry from the payment page URL are reused (30 days).
         return URL::temporarySignedRoute(
             'payment-request.serve-qr',
             now()->addDays(30),
             ['id' => $this->id],
         );
+    }
+
+    /**
+     * Public (unsigned) storage URL — ONLY for og:image meta tags.
+     *
+     * WhatsApp/Facebook/Telegram link-preview crawlers (Facebot, WhatsAppBot)
+     * cannot follow signed URLs because:
+     *   1. They make an independent HTTP request to the og:image URL.
+     *   2. The HMAC signature in qrUrl() is tied to server-side generation
+     *      context — the crawler doesn't carry the payment page's signature.
+     *
+     * og:image is just a visual thumbnail — NOT a payment action. Exposing
+     * the storage path here is acceptable because:
+     *   • The URL reveals nothing about payment status or amounts.
+     *   • File names are uniqid()-random, not guessable.
+     *   • The QR itself is the UPI address, which is already public knowledge.
+     *
+     * Uses request()->getSchemeAndHttpHost() rather than APP_URL so the URL
+     * is always correct regardless of .env configuration.
+     */
+    public function qrOgImageUrl(): ?string
+    {
+        if (! $this->qr_file_path) {
+            return null;
+        }
+
+        try {
+            $host = request()->getSchemeAndHttpHost();
+        } catch (\Throwable) {
+            $host = rtrim(config('app.url'), '/');
+        }
+
+        return $host . '/storage/' . ltrim($this->qr_file_path, '/');
     }
 
     public function paymentPageUrl(): string

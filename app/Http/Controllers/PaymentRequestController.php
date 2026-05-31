@@ -10,6 +10,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -260,28 +261,64 @@ class PaymentRequestController extends Controller
      |     generated from APP_URL which may differ from the public host).
      |   • Single point of access control — only signed requests get in.
      ──────────────────────────────────────────────────────────────── */
-    public function serveQr(int $id): mixed
+    public function serveQr(Request $request, int $id): mixed
     {
-        $expense = ExpenseRequest::findOrFail($id);
-        $path    = $expense->qr_file_path;
+        $expense  = ExpenseRequest::findOrFail($id);
+        $rawPath  = $expense->qr_file_path;
+        $ip       = $request->ip();
+        $ua       = substr($request->userAgent() ?? '', 0, 200);
+        $ctx      = ['expense_id' => $id, 'ip' => $ip, 'ua' => $ua];
 
-        Log::info('QR serve request', [
-            'expense_id' => $id,
-            'qr_path'    => $path,
-            'exists'     => $path ? Storage::disk('public')->exists($path) : false,
-        ]);
+        // ── No QR attached ──────────────────────────────────────────
+        if (! $rawPath) {
+            Log::info('QR serve: no QR attached', $ctx);
+            abort(404, 'No QR image attached to this request.');
+        }
 
-        if (! $path || ! Storage::disk('public')->exists($path)) {
+        // ── Path traversal guard ─────────────────────────────────────
+        // Normalise and confirm the resolved path stays within the disk root.
+        // qr_file_path comes from the database but we must not trust it blindly —
+        // a DB compromise or migration error could inject ../../ sequences.
+        $diskRoot = realpath(Storage::disk('public')->path(''));
+        $fullPath = Storage::disk('public')->path($rawPath);
+        $realFull = realpath($fullPath);
+
+        if (
+            $diskRoot === false
+            || $realFull === false
+            || ! str_starts_with($realFull, $diskRoot . DIRECTORY_SEPARATOR)
+        ) {
+            Log::warning('QR serve: path traversal attempt or file missing', array_merge($ctx, [
+                'raw_path' => $rawPath,
+            ]));
             abort(404, 'QR image not found.');
         }
 
-        $fullPath = Storage::disk('public')->path($path);
-        $mime     = mime_content_type($fullPath) ?: 'image/png';
+        // ── File existence (double check after realpath) ─────────────
+        if (! is_file($realFull)) {
+            Log::warning('QR serve: file missing on disk', array_merge($ctx, ['path' => $rawPath]));
+            abort(404, 'QR image not found.');
+        }
 
-        return response()->file($fullPath, [
-            'Content-Type'        => $mime,
-            'Cache-Control'       => 'private, max-age=3600',
+        // ── Serve ───────────────────────────────────────────────────
+        $mime = mime_content_type($realFull) ?: 'image/png';
+
+        // Restrict to image types only — reject if stored file is not an image
+        if (! str_starts_with($mime, 'image/')) {
+            Log::warning('QR serve: non-image MIME rejected', array_merge($ctx, ['mime' => $mime]));
+            abort(404, 'QR image not found.');
+        }
+
+        Log::info('QR serve: success', array_merge($ctx, [
+            'path' => $rawPath,
+            'mime' => $mime,
+        ]));
+
+        return response()->file($realFull, [
+            'Content-Type'           => $mime,
+            'Cache-Control'          => 'private, max-age=3600',
             'X-Content-Type-Options' => 'nosniff',
+            'Content-Disposition'    => 'inline',
         ]);
     }
 

@@ -11,8 +11,10 @@
 <meta property="og:site_name"   content="{{ config('app.name') }}">
 <meta property="og:title"       content="₹{{ number_format((float)$expense->amount, 2) }} — {{ $expense->title }}">
 <meta property="og:description" content="Payment request from {{ $expense->requester?->name ?? 'Employee' }}. Tap to view QR and pay instantly.">
-@if($expense->qrUrl())
-<meta property="og:image"       content="{{ $expense->qrUrl() }}">
+@if($expense->qrOgImageUrl())
+{{-- og:image uses public storage URL — signed URLs don't work for crawlers.
+     WhatsApp/FB bots make independent requests and can't carry HMAC signatures. --}}
+<meta property="og:image"       content="{{ $expense->qrOgImageUrl() }}">
 <meta property="og:image:width" content="600">
 <meta property="og:image:height" content="600">
 @endif
@@ -305,33 +307,47 @@ body {
 /* Fullscreen overlay */
 .qr-full-overlay {
     display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,.93);
-    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
-    align-items: center; justify-content: center;
-    padding: 24px; z-index: 9999;
+    background: rgba(0,0,0,.94);
+    -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    align-items: center; justify-content: center; flex-direction: column;
+    padding: 24px; z-index: 9999; gap: 16px;
 }
-.qr-full-overlay.open { display: flex; animation: fadeIn .18s ease; }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.qr-full-overlay.open { display: flex; animation: qrFadeIn .2s ease; }
+@keyframes qrFadeIn { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
 .qr-full-img {
-    border-radius: 16px; display: block;
-    max-height: 82vh; max-width: 100%;
+    border-radius: 18px; display: block;
+    max-height: 72vh; max-width: min(360px, 100%);
     object-fit: contain; touch-action: pinch-zoom;
-    box-shadow: 0 24px 80px rgba(0,0,0,.5);
+    box-shadow: 0 32px 80px rgba(0,0,0,.6);
     -webkit-user-select: none; user-select: none;
 }
-.qr-full-close {
-    position: absolute; top: 16px; right: 16px;
-    width: 40px; height: 40px; border-radius: 50%;
-    background: rgba(255,255,255,.12); border: none; color: #fff;
-    font-size: 1.1rem; cursor: pointer; display: flex;
-    align-items: center; justify-content: center;
-    transition: background .15s; line-height: 1;
+/* Controls row: close + download */
+.qr-full-controls {
+    display: flex; align-items: center; gap: 10px;
 }
-.qr-full-close:hover { background: rgba(255,255,255,.22); }
+.qr-full-btn {
+    height: 40px; border-radius: 20px; border: 1px solid rgba(255,255,255,.18);
+    background: rgba(255,255,255,.1); color: #fff;
+    font-size: .75rem; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+    padding: 0 14px; text-decoration: none;
+    transition: background .15s; letter-spacing: .03em;
+    -webkit-tap-highlight-color: transparent;
+}
+.qr-full-btn:hover { background: rgba(255,255,255,.18); }
+.qr-full-btn svg { flex-shrink: 0; }
+.qr-full-close-top {
+    position: absolute; top: 14px; right: 14px;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.16);
+    color: #fff; font-size: 1rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s;
+}
+.qr-full-close-top:hover { background: rgba(255,255,255,.2); }
 .qr-full-label {
-    position: absolute; bottom: 20px; left: 0; right: 0;
-    text-align: center; font-size: .68rem;
-    color: rgba(255,255,255,.4); text-transform: uppercase; letter-spacing: .04em;
+    font-size: .64rem; color: rgba(255,255,255,.35);
+    text-transform: uppercase; letter-spacing: .05em; text-align: center;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -1035,10 +1051,33 @@ body {
 
 {{-- ── FULLSCREEN QR OVERLAY ────────────────────────────────────── --}}
 @if(!$isPaid && !$isRejected && $expense->qrUrl())
-<div class="qr-full-overlay" id="qrFullOverlay" role="dialog" aria-modal="true">
-    <button class="qr-full-close" id="qrFullClose" aria-label="Close">&#x2715;</button>
-    <img id="qrFullImg" src="" class="qr-full-img" alt="QR fullscreen">
-    <p class="qr-full-label">Tap anywhere · pinch to zoom</p>
+<div class="qr-full-overlay" id="qrFullOverlay" role="dialog" aria-modal="true" aria-label="QR code fullscreen">
+    {{-- Top-right close button (thumb-friendly) --}}
+    <button class="qr-full-close-top" id="qrFullClose" aria-label="Close">&#x2715;</button>
+
+    {{-- QR image (pinch-zoom on mobile, native browser zoom) --}}
+    <img id="qrFullImg" src="" class="qr-full-img"
+         alt="Payment QR — ₹{{ number_format((float)$expense->amount,2) }}">
+
+    {{-- Controls: Download + Close --}}
+    <div class="qr-full-controls">
+        <a id="qrDownloadBtn" href="#" download="payment-qr-{{ $expense->id }}.jpg"
+           class="qr-full-btn" aria-label="Download QR image">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Download QR
+        </a>
+        <button class="qr-full-btn" id="qrFullCloseBottom" aria-label="Close fullscreen">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+            Close
+        </button>
+    </div>
+
+    <p class="qr-full-label">Tap outside · pinch to zoom · swipe to dismiss</p>
 </div>
 @endif
 
@@ -1183,55 +1222,84 @@ window.copyPageLink = function () {
 };
 
 /* ── QR image load & fullscreen ──────────────────────────────── */
-var img        = document.getElementById('qrImage');
-var skeleton   = document.getElementById('qrSkeleton');
-var qrBox      = document.getElementById('qrBox');
-var qrError    = document.getElementById('qrError');
-var qrUpiHint  = document.getElementById('qrUpiHint');
-var tapHint    = document.getElementById('qrTapHint');
-var overlay    = document.getElementById('qrFullOverlay');
-var fullImg    = document.getElementById('qrFullImg');
-var closeBtn   = document.getElementById('qrFullClose');
+(function () {
+    var img           = document.getElementById('qrImage');
+    var skeleton      = document.getElementById('qrSkeleton');
+    var qrBox         = document.getElementById('qrBox');
+    var qrError       = document.getElementById('qrError');
+    var qrUpiHint     = document.getElementById('qrUpiHint');
+    var tapHint       = document.getElementById('qrTapHint');
+    var overlay       = document.getElementById('qrFullOverlay');
+    var fullImg       = document.getElementById('qrFullImg');
+    var dlBtn         = document.getElementById('qrDownloadBtn');
+    var closeBtnTop   = document.getElementById('qrFullClose');
+    var closeBtnBot   = document.getElementById('qrFullCloseBottom');
 
-function showQr() {
-    if (skeleton) skeleton.style.display = 'none';
-    if (img)      { img.style.display = 'block'; img.classList.add('loaded'); }
-    if (tapHint)  tapHint.style.display = 'flex';
-}
-function showQrError() {
-    if (skeleton)   skeleton.style.display = 'none';
-    if (qrBox)      qrBox.style.display    = 'none';
-    if (qrError)    qrError.style.display  = 'block';
-    if (qrUpiHint)  qrUpiHint.style.display = 'none';
-    if (tapHint)    tapHint.style.display   = 'none';
-}
-function openFullscreen() {
-    if (!overlay || !fullImg || !img || !img.src) return;
-    fullImg.src = img.src;
-    overlay.classList.add('open');
-    // Class-based scroll lock — cssText would destroy all other inline styles
-    window.__payScrollY = window.scrollY;
-    document.body.style.top = '-' + window.__payScrollY + 'px';
-    document.body.classList.add('ef-scroll-locked');
-}
-function closeFullscreen() {
-    if (!overlay) return;
-    overlay.classList.remove('open');
-    document.body.classList.remove('ef-scroll-locked');
-    document.body.style.top = '';
-    window.scrollTo(0, window.__payScrollY || 0);
-    if (fullImg) setTimeout(function () { fullImg.src = ''; }, 220);
-}
+    function showQr() {
+        if (skeleton) skeleton.style.display = 'none';
+        if (img)      { img.style.display = 'block'; img.classList.add('loaded'); }
+        if (tapHint)  tapHint.style.display = 'flex';
+    }
 
-if (img) {
-    img.addEventListener('load',  showQr);
-    img.addEventListener('error', showQrError);
-    if (img.complete) { img.naturalWidth > 0 ? showQr() : showQrError(); }
-}
-if (qrBox)    { qrBox.addEventListener('click', openFullscreen); qrBox.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); openFullscreen(); } }); }
-if (overlay)  overlay.addEventListener('click', function(e){ if(e.target===overlay) closeFullscreen(); });
-if (closeBtn) closeBtn.addEventListener('click', closeFullscreen);
-document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeFullscreen(); });
+    function showQrError() {
+        if (skeleton)  skeleton.style.display  = 'none';
+        if (qrBox)     qrBox.style.display     = 'none';
+        if (qrError)   qrError.style.display   = 'block';
+        if (qrUpiHint) qrUpiHint.style.display = 'none';
+        if (tapHint)   tapHint.style.display   = 'none';
+    }
+
+    function openFullscreen() {
+        if (!overlay || !fullImg || !img || !img.src) return;
+        fullImg.src = img.src;
+        // Wire download button to the same signed URL
+        if (dlBtn) dlBtn.href = img.src;
+        overlay.classList.add('open');
+        overlay.setAttribute('aria-hidden', 'false');
+        // Class-based scroll lock — body.style.cssText destroys other inline styles
+        window.__payScrollY = window.scrollY;
+        document.body.style.top = '-' + window.__payScrollY + 'px';
+        document.body.classList.add('ef-scroll-locked');
+    }
+
+    function closeFullscreen() {
+        if (!overlay) return;
+        overlay.classList.remove('open');
+        overlay.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('ef-scroll-locked');
+        document.body.style.top = '';
+        window.scrollTo(0, window.__payScrollY || 0);
+        if (fullImg) setTimeout(function () { fullImg.src = ''; }, 240);
+    }
+
+    /* ── Touch swipe-down to close ── */
+    var touchStartY = 0;
+    if (overlay) {
+        overlay.addEventListener('touchstart', function (e) { touchStartY = e.touches[0].clientY; }, { passive: true });
+        overlay.addEventListener('touchend', function (e) {
+            var delta = e.changedTouches[0].clientY - touchStartY;
+            if (delta > 80) closeFullscreen(); // swipe down 80px → close
+        });
+    }
+
+    if (img) {
+        img.addEventListener('load', showQr);
+        img.addEventListener('error', showQrError);
+        // Handle already-cached images (complete before listener fires)
+        if (img.complete) { img.naturalWidth > 0 ? showQr() : showQrError(); }
+    }
+
+    if (qrBox) {
+        qrBox.addEventListener('click', openFullscreen);
+        qrBox.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openFullscreen(); }
+        });
+    }
+    if (overlay)    overlay.addEventListener('click', function (e) { if (e.target === overlay) closeFullscreen(); });
+    if (closeBtnTop) closeBtnTop.addEventListener('click', closeFullscreen);
+    if (closeBtnBot) closeBtnBot.addEventListener('click', closeFullscreen);
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeFullscreen(); });
+}());
 
 /* ── Mark-Paid modal ─────────────────────────────────────────── */
 var markPaidModal   = document.getElementById('markPaidModal');

@@ -67,13 +67,18 @@
 
                 {{-- QR section --}}
                 @if ($expenseRequest->qrUrl())
+                    @php $qrUrl = $expenseRequest->qrUrl(); @endphp
                     <div class="text-center mb-4 pb-3 border-bottom">
                         <p class="detail-label mb-2">Payment QR Code</p>
-                        <img src="{{ $expenseRequest->qrUrl() }}"
+                        <img src="{{ $qrUrl }}"
                              alt="Payment QR"
                              class="qr-thumb"
                              data-bs-toggle="modal"
-                             data-bs-target="#qrModal">
+                             data-bs-target="#qrModal"
+                             onerror="this.closest('.text-center').querySelector('.qr-emp-error')?.style.removeProperty('display');this.style.display='none'">
+                        <div class="qr-emp-error" style="display:none;font-size:.78rem;color:#dc2626;padding:8px">
+                            <i class="bi bi-exclamation-triangle me-1"></i>QR unavailable
+                        </div>
                         <p class="small text-muted mt-2 mb-2">Tap to enlarge</p>
 
                         {{-- WhatsApp resend --}}
@@ -196,18 +201,26 @@
 
 {{-- QR lightbox modal --}}
 @if ($expenseRequest->qrUrl())
+@php $qrUrl = $expenseRequest->qrUrl(); @endphp
 <div class="modal fade" id="qrModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-            <div class="modal-header border-0 pb-0">
+            <div class="modal-header border-0 pb-0 d-flex justify-content-between align-items-center">
                 <span class="fw-bold small">Payment QR — #{{ $expenseRequest->id }}</span>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <div class="d-flex gap-2 align-items-center">
+                    <a href="{{ $qrUrl }}" download="payment-qr-{{ $expenseRequest->id }}.jpg"
+                       class="btn btn-sm btn-outline-secondary rounded-pill" title="Download QR">
+                        <i class="bi bi-download"></i>
+                    </a>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
             </div>
             <div class="modal-body text-center px-4 pb-4">
-                <img src="{{ $expenseRequest->qrUrl() }}"
+                <img src="{{ $qrUrl }}"
                      alt="Payment QR"
                      class="img-fluid rounded-3"
-                     style="max-height:320px;object-fit:contain">
+                     style="max-height:320px;object-fit:contain"
+                     onerror="this.src='';this.alt='QR unavailable'">
                 <p class="small text-muted mt-2 mb-0">₹{{ number_format((float) $expenseRequest->amount, 2) }} — {{ $expenseRequest->title }}</p>
             </div>
         </div>
