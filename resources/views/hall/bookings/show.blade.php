@@ -350,9 +350,21 @@
 </div>
 
 <div class="ef-mobile-actions">
-    <a href="{{ route('hall.bookings.invoice', $booking) }}?print=1" target="_blank" class="ef-btn"><i class="bi bi-printer"></i> Print</a>
-    <a href="{{ route('hall.bookings.invoice.pdf', $booking) }}" class="ef-btn"><i class="bi bi-file-earmark-arrow-down"></i> PDF</a>
-    <a href="{{ $waUrl }}" target="_blank" rel="noopener" class="ef-btn"><i class="bi bi-whatsapp"></i> Share</a>
-    <a href="{{ route('hall.bookings.edit', $booking) }}" class="ef-btn"><i class="bi bi-pencil"></i> Edit</a>
+    <a href="{{ route('hall.bookings.invoice', $booking) }}?print=1" target="_blank" class="ef-mact-btn ef-mact-print">
+        <i class="bi bi-printer-fill"></i>
+        <span>Print</span>
+    </a>
+    <a href="{{ route('hall.bookings.invoice.pdf', $booking) }}" class="ef-mact-btn ef-mact-pdf">
+        <i class="bi bi-file-earmark-pdf-fill"></i>
+        <span>PDF</span>
+    </a>
+    <a href="{{ $waUrl }}" target="_blank" rel="noopener" class="ef-mact-btn ef-mact-share">
+        <i class="bi bi-whatsapp"></i>
+        <span>Share</span>
+    </a>
+    <a href="{{ route('hall.bookings.edit', $booking) }}" class="ef-mact-btn ef-mact-edit">
+        <i class="bi bi-pencil-fill"></i>
+        <span>Edit</span>
+    </a>
 </div>
 </x-admin-layout>

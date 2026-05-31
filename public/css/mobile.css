@@ -155,8 +155,11 @@
    ──────────────────────────────────────────────────────────────── */
 
 html {
-    height: 100dvh;
+    /* svh = "small viewport height" = viewport with all browser UI visible.
+       Does NOT track keyboard — keyboard open/close has no effect on svh.
+       Fallback chain: old webkit → svh → dvh (svh preferred for stability) */
     height: -webkit-fill-available;
+    height: 100svh;
     overflow: hidden;
     overscroll-behavior: none;
 }
@@ -164,9 +167,13 @@ html {
 body {
     -webkit-font-smoothing: antialiased;
     -webkit-text-size-adjust: 100%;
-    /* Exact viewport height — body MUST NOT scroll */
-    height: 100dvh;
+    /* KEYBOARD FIX: dvh shrinks when iOS keyboard opens (dvh = visual viewport).
+       With dvh on body, body shrinks → flex nav rises with keyboard top edge.
+       svh is stable — it equals the smallest possible viewport (URL bar shown)
+       and does NOT change when keyboard opens. Nav stays at layout bottom,
+       keyboard covers it naturally (same as native iOS apps). */
     height: -webkit-fill-available;
+    height: 100svh;
     overflow: hidden;
     overscroll-behavior: none;
     /* Flex column: topbar (fixed, out-of-flow) → main-content (flex:1) → bottom-nav */
@@ -740,10 +747,11 @@ nav[role="navigation"] {
 
 /* ── 33. Ensure no page-specific bottom bars conflict ──────────── */
 
-/* Hall pages keep their own mobile-actions */
+/* Hall show page: mobile action bar sits above the static bottom nav.
+   Nav height ~54px + safe-area. Use 56px as the floor. */
 .ef-mobile-actions {
-    bottom: 60px !important; /* sit above global bottom nav */
-    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+    bottom: 56px !important;
+    padding-bottom: 10px !important;
 }
 
 /* ── 34. Search bars on mobile ──────────────────────────────────── */
