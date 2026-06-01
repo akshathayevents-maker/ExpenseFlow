@@ -12,16 +12,18 @@ BRANCH="main"
 SAFE_MODE=0
 ROLLBACK_MODE=0
 DEPLOY_MODE="full"            # full | backend | frontend | hotfix
+FORCE_MIGRATE=0               # --force-migrate: run migrations even in safe/hotfix/frontend mode
 for _a in "$@"; do
     case "${_a}" in
-        --rollback)   ROLLBACK_MODE=1 ;;
-        --safe)       SAFE_MODE=1 ;;
-        --hotfix)     DEPLOY_MODE="hotfix" ;;
-        --backend)    DEPLOY_MODE="backend" ;;
-        --frontend)   DEPLOY_MODE="frontend" ;;
-        --mode=*)     DEPLOY_MODE="${_a#--mode=}" ;;
-        -*)           echo "[WARN] Unknown flag: ${_a}" >&2 ;;
-        *)            BRANCH="${_a}" ;;
+        --rollback)        ROLLBACK_MODE=1 ;;
+        --safe)            SAFE_MODE=1 ;;
+        --hotfix)          DEPLOY_MODE="hotfix" ;;
+        --backend)         DEPLOY_MODE="backend" ;;
+        --frontend)        DEPLOY_MODE="frontend" ;;
+        --mode=*)          DEPLOY_MODE="${_a#--mode=}" ;;
+        --force-migrate)   FORCE_MIGRATE=1 ;;   # explicit escape hatch to apply migrations in safe/hotfix mode
+        -*)                echo "[WARN] Unknown flag: ${_a}" >&2 ;;
+        *)                 BRANCH="${_a}" ;;
     esac
 done
 # Validate and normalise mode
@@ -1162,72 +1164,191 @@ fi
 
 # =============================================================================
 # PHASE 8 — DATABASE MIGRATIONS
+# Schema alignment is the single most common cause of production outages.
+# This phase enforces a strict contract:
+#   "No deployment succeeds when application code requires DB changes that
+#    have not been applied."
+#
+# Escape hatch: add --force-migrate to apply migrations even in safe/hotfix
+# mode (e.g. when a migration-only hotfix is needed).
 # =============================================================================
-step "Running migrations"
+step "Database migration safety check"
 
-# Verify DB is reachable before running migrations — a failed migration after
-# maintenance mode ON leaves the app down with no DB
-if ! "${PHP}" "${RELEASE_DIR}/artisan" db:show --no-interaction 2>/dev/null | grep -q "Driver" && \
-   ! "${PHP}" "${RELEASE_DIR}/artisan" tinker --execute="DB::connection()->getPdo(); echo 'ok';" 2>/dev/null | grep -q "ok"; then
-    log_warn "db:show check inconclusive — attempting raw PDO verify"
-fi
+# ── 8.1 Verify DB is reachable ───────────────────────────────────────────────
+# A failed migration after maintenance mode is ON leaves the app down.
+# Verify connectivity before touching anything.
 if ! "${PHP}" -r "
     \$env = parse_ini_file('${SHARED_DIR}/.env');
     \$dsn = 'pgsql:host=' . (\$env['DB_HOST'] ?? '127.0.0.1') . ';port=' . (\$env['DB_PORT'] ?? 5432) . ';dbname=' . (\$env['DB_DATABASE'] ?? '');
     try { new PDO(\$dsn, \$env['DB_USERNAME'] ?? '', \$env['DB_PASSWORD'] ?? ''); echo 'ok'; }
     catch(Exception \$e) { echo 'fail:' . \$e->getMessage(); exit(1); }
 " 2>/dev/null | grep -q "^ok"; then
-    die "Database not reachable — aborting before migration to prevent broken state"
+    die "Database not reachable — aborting before migration to prevent broken deploy state.
+Verify DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD in ${SHARED_DIR}/.env"
 fi
 log_ok "Database connection verified"
 
-if [[ ${SAFE_MODE} -eq 1 || "${DEPLOY_MODE}" == "frontend" ]]; then
-    # ── Safe/frontend mode: still check for pending migrations — warn loudly ──
-    # Root cause of SQLSTATE column errors: hotfix/safe deploys skipping
-    # migrations while the model already uses the new column (e.g. SoftDeletes).
-    log_warn "${DEPLOY_MODE^^} mode — migrations skipped"
-    PENDING_MIGRATIONS=$("${PHP}" "${RELEASE_DIR}/artisan" migrate:status --no-interaction 2>/dev/null \
-        | grep -c "Pending" || true)
-    if [[ "${PENDING_MIGRATIONS:-0}" -gt 0 ]]; then
-        log_warn "⚠  ${PENDING_MIGRATIONS} PENDING MIGRATION(S) DETECTED"
-        log_warn "   Models may reference columns that don't exist in the database."
-        log_warn "   If you see SQLSTATE column errors, run: php artisan migrate --force"
-        log_warn "   Or re-deploy without --safe/--hotfix to apply migrations."
-        # Show which migrations are pending
-        "${PHP}" "${RELEASE_DIR}/artisan" migrate:status --no-interaction 2>/dev/null \
-            | grep "Pending" | while IFS= read -r line; do log_warn "   PENDING: $line"; done || true
-    else
-        log_ok "No pending migrations (schema is aligned even in ${DEPLOY_MODE} mode)"
-    fi
+# ── 8.2 Detect pending migrations ────────────────────────────────────────────
+# Run migrate:status against the RELEASE_DIR (new code) so we detect migrations
+# that are new in this release even if they haven't been registered before.
+log_info "[$(_ts)] Checking migration status..."
+MIGRATE_STATUS_OUTPUT=$("${PHP}" "${RELEASE_DIR}/artisan" migrate:status \
+    --no-interaction 2>/dev/null || true)
+
+# Count rows that start with "Pending" (matches Laravel 10/11/12/13 output format)
+PENDING_COUNT=$(echo "${MIGRATE_STATUS_OUTPUT}" | grep -c "Pending" || true)
+
+if [[ "${PENDING_COUNT:-0}" -gt 0 ]]; then
+    log_warn "──────────────────────────────────────────────────────────────────────────"
+    log_warn "  PENDING MIGRATIONS DETECTED: ${PENDING_COUNT}"
+    log_warn "──────────────────────────────────────────────────────────────────────────"
+    echo "${MIGRATE_STATUS_OUTPUT}" | grep "Pending" | while IFS= read -r line; do
+        log_warn "  PENDING ▶ ${line}"
+    done
+    log_warn "──────────────────────────────────────────────────────────────────────────"
 else
-    # ── Pre-migration schema alignment check ────────────────────────────────
-    # Log pending migrations before running so the deploy log always shows
-    # what changed — useful for rollback diagnosis.
-    PENDING_COUNT=$("${PHP}" "${RELEASE_DIR}/artisan" migrate:status --no-interaction 2>/dev/null \
-        | grep -c "Pending" || true)
+    log_ok "Schema aligned — no pending migrations"
+fi
+
+# ── 8.3 Decide: run or abort ─────────────────────────────────────────────────
+_SKIP_MIGRATE=0
+_MIGRATE_REASON=""
+
+if [[ ${SAFE_MODE} -eq 1 && "${DEPLOY_MODE}" == "frontend" ]]; then
+    _SKIP_MIGRATE=1
+    _MIGRATE_REASON="frontend mode"
+elif [[ ${SAFE_MODE} -eq 1 ]]; then
+    _SKIP_MIGRATE=1
+    _MIGRATE_REASON="${DEPLOY_MODE} / safe mode"
+fi
+
+# --force-migrate overrides the skip decision
+if [[ ${FORCE_MIGRATE} -eq 1 && ${_SKIP_MIGRATE} -eq 1 ]]; then
+    _SKIP_MIGRATE=0
+    log_warn "--force-migrate specified: migrations will run despite ${_MIGRATE_REASON}"
+    _MIGRATE_REASON=""
+fi
+
+if [[ ${_SKIP_MIGRATE} -eq 1 ]]; then
+    # ── BLOCKED: safe/hotfix/frontend mode with pending migrations ───────────
     if [[ "${PENDING_COUNT:-0}" -gt 0 ]]; then
-        log_info "${PENDING_COUNT} migration(s) to apply:"
-        "${PHP}" "${RELEASE_DIR}/artisan" migrate:status --no-interaction 2>/dev/null \
-            | grep "Pending" | while IFS= read -r line; do log_info "  + $line"; done || true
+        log_err "═══════════════════════════════════════════════════════════════════════"
+        log_err "  DEPLOYMENT BLOCKED — PENDING MIGRATIONS IN ${_MIGRATE_REASON^^}"
+        log_err "═══════════════════════════════════════════════════════════════════════"
+        log_err ""
+        log_err "  ${PENDING_COUNT} migration(s) are pending. Deploying this code without"
+        log_err "  running migrations will cause SQLSTATE column-not-found errors."
+        log_err ""
+        log_err "  This is exactly how the meal_plans.deleted_at outage occurred:"
+        log_err "    → Model used SoftDeletes (queries append WHERE deleted_at IS NULL)"
+        log_err "    → Migration existed but safe/hotfix deploy skipped it"
+        log_err "    → Column missing in DB → SQLSTATE[42703] → 500 errors for all users"
+        log_err ""
+        log_err "  YOUR OPTIONS:"
+        log_err ""
+        log_err "  1) Run a full deploy (runs migrations):"
+        log_err "     bash deploy.sh ${BRANCH}"
+        log_err ""
+        log_err "  2) Run migrations first, then hotfix:"
+        log_err "     php artisan migrate --force    # on the server"
+        log_err "     bash deploy.sh ${BRANCH} --hotfix"
+        log_err ""
+        log_err "  3) Force migrations in this safe/hotfix deploy (use with caution):"
+        log_err "     bash deploy.sh ${BRANCH} --hotfix --force-migrate"
+        log_err ""
+        log_err "  Pending migrations:"
+        echo "${MIGRATE_STATUS_OUTPUT}" | grep "Pending" | while IFS= read -r line; do
+            log_err "    ▶ ${line}"
+        done
+        log_err ""
+        die_class "SCHEMA_MISMATCH" "Deploy aborted: pending migrations exist in ${_MIGRATE_REASON}. See options above."
     else
-        log_info "No pending migrations — schema already up to date"
+        log_ok "${_MIGRATE_REASON^^} — no pending migrations, schema is aligned, safe to deploy"
     fi
 
+else
+    # ── FULL / BACKEND mode: run migrations ──────────────────────────────────
+    step "Running database migrations"
+
+    if [[ "${PENDING_COUNT:-0}" -gt 0 ]]; then
+        log_info "Applying ${PENDING_COUNT} migration(s):"
+        echo "${MIGRATE_STATUS_OUTPUT}" | grep "Pending" | while IFS= read -r line; do
+            log_info "  ▶ ${line}"
+        done
+    else
+        log_info "No pending migrations — migrate will no-op (schema already current)"
+    fi
+
+    log_info "[$(_ts)] Starting: php artisan migrate --force --isolated"
     T_MIGRATE_START=$(date +%s)
-    # --isolated prevents two simultaneous deploys running migrations concurrently
-    "${PHP}" "${RELEASE_DIR}/artisan" migrate --force --no-interaction --isolated \
-        || die_class "DB_FAILURE" "Migrations failed — DB rolled back. Check schema and re-deploy."
-    T_MIGRATE_END=$(date +%s)
-    log_ok "Migrations complete ($((T_MIGRATE_END - T_MIGRATE_START))s)"
 
-    # ── Post-migration: verify no migrations still pending ──────────────────
-    STILL_PENDING=$("${PHP}" "${RELEASE_DIR}/artisan" migrate:status --no-interaction 2>/dev/null \
-        | grep -c "Pending" || true)
-    if [[ "${STILL_PENDING:-0}" -gt 0 ]]; then
-        log_warn "WARNING: ${STILL_PENDING} migration(s) still pending after migrate!"
-        log_warn "This may indicate a failed migration was silently skipped."
-        log_warn "Check: php artisan migrate:status on the server."
+    # --isolated: acquires DB-level lock so concurrent deploys can't run
+    #             migrations simultaneously (prevents duplicate column errors)
+    "${PHP}" "${RELEASE_DIR}/artisan" migrate --force --no-interaction --isolated 2>&1 \
+        | while IFS= read -r line; do log_info "  migrate: ${line}"; done
+    MIGRATE_EXIT=${PIPESTATUS[0]}
+
+    T_MIGRATE_END=$(date +%s)
+    _MIGRATE_ELAPSED=$(( T_MIGRATE_END - T_MIGRATE_START ))
+
+    if [[ ${MIGRATE_EXIT} -ne 0 ]]; then
+        log_err "═══════════════════════════════════════════════════════════════════════"
+        log_err "  MIGRATION FAILED (exit ${MIGRATE_EXIT}) — ${_MIGRATE_ELAPSED}s"
+        log_err "═══════════════════════════════════════════════════════════════════════"
+        log_err ""
+        log_err "  ROLLBACK GUIDANCE:"
+        log_err ""
+        log_err "  The deploy will auto-rollback to the previous release."
+        log_err "  However, if any migration partially committed to PostgreSQL,"
+        log_err "  you may need manual DB intervention:"
+        log_err ""
+        log_err "  1) Identify which migration failed:"
+        log_err "     php artisan migrate:status"
+        log_err ""
+        log_err "  2) Check PostgreSQL logs:"
+        log_err "     sudo tail -100 /var/log/postgresql/postgresql-*.log"
+        log_err ""
+        log_err "  3) If a migration partially ran, roll it back:"
+        log_err "     php artisan migrate:rollback --step=1"
+        log_err "     OR manually:"
+        log_err "     psql -U \$DB_USER -d \$DB_NAME -c 'BEGIN; [your rollback SQL]; COMMIT;'"
+        log_err ""
+        log_err "  4) Fix the migration file, commit, and re-deploy"
+        log_err ""
+        log_err "  5) To skip a broken migration temporarily:"
+        log_err "     INSERT INTO migrations (migration, batch) VALUES ('migration_name', 99);"
+        log_err "     (Only do this if you've applied the schema change manually)"
+        log_err ""
+        die_class "DB_FAILURE" "Migrations failed — auto-rollback initiated. See rollback guidance above."
     fi
+
+    log_ok "Migrations complete (${_MIGRATE_ELAPSED}s)"
+
+    # ── 8.4 Post-migration verification: MUST be zero pending ────────────────
+    # If any migrations are still pending after migrate, it means:
+    #   - A migration silently failed and Laravel marked it as ran anyway (rare)
+    #   - A new migration was added during this deploy (race condition)
+    #   - --isolated lock prevented a concurrent migration from running
+    log_info "[$(_ts)] Verifying post-migration schema alignment..."
+    POST_STATUS=$("${PHP}" "${RELEASE_DIR}/artisan" migrate:status --no-interaction 2>/dev/null || true)
+    STILL_PENDING=$(echo "${POST_STATUS}" | grep -c "Pending" || true)
+
+    if [[ "${STILL_PENDING:-0}" -gt 0 ]]; then
+        log_err "═══════════════════════════════════════════════════════════════════════"
+        log_err "  POST-MIGRATION CHECK FAILED: ${STILL_PENDING} migration(s) still pending"
+        log_err "═══════════════════════════════════════════════════════════════════════"
+        echo "${POST_STATUS}" | grep "Pending" | while IFS= read -r line; do
+            log_err "  STILL PENDING ▶ ${line}"
+        done
+        log_err ""
+        log_err "  This usually means a migration silently failed (artisan exited 0"
+        log_err "  but did not complete all operations). Investigate before traffic"
+        log_err "  hits this release."
+        log_err ""
+        die_class "SCHEMA_MISMATCH" "Schema alignment failed: ${STILL_PENDING} migration(s) still pending after migrate. Aborting."
+    fi
+
+    log_ok "Post-migration schema verified — all migrations applied"
 fi
 
 # =============================================================================
@@ -1248,9 +1369,10 @@ safe_sudo kill -USR2 "$(cat /run/php/php8.3-fpm.pid 2>/dev/null || echo 0)" 2>/d
 step "Running post-deploy optimizations"
 ARTISAN="${PHP} ${CURRENT_LINK}/artisan"
 
-# Flush ALL stale caches before rebuilding — prevents old config/routes/views
-# from surviving if cache files from a previous release are still present
-${ARTISAN} optimize:clear     && log_ok "All caches cleared"
+# ── Flush ALL stale caches before rebuilding ────────────────────────────────
+# Prevents config/routes/views from surviving from a previous release.
+${ARTISAN} optimize:clear     && log_ok "All caches cleared" \
+    || log_warn "optimize:clear failed — stale caches may persist"
 
 ${ARTISAN} storage:link 2>/dev/null || true
 if [[ -L "${RELEASE_DIR}/public/storage" ]]; then
@@ -1258,11 +1380,51 @@ if [[ -L "${RELEASE_DIR}/public/storage" ]]; then
 else
     log_warn "public/storage symlink missing after storage:link — file uploads may not be accessible"
 fi
-${ARTISAN} config:cache       && log_ok "Config cached"
-${ARTISAN} route:cache        && log_ok "Routes cached"
-${ARTISAN} view:cache         && log_ok "Views cached"
-${ARTISAN} event:cache        && log_ok "Events cached"
+
+# ── Build application caches — each must succeed ────────────────────────────
+# config:cache: compiles all config files. Failure = env vars missing or syntax error.
+${ARTISAN} config:cache --no-interaction \
+    && log_ok "Config cached" \
+    || die_class "CACHE_FAILURE" "config:cache failed — check config files for syntax errors or missing env vars.
+Tip: php artisan config:cache on the server to see the exact error."
+
+# route:cache: compiles all routes. Failure = invalid route definition or missing controller.
+${ARTISAN} route:cache --no-interaction \
+    && log_ok "Routes cached" \
+    || die_class "CACHE_FAILURE" "route:cache failed — check for invalid route definitions or missing controller classes.
+Tip: php artisan route:list on the server to see which route fails."
+
+# view:cache: pre-compiles all Blade templates. Failure = Blade syntax error.
+${ARTISAN} view:cache --no-interaction \
+    && log_ok "Views cached" \
+    || die_class "CACHE_FAILURE" "view:cache failed — check Blade templates for syntax errors.
+Tip: php artisan view:cache on the server to see which template fails."
+
+${ARTISAN} event:cache        && log_ok "Events cached" \
+    || log_warn "event:cache failed — event listeners may not load correctly"
 ${ARTISAN} icons:cache        2>/dev/null || true
+
+# ── Application health snapshot via artisan about ───────────────────────────
+# 'artisan about' boots the full application and reports env, drivers, caches.
+# Failure here means the app cannot boot — catches class-not-found, bad config, etc.
+log_info "[$(_ts)] Running artisan about (application boot verification)..."
+if ABOUT_OUTPUT=$("${PHP}" "${CURRENT_LINK}/artisan" about --no-interaction 2>&1); then
+    log_ok "artisan about — application boots correctly"
+    # Extract and log key facts from about output
+    echo "${ABOUT_OUTPUT}" | grep -E "Environment|Debug|URL|Database|Driver|Cache|Queue" \
+        | while IFS= read -r line; do log_info "  ${line}"; done || true
+
+    # Security: warn if APP_DEBUG shows as true in artisan about output
+    if echo "${ABOUT_OUTPUT}" | grep -qiE "Debug.*(true|enabled|on)"; then
+        log_warn "  ⚠ APP_DEBUG appears enabled — verify this is intentional for ${_APP_ENV:-unknown env}"
+    fi
+else
+    log_err "artisan about failed — application cannot boot cleanly:"
+    echo "${ABOUT_OUTPUT}" | tail -20 | while IFS= read -r line; do log_err "  ${line}"; done
+    die_class "BOOT_FAILURE" "Application failed to boot (artisan about exit non-zero). Deploy aborted.
+This means the new code has a fatal error that prevents the app from starting.
+Common causes: missing config key, class not found, syntax error in a service provider."
+fi
 
 if [[ ${SAFE_MODE} -eq 1 ]]; then
     log_warn "SAFE MODE active — queue restart skipped"
