@@ -51,7 +51,19 @@ class EmployeeController extends Controller
 
     public function store(StoreEmployeeRequest $request): RedirectResponse
     {
-        User::create($request->validated());
+        $data = $request->validated();
+
+        // role/is_active are not in User::$fillable (prevents mass-assignment via
+        // other endpoints). Explicit assignment is required here for authorized admin action.
+        $user = User::create([
+            'name'     => $data['name'],
+            'email'    => $data['email'],
+            'phone'    => $data['phone'] ?? null,
+            'password' => $data['password'],
+        ]);
+        $user->role      = $data['role'];
+        $user->is_active = $data['is_active'] ?? true;
+        $user->save();
 
         return redirect()->route('admin.employees.index')
             ->with('success', 'Employee created successfully.');
@@ -66,11 +78,20 @@ class EmployeeController extends Controller
     {
         $data = $request->validated();
 
-        if (empty($data['password'])) {
-            unset($data['password']);
+        // Explicitly assign fillable fields only
+        $employee->name  = $data['name'];
+        $employee->email = $data['email'];
+        $employee->phone = $data['phone'] ?? null;
+
+        if (! empty($data['password'])) {
+            $employee->password = $data['password'];
         }
 
-        $employee->update($data);
+        // role/is_active are not in $fillable — explicit assignment for authorized admin action
+        $employee->role      = $data['role'];
+        $employee->is_active = (bool) ($data['is_active'] ?? $employee->is_active);
+
+        $employee->save();
 
         return redirect()->route('admin.employees.index')
             ->with('success', 'Employee updated successfully.');

@@ -109,7 +109,14 @@
       "Bash(git commit -m 'fix: QR image broken + 403 on payment page *)",
       "Bash(git commit -m 'fix: harden QR security + og:image crawler fix + fullscreen UX *)",
       "Bash(git commit -m 'feat: Kitchen Summary mobile redesign — operational density *)",
-      "Bash(git commit -m 'feat: Hall Bookings mobile-first redesign v3 *)"
+      "Bash(git commit -m 'feat: Hall Bookings mobile-first redesign v3 *)",
+      "Bash(mkdir -p /home/qc7107-l/Projects/ExpenseFlow/resources/views/errors *)",
+      "Bash(git commit -m 'fix: production hardening — MealPlan SoftDeletes schema, error pages, deploy safety *)",
+      "Bash(git commit -m 'fix: harden deploy.sh — schema enforcement + cache safety + boot verification *)",
+      "Bash(git commit -m 'security: production hardening — mass assignment, security headers, auth throttle *)"
+    ],
+    "additionalDirectories": [
+      "/home/qc7107-l/Projects/ExpenseFlow/resources/views"
     ]
   }
 }

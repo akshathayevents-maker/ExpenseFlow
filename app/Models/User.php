@@ -14,13 +14,16 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
+    // SECURITY: `role` and `is_active` are intentionally EXCLUDED from $fillable.
+    // If mass-assignable, an attacker could POST role=admin or is_active=1
+    // through any form that calls User::create() or $user->fill().
+    // Role and active-status changes must go through explicit model assignments:
+    //   $user->role = 'admin';  $user->save();
     protected $fillable = [
         'name',
         'phone',
         'email',
         'password',
-        'role',
-        'is_active',
     ];
 
     protected $hidden = [
