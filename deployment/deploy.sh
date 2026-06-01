@@ -665,6 +665,22 @@ if [[ -f "${SHARED_DIR}/.env" ]]; then
         die "Required .env variables are unset — edit ${SHARED_DIR}/.env before deploying"
     fi
     log_ok ".env required variables present (APP_KEY, APP_URL, DB_*)"
+
+    # ── 1.11b Security: APP_DEBUG must be false in production/stage ──────────
+    # Exposing Laravel exception screens leaks stack traces, file paths, and
+    # env variable values to anyone who can trigger a 500 error.
+    _APP_ENV=$(grep -E "^APP_ENV=" "${SHARED_DIR}/.env" | cut -d= -f2- | tr -d '"' | tr -d "'" | xargs 2>/dev/null | tr '[:upper:]' '[:lower:]')
+    _APP_DEBUG=$(grep -E "^APP_DEBUG=" "${SHARED_DIR}/.env" | cut -d= -f2- | tr -d '"' | tr -d "'" | xargs 2>/dev/null | tr '[:upper:]' '[:lower:]')
+
+    if [[ "${_APP_ENV}" != "local" && "${_APP_DEBUG}" == "true" ]]; then
+        log_err "SECURITY: APP_DEBUG=true in ${_APP_ENV} environment!"
+        log_err "This exposes stack traces, file paths, and env values to all visitors."
+        log_err "Set APP_DEBUG=false in ${SHARED_DIR}/.env before deploying to ${_APP_ENV}."
+        die "Refusing to deploy with APP_DEBUG=true in non-local environment"
+    fi
+    if [[ "${_APP_DEBUG}" != "true" ]]; then
+        log_ok "APP_DEBUG=false — exception screens suppressed (${_APP_ENV})"
+    fi
 fi
 
 # ── 1.12 Stale symlink detection ─────────────────────────────────────────────
@@ -1166,14 +1182,52 @@ fi
 log_ok "Database connection verified"
 
 if [[ ${SAFE_MODE} -eq 1 || "${DEPLOY_MODE}" == "frontend" ]]; then
+    # ── Safe/frontend mode: still check for pending migrations — warn loudly ──
+    # Root cause of SQLSTATE column errors: hotfix/safe deploys skipping
+    # migrations while the model already uses the new column (e.g. SoftDeletes).
     log_warn "${DEPLOY_MODE^^} mode — migrations skipped"
+    PENDING_MIGRATIONS=$("${PHP}" "${RELEASE_DIR}/artisan" migrate:status --no-interaction 2>/dev/null \
+        | grep -c "Pending" || true)
+    if [[ "${PENDING_MIGRATIONS:-0}" -gt 0 ]]; then
+        log_warn "⚠  ${PENDING_MIGRATIONS} PENDING MIGRATION(S) DETECTED"
+        log_warn "   Models may reference columns that don't exist in the database."
+        log_warn "   If you see SQLSTATE column errors, run: php artisan migrate --force"
+        log_warn "   Or re-deploy without --safe/--hotfix to apply migrations."
+        # Show which migrations are pending
+        "${PHP}" "${RELEASE_DIR}/artisan" migrate:status --no-interaction 2>/dev/null \
+            | grep "Pending" | while IFS= read -r line; do log_warn "   PENDING: $line"; done || true
+    else
+        log_ok "No pending migrations (schema is aligned even in ${DEPLOY_MODE} mode)"
+    fi
 else
+    # ── Pre-migration schema alignment check ────────────────────────────────
+    # Log pending migrations before running so the deploy log always shows
+    # what changed — useful for rollback diagnosis.
+    PENDING_COUNT=$("${PHP}" "${RELEASE_DIR}/artisan" migrate:status --no-interaction 2>/dev/null \
+        | grep -c "Pending" || true)
+    if [[ "${PENDING_COUNT:-0}" -gt 0 ]]; then
+        log_info "${PENDING_COUNT} migration(s) to apply:"
+        "${PHP}" "${RELEASE_DIR}/artisan" migrate:status --no-interaction 2>/dev/null \
+            | grep "Pending" | while IFS= read -r line; do log_info "  + $line"; done || true
+    else
+        log_info "No pending migrations — schema already up to date"
+    fi
+
     T_MIGRATE_START=$(date +%s)
     # --isolated prevents two simultaneous deploys running migrations concurrently
     "${PHP}" "${RELEASE_DIR}/artisan" migrate --force --no-interaction --isolated \
         || die_class "DB_FAILURE" "Migrations failed — DB rolled back. Check schema and re-deploy."
     T_MIGRATE_END=$(date +%s)
     log_ok "Migrations complete ($((T_MIGRATE_END - T_MIGRATE_START))s)"
+
+    # ── Post-migration: verify no migrations still pending ──────────────────
+    STILL_PENDING=$("${PHP}" "${RELEASE_DIR}/artisan" migrate:status --no-interaction 2>/dev/null \
+        | grep -c "Pending" || true)
+    if [[ "${STILL_PENDING:-0}" -gt 0 ]]; then
+        log_warn "WARNING: ${STILL_PENDING} migration(s) still pending after migrate!"
+        log_warn "This may indicate a failed migration was silently skipped."
+        log_warn "Check: php artisan migrate:status on the server."
+    fi
 fi
 
 # =============================================================================
