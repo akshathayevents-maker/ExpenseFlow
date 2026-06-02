@@ -114,7 +114,10 @@
       "Bash(git commit -m 'fix: production hardening — MealPlan SoftDeletes schema, error pages, deploy safety *)",
       "Bash(git commit -m 'fix: harden deploy.sh — schema enforcement + cache safety + boot verification *)",
       "Bash(git commit -m 'security: production hardening — mass assignment, security headers, auth throttle *)",
-      "Bash(git commit -m 'fix: graceful handling of missing QR route in payment page *)"
+      "Bash(git commit -m 'fix: graceful handling of missing QR route in payment page *)",
+      "Bash(cat)",
+      "Read(//tmp/**)",
+      "Bash(git commit -m 'refactor: deploy.sh to use prebuilt frontend assets *)"
     ],
     "additionalDirectories": [
       "/home/qc7107-l/Projects/ExpenseFlow/resources/views"
