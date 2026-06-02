@@ -102,11 +102,18 @@ class ExpenseRequest extends Model
             return null;
         }
 
-        return URL::temporarySignedRoute(
-            'payment-request.serve-qr',
-            now()->addDays(30),
-            ['id' => $this->id],
-        );
+        try {
+            return URL::temporarySignedRoute(
+                'payment-request.serve-qr',
+                now()->addDays(30),
+                ['id' => $this->id],
+            );
+        } catch (\Exception $e) {
+            // Route cache may be stale on deployment. Gracefully degrade.
+            // Log error but don't expose to user.
+            \Log::warning('QR signed route failed', ['expense_id' => $this->id, 'error' => $e->getMessage()]);
+            return null;
+        }
     }
 
     /**
