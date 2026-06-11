@@ -49,6 +49,11 @@ class EmployeeController extends Controller
         return view('admin.employees.create');
     }
 
+    public function show(User $employee): View
+    {
+        return view('admin.employees.show', compact('employee'));
+    }
+
     public function store(StoreEmployeeRequest $request): RedirectResponse
     {
         $data = $request->validated();
