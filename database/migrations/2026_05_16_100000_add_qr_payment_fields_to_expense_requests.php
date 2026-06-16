@@ -9,32 +9,34 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Make category nullable
-        DB::statement('ALTER TABLE expense_requests ALTER COLUMN expense_category_id DROP NOT NULL');
+        if (DB::getDriverName() === 'pgsql') {
+            // Make category nullable
+            DB::statement('ALTER TABLE expense_requests ALTER COLUMN expense_category_id DROP NOT NULL');
 
-        // Make priority nullable — drop check, retype, add back check
-        DB::statement("
-            ALTER TABLE expense_requests
-                DROP CONSTRAINT IF EXISTS expense_requests_priority_check,
-                ALTER COLUMN priority DROP NOT NULL
-        ");
+            // Make priority nullable — drop check, retype, add back check
+            DB::statement("
+                ALTER TABLE expense_requests
+                    DROP CONSTRAINT IF EXISTS expense_requests_priority_check,
+                    ALTER COLUMN priority DROP NOT NULL
+            ");
 
-        // Extend status enum to include pending_payment
-        DB::statement("
-            ALTER TABLE expense_requests
-                DROP CONSTRAINT IF EXISTS expense_requests_status_check,
-                ALTER COLUMN status TYPE VARCHAR(255),
-                ALTER COLUMN status SET DEFAULT 'pending',
-                ALTER COLUMN status SET NOT NULL
-        ");
-        DB::statement("
-            ALTER TABLE expense_requests
-                ADD CONSTRAINT expense_requests_status_check
-                CHECK (status IN (
-                    'pending','pending_payment','approved','rejected',
-                    'paid','reimbursement_pending','reimbursed','completed'
-                ))
-        ");
+            // Extend status enum to include pending_payment
+            DB::statement("
+                ALTER TABLE expense_requests
+                    DROP CONSTRAINT IF EXISTS expense_requests_status_check,
+                    ALTER COLUMN status TYPE VARCHAR(255),
+                    ALTER COLUMN status SET DEFAULT 'pending',
+                    ALTER COLUMN status SET NOT NULL
+            ");
+            DB::statement("
+                ALTER TABLE expense_requests
+                    ADD CONSTRAINT expense_requests_status_check
+                    CHECK (status IN (
+                        'pending','pending_payment','approved','rejected',
+                        'paid','reimbursement_pending','reimbursed','completed'
+                    ))
+            ");
+        } // end pgsql guard
 
         Schema::table('expense_requests', function (Blueprint $table) {
             if (!Schema::hasColumn('expense_requests', 'qr_file_path')) {
@@ -55,35 +57,37 @@ return new class extends Migration
             }
         });
 
-        // Revert status (remove pending_payment)
-        DB::statement("
-            ALTER TABLE expense_requests
-                DROP CONSTRAINT IF EXISTS expense_requests_status_check,
-                ALTER COLUMN status TYPE VARCHAR(255),
-                ALTER COLUMN status SET DEFAULT 'pending',
-                ALTER COLUMN status SET NOT NULL
-        ");
-        DB::statement("
-            ALTER TABLE expense_requests
-                ADD CONSTRAINT expense_requests_status_check
-                CHECK (status IN (
-                    'pending','approved','rejected','paid',
-                    'reimbursement_pending','reimbursed','completed'
-                ))
-        ");
+        if (DB::getDriverName() === 'pgsql') {
+            // Revert status (remove pending_payment)
+            DB::statement("
+                ALTER TABLE expense_requests
+                    DROP CONSTRAINT IF EXISTS expense_requests_status_check,
+                    ALTER COLUMN status TYPE VARCHAR(255),
+                    ALTER COLUMN status SET DEFAULT 'pending',
+                    ALTER COLUMN status SET NOT NULL
+            ");
+            DB::statement("
+                ALTER TABLE expense_requests
+                    ADD CONSTRAINT expense_requests_status_check
+                    CHECK (status IN (
+                        'pending','approved','rejected','paid',
+                        'reimbursement_pending','reimbursed','completed'
+                    ))
+            ");
 
-        // Restore NOT NULL
-        DB::statement('ALTER TABLE expense_requests ALTER COLUMN expense_category_id SET NOT NULL');
-        DB::statement("
-            ALTER TABLE expense_requests
-                DROP CONSTRAINT IF EXISTS expense_requests_priority_check,
-                ALTER COLUMN priority SET NOT NULL,
-                ALTER COLUMN priority SET DEFAULT 'medium'
-        ");
-        DB::statement("
-            ALTER TABLE expense_requests
-                ADD CONSTRAINT expense_requests_priority_check
-                CHECK (priority IN ('low','medium','high','urgent'))
-        ");
+            // Restore NOT NULL
+            DB::statement('ALTER TABLE expense_requests ALTER COLUMN expense_category_id SET NOT NULL');
+            DB::statement("
+                ALTER TABLE expense_requests
+                    DROP CONSTRAINT IF EXISTS expense_requests_priority_check,
+                    ALTER COLUMN priority SET NOT NULL,
+                    ALTER COLUMN priority SET DEFAULT 'medium'
+            ");
+            DB::statement("
+                ALTER TABLE expense_requests
+                    ADD CONSTRAINT expense_requests_priority_check
+                    CHECK (priority IN ('low','medium','high','urgent'))
+            ");
+        }
     }
 };

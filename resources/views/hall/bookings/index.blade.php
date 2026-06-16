@@ -678,7 +678,7 @@
     background: linear-gradient(135deg, #8a6c30 0%, #b89040 100%);
     border: none;
     border-radius: 50%;
-    bottom: calc(54px + 14px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(var(--ef-mobile-nav-height, 0px) + 16px + env(safe-area-inset-bottom, 0px));
     box-shadow: 0 4px 16px rgba(138,108,48,.45), 0 2px 6px rgba(0,0,0,.14);
     color: #fff;
     cursor: pointer;
@@ -691,7 +691,7 @@
     text-decoration: none;
     transition: transform .2s var(--bk-ease), box-shadow .2s var(--bk-ease);
     width: 54px;
-    z-index: 80;
+    z-index: 1050;
 }
 .ef-bk-fab:hover { color: #fff; transform: scale(1.07); box-shadow: 0 6px 22px rgba(138,108,48,.55); }
 .ef-bk-fab:active { transform: scale(.94); }
@@ -716,6 +716,9 @@
     /* FAB + filter sticky */
     .ef-bk-fab  { display: flex; }
     .ef-bk-filter { top: 4px; }
+
+    /* Content clears FAB (54px) + gap (16px) + nav (--ef-mobile-nav-height) */
+    .ef-bk-shell { padding-bottom: calc(var(--ef-mobile-nav-height, 0px) + 90px + env(safe-area-inset-bottom, 0px)); }
 
     /* Hide text search button on mobile — Enter key submits, filter icon stays */
     .ef-bk-btn-search-mob { display: none; }
@@ -764,18 +767,18 @@
 $today = now()->toDateString();
 $hasAny = fn(array $keys) => collect($keys)->some(fn($k) => request()->filled($k));
 
-$allActive      = !request()->hasAny(['status','payment_status','date_from','date_to','search','hall_id']);
+$allActive      = !request()->hasAny(['status','payment_status','date_from','date_to','search','hall_id','booking_type']);
 $todayActive    = request('date_from') === $today && request('date_to') === $today
-                  && !$hasAny(['status','payment_status','search','hall_id']);
+                  && !$hasAny(['status','payment_status','search','hall_id','booking_type']);
 $upcomingActive = request('date_from') === $today && !request()->filled('date_to')
-                  && !$hasAny(['status','payment_status','search','hall_id']);
+                  && !$hasAny(['status','payment_status','search','hall_id','booking_type']);
 $pendingActive  = request('payment_status') === 'pending'
-                  && !$hasAny(['status','date_from','date_to','search','hall_id']);
+                  && !$hasAny(['status','date_from','date_to','search','hall_id','booking_type']);
 $paidActive     = request('payment_status') === 'paid'
-                  && !$hasAny(['status','date_from','date_to','search','hall_id']);
+                  && !$hasAny(['status','date_from','date_to','search','hall_id','booking_type']);
 $confirmedActive= request('status') === 'confirmed'
-                  && !$hasAny(['payment_status','date_from','date_to','search','hall_id']);
-$hasAdvFilter   = request()->hasAny(['hall_id','status','payment_status','date_from','date_to']);
+                  && !$hasAny(['payment_status','date_from','date_to','search','hall_id','booking_type']);
+$hasAdvFilter   = request()->hasAny(['hall_id','status','payment_status','date_from','date_to','booking_type']);
 
 $avatarTones = ['#7a5a28','#3e6a5a','#4a5e8a','#6a4e7a','#5a6840'];
 @endphp
@@ -909,6 +912,15 @@ $avatarTones = ['#7a5a28','#3e6a5a','#4a5e8a','#6a4e7a','#5a6840'];
         <div class="ef-bk-adv {{ $hasAdvFilter ? '--open' : '' }}" id="bkAdvPanel">
             <div class="ef-bk-adv-inner">
                 <div>
+                    <label class="ef-bk-adv-label">Booking Type</label>
+                    <select name="booking_type" class="ef-bk-adv-select">
+                        <option value="">All Types</option>
+                        @foreach(\App\Models\HallBooking::bookingTypes() as $v => $l)
+                            <option value="{{ $v }}" {{ request('booking_type') === $v ? 'selected' : '' }}>{{ $l }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
                     <label class="ef-bk-adv-label">Hall</label>
                     <select name="hall_id" class="ef-bk-adv-select">
                         <option value="">All Halls</option>
@@ -992,7 +1004,10 @@ $avatarTones = ['#7a5a28','#3e6a5a','#4a5e8a','#6a4e7a','#5a6840'];
                 <div class="ef-bk-name">{{ $b->customer_name }}</div>
                 <div class="ef-bk-evtype">{{ $evType }}</div>
             </div>
-            <span class="ef-bk-badge --{{ $b->status }}">{{ $b->status }}</span>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+                <span class="ef-bk-badge --{{ $b->status }}">{{ $b->status }}</span>
+                <x-booking-type-badge :type="$b->booking_type" size="xs" />
+            </div>
         </div>
 
         {{-- Amount + payment status — most operationally important --}}
@@ -1006,7 +1021,10 @@ $avatarTones = ['#7a5a28','#3e6a5a','#4a5e8a','#6a4e7a','#5a6840'];
         {{-- Meta: Hall · Date · Time · Guests --}}
         <div class="ef-bk-rows">
             <div class="ef-bk-mrow">
-                <span class="ef-bk-mitem"><i class="bi bi-building"></i> {{ $b->hall->name }}</span>
+                <span class="ef-bk-mitem">
+                    <i class="bi {{ $b->isFoodOnly() ? 'bi-cup-hot' : 'bi-building' }}"></i>
+                    {{ $b->location_label }}
+                </span>
                 <span class="ef-bk-mdot"></span>
                 <span class="ef-bk-mitem"><i class="bi bi-calendar3"></i> {{ $b->booking_date->format('d M') }}</span>
             </div>
@@ -1142,7 +1160,7 @@ $avatarTones = ['#7a5a28','#3e6a5a','#4a5e8a','#6a4e7a','#5a6840'];
 </div>{{-- /shell --}}
 
 {{-- FAB — mobile new booking, positioned above bottom nav --}}
-<a href="{{ route('hall.bookings.create') }}" class="ef-bk-fab" title="New Booking" aria-label="Create new booking">
+<a href="{{ route('hall.bookings.create') }}" class="ef-bk-fab ef-mobile-fab" title="New Booking" aria-label="Create new booking">
     <i class="bi bi-plus"></i>
 </a>
 

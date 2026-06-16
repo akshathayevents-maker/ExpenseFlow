@@ -25,8 +25,9 @@
         $booking->has_dinner    ? 'Dinner'    : null,
     ]);
     $mealStr     = implode(', ', $mealLabels) ?: '—';
+    $locationLabel = $booking->location_label;
     $waMessage = ($isLive ? "🔴 *Function Currently Live*" : "🎉 *Upcoming Function Alert*") . "\n\n"
-        . "🏛️ Hall: {$booking->hall->name}\n"
+        . ($booking->isFoodOnly() ? "🍽️ Location: {$locationLabel}\n" : "🏛️ Hall: {$locationLabel}\n")
         . "🎊 Event: {$eventLabel}\n"
         . "👤 Customer: {$booking->customer_name}\n"
         . "📞 Contact: {$booking->customer_mobile}\n"
@@ -62,13 +63,14 @@
                 <span>{{ $eventLabel }}</span>
                 <span>{{ $booking->booking_date->format('D, d M Y') }}</span>
                 <span>{{ $start->format('h:i A') }} - {{ $end->format('h:i A') }}</span>
-                <span>{{ $booking->hall->name }}</span>
+                <span>{{ $booking->location_label }}</span>
                 <span>{{ number_format($booking->number_of_people) }} guests</span>
             </div>
 
             <div class="d-flex flex-wrap gap-2">
                 <x-premium.chip :tone="$statusTone">{{ \App\Models\HallBooking::statuses()[$booking->status] ?? Str::headline($booking->status) }}</x-premium.chip>
                 <x-premium.chip :tone="$paymentTone">{{ \App\Models\HallBooking::paymentStatuses()[$booking->payment_status] ?? Str::headline($booking->payment_status) }} payment</x-premium.chip>
+                <x-booking-type-badge :type="$booking->booking_type" />
             </div>
         </div>
 
@@ -147,7 +149,7 @@
 
             <x-premium.card title="Event Details">
                 <div class="ef-info-grid">
-                    <x-premium.field label="Venue" class="ef-value ef-value-strong">{{ $booking->hall->name }}</x-premium.field>
+                    <x-premium.field label="{{ $booking->isFoodOnly() ? 'Service Location' : 'Venue' }}" class="ef-value ef-value-strong">{{ $booking->location_label }}</x-premium.field>
                     <x-premium.field label="Date">{{ $booking->booking_date->format('l, d M Y') }}</x-premium.field>
                     <x-premium.field label="Time">{{ $start->format('h:i A') }} - {{ $end->format('h:i A') }}</x-premium.field>
                     <x-premium.field label="Duration">{{ $durationLabel ?: 'Not calculated' }}</x-premium.field>
@@ -158,6 +160,7 @@
                 </div>
             </x-premium.card>
 
+            @unless($booking->isHallOnly())
             <x-premium.card title="Meal Plan">
                 <div class="ef-info-grid mb-4">
                     <x-premium.field label="Guest Count" class="ef-value ef-value-strong">{{ number_format($booking->number_of_people) }} guests</x-premium.field>
@@ -180,6 +183,7 @@
                     <div class="border-top mt-4 pt-4 ef-shell-note">{{ $booking->mealPlan->description }}</div>
                 @endif
             </x-premium.card>
+            @endunless
 
             <x-premium.card title="Payment History" :aside="$booking->payments->count() . ' ' . Str::plural('transaction', $booking->payments->count())">
                 @forelse($booking->payments->sortByDesc('paid_at') as $payment)

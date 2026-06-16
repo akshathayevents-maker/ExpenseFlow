@@ -138,6 +138,26 @@
    ═══════════════════════════════════════════════════════════════════ */
 @media (max-width: 767.98px) {
 
+/* Mobile nav height variables — single source of truth.
+   --mn-height        : full height including SAI (for overlays that clear the nav exactly)
+   --ef-mobile-nav-height : base height only; add env(safe-area-inset-bottom) at use-site */
+:root {
+    --mn-height: calc(54px + env(safe-area-inset-bottom, 0px));
+    --ef-mobile-nav-height: 54px;
+}
+
+/* ── Floating Action Button utility ─────────────────────────────
+   Apply class="ef-mobile-fab" to any position:fixed FAB that must
+   appear above the mobile bottom navigation.
+   Individual components keep their size, colour, and right/left
+   positioning — only bottom and z-index are managed here.
+   ────────────────────────────────────────────────────────────── */
+.ef-mobile-fab {
+    bottom: calc(var(--ef-mobile-nav-height, 0px) + 16px + env(safe-area-inset-bottom, 0px)) !important;
+    position: fixed !important;
+    z-index: 1050 !important;
+}
+
 /* ── 1. Base layout — SCROLL CONTAINER ARCHITECTURE ──────────────
    ROOT CAUSE of "bottom nav scrolls with content on long pages":
 

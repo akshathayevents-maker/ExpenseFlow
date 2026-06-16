@@ -457,19 +457,19 @@ $presets = [
 $activePreset = 'none';
 $rFrom = request('date_from');
 $rTo   = request('date_to');
-if (!$rFrom && !$rTo && !request()->hasAny(['hall_id','payment_status','event_type','status'])) {
+if (!$rFrom && !$rTo && !request()->hasAny(['hall_id','payment_status','event_type','status','booking_type'])) {
     $activePreset = 'all';
 } else {
     foreach ($presets as $key => $p) {
         if ($key !== 'all' && $rFrom === $p['from'] && $rTo === $p['to']
-            && !request()->hasAny(['hall_id','payment_status','event_type','status'])) {
+            && !request()->hasAny(['hall_id','payment_status','event_type','status','booking_type'])) {
             $activePreset = $key;
             break;
         }
     }
 }
 
-$hasFilter = request()->hasAny(['date_from','date_to','hall_id','payment_status','event_type','status']);
+$hasFilter = request()->hasAny(['date_from','date_to','hall_id','payment_status','event_type','status','booking_type']);
 $maxRevenue = $summary['by_hall']->max('revenue') ?: 1;
 $maxEventRev= $summary['by_event']->max('revenue') ?: 1;
 $totalActive = $summary['active_bookings'] ?: 1;
@@ -531,6 +531,15 @@ $pendingPct = $pdistTotal > 0 ? round($summary['pay_pending'] / $pdistTotal * 10
                 <div>
                     <label class="ef-rp-filter-label">To Date</label>
                     <input type="date" name="date_to" class="ef-rp-filter-input" value="{{ request('date_to') }}">
+                </div>
+                <div>
+                    <label class="ef-rp-filter-label">Booking Type</label>
+                    <select name="booking_type" class="ef-rp-filter-select">
+                        <option value="">All Types</option>
+                        @foreach(\App\Models\HallBooking::bookingTypes() as $v => $l)
+                            <option value="{{ $v }}" {{ request('booking_type') === $v ? 'selected' : '' }}>{{ $l }}</option>
+                        @endforeach
+                    </select>
                 </div>
                 <div>
                     <label class="ef-rp-filter-label">Hall</label>
@@ -802,6 +811,46 @@ $pendingPct = $pdistTotal > 0 ? round($summary['pay_pending'] / $pdistTotal * 10
         </div>
     </div>
 
+    {{-- Booking type breakdown ──────────────────────────────── --}}
+    @if($summary['by_booking_type']->count())
+    <div class="ef-rp-card" style="margin-bottom:16px">
+        <div class="ef-rp-card-head">
+            <span class="ef-rp-card-title">Booking Type Breakdown</span>
+            <span class="ef-rp-card-meta">Hall Only · Hall + Food · Food Only</span>
+        </div>
+        <div class="ef-rp-table-wrap">
+            <table class="ef-rp-table">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th class="r">Bookings</th>
+                        <th class="r">Guests</th>
+                        <th class="r">Revenue</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($summary['by_booking_type'] as $type => $row)
+                    @php $maxTypeRev = $summary['by_booking_type']->max('revenue') ?: 1;
+                         $share = round($row['revenue'] / $maxTypeRev * 100);
+                    @endphp
+                    <tr>
+                        <td>
+                            <x-booking-type-badge :type="$type" size="sm" />
+                            <div class="ef-rp-share" style="margin-top:4px">
+                                <div class="ef-rp-share-fill" style="width:{{ $share }}%"></div>
+                            </div>
+                        </td>
+                        <td class="r dim">{{ $row['count'] }}</td>
+                        <td class="r dim mob-hide">{{ number_format($row['people']) }}</td>
+                        <td class="r mono" style="font-weight:680">₹{{ number_format($row['revenue']) }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @endif
+
     {{-- Booking detail table ─────────────────────────────────── --}}
     <div class="ef-rp-card">
         <div class="ef-rp-card-head">
@@ -839,7 +888,10 @@ $pendingPct = $pdistTotal > 0 ? round($summary['pay_pending'] / $pdistTotal * 10
                             <div class="ef-rp-table-name">{{ $b->customer_name }}</div>
                             <div class="ef-rp-table-sub">{{ $b->customer_mobile }}</div>
                         </td>
-                        <td class="dim mob-hide">{{ $b->hall->name }}</td>
+                        <td class="dim mob-hide">
+                            {{ $b->location_label }}
+                            <x-booking-type-badge :type="$b->booking_type" size="xs" style="margin-left:4px" />
+                        </td>
                         <td class="dim mob-hide">
                             {{ \App\Models\HallBooking::eventTypes()[$b->event_type] ?? ucwords(str_replace('_', ' ', $b->event_type)) }}
                         </td>

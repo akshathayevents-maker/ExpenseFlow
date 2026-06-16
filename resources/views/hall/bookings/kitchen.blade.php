@@ -504,7 +504,7 @@
 
     $now = now();
 
-    function kitUrgency($startTime, $date, $now): string {
+    $kitUrgency = function($startTime, $date, $now): string {
         try {
             $start = \Carbon\Carbon::parse($date . ' ' . $startTime);
             $mins  = $now->diffInMinutes($start, false);
@@ -514,9 +514,9 @@
             if ($mins <= 360) return 'warning';
             return 'normal';
         } catch (\Throwable $e) { return 'normal'; }
-    }
+    };
 
-    function kitCountdownLabel($startTime, $date, $now): string {
+    $kitCountdownLabel = function($startTime, $date, $now): string {
         try {
             $start = \Carbon\Carbon::parse($date . ' ' . $startTime);
             $mins  = $now->diffInMinutes($start, false);
@@ -526,9 +526,9 @@
             $hrs = floor($mins / 60); $rem = $mins % 60;
             return $rem > 0 ? "{$hrs}h {$rem}m" : "{$hrs}h away";
         } catch (\Throwable $e) { return '—'; }
-    }
+    };
 
-    function kitCountdownCls($urgency): string {
+    $kitCountdownCls = function($urgency): string {
         return match($urgency) {
             'urgent'  => 'soon',
             'warning' => 'prep',
@@ -537,7 +537,7 @@
             'past'    => 'past',
             default   => 'ahead',
         };
-    }
+    };
 @endphp
 
 {{-- ═══════════════════════════════════════════════════════════════
@@ -622,6 +622,19 @@
 </div>
 
 {{-- ═══════════════════════════════════════════════════════════════
+     CATERING TYPE FILTER
+═══════════════════════════════════════════════════════════════════ --}}
+@php $cateringFilter = request('catering_type', 'all'); @endphp
+<div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-bottom:12px;padding-bottom:2px">
+    @foreach(['all' => 'All Catering', 'hall' => 'Hall Catering', 'external' => 'External Catering'] as $val => $label)
+        <a href="{{ route('hall.bookings.kitchen', ['date' => $date, 'catering_type' => $val === 'all' ? null : $val]) }}"
+           style="display:inline-block;flex-shrink:0;padding:5px 13px;border-radius:20px;font-size:.72rem;font-weight:660;text-decoration:none;border:1.5px solid {{ $cateringFilter === $val ? '#131110' : 'rgba(100,82,42,.18)' }};background:{{ $cateringFilter === $val ? '#131110' : 'transparent' }};color:{{ $cateringFilter === $val ? '#fdfaf5' : '#8a827a' }};white-space:nowrap">
+            {{ $label }}
+        </a>
+    @endforeach
+</div>
+
+{{-- ═══════════════════════════════════════════════════════════════
      MEAL STRIP — compact 3-column, hidden when all zero + no events
 ═══════════════════════════════════════════════════════════════════ --}}
 @if($bookings->isNotEmpty() || $hasMeals)
@@ -690,9 +703,9 @@
     <div class="ef-kit-cards">
         @foreach($bookings as $b)
             @php
-                $urgency      = kitUrgency($b->start_time, $date, $now);
-                $countdown    = kitCountdownLabel($b->start_time, $date, $now);
-                $countdownCls = kitCountdownCls($urgency);
+                $urgency      = $kitUrgency($b->start_time, $date, $now);
+                $countdown    = $kitCountdownLabel($b->start_time, $date, $now);
+                $countdownCls = $kitCountdownCls($urgency);
                 $startFmt     = \Carbon\Carbon::parse($b->start_time)->format('h:i A');
                 $endFmt       = \Carbon\Carbon::parse($b->end_time)->format('h:i A');
                 $evtLabel     = $eventTypes[$b->event_type] ?? ucfirst(str_replace('_',' ',$b->event_type));
@@ -708,8 +721,11 @@
 
                     {{-- Info --}}
                     <div class="ef-kit-info">
-                        <div class="ef-kit-customer">{{ $b->customer_name }}</div>
-                        <div class="ef-kit-evt-type">{{ $evtLabel }}@if($b->hall) · {{ $b->hall->name }}@endif</div>
+                        <div class="ef-kit-customer">
+                            {{ $b->customer_name }}
+                            <x-booking-type-badge :type="$b->booking_type" size="xs" style="margin-left:4px;vertical-align:middle" />
+                        </div>
+                        <div class="ef-kit-evt-type">{{ $evtLabel }} · {{ $b->location_label }}</div>
                         <div class="ef-kit-chips">
                             @if($b->has_breakfast)
                                 <span class="ef-kit-chip bf"><i class="bi bi-cup-hot"></i> BF</span>

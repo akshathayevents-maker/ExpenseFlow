@@ -957,7 +957,7 @@
         align-items: center;
         background: linear-gradient(135deg, #111111 0%, #2a2a2a 100%);
         border-radius: 999px;
-        bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+        bottom: calc(var(--ef-mobile-nav-height, 0px) + 16px + env(safe-area-inset-bottom, 0px));
         box-shadow:
             0 8px 32px rgba(0,0,0,.35),
             0 2px 8px rgba(0,0,0,.18),
@@ -986,10 +986,19 @@
     }
 }
 @media (min-width: 768px) { .ef-mob-fab-pill { display: none !important; } }
+
+/* ── Booking type event colors ─────────────────────────────────── */
+.type-hall_only .fc-event-main { background: rgba(29,78,216,.82)  !important; border-color: #1d4ed8 !important; }
+.type-hall_food .fc-event-main { background: rgba(21,128,61,.82)  !important; border-color: #15803d !important; }
+.type-food_only .fc-event-main { background: rgba(194,65,12,.82)  !important; border-color: #c2410c !important; }
+.fc-event.type-hall_only { border-left: 3px solid #1d4ed8 !important; }
+.fc-event.type-hall_food { border-left: 3px solid #15803d !important; }
+.fc-event.type-food_only { border-left: 3px solid #c2410c !important; }
 </style>
 @endpush
 
 @php
+    $isEmployee   = auth()->user()->role === 'employee';
     $currentMonth = now()->format('F Y');
     $todayLabel   = now()->format('l, d M Y');
 
@@ -1069,6 +1078,7 @@
             </div>
             <input id="calendarSearch" type="search" class="ef-cal-search" placeholder="Search customer, hall, event">
             <button type="button" class="ef-btn" id="printSchedule"><i class="bi bi-printer"></i> Print</button>
+            @unless($isEmployee)
             <button type="button" class="ef-btn" id="exportSchedule"><i class="bi bi-download"></i> Export</button>
             <button type="button" class="ef-btn" id="shareBriefBtn"
                     data-bs-toggle="modal" data-bs-target="#shareBriefModal">
@@ -1077,6 +1087,7 @@
             <a href="{{ route('hall.bookings.create') }}" class="ef-btn ef-btn-dark">
                 <i class="bi bi-plus-lg"></i> New Booking
             </a>
+            @endunless
         </div>
     </header>
 
@@ -1092,21 +1103,25 @@
             <div class="ef-cal-insight-value">{{ number_format($summary['upcoming_events']) }}</div>
             <div class="ef-cal-insight-caption">events from today</div>
         </div>
+        @unless($isEmployee)
         <div class="ef-cal-insight">
             <span class="ef-label">Revenue</span>
             <div class="ef-cal-insight-value">₹{{ number_format($summary['revenue'], 0) }}</div>
             <div class="ef-cal-insight-caption">booked this month</div>
         </div>
+        @endunless
         <div class="ef-cal-insight">
             <span class="ef-label">Occupancy</span>
             <div class="ef-cal-insight-value">{{ $summary['occupancy'] }}%</div>
             <div class="ef-cal-insight-caption">days with bookings</div>
         </div>
+        @unless($isEmployee)
         <div class="ef-cal-insight">
             <span class="ef-label">Pending Pay</span>
             <div class="ef-cal-insight-value">{{ number_format($summary['pending_payments']) }}</div>
             <div class="ef-cal-insight-caption">need follow-up</div>
         </div>
+        @endunless
         <div class="ef-cal-insight">
             <span class="ef-label">Catering Load</span>
             <div class="ef-cal-insight-value">{{ number_format($summary['catering_load']) }}</div>
@@ -1116,6 +1131,7 @@
 
     {{-- ══ QUICK ACTIONS ══════════════════════════════════════════════ --}}
     <div class="ef-cal-qactions">
+        @unless($isEmployee)
         <a href="{{ route('hall.bookings.create') }}" class="ef-cal-qa --primary">
             <i class="bi bi-plus-lg"></i> Create Booking
         </a>
@@ -1132,6 +1148,7 @@
         <a href="{{ route('hall.meal-plans.index') }}" class="ef-cal-qa">
             <i class="bi bi-card-list"></i> Meal Plans
         </a>
+        @endunless
     </div>
 
     {{-- ══ TODAY'S OPERATIONS STRIP ══════════════════════════════════ --}}
@@ -1147,10 +1164,12 @@
                     <div class="ef-cal-today-kpi-val">{{ $summary['today_count'] }}</div>
                     <div class="ef-cal-today-kpi-lbl">Bookings</div>
                 </div>
+                @unless($isEmployee)
                 <div class="ef-cal-today-kpi-item">
                     <div class="ef-cal-today-kpi-val">₹{{ number_format($summary['today_revenue'], 0) }}</div>
                     <div class="ef-cal-today-kpi-lbl">Revenue</div>
                 </div>
+                @endunless
             </div>
         </div>
         @if($todayBookings->isEmpty())
@@ -1177,12 +1196,14 @@
                             <div class="ef-cal-today-name">{{ $tb->customer_name }}</div>
                             <div class="ef-cal-today-meta">
                                 {{ $tb->event_type }} &middot; {{ number_format($tb->number_of_people) }} pax
-                                @if($tb->hall) &middot; {{ $tb->hall->name }} @endif
+                                &middot; {{ $tb->location_label }}
                             </div>
                         </div>
+                        @unless($isEmployee)
                         <span style="color:var(--ef-faint);font-size:.72rem;white-space:nowrap;">
                             ₹{{ number_format($tb->total_amount, 0) }}
                         </span>
+                        @endunless
                     </a>
                 @endforeach
             </div>
@@ -1256,6 +1277,7 @@
                             <span>Agenda</span>
                             <i class="bi bi-check-lg dd-check"></i>
                         </button>
+                        @unless($isEmployee)
                         <div class="ef-mob-dd-sep"></div>
                         {{-- Kitchen --}}
                         <a href="{{ route('hall.bookings.kitchen') }}" class="ef-mob-dd-item" role="menuitem">
@@ -1270,6 +1292,7 @@
                             <span>Share Brief</span>
                         </button>
                         @endif
+                        @endunless
                     </div>
                 </div>
             </div>
@@ -1329,15 +1352,18 @@
 </div>
 
 {{-- ══ PREMIUM PILL FAB (mobile only) ══════════════════════════════ --}}
+@unless($isEmployee)
 <a href="{{ route('hall.bookings.create') }}" class="ef-mob-fab-pill" aria-label="New Booking">
     <i class="bi bi-plus-lg"></i>
     New Booking
 </a>
+@endunless
 
 {{-- ══ DESKTOP HOVER PREVIEW ════════════════════════════════════════ --}}
 <div class="ef-preview" id="bookingPreview" aria-live="polite"></div>
 
 {{-- ══ QUICK BOOKING MODAL ══════════════════════════════════════════ --}}
+@unless($isEmployee)
 <div class="modal fade ef-quick-modal" id="quickBookingModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -1371,6 +1397,7 @@
     </div>
 </div>
 
+@endunless
 {{-- ══ MOBILE BOTTOM SHEET ══════════════════════════════════════════ --}}
 <div class="ef-mob-overlay" id="mobOverlay" aria-hidden="true"></div>
 <div class="ef-mob-sheet" id="mobSheet" role="dialog" aria-modal="true" aria-label="Day detail">
@@ -1385,11 +1412,13 @@
         </button>
     </div>
     <div class="ef-mob-sheet-body" id="mobSheetBody"></div>
+    @unless($isEmployee)
     <div class="ef-mob-sheet-foot">
         <a href="{{ route('hall.bookings.create') }}" class="ef-mob-sheet-create" id="mobSheetCreate">
             <i class="bi bi-plus-lg"></i> New Booking for this Date
         </a>
     </div>
+    @endunless
 </div>
 
 @push('scripts')
@@ -1399,7 +1428,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const isMob = () => window.innerWidth < 768;
 
     /* ── shared ─────────────────────────────────────────────────── */
-    const eventsUrl  = @json(route('hall.bookings.calendar-events'));
+    const eventsUrl  = @json(auth()->user()->role === 'employee' ? route('employee.hall.bookings.calendar-events') : route('hall.bookings.calendar-events'));
     const createBase = @json(route('hall.bookings.create'));
 
     let mobEvents    = [];
@@ -1491,17 +1520,19 @@ document.addEventListener('DOMContentLoaded', function () {
             const p   = ev.extendedProps || {};
             const st  = (ev.classNames || []).find(c => c.startsWith('is-'))?.replace('is-', '') || 'confirmed';
             const mls = (p.meals || []).join(' + ') || 'No meals';
-            return `<a href="${esc(p.url)}" class="ef-mob-ev-row --${esc(st)}">
+            const tag = p.url ? `a href="${esc(p.url)}"` : 'div';
+            const closeTag = p.url ? 'a' : 'div';
+            return `<${tag} class="ef-mob-ev-row --${esc(st)}">
                 <div>
                     <div class="ef-mob-ev-name">${esc(p.customer)}</div>
-                    <div class="ef-mob-ev-meta">${esc(p.hall)} · ${Number(p.people||0).toLocaleString('en-IN')} guests · ${esc(mls)}</div>
+                    <div class="ef-mob-ev-meta">${esc(p.location || p.hall)} · ${Number(p.people||0).toLocaleString('en-IN')} guests · ${esc(mls)}</div>
                 </div>
                 <div>
                     <div class="ef-mob-ev-date">${esc(p.date)}</div>
-                    <div class="ef-mob-ev-amt">${money(p.amount)}</div>
+                    ${p.amount != null ? `<div class="ef-mob-ev-amt">${money(p.amount)}</div>` : ''}
                     <div><span class="ef-mob-chip --${esc(p.payment_status)}">${esc(p.payment_status_label)}</span></div>
                 </div>
-            </a>`;
+            </${closeTag}>`;
         }).join('');
     }
 
@@ -1633,23 +1664,23 @@ document.addEventListener('DOMContentLoaded', function () {
             body.innerHTML = dayEvs.map(ev => {
                 const p   = ev.extendedProps || {};
                 const mls = (p.meals || []).join(' + ') || 'No meals';
-                const bal = p.balance > 0
-                    ? `<div class="ef-mob-sheet-bal">Balance ${money(p.balance)}</div>` : '';
+                const amtHtml = p.amount != null
+                    ? `<div>
+                            <div class="ef-mob-sheet-amt">${money(p.amount)}</div>
+                            ${p.balance > 0 ? `<div class="ef-mob-sheet-bal">Balance ${money(p.balance)}</div>` : ''}
+                        </div>` : '';
                 return `<div class="ef-mob-sheet-booking">
                     <div class="ef-mob-sheet-bname">${esc(p.customer)}</div>
                     <div class="ef-mob-sheet-bmeta">
-                        ${esc(p.hall)} · ${esc(p.start_time)} – ${esc(p.end_time)}<br>
+                        ${esc(p.location || p.hall)} · ${esc(p.start_time)} – ${esc(p.end_time)}<br>
                         ${Number(p.people||0).toLocaleString('en-IN')} guests · ${esc(mls)}<br>
                         ${esc(p.event_type)}
                     </div>
                     <div class="ef-mob-sheet-brow">
-                        <div>
-                            <div class="ef-mob-sheet-amt">${money(p.amount)}</div>
-                            ${bal}
-                        </div>
+                        ${amtHtml}
                         <div class="ef-mob-sheet-actions">
                             <span class="ef-mob-chip --${esc(p.payment_status)}">${esc(p.payment_status_label)}</span>
-                            <a href="${esc(p.url)}" class="ef-mob-sheet-act">Open</a>
+                            ${p.url ? `<a href="${esc(p.url)}" class="ef-mob-sheet-act">Open</a>` : ''}
                             <a href="${esc(p.whatsapp_url)}" target="_blank" rel="noopener" class="ef-mob-sheet-act --wa">
                                 <i class="bi bi-whatsapp"></i>
                             </a>
@@ -1727,7 +1758,8 @@ document.addEventListener('DOMContentLoaded', function () {
         const hallFilter  = document.getElementById('hallFilter');
         const searchInput = document.getElementById('calendarSearch');
         const preview     = document.getElementById('bookingPreview');
-        const quickModal  = new bootstrap.Modal(document.getElementById('quickBookingModal'));
+        const quickModalEl = document.getElementById('quickBookingModal');
+        const quickModal  = quickModalEl ? new bootstrap.Modal(quickModalEl) : null;
         const quickLink   = document.getElementById('quickCreateLink');
         const quickDate   = document.getElementById('quickDateLabel');
         const quickHall   = document.getElementById('quickHallLabel');
@@ -1739,16 +1771,17 @@ document.addEventListener('DOMContentLoaded', function () {
         const matches = ev => {
             if (!searchTerm) return true;
             const p = ev.extendedProps || {};
-            return [ev.title, p.customer, p.hall, p.event_type, p.payment_status_label]
+            return [ev.title, p.customer, p.location, p.hall, p.event_type, p.payment_status_label]
                 .filter(Boolean).join(' ').toLowerCase().includes(searchTerm);
         };
 
         const renderEv = info => {
             const p   = info.event.extendedProps;
-            const mls = (p.meals || []).slice(0, 2).join(' + ') || 'No meals';
+            const mls = (p.meals || []).slice(0, 2).join(' + ') || (p.booking_type === 'hall_only' ? 'No catering' : 'No meals');
+            const locIco = p.booking_type === 'food_only' ? '🍽' : '🏛';
             return { html: `<div class="ef-event-card">
                 <div class="ef-event-title">${esc(p.customer)}</div>
-                <div class="ef-event-meta">${esc(p.hall)} · ${Number(p.people||0).toLocaleString('en-IN')} guests</div>
+                <div class="ef-event-meta">${locIco} ${esc(p.location || p.hall)} · ${Number(p.people||0).toLocaleString('en-IN')} guests</div>
                 <div class="ef-event-sub">${esc(mls)} · ${esc(p.start_time)}-${esc(p.end_time)}</div>
                 <div class="ef-event-foot">
                     <span class="ef-event-mini pay-${esc(p.payment_status)}">${esc(p.payment_status_label)}</span>
@@ -1782,18 +1815,22 @@ document.addEventListener('DOMContentLoaded', function () {
         const showPv = (event, jsEvent, lock = false) => {
             const p = event.extendedProps;
             lockedPv = lock;
+            const finGrid = p.amount != null
+                ? `<div><div class="ef-preview-label">Total</div><div class="ef-preview-value">${money(p.amount)}</div></div>
+                   <div><div class="ef-preview-label">Balance</div><div class="ef-preview-value">${money(p.balance)}</div></div>`
+                : '';
+            const payLink = p.payment_url ? `<a href="${p.payment_url}">Payment</a>` : '';
             preview.innerHTML = `
                 <div class="ef-preview-title">${esc(p.customer)}</div>
-                <div class="ef-preview-meta">${esc(p.event_type)} · ${esc(p.hall)}<br>${esc(p.date)} · ${esc(p.start_time)}-${esc(p.end_time)}</div>
+                <div class="ef-preview-meta">${esc(p.event_type)} · ${esc(p.location || p.hall)}<br>${esc(p.date)} · ${esc(p.start_time)}-${esc(p.end_time)}</div>
                 <div class="ef-preview-grid">
                     <div><div class="ef-preview-label">Guests</div><div class="ef-preview-value">${Number(p.people||0).toLocaleString('en-IN')}</div></div>
                     <div><div class="ef-preview-label">Meals</div><div class="ef-preview-value">${esc((p.meals||[]).join(', ')||'None')}</div></div>
-                    <div><div class="ef-preview-label">Total</div><div class="ef-preview-value">${money(p.amount)}</div></div>
-                    <div><div class="ef-preview-label">Balance</div><div class="ef-preview-value">${money(p.balance)}</div></div>
+                    ${finGrid}
                 </div>
                 <div class="ef-preview-actions">
-                    <a href="${p.url}">Open</a>
-                    <a href="${p.payment_url}">Payment</a>
+                    ${p.url ? `<a href="${p.url}">Open</a>` : ''}
+                    ${payLink}
                     <a href="${p.whatsapp_url}" target="_blank" rel="noopener">WhatsApp</a>
                 </div>`;
             const mg = 18, w = 320;
@@ -1816,7 +1853,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
             quickHall.textContent = hallFilter.options[hallFilter.selectedIndex]?.text || 'All Halls';
             quickLink.href = createBase + '?' + params;
-            quickModal.show();
+            quickModal?.show();
         };
 
         const calendar = new FullCalendar.Calendar(calEl, {
@@ -1840,7 +1877,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         deskEvents = evs;
                         success(evs.filter(ev => {
                             const p = ev.extendedProps || {};
-                            return !searchTerm || [ev.title, p.customer, p.hall, p.event_type, p.payment_status_label]
+                            return !searchTerm || [ev.title, p.customer, p.location, p.hall, p.event_type, p.payment_status_label]
                                 .filter(Boolean).join(' ').toLowerCase().includes(searchTerm);
                         }));
                     }).catch(failure);
@@ -1848,8 +1885,8 @@ document.addEventListener('DOMContentLoaded', function () {
             datesSet:     () => { updateTitles(); setTimeout(applyDensity, 0); },
             eventsSet:    () => applyDensity(),
             eventContent: renderEv,
-            select:       info => { openQuick(info.startStr.slice(0, 10)); calendar.unselect(); },
-            dateClick:    info => openQuick(info.dateStr),
+            select:       info => { @unless($isEmployee) openQuick(info.startStr.slice(0, 10)); @endunless calendar.unselect(); },
+            dateClick:    info => { @unless($isEmployee) openQuick(info.dateStr); @endunless },
             eventClick:   info => { info.jsEvent.preventDefault(); showPv(info.event, info.jsEvent, true); },
             eventMouseEnter: info => { if (!lockedPv) showPv(info.event, info.jsEvent, false); },
             eventMouseLeave: () => hidePv(),
@@ -2005,7 +2042,7 @@ document.addEventListener('DOMContentLoaded', function () {
             calendar.removeAllEvents();
             calendar.addEventSource(deskEvents.filter(ev => {
                 const p = ev.extendedProps || {};
-                return !searchTerm || [ev.title, p.customer, p.hall, p.event_type, p.payment_status_label]
+                return !searchTerm || [ev.title, p.customer, p.location, p.hall, p.event_type, p.payment_status_label]
                     .filter(Boolean).join(' ').toLowerCase().includes(searchTerm);
             }));
         });
@@ -2014,8 +2051,8 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('exportSchedule').addEventListener('click', () => {
             const rows = calendar.getEvents().filter(matches).map(ev => {
                 const p = ev.extendedProps;
-                return [p.date, p.start_time, p.end_time, p.customer, p.hall, p.event_type,
-                    p.people, (p.meals||[]).join(' + '), p.payment_status_label, p.amount, p.balance, p.url];
+                return [p.date, p.start_time, p.end_time, p.customer, p.location || p.hall, p.event_type,
+                    p.people, (p.meals||[]).join(' + '), p.booking_type, p.payment_status_label, p.amount, p.balance, p.url];
             });
             const headers = ['Date','Start','End','Customer','Hall','Event','Guests','Meals','Payment','Amount','Balance','URL'];
             const csv = [headers, ...rows].map(r => r.map(v => `"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
@@ -2035,6 +2072,7 @@ document.addEventListener('DOMContentLoaded', function () {
 @endpush
 
 {{-- ══ SHARE BRIEF MODAL ═══════════════════════════════════════════ --}}
+@unless($isEmployee)
 <style>
 #shareBriefModal .modal-content {
     border-radius: 18px;
@@ -2374,5 +2412,6 @@ document.addEventListener('DOMContentLoaded', function () {
 })();
 </script>
 @endpush
+@endunless
 
 </x-admin-layout>

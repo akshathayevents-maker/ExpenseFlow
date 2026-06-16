@@ -118,6 +118,23 @@
 /* Avail indicator */
 #availStatus { min-height: 24px; }
 
+/* Booking type picker */
+.ef-type-picker { display:flex; gap:10px; flex-wrap:wrap; margin-top:6px; }
+.ef-type-opt {
+    flex:1; min-width:120px;
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+    padding:14px 10px; border-radius:14px; cursor:pointer;
+    border:2px solid var(--ef-border); background:transparent;
+    font-size:.78rem; font-weight:700; color:var(--ef-ink-2);
+    transition:border-color .15s, background .15s, box-shadow .15s;
+}
+.ef-type-opt:hover { border-color:var(--ef-border-strong); }
+.ef-type-icon, .ef-type-icon-stack { font-size:1.2rem; }
+.ef-type-icon-stack { display:inline-flex; gap:2px; }
+.ef-type-opt[data-type="hall_only"].--selected { border-color:#1d4ed8; background:rgba(29,78,216,.07); color:#1d4ed8; box-shadow:0 0 0 3px rgba(29,78,216,.13); }
+.ef-type-opt[data-type="hall_food"].--selected { border-color:#15803d; background:rgba(21,128,61,.07);  color:#15803d; box-shadow:0 0 0 3px rgba(21,128,61,.13); }
+.ef-type-opt[data-type="food_only"].--selected { border-color:#c2410c; background:rgba(194,65,12,.07);  color:#c2410c; box-shadow:0 0 0 3px rgba(194,65,12,.13); }
+
 @media (max-width: 767.98px) {
     .ef-eb-section { padding: 16px; }
     .ef-eb-grid { grid-template-columns: 1fr; }
@@ -164,16 +181,42 @@
                 </div>
                 <div>
                     <label class="ef-label">Mobile <span style="color:var(--ef-danger)">*</span></label>
-                    <input type="text" name="customer_mobile" class="ef-input @error('customer_mobile') --error @enderror"
-                           value="{{ old('customer_mobile', $booking->customer_mobile) }}" required>
+                    <input type="tel" name="customer_mobile" class="ef-input @error('customer_mobile') --error @enderror"
+                           value="{{ old('customer_mobile', $booking->customer_mobile) }}" placeholder="10-digit mobile number" pattern="[0-9]{10}" maxlength="10" inputmode="numeric" required>
                     @error('customer_mobile')<div class="ef-field-error">{{ $message }}</div>@enderror
                 </div>
                 <div class="ef-eb-span2">
                     <label class="ef-label">Alternate Mobile</label>
-                    <input type="text" name="customer_alt_mobile" class="ef-input"
-                           value="{{ old('customer_alt_mobile', $booking->customer_alt_mobile) }}">
+                    <input type="tel" name="customer_alt_mobile" class="ef-input @error('customer_alt_mobile') --error @enderror"
+                           value="{{ old('customer_alt_mobile', $booking->customer_alt_mobile) }}" placeholder="Optional (10 digits)" pattern="[0-9]{10}" maxlength="10" inputmode="numeric">
+                    @error('customer_alt_mobile')<div class="ef-field-error">{{ $message }}</div>@enderror
                 </div>
             </div>
+        </div>
+    </div>
+
+    {{-- ── Booking Type ── --}}
+    <div class="ef-eb-card">
+        <div class="ef-eb-section">
+            <p class="ef-eb-section-label">Booking Type</p>
+            <input type="hidden" name="booking_type" id="booking_type" value="{{ old('booking_type', $booking->booking_type ?? 'hall_food') }}">
+            <div class="ef-type-picker" role="radiogroup">
+                @foreach(\App\Models\HallBooking::bookingTypes() as $typeVal => $typeLabel)
+                @php $isSelected = old('booking_type', $booking->booking_type ?? 'hall_food') === $typeVal; @endphp
+                <button type="button" class="ef-type-opt {{ $isSelected ? '--selected' : '' }}" data-type="{{ $typeVal }}"
+                        role="radio" aria-checked="{{ $isSelected ? 'true' : 'false' }}">
+                    @if($typeVal === 'hall_only')
+                        <i class="bi bi-building ef-type-icon"></i>
+                    @elseif($typeVal === 'hall_food')
+                        <span class="ef-type-icon-stack"><i class="bi bi-building"></i><i class="bi bi-cup-hot"></i></span>
+                    @else
+                        <i class="bi bi-cup-hot ef-type-icon"></i>
+                    @endif
+                    <span class="ef-type-label">{{ $typeLabel }}</span>
+                </button>
+                @endforeach
+            </div>
+            @error('booking_type')<div class="ef-field-error mt-2">{{ $message }}</div>@enderror
         </div>
     </div>
 
@@ -182,13 +225,21 @@
         <div class="ef-eb-section">
             <p class="ef-eb-section-label">Event Details</p>
             <div class="ef-eb-grid">
-                <div>
+                <div id="field-hall">
                     <label class="ef-label">Hall <span style="color:var(--ef-danger)">*</span></label>
-                    <select id="hall_id" name="hall_id" class="ef-select" required>
+                    <select id="hall_id" name="hall_id" class="ef-select">
                         @foreach($halls as $hall)
                             <option value="{{ $hall->id }}" {{ old('hall_id', $booking->hall_id) == $hall->id ? 'selected' : '' }}>{{ $hall->name }}</option>
                         @endforeach
                     </select>
+                    @error('hall_id')<div class="ef-field-error">{{ $message }}</div>@enderror
+                </div>
+                <div id="field-service-location" style="display:none">
+                    <label class="ef-label">Service Location <span style="color:var(--ef-danger)">*</span></label>
+                    <input type="text" id="service_location" name="service_location" class="ef-input @error('service_location') --error @enderror"
+                           value="{{ old('service_location', $booking->service_location) }}"
+                           placeholder="e.g. TCS Office, Temple, Client Residence">
+                    @error('service_location')<div class="ef-field-error">{{ $message }}</div>@enderror
                 </div>
                 <div>
                     <label class="ef-label">Event Type <span style="color:var(--ef-danger)">*</span></label>
@@ -218,13 +269,13 @@
                     <input type="time" id="end_time" name="end_time" class="ef-input @error('end_time') --error @enderror"
                            value="{{ old('end_time', $booking->end_time) }}" required>
                 </div>
-                <div class="ef-eb-span2" id="availStatus"></div>
+                <div class="ef-eb-span2" id="field-availability"><div id="availStatus"></div></div>
             </div>
         </div>
     </div>
 
     {{-- ── Meal Plan ── --}}
-    <div class="ef-eb-card">
+    <div id="section-meals" class="ef-eb-card">
         <div class="ef-eb-section">
             <p class="ef-eb-section-label">Catering Package</p>
 
@@ -377,15 +428,60 @@
 <script>
 (function () {
 
-    /* ── Availability check ── */
-    const hallSel  = document.getElementById('hall_id');
-    const dateFld  = document.getElementById('booking_date');
-    const startFld = document.getElementById('start_time');
-    const endFld   = document.getElementById('end_time');
-    const statusDiv = document.getElementById('availStatus');
+    /* ── DOM refs ── */
+    const hallSel        = document.getElementById('hall_id');
+    const dateFld        = document.getElementById('booking_date');
+    const startFld       = document.getElementById('start_time');
+    const endFld         = document.getElementById('end_time');
+    const statusDiv      = document.getElementById('availStatus');
+    const bookingTypeInput  = document.getElementById('booking_type');
+    const fieldHall         = document.getElementById('field-hall');
+    const fieldServiceLoc   = document.getElementById('field-service-location');
+    const serviceLocInput   = document.getElementById('service_location');
+    const fieldAvailability = document.getElementById('field-availability');
+    const sectionMeals      = document.getElementById('section-meals');
+    const hallCostInput     = document.getElementById('hall_cost');
     let checkTimer = null;
 
+    /* ── Booking type picker ── */
+    document.querySelectorAll('.ef-type-opt').forEach(btn => {
+        btn.addEventListener('click', function () {
+            document.querySelectorAll('.ef-type-opt').forEach(b => {
+                b.classList.remove('--selected');
+                b.setAttribute('aria-checked', 'false');
+            });
+            this.classList.add('--selected');
+            this.setAttribute('aria-checked', 'true');
+            applyBookingType(this.dataset.type);
+        });
+    });
+
+    function applyBookingType(type) {
+        const needsHall = type !== 'food_only';
+        const hasFood   = type !== 'hall_only';
+
+        fieldHall.style.display         = needsHall ? '' : 'none';
+        hallSel.required                = needsHall;
+        fieldServiceLoc.style.display   = needsHall ? 'none' : '';
+        serviceLocInput.required        = !needsHall;
+        fieldAvailability.style.display = needsHall ? '' : 'none';
+        sectionMeals.style.display      = hasFood   ? '' : 'none';
+
+        if (!needsHall && hallCostInput) hallCostInput.value = '0';
+        bookingTypeInput.value = type;
+
+        if (needsHall) checkAvailability();
+        else statusDiv.innerHTML = '';
+        recalcTotal();
+    }
+
+    /* ── Availability check ── */
     function checkAvailability() {
+        const currentType = bookingTypeInput ? bookingTypeInput.value : 'hall_food';
+        if (currentType === 'food_only') {
+            statusDiv.innerHTML = '<span style="color:var(--ef-emerald);font-size:.82rem;font-weight:600"><i class="bi bi-check-circle me-1"></i>No hall required</span>';
+            return;
+        }
         if (!hallSel.value || !dateFld.value || !startFld.value || !endFld.value) return;
         clearTimeout(checkTimer);
         checkTimer = setTimeout(async () => {
@@ -421,32 +517,30 @@
     }
 
     window.recalcTotal = function() {
+        const currentType = bookingTypeInput ? bookingTypeInput.value : 'hall_food';
         const guests    = parseInt(document.getElementById('number_of_people').value || 0);
-        const hallCost  = parseFloat(document.getElementById('hall_cost').value || 0);
+        const rawHall   = currentType === 'food_only' ? 0 : parseFloat(hallCostInput ? hallCostInput.value : 0);
         const advance   = parseFloat(document.getElementById('advance_amount').value || 0);
 
         const mealCard  = document.querySelector('.ef-eb-meal-card.selected');
         const mealPrice = mealCard ? parseFloat(mealCard.dataset.price || 0) : 0;
-        const mealCost  = mealPrice * guests;
+        const mealCost  = currentType === 'hall_only' ? 0 : mealPrice * guests;
 
-        const total   = hallCost + mealCost;
+        const total   = rawHall + mealCost;
         const balance = Math.max(0, total - advance);
 
-        /* update total field */
         document.getElementById('total_amount').value = total.toFixed(2);
 
-        /* breakdown */
-        document.getElementById('bdHall').textContent    = rupee(hallCost);
+        document.getElementById('bdHall').textContent    = rupee(rawHall);
         document.getElementById('bdMeal').textContent    = rupee(mealCost);
         document.getElementById('bdTotal').textContent   = rupee(total);
         document.getElementById('bdBalance').textContent = rupee(balance);
         document.getElementById('bdMealRow').style.display = mealCost > 0 ? '' : 'none';
 
-        /* estimate box */
-        const box  = document.getElementById('mealEstimateBox');
-        const sub  = document.getElementById('mealEstimateSub');
-        const amt  = document.getElementById('mealEstimateAmt');
-        if (mealPrice > 0 && guests > 0) {
+        const box = document.getElementById('mealEstimateBox');
+        const sub = document.getElementById('mealEstimateSub');
+        const amt = document.getElementById('mealEstimateAmt');
+        if (mealPrice > 0 && guests > 0 && currentType !== 'hall_only') {
             sub.textContent = guests.toLocaleString('en-IN') + ' guests × ₹' + mealPrice.toLocaleString('en-IN');
             amt.textContent = rupee(mealCost);
             box.style.display = 'flex';
@@ -455,13 +549,12 @@
         }
     };
 
-    /* bind recalc to guest/hall cost inputs */
     document.getElementById('number_of_people').addEventListener('input', recalcTotal);
-    document.getElementById('hall_cost').addEventListener('input', recalcTotal);
+    if (hallCostInput) hallCostInput.addEventListener('input', recalcTotal);
     document.getElementById('advance_amount').addEventListener('input', recalcTotal);
 
-    /* initial calc on load */
-    recalcTotal();
+    /* ── Init ── */
+    applyBookingType(bookingTypeInput ? bookingTypeInput.value : 'hall_food');
 
 })();
 </script>

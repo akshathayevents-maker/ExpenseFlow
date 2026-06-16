@@ -521,6 +521,10 @@
     .ef-req-card-body  { padding: 14px 14px; }
     .ef-req-card-footer{ padding: 0 14px 12px; }
     .ef-req-fab        { display: flex; }
+    /* FAB positioned above mobile nav */
+    .ef-req-fab        { bottom: calc(var(--ef-mobile-nav-height, 0px) + 16px + env(safe-area-inset-bottom, 0px)); z-index: 1050; }
+    /* Page content clears FAB (56px) + gap (16px) + nav (--ef-mobile-nav-height) */
+    .ef-req-page       { padding-bottom: calc(var(--ef-mobile-nav-height, 0px) + 90px + env(safe-area-inset-bottom, 0px)); }
     .ef-req-hero-stats { display: none; }
 }
 </style>
@@ -764,7 +768,7 @@
 </div>{{-- /page --}}
 
 {{-- Floating FAB (mobile) --}}
-<a href="{{ route('employee.expense-requests.create') }}" class="ef-req-fab" title="New Expense Request">
+<a href="{{ route('employee.expense-requests.create') }}" class="ef-req-fab ef-mobile-fab" title="New Expense Request">
     <i class="bi bi-plus-lg"></i>
 </a>
 

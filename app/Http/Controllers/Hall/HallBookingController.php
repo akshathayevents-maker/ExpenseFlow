@@ -39,6 +39,9 @@ class HallBookingController extends Controller
         if ($request->filled('date_to')) {
             $query->whereDate('booking_date', '<=', $request->date_to);
         }
+        if ($request->filled('booking_type')) {
+            $query->where('booking_type', $request->booking_type);
+        }
         if ($request->filled('search')) {
             $s = $request->search;
             $query->where(fn($q) => $q->where('customer_name', 'like', "%{$s}%")->orWhere('customer_mobile', 'like', "%{$s}%"));
@@ -75,12 +78,20 @@ class HallBookingController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $data = $request->validate([
-            'hall_id'              => ['required', 'exists:halls,id'],
+        $bookingType = $request->input('booking_type', 'hall_food');
+
+        $data = $request->validate(array_merge([
+            'booking_type'         => ['required', 'in:hall_only,hall_food,food_only'],
+            'hall_id'              => in_array($bookingType, ['hall_only', 'hall_food'])
+                                       ? ['required', 'exists:halls,id']
+                                       : ['nullable', 'exists:halls,id'],
+            'service_location'     => $bookingType === 'food_only'
+                                       ? ['required', 'string', 'max:255']
+                                       : ['nullable', 'string', 'max:255'],
             'meal_plan_id'         => ['nullable', 'exists:meal_plans,id'],
             'customer_name'        => ['required', 'string', 'max:150'],
-            'customer_mobile'      => ['required', 'string', 'max:15'],
-            'customer_alt_mobile'  => ['nullable', 'string', 'max:15'],
+            'customer_mobile'      => ['required', 'digits:10'],
+            'customer_alt_mobile'  => ['nullable', 'digits:10'],
             'event_type'           => ['required', 'string', 'max:50'],
             'booking_date'         => ['required', 'date'],
             'start_time'           => ['required'],
@@ -99,20 +110,24 @@ class HallBookingController extends Controller
             'services.*.service_name' => ['required_with:services.*', 'string', 'max:150'],
             'services.*.description'  => ['nullable', 'string', 'max:500'],
             'services.*.amount'       => ['required_with:services.*', 'numeric', 'min:0'],
-        ]);
+        ], []));
 
-        // Double-booking check
-        $conflict = HallBooking::where('hall_id', $data['hall_id'])
-            ->where('booking_date', $data['booking_date'])
-            ->where('status', '!=', 'cancelled')
-            ->where(fn($q) => $q
-                ->whereBetween('start_time', [$data['start_time'], $data['end_time']])
-                ->orWhereBetween('end_time',   [$data['start_time'], $data['end_time']])
-                ->orWhere(fn($q2) => $q2->where('start_time', '<=', $data['start_time'])->where('end_time', '>=', $data['end_time']))
-            )->exists();
+        // Hall conflict check — food_only bookings NEVER participate in hall conflict checks.
+        // Multiple food-only orders on the same date/time are always allowed.
+        if (in_array($data['booking_type'], ['hall_only', 'hall_food'])) {
+            $conflict = HallBooking::needsHall()
+                ->where('hall_id', $data['hall_id'])
+                ->whereDate('booking_date', $data['booking_date'])
+                ->where('status', '!=', 'cancelled')
+                ->where(fn($q) => $q
+                    ->whereBetween('start_time', [$data['start_time'], $data['end_time']])
+                    ->orWhereBetween('end_time',   [$data['start_time'], $data['end_time']])
+                    ->orWhere(fn($q2) => $q2->where('start_time', '<=', $data['start_time'])->where('end_time', '>=', $data['end_time']))
+                )->exists();
 
-        if ($conflict) {
-            return back()->withInput()->withErrors(['booking_date' => 'This hall is already booked for an overlapping time slot on that date.']);
+            if ($conflict) {
+                return back()->withInput()->withErrors(['booking_date' => 'This hall is already booked for an overlapping time slot on that date.']);
+            }
         }
 
         DB::transaction(function () use ($data, $request) {
@@ -191,12 +206,20 @@ class HallBookingController extends Controller
 
     public function update(Request $request, HallBooking $booking): RedirectResponse
     {
+        $bookingType = $request->input('booking_type', $booking->booking_type ?? 'hall_food');
+
         $data = $request->validate([
-            'hall_id'              => ['required', 'exists:halls,id'],
+            'booking_type'         => ['required', 'in:hall_only,hall_food,food_only'],
+            'hall_id'              => in_array($bookingType, ['hall_only', 'hall_food'])
+                                       ? ['required', 'exists:halls,id']
+                                       : ['nullable', 'exists:halls,id'],
+            'service_location'     => $bookingType === 'food_only'
+                                       ? ['required', 'string', 'max:255']
+                                       : ['nullable', 'string', 'max:255'],
             'meal_plan_id'         => ['nullable', 'exists:meal_plans,id'],
             'customer_name'        => ['required', 'string', 'max:150'],
-            'customer_mobile'      => ['required', 'string', 'max:15'],
-            'customer_alt_mobile'  => ['nullable', 'string', 'max:15'],
+            'customer_mobile'      => ['required', 'digits:10'],
+            'customer_alt_mobile'  => ['nullable', 'digits:10'],
             'event_type'           => ['required', 'string', 'max:50'],
             'booking_date'         => ['required', 'date'],
             'start_time'           => ['required'],
@@ -217,19 +240,21 @@ class HallBookingController extends Controller
             'services.*.amount'       => ['required_with:services.*', 'numeric', 'min:0'],
         ]);
 
-        // Double-booking check (excluding current booking)
-        $conflict = HallBooking::where('hall_id', $data['hall_id'])
-            ->where('booking_date', $data['booking_date'])
-            ->where('status', '!=', 'cancelled')
-            ->where('id', '!=', $booking->id)
-            ->where(fn($q) => $q
-                ->whereBetween('start_time', [$data['start_time'], $data['end_time']])
-                ->orWhereBetween('end_time',   [$data['start_time'], $data['end_time']])
-                ->orWhere(fn($q2) => $q2->where('start_time', '<=', $data['start_time'])->where('end_time', '>=', $data['end_time']))
-            )->exists();
+        if (in_array($data['booking_type'], ['hall_only', 'hall_food'])) {
+            $conflict = HallBooking::needsHall()
+                ->where('hall_id', $data['hall_id'])
+                ->whereDate('booking_date', $data['booking_date'])
+                ->where('status', '!=', 'cancelled')
+                ->where('id', '!=', $booking->id)
+                ->where(fn($q) => $q
+                    ->whereBetween('start_time', [$data['start_time'], $data['end_time']])
+                    ->orWhereBetween('end_time',   [$data['start_time'], $data['end_time']])
+                    ->orWhere(fn($q2) => $q2->where('start_time', '<=', $data['start_time'])->where('end_time', '>=', $data['end_time']))
+                )->exists();
 
-        if ($conflict) {
-            return back()->withInput()->withErrors(['booking_date' => 'This hall is already booked for an overlapping time slot on that date.']);
+            if ($conflict) {
+                return back()->withInput()->withErrors(['booking_date' => 'This hall is already booked for an overlapping time slot on that date.']);
+            }
         }
 
         $data['has_breakfast'] = $request->boolean('has_breakfast');
@@ -302,6 +327,11 @@ class HallBookingController extends Controller
         $summary['today_count']   = $todayBookings->count();
         $summary['today_revenue'] = $todayBookings->sum('total_amount');
 
+        if (Auth::user()->role === 'employee') {
+            $summary['revenue']       = null;
+            $summary['today_revenue'] = null;
+        }
+
         $now = now();
         // Prefer: currently active > next upcoming > null
         $nextBooking = $todayBookings->first(
@@ -326,48 +356,73 @@ class HallBookingController extends Controller
             $query->where('hall_id', $request->hall_id);
         }
 
-        $events = $query->with(['hall', 'mealPlan', 'payments'])->get()->map(fn($b) => [
-            'id'    => $b->id,
-            'title' => $b->customer_name,
-            'start' => $b->booking_date->toDateString() . 'T' . $b->start_time,
-            'end'   => $b->booking_date->toDateString() . 'T' . $b->end_time,
-            'classNames' => [
-                'ef-cal-event',
-                'is-' . $b->status,
-                'pay-' . $b->payment_status,
-            ],
-            'extendedProps' => [
-                'customer'     => $b->customer_name,
-                'hall'         => $b->hall->name,
-                'event_type'   => \App\Models\HallBooking::eventTypes()[$b->event_type] ?? str($b->event_type)->headline()->toString(),
-                'people'       => $b->number_of_people,
-                'status'       => $b->status,
-                'status_label' => \App\Models\HallBooking::statuses()[$b->status] ?? str($b->status)->headline()->toString(),
+        $isEmployee = Auth::user()->role === 'employee';
+
+        $typeIcons = ['hall_only' => '🏛', 'hall_food' => '🏛', 'food_only' => '🍽'];
+
+        $events = $query->with(['hall', 'mealPlan', 'payments'])->get()->map(function ($b) use ($isEmployee, $typeIcons) {
+            $icon     = $typeIcons[$b->booking_type] ?? '🏛';
+            $location = $b->location_label; // uses model accessor: hall name or service_location
+
+            $props = [
+                'booking_type'  => $b->booking_type,
+                'customer'      => $b->customer_name,
+                'hall'          => $b->requiresHall() ? ($b->hall?->name ?? '—') : null,
+                'location'      => $location,
+                'service_location' => $b->service_location,
+                'event_type'    => \App\Models\HallBooking::eventTypes()[$b->event_type] ?? str($b->event_type)->headline()->toString(),
+                'people'        => $b->number_of_people,
+                'status'        => $b->status,
+                'status_label'  => \App\Models\HallBooking::statuses()[$b->status] ?? str($b->status)->headline()->toString(),
                 'payment_status' => $b->payment_status,
                 'payment_status_label' => \App\Models\HallBooking::paymentStatuses()[$b->payment_status] ?? str($b->payment_status)->headline()->toString(),
-                'amount'       => $b->total_amount,
-                'paid'         => $b->total_paid,
-                'balance'      => max(0, $b->balance_amount),
-                'meal_plan'    => $b->mealPlan?->name,
-                'meals'        => collect([
+                'meal_plan'     => $b->mealPlan?->name,
+                'meals'         => collect([
                     'Breakfast' => $b->has_breakfast,
-                    'Lunch' => $b->has_lunch,
-                    'Dinner' => $b->has_dinner,
+                    'Lunch'     => $b->has_lunch,
+                    'Dinner'    => $b->has_dinner,
                 ])->filter()->keys()->values(),
-                'start_time'   => \Carbon\Carbon::parse($b->start_time)->format('h:i A'),
-                'end_time'     => \Carbon\Carbon::parse($b->end_time)->format('h:i A'),
-                'date'         => $b->booking_date->format('d M Y'),
-                'url'          => route('hall.bookings.show', $b),
-                'payment_url'  => route('hall.bookings.show', $b) . '#record-payment',
-                'whatsapp_url' => 'https://wa.me/91' . preg_replace('/\D/', '', $b->customer_mobile),
-            ],
-        ]);
+                'start_time'    => \Carbon\Carbon::parse($b->start_time)->format('h:i A'),
+                'end_time'      => \Carbon\Carbon::parse($b->end_time)->format('h:i A'),
+                'date'          => $b->booking_date->format('d M Y'),
+                'url'           => route('hall.bookings.show', $b),
+                'whatsapp_url'  => 'https://wa.me/91' . preg_replace('/\D/', '', $b->customer_mobile),
+            ];
+
+            if ($isEmployee) {
+                unset($props['url']);
+            } else {
+                $props['amount']      = $b->total_amount;
+                $props['paid']        = $b->total_paid;
+                $props['balance']     = max(0, $b->balance_amount);
+                $props['payment_url'] = route('hall.bookings.show', $b) . '#record-payment';
+            }
+
+            return [
+                'id'    => $b->id,
+                'title' => $b->customer_name,
+                'start' => $b->booking_date->toDateString() . 'T' . $b->start_time,
+                'end'   => $b->booking_date->toDateString() . 'T' . $b->end_time,
+                'classNames' => [
+                    'ef-cal-event',
+                    'is-' . $b->status,
+                    'pay-' . $b->payment_status,
+                    'type-' . $b->booking_type,
+                ],
+                'extendedProps' => $props,
+            ];
+        });
 
         return response()->json($events);
     }
 
     public function checkAvailability(Request $request): JsonResponse
     {
+        // food_only bookings never occupy a hall — always available, no check needed.
+        if ($request->input('booking_type') === 'food_only') {
+            return response()->json(['available' => true, 'conflicts' => []]);
+        }
+
         $request->validate([
             'hall_id'      => ['required', 'exists:halls,id'],
             'booking_date' => ['required', 'date'],
@@ -376,8 +431,10 @@ class HallBookingController extends Controller
             'exclude_id'   => ['nullable', 'integer'],
         ]);
 
-        $query = HallBooking::where('hall_id', $request->hall_id)
-            ->where('booking_date', $request->booking_date)
+        // Only hall_only and hall_food bookings participate in conflict checks.
+        $query = HallBooking::needsHall()
+            ->where('hall_id', $request->hall_id)
+            ->whereDate('booking_date', $request->booking_date)
             ->where('status', '!=', 'cancelled')
             ->where(fn($q) => $q
                 ->whereBetween('start_time', [$request->start_time, $request->end_time])
@@ -389,7 +446,7 @@ class HallBookingController extends Controller
             $query->where('id', '!=', $request->exclude_id);
         }
 
-        $conflicts = $query->with('hall')->get()->map(fn($b) => [
+        $conflicts = $query->get()->map(fn($b) => [
             'customer' => $b->customer_name,
             'start'    => $b->start_time,
             'end'      => $b->end_time,
@@ -432,14 +489,26 @@ class HallBookingController extends Controller
 
     public function kitchen(): View
     {
-        $date = request('date', today()->toDateString());
+        $date        = request('date', today()->toDateString());
+        $cateringFilter = request('catering_type', 'all'); // all | hall | external
 
-        $bookings = HallBooking::with(['hall', 'mealPlan'])
+        $query = HallBooking::with(['hall', 'mealPlan'])
             ->whereDate('booking_date', $date)
             ->where('status', '!=', 'cancelled')
-            ->orderBy('start_time')
-            ->get();
+            ->orderBy('start_time');
 
-        return view('hall.bookings.kitchen', compact('bookings', 'date'));
+        // Kitchen only needs bookings that have food — hall_only contributes no meals.
+        // All hall_food and food_only bookings feed into kitchen production planning.
+        if ($cateringFilter === 'hall') {
+            $query->hallFood();
+        } elseif ($cateringFilter === 'external') {
+            $query->foodOnly();
+        } else {
+            $query->hasFood(); // both hall_food and food_only
+        }
+
+        $bookings = $query->get();
+
+        return view('hall.bookings.kitchen', compact('bookings', 'date', 'cateringFilter'));
     }
 }

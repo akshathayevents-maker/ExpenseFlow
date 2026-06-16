@@ -17,6 +17,10 @@
 /public/fonts-manifest.dev.json
 /public/hot
 /public/storage
+# public/build is intentionally tracked — assets built locally and committed.
+# Production deploy serves these committed files. Never add /public/build here.
+!/public/build/
+!/public/build/**
 /storage/*.key
 /storage/pail
 /vendor

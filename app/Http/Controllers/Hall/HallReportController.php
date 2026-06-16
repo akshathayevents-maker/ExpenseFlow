@@ -35,6 +35,9 @@ class HallReportController extends Controller
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
+        if ($request->filled('booking_type')) {
+            $query->where('booking_type', $request->booking_type);
+        }
 
         $bookings  = $query->get();
         $active    = $bookings->where('status', '!=', 'cancelled');
@@ -51,8 +54,14 @@ class HallReportController extends Controller
             'avg_revenue'     => $active->count() > 0 ? (int) round($revenue / $active->count()) : 0,
             'total_people'    => $active->sum('number_of_people'),
             'collection_rate' => $revenue > 0 ? min(100, (int) round($collected / $revenue * 100)) : 0,
-            'by_hall'  => $active->groupBy('hall_id')->map(fn($g) => [
-                'name'    => $g->first()->hall->name,
+            'by_booking_type' => $active->groupBy('booking_type')->map(fn($g) => [
+                'label'   => \App\Models\HallBooking::bookingTypes()[$g->first()->booking_type] ?? $g->first()->booking_type,
+                'count'   => $g->count(),
+                'revenue' => $g->sum('total_amount'),
+                'people'  => $g->sum('number_of_people'),
+            ])->sortByDesc('count'),
+            'by_hall'  => $active->filter(fn($b) => $b->requiresHall())->groupBy('hall_id')->map(fn($g) => [
+                'name'    => $g->first()->hall?->name ?? '—',
                 'count'   => $g->count(),
                 'revenue' => $g->sum('total_amount'),
                 'people'  => $g->sum('number_of_people'),

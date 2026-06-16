@@ -26,6 +26,8 @@ use App\Http\Controllers\Hall\HallBookingController;
 use App\Http\Controllers\Hall\HallDashboardController;
 use App\Http\Controllers\Hall\HallReportController;
 use App\Http\Controllers\Hall\MealPlanController;
+use App\Http\Controllers\Kitchen\RecipeController;
+use App\Http\Controllers\Employee\KitchenController as EmployeeKitchenController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaymentRequestController;
 use App\Http\Controllers\ProfileController;
@@ -194,6 +196,26 @@ Route::prefix('employee')->name('employee.')->middleware(['auth', 'verified'])->
     Route::get('expense-requests/{expenseRequest}', [EmployeeExpenseRequestController::class, 'show'])->name('expense-requests.show');
 
     Route::get('wallet', [EmployeeWalletController::class, 'show'])->name('wallet.show');
+
+    // Read-only hall calendar — financial data is stripped server-side for this role
+    Route::get('hall/bookings/calendar',        [HallBookingController::class, 'calendar'])->name('hall.bookings.calendar');
+    Route::get('hall/bookings/calendar-events', [HallBookingController::class, 'calendarEvents'])->name('hall.bookings.calendar-events');
+
+    // Kitchen calculator (read-only — no financial data, calculation is client-side)
+    Route::get('kitchen/calculator', [EmployeeKitchenController::class, 'index'])->name('kitchen.calculator');
+    Route::get('kitchen/calculator/{recipe}', [EmployeeKitchenController::class, 'recipe'])->name('kitchen.calculator.recipe');
+});
+
+// ── Kitchen — Recipe Library (admin + manager) ────────────────────────────────
+Route::prefix('kitchen')->name('kitchen.')->middleware(['auth', 'verified', 'role.hall'])->group(function () {
+    Route::get('recipes',                           [RecipeController::class, 'index'])->name('recipes.index');
+    Route::get('recipes/create',                    [RecipeController::class, 'create'])->name('recipes.create');
+    Route::post('recipes',                          [RecipeController::class, 'store'])->name('recipes.store');
+    Route::get('recipes/{recipe}',                  [RecipeController::class, 'show'])->name('recipes.show');
+    Route::get('recipes/{recipe}/edit',             [RecipeController::class, 'edit'])->name('recipes.edit');
+    Route::put('recipes/{recipe}',                  [RecipeController::class, 'update'])->name('recipes.update');
+    Route::delete('recipes/{recipe}',               [RecipeController::class, 'destroy'])->name('recipes.destroy');
+    Route::patch('recipes/{recipe}/toggle-active',  [RecipeController::class, 'toggleActive'])->name('recipes.toggle-active');
 });
 
 // ── Hall Management (admin + manager) ────────────────────────────────────────

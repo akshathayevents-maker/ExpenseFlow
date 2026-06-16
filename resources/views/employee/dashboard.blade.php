@@ -622,6 +622,10 @@ a.ef-ew-kpi-card:hover, .ef-ew-kpi-card:hover {
     .ef-ew-main         { grid-template-columns: 1fr; }
     .ef-ew-sidebar      { grid-template-columns: 1fr; }
     .ef-ew-fab          { display: flex; }
+    /* FAB positioned above mobile nav — see mobile.css .ef-mobile-fab */
+    .ef-ew-fab          { bottom: calc(var(--ef-mobile-nav-height, 0px) + 16px + env(safe-area-inset-bottom, 0px)); z-index: 1050; }
+    /* Last content section clears FAB (58px) + gap (16px) + nav (--ef-mobile-nav-height) */
+    .ef-ew-main         { padding-bottom: calc(var(--ef-mobile-nav-height, 0px) + 90px + env(safe-area-inset-bottom, 0px)); }
 }
 @media (max-width: 479.98px) {
     .ef-ew-kpi { grid-template-columns: repeat(2, 1fr); }
@@ -866,7 +870,7 @@ a.ef-ew-kpi-card:hover, .ef-ew-kpi-card:hover {
 </div>{{-- /main --}}
 
 {{-- Floating FAB (mobile only) --}}
-<a href="{{ route('employee.expense-requests.create') }}" class="ef-ew-fab" title="New Expense Request">
+<a href="{{ route('employee.expense-requests.create') }}" class="ef-ew-fab ef-mobile-fab" title="New Expense Request">
     <i class="bi bi-plus-lg"></i>
 </a>
 

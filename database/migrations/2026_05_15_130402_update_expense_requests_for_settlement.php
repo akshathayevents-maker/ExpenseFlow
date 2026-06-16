@@ -9,6 +9,7 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (DB::getDriverName() === 'pgsql') {
         // PostgreSQL cannot use CHECK inline in ALTER COLUMN TYPE.
         // Must drop old constraint, retype, then add new constraint separately.
         DB::statement("
@@ -26,6 +27,7 @@ return new class extends Migration
                     'reimbursement_pending','reimbursed','completed'
                 ))
         ");
+        } // end pgsql guard
 
         Schema::table('expense_requests', function (Blueprint $table) {
             if (!Schema::hasColumn('expense_requests', 'settlement_type')) {
@@ -44,17 +46,19 @@ return new class extends Migration
             }
         });
 
-        DB::statement("
-            ALTER TABLE expense_requests
-                DROP CONSTRAINT IF EXISTS expense_requests_status_check,
-                ALTER COLUMN status TYPE VARCHAR(255),
-                ALTER COLUMN status SET DEFAULT 'pending',
-                ALTER COLUMN status SET NOT NULL
-        ");
-        DB::statement("
-            ALTER TABLE expense_requests
-                ADD CONSTRAINT expense_requests_status_check
-                CHECK (status IN ('pending','approved','rejected','paid','completed'))
-        ");
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("
+                ALTER TABLE expense_requests
+                    DROP CONSTRAINT IF EXISTS expense_requests_status_check,
+                    ALTER COLUMN status TYPE VARCHAR(255),
+                    ALTER COLUMN status SET DEFAULT 'pending',
+                    ALTER COLUMN status SET NOT NULL
+            ");
+            DB::statement("
+                ALTER TABLE expense_requests
+                    ADD CONSTRAINT expense_requests_status_check
+                    CHECK (status IN ('pending','approved','rejected','paid','completed'))
+            ");
+        }
     }
 };

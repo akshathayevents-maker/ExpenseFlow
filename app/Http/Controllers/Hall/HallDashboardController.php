@@ -50,6 +50,7 @@ class HallDashboardController extends Controller
             ->get();
 
         $todayBookings = $todayList->count();
+        $foodOnlyToday = $todayList->filter(fn (HallBooking $b) => $b->isFoodOnly())->count();
         $upcomingBookings = $weekBookings->where('booking_date', '>', $today)->count();
         $monthRevenue = $monthBookings->sum('total_amount');
         $cateringLoad = $weekBookings->sum('number_of_people');
@@ -131,7 +132,7 @@ class HallDashboardController extends Controller
                         'time' => $start->copy()->subHours(2)->format('H:i'),
                         'label' => 'Kitchen prep',
                         'title' => $meals . ' for ' . number_format($booking->number_of_people) . ' guests',
-                        'meta' => $booking->hall->name . ' · ' . $booking->customer_name,
+                        'meta' => $booking->location_label . ' · ' . $booking->customer_name,
                         'tone' => 'gold',
                         'url' => route('hall.bookings.kitchen', ['date' => $booking->booking_date->toDateString()]),
                     ]);
@@ -141,7 +142,7 @@ class HallDashboardController extends Controller
                     'time' => $start->format('H:i'),
                     'label' => $eventLabel,
                     'title' => $booking->customer_name,
-                    'meta' => $booking->hall->name . ' · ' . number_format($booking->number_of_people) . ' guests',
+                    'meta' => $booking->location_label . ' · ' . number_format($booking->number_of_people) . ' guests',
                     'tone' => 'emerald',
                     'url' => route('hall.bookings.show', $booking),
                 ]);
@@ -165,7 +166,7 @@ class HallDashboardController extends Controller
         $occupancyTimeline = collect(range(0, 6))->map(function ($offset) use ($today, $weekBookings, $halls) {
             $date = $today->copy()->addDays($offset);
             $bookings = $weekBookings->filter(fn (HallBooking $booking) => $booking->booking_date->isSameDay($date));
-            $occupiedHalls = $bookings->pluck('hall_id')->unique()->count();
+            $occupiedHalls = $bookings->filter(fn (HallBooking $b) => $b->requiresHall())->pluck('hall_id')->unique()->count();
             $capacity = max(1, $halls->count());
             $percent = round(($occupiedHalls / $capacity) * 100);
 
@@ -225,6 +226,7 @@ class HallDashboardController extends Controller
 
         $operations = [
             'today_bookings' => $todayBookings,
+            'food_only_today' => $foodOnlyToday,
             'upcoming_bookings' => $upcomingBookings,
             'pending_payments' => $pendingPayments,
             'month_revenue' => $monthRevenue,

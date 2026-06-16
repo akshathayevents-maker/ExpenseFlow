@@ -227,6 +227,11 @@ a.ef-dash-metric:hover { border-color: var(--hd-border-s); box-shadow: var(--hd-
             <div class="ef-dash-metric-value {{ $operations['pending_payments'] > 0 ? 'c-danger' : 'c-emerald' }}">{{ $operations['pending_payments'] }}</div>
             <div class="ef-dash-metric-note">₹{{ number_format($operations['pending_balance'], 0) }} pending</div>
         </a>
+        <a href="{{ route('hall.bookings.kitchen') }}" class="ef-dash-metric">
+            <div class="ef-hd-m-label"><i class="bi bi-cup-hot ef-hd-m-icon"></i>Food Only Today</div>
+            <div class="ef-dash-metric-value {{ ($operations['food_only_today'] ?? 0) > 0 ? 'c-gold' : '' }}">{{ $operations['food_only_today'] ?? 0 }}</div>
+            <div class="ef-dash-metric-note">external catering orders</div>
+        </a>
         <div class="ef-dash-metric">
             <div class="ef-hd-m-label"><i class="bi bi-currency-rupee ef-hd-m-icon"></i>Month Revenue</div>
             <div class="ef-dash-metric-value c-gold">₹{{ number_format($operations['month_revenue'], 0) }}</div>

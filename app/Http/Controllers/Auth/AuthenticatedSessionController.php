@@ -39,7 +39,7 @@ class AuthenticatedSessionController extends Controller
 
         $destination = match ($user->role) {
             'admin', 'manager' => route('hall.bookings.calendar'),
-            default            => route('employee.expense-requests.create'),
+            default            => route('employee.hall.bookings.calendar'),
         };
 
         return redirect()->intended($destination);

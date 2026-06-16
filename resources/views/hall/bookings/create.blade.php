@@ -1,8 +1,9 @@
 <x-admin-layout title="Create Booking">
 @php
-    $prefillDate = old('booking_date', request('date'));
-    $prefillHall = old('hall_id', request('hall_id'));
-    $oldServices = old('services', []);
+    $prefillDate    = old('booking_date', request('date'));
+    $prefillHall    = old('hall_id', request('hall_id'));
+    $oldServices    = old('services', []);
+    $oldBookingType = old('booking_type', 'hall_food');
 @endphp
 
 <div class="ef-booking-create">
@@ -65,23 +66,55 @@
                         </div>
                         <div class="ef-span-3">
                             <label class="ef-label" for="customer_mobile">Mobile</label>
-                            <input id="customer_mobile" name="customer_mobile" type="tel" class="ef-input" value="{{ old('customer_mobile') }}" placeholder="Primary number" required>
+                            <input id="customer_mobile" name="customer_mobile" type="tel" class="ef-input" value="{{ old('customer_mobile') }}" placeholder="10-digit mobile number" pattern="[0-9]{10}" maxlength="10" inputmode="numeric" required>
                             @error('customer_mobile')<div class="ef-field-error">{{ $message }}</div>@enderror
                         </div>
                         <div class="ef-span-3">
                             <label class="ef-label" for="customer_alt_mobile">Alternate Mobile</label>
-                            <input id="customer_alt_mobile" name="customer_alt_mobile" type="tel" class="ef-input" value="{{ old('customer_alt_mobile') }}" placeholder="Optional">
+                            <input id="customer_alt_mobile" name="customer_alt_mobile" type="tel" class="ef-input" value="{{ old('customer_alt_mobile') }}" placeholder="Optional (10 digits)" pattern="[0-9]{10}" maxlength="10" inputmode="numeric">
                             @error('customer_alt_mobile')<div class="ef-field-error">{{ $message }}</div>@enderror
                         </div>
                     </div>
                 </x-premium.card>
 
-                {{-- ─── Section 2: Event ─── --}}
-                <x-premium.card>
+                {{-- ─── Section 2: Booking Type ─── --}}
+                <x-premium.card id="section-booking-type">
                     <div class="ef-section-intro">
                         <span class="ef-section-number">2</span>
+                        <h2 class="ef-section-heading">Booking Type</h2>
+                        <p class="ef-section-copy">Choose what this booking covers — hall reservation, catering, or both.</p>
+                    </div>
+
+                    <input type="hidden" name="booking_type" id="booking_type" value="{{ $oldBookingType }}">
+
+                    <div class="ef-type-picker" role="radiogroup" aria-label="Booking type">
+                        <button type="button" class="ef-type-opt {{ $oldBookingType === 'hall_only' ? '--selected' : '' }}" data-type="hall_only" role="radio" aria-checked="{{ $oldBookingType === 'hall_only' ? 'true' : 'false' }}">
+                            <i class="bi bi-building ef-type-icon"></i>
+                            <span class="ef-type-label">Hall Only</span>
+                            <span class="ef-type-sub">Venue only, no catering</span>
+                        </button>
+                        <button type="button" class="ef-type-opt {{ $oldBookingType === 'hall_food' ? '--selected' : '' }}" data-type="hall_food" role="radio" aria-checked="{{ $oldBookingType === 'hall_food' ? 'true' : 'false' }}">
+                            <span class="ef-type-icon-stack">
+                                <i class="bi bi-building"></i><i class="bi bi-cup-hot"></i>
+                            </span>
+                            <span class="ef-type-label">Hall + Food</span>
+                            <span class="ef-type-sub">Full service — venue &amp; catering</span>
+                        </button>
+                        <button type="button" class="ef-type-opt {{ $oldBookingType === 'food_only' ? '--selected' : '' }}" data-type="food_only" role="radio" aria-checked="{{ $oldBookingType === 'food_only' ? 'true' : 'false' }}">
+                            <i class="bi bi-cup-hot ef-type-icon"></i>
+                            <span class="ef-type-label">Food Only</span>
+                            <span class="ef-type-sub">External catering order</span>
+                        </button>
+                    </div>
+                    @error('booking_type')<div class="ef-field-error mt-2">{{ $message }}</div>@enderror
+                </x-premium.card>
+
+                {{-- ─── Section 3: Event ─── --}}
+                <x-premium.card>
+                    <div class="ef-section-intro">
+                        <span class="ef-section-number">3</span>
                         <h2 class="ef-section-heading">Event</h2>
-                        <p class="ef-section-copy">Choose the hall, schedule, and guest count. Availability updates as the operational details become clear.</p>
+                        <p class="ef-section-copy">Schedule the event, assign the venue or service location, and set the guest count.</p>
                     </div>
 
                     <div class="ef-field-grid">
@@ -96,9 +129,10 @@
                             @error('event_type')<div class="ef-field-error">{{ $message }}</div>@enderror
                         </div>
 
-                        <div class="ef-span-4">
+                        {{-- Hall field — hidden for food_only --}}
+                        <div class="ef-span-4" id="field-hall">
                             <label class="ef-label" for="hall_id">Hall</label>
-                            <select id="hall_id" name="hall_id" class="ef-select" required>
+                            <select id="hall_id" name="hall_id" class="ef-select">
                                 <option value="">Select hall</option>
                                 @foreach($halls as $hall)
                                     <option value="{{ $hall->id }}"
@@ -110,6 +144,24 @@
                                 @endforeach
                             </select>
                             @error('hall_id')<div class="ef-field-error">{{ $message }}</div>@enderror
+                        </div>
+
+                        {{-- Service location — shown only for food_only --}}
+                        <div class="ef-span-4" id="field-service-location" style="display:none">
+                            <label class="ef-label" for="service_location">Service Location <span style="color:var(--ef-danger)">*</span></label>
+                            <input id="service_location" name="service_location" class="ef-input"
+                                   value="{{ old('service_location') }}"
+                                   placeholder="e.g. TCS Office, Murugan Temple, Client Residence"
+                                   list="serviceLocationSuggestions">
+                            <datalist id="serviceLocationSuggestions">
+                                <option value="Client Residence">
+                                <option value="Corporate Office">
+                                <option value="Temple">
+                                <option value="Outdoor Venue">
+                                <option value="School Campus">
+                                <option value="Farmhouse">
+                            </datalist>
+                            @error('service_location')<div class="ef-field-error">{{ $message }}</div>@enderror
                         </div>
 
                         <div class="ef-span-4">
@@ -136,7 +188,8 @@
                             @error('end_time')<div class="ef-field-error">{{ $message }}</div>@enderror
                         </div>
 
-                        <div class="ef-span-12">
+                        {{-- Availability panel — hidden for food_only --}}
+                        <div class="ef-span-12" id="field-availability">
                             <div class="ef-availability" id="availability-panel" data-state="idle">
                                 <div class="ef-availability-status">
                                     <span class="ef-availability-dot"></span>
@@ -151,10 +204,10 @@
                     </div>
                 </x-premium.card>
 
-                {{-- ─── Section 3: Meals ─── --}}
-                <x-premium.card>
+                {{-- ─── Section 4: Meals ─── --}}
+                <x-premium.card id="section-meals">
                     <div class="ef-section-intro">
-                        <span class="ef-section-number">3</span>
+                        <span class="ef-section-number">4</span>
                         <h2 class="ef-section-heading">Meals</h2>
                         <p class="ef-section-copy">Attach catering context so the kitchen can understand the operational load from the booking calendar.</p>
                     </div>
@@ -878,6 +931,72 @@
     color: var(--ef-faint);
     font-size: .75em;
 }
+
+/* ── Booking Type Picker ────────────────────────────────────────── */
+.ef-type-picker {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(3, 1fr);
+}
+@media (max-width: 640px) {
+    .ef-type-picker { grid-template-columns: 1fr; }
+}
+.ef-type-opt {
+    align-items: flex-start;
+    background: var(--ef-surface);
+    border: 2px solid var(--ef-border);
+    border-radius: var(--ef-radius);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 16px 18px;
+    text-align: left;
+    transition: border-color .15s, background .15s, box-shadow .15s;
+    -webkit-appearance: none;
+    appearance: none;
+}
+.ef-type-opt:hover {
+    border-color: rgba(160,114,56,.4);
+    box-shadow: 0 0 0 3px rgba(160,114,56,.08);
+}
+.ef-type-opt.--selected {
+    background: rgba(160,114,56,.06);
+    border-color: rgba(160,114,56,.6);
+    box-shadow: 0 0 0 3px rgba(160,114,56,.1);
+}
+.ef-type-icon {
+    color: var(--ef-muted);
+    font-size: 1.25rem;
+    margin-bottom: 4px;
+    transition: color .15s;
+}
+.ef-type-icon-stack {
+    color: var(--ef-muted);
+    display: flex;
+    font-size: 1.1rem;
+    gap: 3px;
+    margin-bottom: 4px;
+    transition: color .15s;
+}
+.ef-type-opt.--selected .ef-type-icon,
+.ef-type-opt.--selected .ef-type-icon-stack { color: #a07238; }
+.ef-type-label {
+    color: var(--ef-ink);
+    font-size: .88rem;
+    font-weight: 720;
+}
+.ef-type-sub {
+    color: var(--ef-faint);
+    font-size: .72rem;
+}
+/* hall_only = blue, hall_food = green, food_only = orange */
+.ef-type-opt[data-type="hall_only"].--selected { border-color: rgba(59,130,246,.55); background: rgba(59,130,246,.05); box-shadow: 0 0 0 3px rgba(59,130,246,.1); }
+.ef-type-opt[data-type="hall_only"].--selected .ef-type-icon { color: #1d4ed8; }
+.ef-type-opt[data-type="hall_food"].--selected { border-color: rgba(22,163,74,.55); background: rgba(22,163,74,.05); box-shadow: 0 0 0 3px rgba(22,163,74,.1); }
+.ef-type-opt[data-type="hall_food"].--selected .ef-type-icon-stack { color: #15803d; }
+.ef-type-opt[data-type="food_only"].--selected { border-color: rgba(234,88,12,.55); background: rgba(234,88,12,.05); box-shadow: 0 0 0 3px rgba(234,88,12,.1); }
+.ef-type-opt[data-type="food_only"].--selected .ef-type-icon { color: #c2410c; }
 </style>
 @endpush
 
@@ -1133,6 +1252,14 @@
     }
 
     async function checkAvailability() {
+        const currentType = bookingTypeInput?.value || 'hall_food';
+        // food_only never occupies a hall — no conflict possible
+        if (currentType === 'food_only') {
+            setAvailability('available', 'No hall required', 'Food-only orders do not reserve a hall slot.');
+            nearbyBookings.classList.remove('show');
+            nearbyBookings.innerHTML = '';
+            return;
+        }
         if (!fields.hall.value || !fields.date.value || !fields.start.value || !fields.end.value) {
             setAvailability('idle', 'Availability awaiting schedule', 'Select a hall, date, start time, and end time to check occupancy.');
             nearbyBookings.classList.remove('show');
@@ -1217,10 +1344,62 @@
     document.getElementById('saveDraftBtn').addEventListener('click', saveDraft);
     document.getElementById('saveDraftBtnBottom').addEventListener('click', saveDraft);
 
+    /* ───── Booking type switcher ───── */
+    const bookingTypeInput   = document.getElementById('booking_type');
+    const fieldHall          = document.getElementById('field-hall');
+    const fieldServiceLoc    = document.getElementById('field-service-location');
+    const fieldAvailability  = document.getElementById('field-availability');
+    const sectionMeals       = document.getElementById('section-meals');
+    const hallInput          = document.getElementById('hall_id');
+    const serviceLocInput    = document.getElementById('service_location');
+
+    function applyBookingType(type) {
+        const needsHall = type !== 'food_only';
+        const hasFood   = type !== 'hall_only';
+
+        // Hall field
+        if (fieldHall) fieldHall.style.display = needsHall ? '' : 'none';
+        if (hallInput) hallInput.required = needsHall;
+
+        // Service location (food_only only)
+        if (fieldServiceLoc) fieldServiceLoc.style.display = !needsHall ? '' : 'none';
+        if (serviceLocInput) serviceLocInput.required = !needsHall;
+
+        // Availability widget — irrelevant for food_only (no hall conflict possible)
+        if (fieldAvailability) fieldAvailability.style.display = needsHall ? '' : 'none';
+
+        // Meals section
+        if (sectionMeals) sectionMeals.style.display = hasFood ? '' : 'none';
+
+        // Zero hall_cost when not booking a hall
+        if (!needsHall && fields.hallCost) fields.hallCost.value = '0';
+
+        // Update hidden input
+        if (bookingTypeInput) bookingTypeInput.value = type;
+
+        // Re-run availability if switching back to a hall type
+        if (needsHall) checkAvailability();
+
+        updateSummary();
+    }
+
+    document.querySelectorAll('.ef-type-opt').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.ef-type-opt').forEach(b => {
+                b.classList.remove('--selected');
+                b.setAttribute('aria-checked', 'false');
+            });
+            btn.classList.add('--selected');
+            btn.setAttribute('aria-checked', 'true');
+            applyBookingType(btn.dataset.type);
+        });
+    });
+
     /* ───── Init ───── */
     restoreDraft();
     updateSummary();
-    checkAvailability();
+    applyBookingType(bookingTypeInput?.value || 'hall_food');
+    // checkAvailability is called inside applyBookingType for hall types
 })();
 </script>
 @endpush

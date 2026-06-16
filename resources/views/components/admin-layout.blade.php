@@ -631,10 +631,13 @@
     };
 
     // Pre-compute open states server-side — no JS needed, no flicker.
-    $grpMgmt      = request()->routeIs('admin.employees.*','admin.categories.*','admin.vendors.*','admin.expense-requests.*','admin.wallets.*','admin.payments.*','admin.inventory.*','admin.purchase-plans.*');
+    $grpExpenses  = request()->routeIs('admin.expense-requests.*','admin.wallets.*','admin.payments.*');
+    $grpInventory = request()->routeIs('admin.inventory.*','admin.purchase-plans.*');
+    $grpSetup     = request()->routeIs('admin.employees.*','admin.categories.*','admin.vendors.*');
     $grpAnalytics = request()->routeIs('admin.analytics.*','admin.reports.*');
     $grpOps       = request()->routeIs('admin.daily-closings.*','admin.audit-logs.*','admin.settings.*');
     $grpHall      = request()->routeIs('hall.*');
+    $grpKitchen   = request()->routeIs('kitchen.recipes.*');
     $grpAccount   = request()->routeIs('notifications.*','profile.*');
     $nc           = $sbUser->hasMany(\App\Models\AppNotification::class)->whereNull('read_at')->count();
 @endphp
@@ -664,30 +667,18 @@
             </a>
         </div>
 
-        {{-- Management ──────────────────────────────────────────── --}}
-        <button class="sidebar-group-btn {{ $grpMgmt ? 'has-active' : '' }}"
-                data-bs-toggle="collapse" data-bs-target="#grp-mgmt"
-                aria-expanded="{{ $grpMgmt ? 'true' : 'false' }}">
-            <i class="bi bi-briefcase sb-grp-icon"></i>
-            <span class="sb-grp-label">Management</span>
+        {{-- Expenses ────────────────────────────────────────────── --}}
+        <button class="sidebar-group-btn {{ $grpExpenses ? 'has-active' : '' }}"
+                data-bs-toggle="collapse" data-bs-target="#grp-expenses"
+                aria-expanded="{{ $grpExpenses ? 'true' : 'false' }}">
+            <i class="bi bi-file-earmark-text sb-grp-icon"></i>
+            <span class="sb-grp-label">Expenses</span>
             <i class="bi bi-chevron-down sidebar-chevron"></i>
         </button>
-        <div class="collapse sidebar-group-body {{ $grpMgmt ? 'show' : '' }}" id="grp-mgmt">
-            <a href="{{ route('admin.employees.index') }}"
-               class="nav-link {{ request()->routeIs('admin.employees.*') ? 'active' : '' }}">
-                <i class="bi bi-people"></i> Employees
-            </a>
-            <a href="{{ route('admin.categories.index') }}"
-               class="nav-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">
-                <i class="bi bi-tag"></i> Categories
-            </a>
-            <a href="{{ route('admin.vendors.index') }}"
-               class="nav-link {{ request()->routeIs('admin.vendors.*') ? 'active' : '' }}">
-                <i class="bi bi-shop"></i> Vendors
-            </a>
+        <div class="collapse sidebar-group-body {{ $grpExpenses ? 'show' : '' }}" id="grp-expenses">
             <a href="{{ route('admin.expense-requests.index') }}"
                class="nav-link {{ request()->routeIs('admin.expense-requests.*') && !request()->routeIs('admin.expense-requests.create','admin.expense-requests.success') ? 'active' : '' }}">
-                <i class="bi bi-file-earmark-text"></i> Expense Requests
+                <i class="bi bi-file-earmark-text"></i> All Requests
             </a>
             <a href="{{ route('admin.expense-requests.create') }}"
                class="nav-link {{ request()->routeIs('admin.expense-requests.create','admin.expense-requests.success') ? 'active' : '' }}">
@@ -701,13 +692,47 @@
                class="nav-link {{ request()->routeIs('admin.payments.*') ? 'active' : '' }}">
                 <i class="bi bi-credit-card"></i> Payments
             </a>
+        </div>
+
+        {{-- Inventory ────────────────────────────────────────────── --}}
+        <button class="sidebar-group-btn {{ $grpInventory ? 'has-active' : '' }}"
+                data-bs-toggle="collapse" data-bs-target="#grp-inventory"
+                aria-expanded="{{ $grpInventory ? 'true' : 'false' }}">
+            <i class="bi bi-boxes sb-grp-icon"></i>
+            <span class="sb-grp-label">Inventory</span>
+            <i class="bi bi-chevron-down sidebar-chevron"></i>
+        </button>
+        <div class="collapse sidebar-group-body {{ $grpInventory ? 'show' : '' }}" id="grp-inventory">
             <a href="{{ route('admin.inventory.items.index') }}"
                class="nav-link {{ request()->routeIs('admin.inventory.*') ? 'active' : '' }}">
-                <i class="bi bi-boxes"></i> Inventory
+                <i class="bi bi-boxes"></i> Items
             </a>
             <a href="{{ route('admin.purchase-plans.index') }}"
                class="nav-link {{ request()->routeIs('admin.purchase-plans.*') ? 'active' : '' }}">
                 <i class="bi bi-cart3"></i> Purchase Plans
+            </a>
+        </div>
+
+        {{-- Setup ───────────────────────────────────────────────── --}}
+        <button class="sidebar-group-btn {{ $grpSetup ? 'has-active' : '' }}"
+                data-bs-toggle="collapse" data-bs-target="#grp-setup"
+                aria-expanded="{{ $grpSetup ? 'true' : 'false' }}">
+            <i class="bi bi-sliders sb-grp-icon"></i>
+            <span class="sb-grp-label">Setup</span>
+            <i class="bi bi-chevron-down sidebar-chevron"></i>
+        </button>
+        <div class="collapse sidebar-group-body {{ $grpSetup ? 'show' : '' }}" id="grp-setup">
+            <a href="{{ route('admin.employees.index') }}"
+               class="nav-link {{ request()->routeIs('admin.employees.*') ? 'active' : '' }}">
+                <i class="bi bi-people"></i> Employees
+            </a>
+            <a href="{{ route('admin.categories.index') }}"
+               class="nav-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">
+                <i class="bi bi-tag"></i> Categories
+            </a>
+            <a href="{{ route('admin.vendors.index') }}"
+               class="nav-link {{ request()->routeIs('admin.vendors.*') ? 'active' : '' }}">
+                <i class="bi bi-shop"></i> Vendors
             </a>
         </div>
 
@@ -784,6 +809,21 @@
             </a>
         </div>
 
+        {{-- Kitchen ─────────────────────────────────────────────── --}}
+        <button class="sidebar-group-btn {{ $grpKitchen ? 'has-active' : '' }}"
+                data-bs-toggle="collapse" data-bs-target="#grp-kitchen-admin"
+                aria-expanded="{{ $grpKitchen ? 'true' : 'false' }}">
+            <i class="bi bi-fire sb-grp-icon"></i>
+            <span class="sb-grp-label">Kitchen</span>
+            <i class="bi bi-chevron-down sidebar-chevron"></i>
+        </button>
+        <div class="collapse sidebar-group-body {{ $grpKitchen ? 'show' : '' }}" id="grp-kitchen-admin">
+            <a href="{{ route('kitchen.recipes.index') }}"
+               class="nav-link {{ request()->routeIs('kitchen.recipes.*') ? 'active' : '' }}">
+                <i class="bi bi-journal-richtext"></i> Recipe Library
+            </a>
+        </div>
+
     {{-- ══ MANAGER ════════════════════════════════════════════════ --}}
     @elseif($role === 'manager')
 
@@ -833,6 +873,21 @@
             </a>
         </div>
 
+        {{-- Kitchen ─────────────────────────────────────────────── --}}
+        <button class="sidebar-group-btn {{ $grpKitchen ? 'has-active' : '' }}"
+                data-bs-toggle="collapse" data-bs-target="#grp-kitchen-mgr"
+                aria-expanded="{{ $grpKitchen ? 'true' : 'false' }}">
+            <i class="bi bi-fire sb-grp-icon"></i>
+            <span class="sb-grp-label">Kitchen</span>
+            <i class="bi bi-chevron-down sidebar-chevron"></i>
+        </button>
+        <div class="collapse sidebar-group-body {{ $grpKitchen ? 'show' : '' }}" id="grp-kitchen-mgr">
+            <a href="{{ route('kitchen.recipes.index') }}"
+               class="nav-link {{ request()->routeIs('kitchen.recipes.*') ? 'active' : '' }}">
+                <i class="bi bi-journal-richtext"></i> Recipe Library
+            </a>
+        </div>
+
     {{-- ══ EMPLOYEE ════════════════════════════════════════════════ --}}
     @else
 
@@ -852,6 +907,14 @@
             <a href="{{ route('employee.wallet.show') }}"
                class="nav-link {{ request()->routeIs('employee.wallet.*') ? 'active' : '' }}">
                 <i class="bi bi-wallet2"></i> My Wallet
+            </a>
+            <a href="{{ route('employee.hall.bookings.calendar') }}"
+               class="nav-link {{ request()->routeIs('employee.hall.bookings.calendar') ? 'active' : '' }}">
+                <i class="bi bi-calendar3"></i> Hall Calendar
+            </a>
+            <a href="{{ route('employee.kitchen.calculator') }}"
+               class="nav-link {{ request()->routeIs('employee.kitchen.*') ? 'active' : '' }}">
+                <i class="bi bi-fire"></i> Kitchen Calculator
             </a>
         </div>
 
@@ -1017,6 +1080,11 @@
            class="ef-m-bottomnav-item {{ request()->routeIs('employee.expense-requests.index') ? 'active' : '' }}">
             <div class="ef-m-bottomnav-icon-wrap"><i class="bi bi-list-ul"></i></div>
             <span>Requests</span>
+        </a>
+        <a href="{{ route('employee.kitchen.calculator') }}"
+           class="ef-m-bottomnav-item {{ request()->routeIs('employee.kitchen.*') ? 'active' : '' }}">
+            <div class="ef-m-bottomnav-icon-wrap"><i class="bi bi-fire"></i></div>
+            <span>Kitchen</span>
         </a>
         <a href="{{ route('employee.wallet.show') }}"
            class="ef-m-bottomnav-item {{ request()->routeIs('employee.wallet.*') ? 'active' : '' }}">
