@@ -8,6 +8,7 @@ use App\Models\MenuItem;
 use App\Models\MenuTemplate;
 use App\Services\AuditLogService;
 use App\Services\MenuLetterheadService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -305,20 +306,36 @@ class MenuComposerController extends Controller
     }
 
     /**
-     * Render HTML to PDF using headless Chrome.
+     * Render HTML to PDF.
      *
-     * Chrome has full OpenType shaping (HarfBuzz) — Tamil renders correctly.
-     * dompdf has no shaping engine and cannot render Tamil script.
-     *
-     * @throws \RuntimeException on Chrome failure
+     * Prefers headless Chrome (full HarfBuzz shaping — Tamil renders correctly).
+     * Falls back to dompdf when Chrome is unavailable (e.g. production servers).
+     * Note: dompdf cannot shape Tamil script; English PDFs will still be correct.
      */
     private function renderPdfViaChrome(string $html): string
     {
-        $chrome = '/usr/bin/google-chrome';
-        if (! is_executable($chrome)) {
-            throw new \RuntimeException('Headless Chrome not found at ' . $chrome);
+        $chrome = $this->chromeBin();
+
+        if ($chrome) {
+            return $this->renderWithChrome($chrome, $html);
         }
 
+        Log::warning('[MenuPDF] Chrome not found — falling back to dompdf (Tamil shaping unavailable)');
+        return $this->renderWithDompdf($html);
+    }
+
+    private function chromeBin(): ?string
+    {
+        foreach (['/usr/bin/google-chrome', '/usr/bin/chromium-browser', '/usr/bin/chromium', '/usr/local/bin/google-chrome'] as $bin) {
+            if (is_executable($bin)) {
+                return $bin;
+            }
+        }
+        return null;
+    }
+
+    private function renderWithChrome(string $chrome, string $html): string
+    {
         $htmlFile = tempnam(sys_get_temp_dir(), 'menupdf_') . '.html';
         $pdfFile  = sys_get_temp_dir() . '/' . basename($htmlFile, '.html') . '.pdf';
 
@@ -354,6 +371,12 @@ class MenuComposerController extends Controller
             @unlink($htmlFile);
             @unlink($pdfFile);
         }
+    }
+
+    private function renderWithDompdf(string $html): string
+    {
+        $pdf = Pdf::loadHTML($html)->setPaper('a4', 'portrait');
+        return $pdf->output();
     }
 
     // ── Private helpers ────────────────────────────────────────────────────
