@@ -588,11 +588,14 @@ ln -sfn "${RELEASE_DIR}" "${CURRENT_LINK}"
 ARTISAN="${PHP} ${CURRENT_LINK}/artisan"
 
 ${ARTISAN} optimize:clear || log_warn "optimize:clear failed — stale caches may persist"
+${ARTISAN} optimize || log_warn "optimize failed — framework bootstrap caches may be incomplete"
 ${ARTISAN} storage:link 2>/dev/null || true
 [[ ! -L "${RELEASE_DIR}/public/storage" ]] && log_warn "public/storage symlink missing — file uploads may be inaccessible"
 
 ${ARTISAN} config:cache --no-interaction \
     || die_class "CACHE_FAILURE" "config:cache failed. Run: php artisan config:cache on server for details"
+${ARTISAN} route:clear --no-interaction \
+    || log_warn "route:clear failed — stale route cache may persist"
 ${ARTISAN} route:cache --no-interaction \
     || die_class "CACHE_FAILURE" "route:cache failed. Run: php artisan route:list on server for details"
 ${ARTISAN} view:cache --no-interaction \

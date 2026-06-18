@@ -760,6 +760,45 @@
     .ef-bk-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .ef-bk-kpi-row { grid-template-columns: repeat(5, minmax(108px, 1fr)); min-width: unset; }
 }
+
+/* ── Group section headers ──────────────────────────────────────── */
+.ef-bk-grp-hdr {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 2px 4px;
+    font-size: .72rem;
+    font-weight: 760;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--bk-muted);
+    border-bottom: 1px solid var(--bk-border);
+    margin-bottom: 0;
+}
+.ef-bk-grp-hdr.--today  { color: var(--bk-gold); border-bottom-color: rgba(138,108,48,.2); }
+.ef-bk-grp-hdr.--past   { color: var(--bk-faint); }
+.ef-bk-grp-hdr-dot {
+    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+    background: currentColor; opacity: .65;
+}
+.ef-bk-grp-hdr.--today .ef-bk-grp-hdr-dot { animation: bk-pulse 1.8s ease-in-out infinite; opacity: 1; }
+
+/* ── Scroll sentinel & loader ───────────────────────────────────── */
+.ef-bk-scroll-sentinel { height: 1px; grid-column: 1 / -1; }
+.ef-bk-scroll-loader {
+    display: none; text-align: center; padding: 24px;
+    color: var(--bk-muted); font-size: .88rem;
+    grid-column: 1 / -1;
+}
+.ef-bk-scroll-loader.show { display: block; }
+.ef-bk-scroll-spinner {
+    display: inline-block; width: 18px; height: 18px;
+    border: 2px solid var(--bk-border-s); border-top-color: var(--bk-gold);
+    border-radius: 50%; animation: bk-spin .7s linear infinite;
+    vertical-align: middle; margin-right: 6px;
+}
+@keyframes bk-spin { to { transform: rotate(360deg); } }
 </style>
 @endpush
 
@@ -977,143 +1016,19 @@ $avatarTones = ['#7a5a28','#3e6a5a','#4a5e8a','#6a4e7a','#5a6840'];
                style="color:var(--bk-gold);font-weight:660;text-decoration:none">Clear</a>
         @endif
     </span>
-    <span>By date ↓</span>
+    <span>Today · Upcoming · Past</span>
 </div>
 
 {{-- ═══════════════════════════════════════════════════════════════
      BOOKING CARDS
 ═══════════════════════════════════════════════════════════════════ --}}
 @if($bookings->isNotEmpty())
-<div class="ef-bk-list">
-    @foreach($bookings as $b)
-    @php
-        $tone   = $avatarTones[ord(strtoupper($b->customer_name[0] ?? 'A')) % count($avatarTones)];
-        $meals  = collect(['Breakfast' => $b->has_breakfast, 'Lunch' => $b->has_lunch, 'Dinner' => $b->has_dinner])->filter()->keys();
-        $waUrl  = 'https://wa.me/91' . preg_replace('/\D/', '', $b->customer_mobile ?? '');
-        $evType = \App\Models\HallBooking::eventTypes()[$b->event_type] ?? ucwords(str_replace('_', ' ', $b->event_type));
-    @endphp
-
-    <div class="ef-bk-card --{{ $b->status }}">
-
-        {{-- Row 1: Avatar · Name · Event type · Status --}}
-        <div class="ef-bk-r1">
-            <div class="ef-bk-av" style="background:{{ $tone }}">
-                {{ strtoupper(mb_substr($b->customer_name, 0, 1)) }}
-            </div>
-            <div class="ef-bk-r1-text">
-                <div class="ef-bk-name">{{ $b->customer_name }}</div>
-                <div class="ef-bk-evtype">{{ $evType }}</div>
-            </div>
-            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
-                <span class="ef-bk-badge --{{ $b->status }}">{{ $b->status }}</span>
-                <x-booking-type-badge :type="$b->booking_type" size="xs" />
-            </div>
-        </div>
-
-        {{-- Amount + payment status — most operationally important --}}
-        <div class="ef-bk-amount-row">
-            <div class="ef-bk-amt">₹{{ number_format($b->total_amount) }}</div>
-            <span class="ef-bk-pchip --{{ $b->payment_status }}">
-                {{ \App\Models\HallBooking::paymentStatuses()[$b->payment_status] ?? $b->payment_status }}
-            </span>
-        </div>
-
-        {{-- Meta: Hall · Date · Time · Guests --}}
-        <div class="ef-bk-rows">
-            <div class="ef-bk-mrow">
-                <span class="ef-bk-mitem">
-                    <i class="bi {{ $b->isFoodOnly() ? 'bi-cup-hot' : 'bi-building' }}"></i>
-                    {{ $b->location_label }}
-                </span>
-                <span class="ef-bk-mdot"></span>
-                <span class="ef-bk-mitem"><i class="bi bi-calendar3"></i> {{ $b->booking_date->format('d M') }}</span>
-            </div>
-            <div class="ef-bk-mrow">
-                <span class="ef-bk-mitem">
-                    <i class="bi bi-clock"></i>
-                    {{ \Carbon\Carbon::parse($b->start_time)->format('h:i A') }}
-                </span>
-                <span class="ef-bk-mdot"></span>
-                <span class="ef-bk-mitem"><i class="bi bi-people"></i> {{ number_format($b->number_of_people) }}</span>
-                @if($b->mealPlan || $meals->isNotEmpty())
-                    <span class="ef-bk-mdot"></span>
-                    <span class="ef-bk-mitem"><i class="bi bi-egg-fried"></i> Catering</span>
-                @endif
-            </div>
-        </div>
-
-        {{-- Meal tags --}}
-        @if($meals->isNotEmpty())
-            <div class="ef-bk-meal-tags">
-                @foreach($meals as $m)
-                    <span class="ef-bk-meal-tag">{{ $m }}</span>
-                @endforeach
-            </div>
-        @endif
-
-        {{-- Footer: actions --}}
-        <div class="ef-bk-foot">
-            <div class="ef-bk-acts">
-                {{-- Primary: View Booking --}}
-                <a href="{{ route('hall.bookings.show', $b) }}" class="ef-bk-act --primary">
-                    <i class="bi bi-eye"></i> View
-                </a>
-                {{-- Desktop-visible icon buttons (hidden on mobile ≤639px via CSS) --}}
-                <a href="{{ route('hall.bookings.invoice', $b) }}" class="ef-bk-act --ico"
-                   target="_blank" title="Invoice">
-                    <i class="bi bi-receipt"></i>
-                </a>
-                <a href="{{ $waUrl }}" class="ef-bk-act --ico --wa" target="_blank" title="WhatsApp">
-                    <i class="bi bi-whatsapp"></i>
-                </a>
-                {{-- Overflow menu — visible always --}}
-                <div class="dropdown">
-                    <button class="ef-bk-more" type="button"
-                            data-bs-toggle="dropdown"
-                            data-bs-offset="0,4"
-                            aria-expanded="false"
-                            aria-label="More actions">
-                        <i class="bi bi-three-dots"></i>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li>
-                            <a class="dropdown-item" href="{{ route('hall.bookings.show', $b) }}">
-                                <i class="bi bi-eye me-2" style="color:var(--bk-faint)"></i>View Booking
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="{{ route('hall.bookings.edit', $b) }}">
-                                <i class="bi bi-pencil me-2" style="color:var(--bk-faint)"></i>Edit Booking
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="{{ route('hall.bookings.show', $b) }}#record-payment">
-                                <i class="bi bi-cash-coin me-2" style="color:var(--bk-faint)"></i>Record Payment
-                            </a>
-                        </li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li>
-                            <a class="dropdown-item" href="{{ route('hall.bookings.invoice', $b) }}" target="_blank">
-                                <i class="bi bi-receipt me-2" style="color:var(--bk-faint)"></i>View Invoice
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="{{ route('hall.bookings.invoice.pdf', $b) }}">
-                                <i class="bi bi-file-pdf me-2" style="color:var(--bk-faint)"></i>Download PDF
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="{{ $waUrl }}" target="_blank" rel="noopener">
-                                <i class="bi bi-whatsapp me-2" style="color:#25d366"></i>Share via WhatsApp
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
+<div class="ef-bk-list" id="efBkList">
+    @include('hall.bookings._booking_cards', ['bookings' => $bookings, 'today' => $today])
+    <div class="ef-bk-scroll-sentinel" id="efBkSentinel"></div>
+    <div class="ef-bk-scroll-loader" id="efBkLoader">
+        <span class="ef-bk-scroll-spinner"></span> Loading more…
     </div>
-    @endforeach
 </div>
 
 @else
@@ -1150,13 +1065,6 @@ $avatarTones = ['#7a5a28','#3e6a5a','#4a5e8a','#6a4e7a','#5a6840'];
 </div>
 @endif
 
-{{-- Pagination --}}
-@if($bookings->hasPages())
-    <div class="ef-bk-pagination">
-        {{ $bookings->links() }}
-    </div>
-@endif
-
 </div>{{-- /shell --}}
 
 {{-- FAB — mobile new booking, positioned above bottom nav --}}
@@ -1179,6 +1087,101 @@ document.getElementById('bkFilterForm').addEventListener('submit', function () {
         if (!el.value.trim()) el.disabled = true;
     });
 });
+
+// ── Group headers + infinite scroll ────────────────────────────────────────
+(function () {
+    var GROUP_LABELS = { today: 'Today', upcoming: 'Upcoming', past: 'Past Bookings' };
+
+    function makeGroupHeader(group) {
+        var el = document.createElement('div');
+        el.className = 'ef-bk-grp-hdr --' + group;
+        el.dataset.group = group;
+        el.innerHTML = '<span class="ef-bk-grp-hdr-dot"></span>' + (GROUP_LABELS[group] || group);
+        return el;
+    }
+
+    // Insert group-transition headers among card nodes, returns new lastGroup
+    function injectHeaders(cards, container, lastGroup) {
+        var cur = lastGroup;
+        cards.forEach(function (card) {
+            var g = card.dataset && card.dataset.group;
+            if (!g) return;
+            if (g !== cur) {
+                container.insertBefore(makeGroupHeader(g), card);
+                cur = g;
+            }
+        });
+        return cur;
+    }
+
+    // Run on initial page cards
+    var list = document.getElementById('efBkList');
+    if (list) {
+        var initial = Array.from(list.querySelectorAll('.ef-bk-card'));
+        injectHeaders(initial, list, null);
+    }
+
+    // Infinite scroll
+    var sentinel = document.getElementById('efBkSentinel');
+    var loader   = document.getElementById('efBkLoader');
+    if (!sentinel || !list) return;
+
+    var nextPage  = {{ $bookings->hasMorePages() ? $bookings->currentPage() + 1 : 'null' }};
+    var hasMore   = {{ $bookings->hasMorePages() ? 'true' : 'false' }};
+    var loading   = false;
+    var lastGroup = (function () {
+        var hdrs = list.querySelectorAll('.ef-bk-grp-hdr');
+        return hdrs.length ? hdrs[hdrs.length - 1].dataset.group : null;
+    })();
+
+    if (!hasMore) { sentinel.remove(); return; }
+
+    function loadMore() {
+        if (loading || !hasMore) return;
+        loading = true;
+        loader.classList.add('show');
+
+        var params = new URLSearchParams(window.location.search);
+        params.set('page', nextPage);
+        var url = window.location.pathname + '?' + params.toString();
+
+        fetch(url, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.html) {
+                    var tmp = document.createElement('div');
+                    tmp.innerHTML = data.html;
+                    var newCards = Array.from(tmp.querySelectorAll('.ef-bk-card'));
+
+                    // Build a fragment with headers, then append before sentinel
+                    var frag = document.createDocumentFragment();
+                    var cur  = lastGroup;
+                    newCards.forEach(function (card) {
+                        var g = card.dataset.group;
+                        if (g && g !== cur) {
+                            frag.appendChild(makeGroupHeader(g));
+                            cur = g;
+                        }
+                        frag.appendChild(card);
+                    });
+                    lastGroup = cur;
+                    list.insertBefore(frag, sentinel);
+                }
+                hasMore  = data.hasMore;
+                nextPage = data.nextPage;
+                loading  = false;
+                loader.classList.remove('show');
+                if (!hasMore) { observer.disconnect(); sentinel.remove(); }
+            })
+            .catch(function () { loading = false; loader.classList.remove('show'); });
+    }
+
+    var observer = new IntersectionObserver(function (entries) {
+        if (entries[0].isIntersecting) loadMore();
+    }, { rootMargin: '300px' });
+
+    observer.observe(sentinel);
+})();
 </script>
 @endpush
 

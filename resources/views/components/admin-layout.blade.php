@@ -638,6 +638,7 @@
     $grpOps       = request()->routeIs('admin.daily-closings.*','admin.audit-logs.*','admin.settings.*');
     $grpHall      = request()->routeIs('hall.*');
     $grpKitchen   = request()->routeIs('kitchen.recipes.*');
+    $grpMenu      = request()->routeIs('menu.*');
     $grpAccount   = request()->routeIs('notifications.*','profile.*');
     $nc           = $sbUser->hasMany(\App\Models\AppNotification::class)->whereNull('read_at')->count();
 @endphp
@@ -810,17 +811,29 @@
         </div>
 
         {{-- Kitchen ─────────────────────────────────────────────── --}}
-        <button class="sidebar-group-btn {{ $grpKitchen ? 'has-active' : '' }}"
+        <button class="sidebar-group-btn {{ ($grpKitchen || $grpMenu) ? 'has-active' : '' }}"
                 data-bs-toggle="collapse" data-bs-target="#grp-kitchen-admin"
-                aria-expanded="{{ $grpKitchen ? 'true' : 'false' }}">
+                aria-expanded="{{ ($grpKitchen || $grpMenu) ? 'true' : 'false' }}">
             <i class="bi bi-fire sb-grp-icon"></i>
             <span class="sb-grp-label">Kitchen</span>
             <i class="bi bi-chevron-down sidebar-chevron"></i>
         </button>
-        <div class="collapse sidebar-group-body {{ $grpKitchen ? 'show' : '' }}" id="grp-kitchen-admin">
+        <div class="collapse sidebar-group-body {{ ($grpKitchen || $grpMenu) ? 'show' : '' }}" id="grp-kitchen-admin">
             <a href="{{ route('kitchen.recipes.index') }}"
                class="nav-link {{ request()->routeIs('kitchen.recipes.*') ? 'active' : '' }}">
                 <i class="bi bi-journal-richtext"></i> Recipe Library
+            </a>
+            <a href="{{ route('menu.composer.index') }}"
+               class="nav-link {{ request()->routeIs('menu.composer.*','menu.drafts.*') ? 'active' : '' }}">
+                <i class="bi bi-pencil-square"></i> Menu Composer
+            </a>
+            <a href="{{ route('menu.templates.index') }}"
+               class="nav-link {{ request()->routeIs('menu.templates.*') ? 'active' : '' }}">
+                <i class="bi bi-collection"></i> Menu Templates
+            </a>
+            <a href="{{ route('menu.items.index') }}"
+               class="nav-link {{ request()->routeIs('menu.items.*') ? 'active' : '' }}">
+                <i class="bi bi-journal-text"></i> Menu Items
             </a>
         </div>
 

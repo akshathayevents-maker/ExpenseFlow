@@ -14,15 +14,24 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class HallBookingController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request): View|JsonResponse
     {
+        $today = now()->toDateString();
+
         $query = HallBooking::with(['hall', 'mealPlan', 'creator'])
-            ->orderByDesc('booking_date')
-            ->orderByDesc('created_at');
+            // Today first (0) → future ascending (1) → past descending (2)
+            ->orderByRaw(
+                'CASE WHEN DATE(booking_date) = ? THEN 0 WHEN DATE(booking_date) > ? THEN 1 ELSE 2 END',
+                [$today, $today]
+            )
+            ->orderByRaw('CASE WHEN DATE(booking_date) >= ? THEN booking_date END ASC', [$today])
+            ->orderByRaw('CASE WHEN DATE(booking_date) < ? THEN booking_date END DESC', [$today])
+            ->orderBy('start_time');
 
         if ($request->filled('hall_id')) {
             $query->where('hall_id', $request->hall_id);
@@ -48,7 +57,22 @@ class HallBookingController extends Controller
         }
 
         $bookings = $query->paginate(15)->withQueryString();
-        $halls    = Hall::active()->orderBy('name')->get();
+
+        // AJAX infinite-scroll: return rendered card HTML + pagination meta
+        if ($request->expectsJson()) {
+            $html = view('hall.bookings._booking_cards', [
+                'bookings' => $bookings,
+                'today'    => $today,
+            ])->render();
+
+            return response()->json([
+                'html'     => $html,
+                'hasMore'  => $bookings->hasMorePages(),
+                'nextPage' => $bookings->currentPage() + 1,
+            ]);
+        }
+
+        $halls = Hall::active()->orderBy('name')->get();
 
         $monthOccupied = HallBooking::whereMonth('booking_date', now()->month)
             ->whereYear('booking_date', now()->year)
@@ -66,7 +90,7 @@ class HallBookingController extends Controller
                 ->sum('number_of_people'),
         ];
 
-        return view('hall.bookings.index', compact('bookings', 'halls', 'stats'));
+        return view('hall.bookings.index', compact('bookings', 'halls', 'stats', 'today'));
     }
 
     public function create(): View

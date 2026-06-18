@@ -28,6 +28,8 @@ use App\Http\Controllers\Hall\HallReportController;
 use App\Http\Controllers\Hall\MealPlanController;
 use App\Http\Controllers\Kitchen\RecipeController;
 use App\Http\Controllers\Employee\KitchenController as EmployeeKitchenController;
+use App\Http\Controllers\Menu\MenuItemController;
+use App\Http\Controllers\Menu\MenuComposerController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaymentRequestController;
 use App\Http\Controllers\ProfileController;
@@ -249,6 +251,42 @@ Route::prefix('hall')->name('hall.')->middleware(['auth', 'verified', 'role.hall
 
     // Reports
     Route::get('reports',                               [HallReportController::class, 'index'])->name('reports.index');
+});
+
+// ── Menu Composer (admin only) ────────────────────────────────────────────────
+Route::prefix('menu')->name('menu.')->middleware(['auth', 'verified', 'role.admin'])->group(function () {
+
+    // Menu Item Master
+    Route::get('items',                          [MenuItemController::class, 'index'])->name('items.index');
+    Route::get('items/create',                   [MenuItemController::class, 'create'])->name('items.create');
+    Route::post('items',                         [MenuItemController::class, 'store'])->name('items.store');
+    Route::get('items/search',                   [MenuItemController::class, 'search'])->name('items.search');
+    Route::get('items/translate',                [MenuItemController::class, 'translate'])->name('items.translate');
+    Route::get('items/{item}/edit',              [MenuItemController::class, 'edit'])->name('items.edit');
+    Route::put('items/{item}',                   [MenuItemController::class, 'update'])->name('items.update');
+    Route::patch('items/{item}/toggle',          [MenuItemController::class, 'toggle'])->name('items.toggle');
+    Route::delete('items/{item}',                [MenuItemController::class, 'destroy'])->name('items.destroy');
+
+    // Menu Composer (draft management)
+    Route::get('composer',                       [MenuComposerController::class, 'index'])->name('composer.index');
+    Route::get('composer/create',                [MenuComposerController::class, 'create'])->name('composer.create');
+
+    // Draft CRUD (AJAX + web)
+    Route::post('drafts',                        [MenuComposerController::class, 'storeDraft'])->name('drafts.store');
+    Route::put('drafts/{draft}',                 [MenuComposerController::class, 'updateDraft'])->name('drafts.update');
+    Route::delete('drafts/{draft}',              [MenuComposerController::class, 'destroyDraft'])->name('drafts.destroy');
+    Route::get('drafts/{draft}/edit',            [MenuComposerController::class, 'edit'])->name('drafts.edit');
+    Route::post('drafts/{draft}/duplicate',      [MenuComposerController::class, 'duplicateDraft'])->name('drafts.duplicate');
+
+    // Templates
+    Route::get('templates',                      [MenuComposerController::class, 'templatesIndex'])->name('templates.index');
+    Route::post('templates',                     [MenuComposerController::class, 'storeTemplate'])->name('templates.store');
+    Route::put('templates/{template}',           [MenuComposerController::class, 'updateTemplate'])->name('templates.update');
+    Route::delete('templates/{template}',        [MenuComposerController::class, 'destroyTemplate'])->name('templates.destroy');
+    Route::post('templates/{template}/load',     [MenuComposerController::class, 'loadTemplate'])->name('templates.load');
+
+    // PDF generation — POST returns PDF download stream
+    Route::post('pdf',                           [MenuComposerController::class, 'generatePdf'])->name('pdf.generate');
 });
 
 // ── Notifications (all authenticated users) ───────────────────────────────────
