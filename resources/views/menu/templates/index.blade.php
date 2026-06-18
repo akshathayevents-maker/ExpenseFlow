@@ -34,20 +34,7 @@
     .mt-btn.--del    { background: #fff3f3; color: #c0392b; border: 1px solid #fdd; }
     .mt-btn.--del:hover   { background: #ffe0e0; }
 
-    /* Create form */
-    .mt-create-card {
-        background: #faf8f5;
-        border: 2px dashed #d0c4b4;
-        border-radius: 12px;
-        padding: 20px;
-    }
-    .mt-form-label { font-size: .8rem; font-weight: 600; color: #7a6e62; text-transform: uppercase; letter-spacing: .05em; display: block; margin-bottom: 4px; }
-    .mt-form-input { width: 100%; border: 1px solid #ddd; border-radius: 8px; padding: 8px 12px; font-size: .9rem; color: #1a1410; background: #fff; outline: none; }
-    .mt-form-input:focus { border-color: #a0723a; box-shadow: 0 0 0 3px rgba(160,114,58,.12); }
-    .mt-form-gap { margin-top: 10px; }
-    .mt-save-btn { margin-top: 14px; background: #a0723a; color: #fff; border: none; border-radius: 8px; padding: 9px 22px; font-size: .9rem; font-weight: 600; cursor: pointer; }
-    .mt-save-btn:hover { background: #8a6030; }
-    </style>
+</style>
 
     <div class="mt-shell">
         <div class="mt-hdr">
@@ -63,24 +50,6 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         @endif
-
-        {{-- Create new template form --}}
-        <div class="mt-create-card mb-4">
-            <p style="font-size:.85rem;font-weight:700;color:#a0723a;margin-bottom:12px"><i class="bi bi-plus-circle me-1"></i> Save Current Composer State as Template</p>
-            <p style="font-size:.82rem;color:#9a8a7a;margin-bottom:14px">
-                Open a draft in the composer, build the menu structure, then come here and save it as a reusable template. Templates store only menu items — not venue, date, or guest count.
-            </p>
-            <label class="mt-form-label" for="tplName">Template Name</label>
-            <input type="text" id="tplName" class="mt-form-input" placeholder="e.g. Standard Wedding Lunch" maxlength="255">
-            <div class="mt-form-gap">
-                <label class="mt-form-label" for="tplDesc">Description (optional)</label>
-                <input type="text" id="tplDesc" class="mt-form-input" placeholder="e.g. 8-course South Indian lunch for 200 pax" maxlength="500">
-            </div>
-            <p style="font-size:.78rem;color:#b09070;margin-top:10px;margin-bottom:0">
-                <i class="bi bi-info-circle me-1"></i>
-                To save a specific menu structure: open that draft, then use the <strong>Save as Template</strong> button in the composer action bar.
-            </p>
-        </div>
 
         {{-- Templates grid --}}
         @if($templates->isEmpty())

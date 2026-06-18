@@ -365,7 +365,13 @@
             background: rgba(184,137,62,.07);
             color: #F5E7C8;
         }
-        .sidebar-group-btn.has-active { color: rgba(245,231,200,.9); }
+        .sidebar-group-btn.has-active {
+            color: #FFE99A;
+            background: rgba(184,137,62,.22);
+            border-color: rgba(214,185,122,.45);
+            box-shadow: inset 3px 0 0 rgba(214,185,122,.8);
+            font-weight: 700;
+        }
 
         /* Group icon (matches .bi slot on nav-links) */
         .sb-grp-icon {
@@ -375,27 +381,34 @@
             transition: color .18s ease;
         }
         .sidebar-group-btn:hover   .sb-grp-icon { color: #D6B97A; }
-        .sidebar-group-btn.has-active .sb-grp-icon { color: #D6B97A; }
+        .sidebar-group-btn.has-active .sb-grp-icon { color: #FFE99A; }
 
         /* Label fills remaining space */
         .sb-grp-label { flex: 1; }
 
         /* Chevron — animated on expand/collapse */
         .sidebar-chevron {
-            font-size: .72rem; flex-shrink: 0; margin-left: 4px;
-            color: rgba(214,185,122,.3);
+            font-size: .82rem; flex-shrink: 0; margin-left: 4px;
+            color: rgba(214,185,122,.75);
             transition: transform .22s ease, color .18s ease;
         }
-        .sidebar-group-btn:hover .sidebar-chevron { color: rgba(214,185,122,.55); }
+        .sidebar-group-btn:hover .sidebar-chevron { color: rgba(214,185,122,1); }
+        .sidebar-group-btn.has-active .sidebar-chevron { color: rgba(214,185,122,1); }
         .sidebar-group-btn[aria-expanded="false"] .sidebar-chevron { transform: rotate(-90deg); }
         .sidebar-group-btn[aria-expanded="true"]  .sidebar-chevron { transform: rotate(0deg); }
 
-        /* Child links inside accordion body — extra left indent for hierarchy */
-        .sidebar-group-body { padding: 2px 0; }
+        /* Child links inside accordion body — extra left indent + left border track */
+        .sidebar-group-body { padding: 2px 0; border-left: 2px solid rgba(214,185,122,.15); margin-left: 22px; margin-right: 10px; border-radius: 0 0 0 4px; }
         .sidebar-group-body .nav-link {
-            padding-left: 2.85rem;
+            padding-left: 1.6rem;
             font-size: .8rem;
             min-height: 38px;
+            margin-left: 0; margin-right: 0;
+            width: 100%; border-radius: 0 8px 8px 0;
+        }
+        .sidebar-group-body .nav-link.active {
+            border-left: 2px solid rgba(214,185,122,.9);
+            margin-left: -2px;
         }
 
         /* Divider */
@@ -826,10 +839,6 @@
             <a href="{{ route('menu.composer.index') }}"
                class="nav-link {{ request()->routeIs('menu.composer.*','menu.drafts.*') ? 'active' : '' }}">
                 <i class="bi bi-pencil-square"></i> Menu Composer
-            </a>
-            <a href="{{ route('menu.templates.index') }}"
-               class="nav-link {{ request()->routeIs('menu.templates.*') ? 'active' : '' }}">
-                <i class="bi bi-collection"></i> Menu Templates
             </a>
             <a href="{{ route('menu.items.index') }}"
                class="nav-link {{ request()->routeIs('menu.items.*') ? 'active' : '' }}">
