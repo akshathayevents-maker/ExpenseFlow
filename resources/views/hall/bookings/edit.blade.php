@@ -118,6 +118,39 @@
 /* Avail indicator */
 #availStatus { min-height: 24px; }
 
+/* ── Add-On Services ── */
+.ef-addon-section-header { display:flex; align-items:flex-start; gap:14px; margin-bottom:20px; }
+.ef-addon-icon-orb { width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,#1a1a1a,#3d3d3d);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.15rem;flex-shrink:0;margin-top:2px;box-shadow:0 3px 10px rgba(0,0,0,.18); }
+.ef-addon-title-block { flex:1;min-width:0; }
+.ef-addon-chips { display:flex;flex-wrap:wrap;align-items:center;gap:7px;padding:12px 14px;background:#fafaf8;border:1px solid var(--ef-border);border-radius:10px;margin-bottom:18px; }
+.ef-addon-chip-label { font-size:.68rem;font-weight:800;color:var(--ef-faint);letter-spacing:.09em;text-transform:uppercase;white-space:nowrap;margin-right:4px; }
+.ef-addon-chip { padding:5px 13px;border:1px solid var(--ef-border);border-radius:20px;background:#fff;color:var(--ef-ink-2);font-size:.78rem;font-weight:600;cursor:pointer;transition:background .14s,color .14s,border-color .14s,transform .12s;white-space:nowrap; }
+.ef-addon-chip:hover { background:#1a1a1a;color:#fff;border-color:#1a1a1a;transform:translateY(-2px); }
+.ef-addon-col-headers { display:flex;gap:10px;padding:0 16px 10px;border-bottom:1.5px solid var(--ef-border);margin-bottom:10px; }
+.ef-addon-col-h { font-size:.67rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--ef-faint); }
+.ef-addon-col-name { flex:0 0 38%;min-width:0; }
+.ef-addon-col-desc { flex:0 0 32%;min-width:0; }
+.ef-addon-col-amt  { flex:0 0 22%;min-width:0; }
+.ef-addon-col-del  { flex:0 0 8%;display:flex;align-items:center;justify-content:center; }
+.ef-addon-card { background:#fff;border:1px solid var(--ef-border);border-radius:12px;padding:12px 14px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.04);transition:border-color .15s,box-shadow .15s;animation:efAddonIn .22s cubic-bezier(.34,1.28,.64,1); }
+.ef-addon-card:hover { border-color:#c8c4bb;box-shadow:0 3px 14px rgba(0,0,0,.08); }
+@keyframes efAddonIn { from{opacity:0;transform:translateY(-10px) scale(.97)} to{opacity:1;transform:translateY(0) scale(1)} }
+.ef-addon-row { display:flex;align-items:flex-end;gap:10px; }
+.ef-addon-mobile-label { display:none;font-size:.67rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--ef-faint);margin-bottom:5px; }
+.ef-addon-amount-input { text-align:right!important;font-weight:700!important;font-variant-numeric:tabular-nums; }
+.ef-addon-amount-input:focus { text-align:left!important; }
+.ef-addon-remove { width:36px;height:36px;border:1.5px solid var(--ef-border);border-radius:50%;background:transparent;color:var(--ef-faint);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.78rem;transition:background .14s,color .14s,border-color .14s,transform .12s; }
+.ef-addon-remove:hover { background:#fee2e2;color:#dc2626;border-color:#fca5a5;transform:scale(1.12); }
+.ef-addon-empty { border:2px dashed var(--ef-border);border-radius:14px;padding:40px 24px;text-align:center;background:#fafaf8;margin:2px 0 14px; }
+.ef-addon-empty-icon { font-size:2rem;color:var(--ef-faint);opacity:.45;margin-bottom:10px; }
+.ef-addon-empty-title { font-size:.9rem;font-weight:700;color:#999;margin-bottom:5px; }
+.ef-addon-empty-body { font-size:.78rem;color:var(--ef-faint);max-width:320px;margin:0 auto;line-height:1.55; }
+.ef-addon-subtotal { display:flex;align-items:center;gap:8px;padding:10px 14px;background:#fafaf8;border:1px solid var(--ef-border);border-radius:8px;margin-top:10px;font-size:.84rem;color:var(--ef-ink-2); }
+.ef-addon-subtotal strong { margin-left:auto;font-size:1rem;font-variant-numeric:tabular-nums; }
+.ef-addon-actions { margin-top:14px; }
+.ef-addon-add-btn { display:inline-flex;align-items:center;gap:8px;padding:10px 22px;background:#1a1a1a;color:#fff;border:none;border-radius:10px;font-size:.84rem;font-weight:700;cursor:pointer;transition:background .14s,transform .12s,box-shadow .14s;box-shadow:0 2px 8px rgba(0,0,0,.16); }
+.ef-addon-add-btn:hover { background:#333;transform:translateY(-2px);box-shadow:0 5px 18px rgba(0,0,0,.2); }
+
 /* Booking type picker */
 .ef-type-picker { display:flex; gap:10px; flex-wrap:wrap; margin-top:6px; }
 .ef-type-opt {
@@ -395,6 +428,10 @@
                     <span style="color:var(--ef-muted)">Catering</span>
                     <span id="bdMeal" style="color:var(--ef-emerald)">₹0</span>
                 </div>
+                <div class="ef-eb-breakdown-row" id="bdAddonsRow" style="display:none">
+                    <span style="color:var(--ef-muted)">Add-Ons</span>
+                    <span id="bdAddons">₹0</span>
+                </div>
                 <div class="ef-eb-breakdown-row total">
                     <span>Total</span>
                     <span id="bdTotal" style="color:var(--ef-ink)">₹0</span>
@@ -403,6 +440,104 @@
                     <span style="color:var(--ef-muted)">Balance Due</span>
                     <span id="bdBalance" style="color:var(--ef-danger)">₹0</span>
                 </div>
+            </div>
+        </div>
+
+        {{-- ─── Add-On Services ─── --}}
+        <div class="ef-eb-section">
+            <div class="ef-addon-section-header">
+                <div class="ef-addon-icon-orb"><i class="bi bi-stars"></i></div>
+                <div class="ef-addon-title-block">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+                        <span class="ef-eb-section-label" style="margin-bottom:0">4</span>
+                        <strong style="font-size:.95rem;color:var(--ef-ink)">Add-On Services</strong>
+                    </div>
+                    <p style="font-size:.78rem;color:var(--ef-muted);margin:0;line-height:1.5">Enhance the event with premium extras — decoration, photography, DJ, lighting &amp; more. Each service is itemized separately on the invoice.</p>
+                </div>
+            </div>
+
+            <div class="ef-addon-chips" id="addonChips">
+                <span class="ef-addon-chip-label">Quick add:</span>
+                <button type="button" class="ef-addon-chip" data-name="Decoration">🎨 Decoration</button>
+                <button type="button" class="ef-addon-chip" data-name="Photography">📷 Photography</button>
+                <button type="button" class="ef-addon-chip" data-name="DJ">🎵 DJ</button>
+                <button type="button" class="ef-addon-chip" data-name="Lighting">💡 Lighting</button>
+                <button type="button" class="ef-addon-chip" data-name="Stage Setup">🎪 Stage Setup</button>
+                <button type="button" class="ef-addon-chip" data-name="Sound System">🔊 Sound System</button>
+                <button type="button" class="ef-addon-chip" data-name="Flower Setup">🌸 Flower Setup</button>
+                <button type="button" class="ef-addon-chip" data-name="Generator">⚡ Generator</button>
+            </div>
+
+            <datalist id="addonServiceSuggestions">
+                <option value="Decoration"><option value="Photography"><option value="Videography">
+                <option value="DJ"><option value="Live Band"><option value="Lighting">
+                <option value="Stage Setup"><option value="Sound System"><option value="Flower Setup">
+                <option value="Generator"><option value="Catering Add-on"><option value="Tent / Shamiana">
+                <option value="Security"><option value="Valet Parking"><option value="Welcome Arch">
+                <option value="Cake"><option value="Fireworks"><option value="Kids Entertainment">
+            </datalist>
+
+            <div class="ef-addon-col-headers">
+                <div class="ef-addon-col-h ef-addon-col-name">Service</div>
+                <div class="ef-addon-col-h ef-addon-col-desc">Description <span style="font-weight:400;text-transform:none">(optional)</span></div>
+                <div class="ef-addon-col-h ef-addon-col-amt">Amount</div>
+                <div class="ef-addon-col-h ef-addon-col-del"></div>
+            </div>
+
+            <div id="servicesContainer">
+                @foreach($oldServices as $i => $svc)
+                <div class="ef-addon-card" data-index="{{ $i }}">
+                    <div class="ef-addon-row">
+                        <div class="ef-addon-col-name">
+                            <label class="ef-addon-mobile-label">Service</label>
+                            <input type="text" name="services[{{ $i }}][service_name]"
+                                   class="ef-input ef-addon-name-input"
+                                   value="{{ $svc['service_name'] ?? '' }}"
+                                   placeholder="e.g. Decoration, DJ…"
+                                   list="addonServiceSuggestions" autocomplete="off" required>
+                        </div>
+                        <div class="ef-addon-col-desc">
+                            <label class="ef-addon-mobile-label">Description (optional)</label>
+                            <input type="text" name="services[{{ $i }}][description]"
+                                   class="ef-input" value="{{ $svc['description'] ?? '' }}"
+                                   placeholder="Brief note…">
+                        </div>
+                        <div class="ef-addon-col-amt">
+                            <label class="ef-addon-mobile-label">Amount</label>
+                            <div class="ef-input-prefix-wrap">
+                                <span class="ef-input-prefix">₹</span>
+                                <input type="number" name="services[{{ $i }}][amount]"
+                                       class="ef-input ef-input-prefixed ef-service-amount ef-addon-amount-input"
+                                       value="{{ $svc['amount'] ?? '' }}"
+                                       step="0.01" min="0" placeholder="0" required>
+                            </div>
+                        </div>
+                        <div class="ef-addon-col-del">
+                            <button type="button" class="ef-addon-remove" onclick="removeService(this)" title="Remove">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+
+            <div id="servicesEmpty" class="ef-addon-empty" style="{{ count($oldServices) ? 'display:none' : '' }}">
+                <div class="ef-addon-empty-icon"><i class="bi bi-bag-plus"></i></div>
+                <div class="ef-addon-empty-title">No add-on services yet</div>
+                <div class="ef-addon-empty-body">Use the quick-add chips above or click the button below to include extras like decoration, DJ, or photography.</div>
+            </div>
+
+            <div class="ef-addon-subtotal" id="addonSubtotalBar" style="{{ count($oldServices) ? '' : 'display:none' }}">
+                <i class="bi bi-receipt"></i>
+                <span>Add-on subtotal</span>
+                <strong id="addonSubtotalValue">₹0</strong>
+            </div>
+
+            <div class="ef-addon-actions">
+                <button type="button" class="ef-addon-add-btn" id="addServiceBtn">
+                    <i class="bi bi-plus-circle-fill"></i> <span>Add Service</span>
+                </button>
             </div>
         </div>
 
@@ -516,6 +651,89 @@
         return '₹' + Math.round(n).toLocaleString('en-IN');
     }
 
+    /* ── Add-on services ── */
+    let serviceIndex = {{ count($oldServices) }};
+
+    function updateAddonSubtotal() {
+        const amounts = document.querySelectorAll('.ef-addon-amount-input');
+        let sum = 0;
+        amounts.forEach(el => { sum += parseFloat(el.value || 0); });
+        const bar = document.getElementById('addonSubtotalBar');
+        const val = document.getElementById('addonSubtotalValue');
+        if (sum > 0) {
+            val.textContent = '₹' + Math.round(sum).toLocaleString('en-IN');
+            bar.style.display = '';
+        } else {
+            bar.style.display = 'none';
+        }
+        recalcTotal();
+    }
+
+    function updateAddonEmpty() {
+        const rows = document.querySelectorAll('.ef-addon-card');
+        document.getElementById('servicesEmpty').style.display = rows.length ? 'none' : '';
+    }
+
+    window.removeService = function(btn) {
+        const row = btn.closest('.ef-addon-card');
+        row.style.transition = 'opacity .18s, transform .18s';
+        row.style.opacity = '0'; row.style.transform = 'translateY(-6px) scale(.97)';
+        setTimeout(() => { row.remove(); updateAddonEmpty(); updateAddonSubtotal(); }, 190);
+    };
+
+    function escHtml(str) {
+        return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function addServiceRow(name = '', desc = '', amount = '') {
+        const idx = serviceIndex++;
+        const container = document.getElementById('servicesContainer');
+        const card = document.createElement('div');
+        card.className = 'ef-addon-card'; card.dataset.index = idx;
+        card.innerHTML = `
+            <div class="ef-addon-row">
+                <div class="ef-addon-col-name">
+                    <label class="ef-addon-mobile-label">Service</label>
+                    <input type="text" name="services[${idx}][service_name]"
+                           class="ef-input ef-addon-name-input"
+                           value="${escHtml(name)}" placeholder="e.g. Decoration, DJ…"
+                           list="addonServiceSuggestions" autocomplete="off" required>
+                </div>
+                <div class="ef-addon-col-desc">
+                    <label class="ef-addon-mobile-label">Description (optional)</label>
+                    <input type="text" name="services[${idx}][description]"
+                           class="ef-input" value="${escHtml(desc)}" placeholder="Brief note…">
+                </div>
+                <div class="ef-addon-col-amt">
+                    <label class="ef-addon-mobile-label">Amount</label>
+                    <div class="ef-input-prefix-wrap">
+                        <span class="ef-input-prefix">₹</span>
+                        <input type="number" name="services[${idx}][amount]"
+                               class="ef-input ef-input-prefixed ef-service-amount ef-addon-amount-input"
+                               value="${escHtml(amount)}" step="0.01" min="0" placeholder="0" required>
+                    </div>
+                </div>
+                <div class="ef-addon-col-del">
+                    <button type="button" class="ef-addon-remove" onclick="removeService(this)" title="Remove">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>`;
+        container.appendChild(card);
+        card.querySelector('.ef-addon-amount-input').addEventListener('input', updateAddonSubtotal);
+        card.querySelector('.ef-addon-name-input').focus();
+        updateAddonEmpty(); updateAddonSubtotal();
+    }
+
+    document.getElementById('addServiceBtn').addEventListener('click', () => addServiceRow());
+    document.querySelectorAll('.ef-addon-chip').forEach(chip => {
+        chip.addEventListener('click', () => addServiceRow(chip.dataset.name));
+    });
+    document.querySelectorAll('.ef-service-amount').forEach(el => {
+        el.addEventListener('input', updateAddonSubtotal);
+    });
+    updateAddonSubtotal();
+
     window.recalcTotal = function() {
         const currentType = bookingTypeInput ? bookingTypeInput.value : 'hall_food';
         const guests    = parseInt(document.getElementById('number_of_people').value || 0);
@@ -526,16 +744,21 @@
         const mealPrice = mealCard ? parseFloat(mealCard.dataset.price || 0) : 0;
         const mealCost  = currentType === 'hall_only' ? 0 : mealPrice * guests;
 
-        const total   = rawHall + mealCost;
+        let addonTotal = 0;
+        document.querySelectorAll('.ef-addon-amount-input').forEach(el => { addonTotal += parseFloat(el.value || 0); });
+
+        const total   = rawHall + mealCost + addonTotal;
         const balance = Math.max(0, total - advance);
 
         document.getElementById('total_amount').value = total.toFixed(2);
 
         document.getElementById('bdHall').textContent    = rupee(rawHall);
         document.getElementById('bdMeal').textContent    = rupee(mealCost);
+        document.getElementById('bdAddons').textContent  = rupee(addonTotal);
         document.getElementById('bdTotal').textContent   = rupee(total);
         document.getElementById('bdBalance').textContent = rupee(balance);
-        document.getElementById('bdMealRow').style.display = mealCost > 0 ? '' : 'none';
+        document.getElementById('bdMealRow').style.display   = mealCost    > 0 ? '' : 'none';
+        document.getElementById('bdAddonsRow').style.display = addonTotal  > 0 ? '' : 'none';
 
         const box = document.getElementById('mealEstimateBox');
         const sub = document.getElementById('mealEstimateSub');

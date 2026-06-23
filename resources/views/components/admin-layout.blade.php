@@ -652,6 +652,7 @@
     $grpHall      = request()->routeIs('hall.*');
     $grpKitchen   = request()->routeIs('kitchen.recipes.*');
     $grpMenu      = request()->routeIs('menu.*');
+    $grpMealReg   = request()->routeIs('meal-register.*');
     $grpAccount   = request()->routeIs('notifications.*','profile.*');
     $nc           = $sbUser->hasMany(\App\Models\AppNotification::class)->whereNull('read_at')->count();
 @endphp
@@ -846,6 +847,33 @@
             </a>
         </div>
 
+        {{-- Corporate Meals ──────────────────────────────────────── --}}
+        <button class="sidebar-group-btn {{ $grpMealReg ? 'has-active' : '' }}"
+                data-bs-toggle="collapse" data-bs-target="#grp-corp-meals-admin"
+                aria-expanded="{{ $grpMealReg ? 'true' : 'false' }}">
+            <i class="bi bi-clipboard-data sb-grp-icon"></i>
+            <span class="sb-grp-label">Corporate Meals</span>
+            <i class="bi bi-chevron-down sidebar-chevron"></i>
+        </button>
+        <div class="collapse sidebar-group-body {{ $grpMealReg ? 'show' : '' }}" id="grp-corp-meals-admin">
+            <a href="{{ route('meal-register.clients.index') }}"
+               class="nav-link {{ request()->routeIs('meal-register.clients.*') ? 'active' : '' }}">
+                <i class="bi bi-building"></i> Clients
+            </a>
+            <a href="{{ route('meal-register.entries.index') }}"
+               class="nav-link {{ request()->routeIs('meal-register.entries.*') && !request()->routeIs('meal-register.entries.create') ? 'active' : '' }}">
+                <i class="bi bi-journal-check"></i> Daily Register
+            </a>
+            <a href="{{ route('meal-register.entries.create') }}"
+               class="nav-link {{ request()->routeIs('meal-register.entries.create') ? 'active' : '' }}">
+                <i class="bi bi-plus-circle"></i> New Entry
+            </a>
+            <a href="{{ route('meal-register.reports.index') }}"
+               class="nav-link {{ request()->routeIs('meal-register.reports.*') ? 'active' : '' }}">
+                <i class="bi bi-bar-chart"></i> Reports
+            </a>
+        </div>
+
     {{-- ══ MANAGER ════════════════════════════════════════════════ --}}
     @elseif($role === 'manager')
 
@@ -910,6 +938,29 @@
             </a>
         </div>
 
+        {{-- Corporate Meals ──────────────────────────────────────── --}}
+        <button class="sidebar-group-btn {{ $grpMealReg ? 'has-active' : '' }}"
+                data-bs-toggle="collapse" data-bs-target="#grp-corp-meals-mgr"
+                aria-expanded="{{ $grpMealReg ? 'true' : 'false' }}">
+            <i class="bi bi-clipboard-data sb-grp-icon"></i>
+            <span class="sb-grp-label">Corporate Meals</span>
+            <i class="bi bi-chevron-down sidebar-chevron"></i>
+        </button>
+        <div class="collapse sidebar-group-body {{ $grpMealReg ? 'show' : '' }}" id="grp-corp-meals-mgr">
+            <a href="{{ route('meal-register.clients.index') }}"
+               class="nav-link {{ request()->routeIs('meal-register.clients.*') ? 'active' : '' }}">
+                <i class="bi bi-building"></i> Clients
+            </a>
+            <a href="{{ route('meal-register.entries.index') }}"
+               class="nav-link {{ request()->routeIs('meal-register.entries.*') ? 'active' : '' }}">
+                <i class="bi bi-journal-check"></i> Daily Register
+            </a>
+            <a href="{{ route('meal-register.reports.index') }}"
+               class="nav-link {{ request()->routeIs('meal-register.reports.*') ? 'active' : '' }}">
+                <i class="bi bi-bar-chart"></i> Reports
+            </a>
+        </div>
+
     {{-- ══ EMPLOYEE ════════════════════════════════════════════════ --}}
     @else
 
@@ -937,6 +988,21 @@
             <a href="{{ route('employee.kitchen.calculator') }}"
                class="nav-link {{ request()->routeIs('employee.kitchen.*') ? 'active' : '' }}">
                 <i class="bi bi-fire"></i> Kitchen Calculator
+            </a>
+        </div>
+
+        {{-- Corporate Meals ──────────────────────────────────────── --}}
+        <button class="sidebar-group-btn {{ $grpMealReg ? 'has-active' : '' }}"
+                data-bs-toggle="collapse" data-bs-target="#grp-corp-meals-emp"
+                aria-expanded="{{ $grpMealReg ? 'true' : 'false' }}">
+            <i class="bi bi-clipboard-data sb-grp-icon"></i>
+            <span class="sb-grp-label">Corporate Meals</span>
+            <i class="bi bi-chevron-down sidebar-chevron"></i>
+        </button>
+        <div class="collapse sidebar-group-body {{ $grpMealReg ? 'show' : '' }}" id="grp-corp-meals-emp">
+            <a href="{{ route('meal-register.entries.create') }}"
+               class="nav-link {{ request()->routeIs('meal-register.entries.*') ? 'active' : '' }}">
+                <i class="bi bi-journal-check"></i> Daily Entry
             </a>
         </div>
 

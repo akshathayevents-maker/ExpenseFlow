@@ -328,7 +328,7 @@ a.ef-dash-metric:hover { border-color: var(--hd-border-s); box-shadow: var(--hd-
                                 <div class="ef-event-name">{{ $booking->customer_name }}</div>
                                 <div class="ef-event-detail">
                                     {{ $booking->booking_date->format('d M') }} · {{ \Carbon\Carbon::parse($booking->start_time)->format('h:i A') }}<br>
-                                    {{ $booking->hall->name }} · {{ number_format($booking->number_of_people) }} guests<br>
+                                    {{ $booking->hall?->name ?? $booking->service_location ?? 'Food Only' }} · {{ number_format($booking->number_of_people) }} guests<br>
                                     {{ $mealText }}
                                 </div>
                             </a>
@@ -376,7 +376,7 @@ a.ef-dash-metric:hover { border-color: var(--hd-border-s); box-shadow: var(--hd-
                                     <x-premium.chip :tone="$statusTone">{{ \App\Models\HallBooking::statuses()[$booking->status] ?? Str::headline($booking->status) }}</x-premium.chip>
                                 </div>
                                 <div class="ef-feed-meta">
-                                    {{ $booking->customer_name }} · {{ $booking->hall->name }} · {{ $booking->booking_date->format('d M Y') }} · {{ number_format($booking->number_of_people) }} guests
+                                    {{ $booking->customer_name }} · {{ $booking->hall?->name ?? $booking->service_location ?? 'Food Only' }} · {{ $booking->booking_date->format('d M Y') }} · {{ number_format($booking->number_of_people) }} guests
                                 </div>
                             </div>
                             <div class="ef-feed-amount">
@@ -469,7 +469,7 @@ a.ef-dash-metric:hover { border-color: var(--hd-border-s); box-shadow: var(--hd-
                         <a href="{{ route('hall.bookings.show', $booking) }}#record-payment" class="ef-feed-item">
                             <div>
                                 <div class="ef-feed-title">{{ $booking->customer_name }}</div>
-                                <div class="ef-feed-meta">{{ $booking->booking_date->format('d M') }} · {{ $booking->hall->name }} · {{ ucfirst($booking->payment_status) }}</div>
+                                <div class="ef-feed-meta">{{ $booking->booking_date->format('d M') }} · {{ $booking->hall?->name ?? $booking->service_location ?? 'Food Only' }} · {{ ucfirst($booking->payment_status) }}</div>
                             </div>
                             <div class="ef-feed-amount" style="color:var(--hd-danger)">
                                 ₹{{ number_format(max(0, $booking->balance_amount), 0) }}

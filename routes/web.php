@@ -30,6 +30,9 @@ use App\Http\Controllers\Kitchen\RecipeController;
 use App\Http\Controllers\Employee\KitchenController as EmployeeKitchenController;
 use App\Http\Controllers\Menu\MenuItemController;
 use App\Http\Controllers\Menu\MenuComposerController;
+use App\Http\Controllers\MealRegister\MealClientController;
+use App\Http\Controllers\MealRegister\DailyMealEntryController;
+use App\Http\Controllers\MealRegister\MealRegisterReportController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaymentRequestController;
 use App\Http\Controllers\ProfileController;
@@ -239,6 +242,7 @@ Route::prefix('hall')->name('hall.')->middleware(['auth', 'verified', 'role.hall
     Route::post('bookings/{booking}/payments',          [HallBookingController::class, 'addPayment'])->name('bookings.payments.add');
     Route::get('bookings/{booking}/invoice',            [HallBookingController::class, 'invoice'])->name('bookings.invoice');
     Route::get('bookings/{booking}/invoice/pdf',        [HallBookingController::class, 'downloadPdf'])->name('bookings.invoice.pdf');
+    Route::post('bookings/{booking}/mark-review',       [HallBookingController::class, 'markReviewRequested'])->name('bookings.mark-review');
 
     // Meal Plans
     Route::get('meal-plans',                            [MealPlanController::class, 'index'])->name('meal-plans.index');
@@ -359,6 +363,32 @@ Route::get('/pay-login', function (Illuminate\Http\Request $request) {
 
     return redirect()->route('login');
 })->name('payment-request.login-redirect');
+
+// ── Daily Meal Register (all roles) ──────────────────────────────────────────
+Route::prefix('meal-register')->name('meal-register.')->middleware(['auth', 'verified'])->group(function () {
+
+    // Clients — view: all roles; create/edit: admin+manager only
+    Route::get('clients',                   [MealClientController::class, 'index'])->name('clients.index');
+    Route::get('clients/create',            [MealClientController::class, 'create'])->name('clients.create')->middleware('role.hall');
+    Route::post('clients',                  [MealClientController::class, 'store'])->name('clients.store')->middleware('role.hall');
+    Route::get('clients/{client}',          [MealClientController::class, 'show'])->name('clients.show');
+    Route::get('clients/{client}/edit',     [MealClientController::class, 'edit'])->name('clients.edit')->middleware('role.hall');
+    Route::put('clients/{client}',          [MealClientController::class, 'update'])->name('clients.update')->middleware('role.hall');
+    Route::patch('clients/{client}/toggle', [MealClientController::class, 'toggleActive'])->name('clients.toggle')->middleware('role.hall');
+
+    // Daily Entries (Phase 2 — MealEntry model, upsert via save)
+    Route::get('entries',              [DailyMealEntryController::class, 'index'])->name('entries.index');
+    Route::get('entries/create',       [DailyMealEntryController::class, 'create'])->name('entries.create');
+    Route::post('entries/save',        [DailyMealEntryController::class, 'save'])->name('entries.save');
+    Route::get('entries/load',         [DailyMealEntryController::class, 'loadEntry'])->name('entries.load');
+    Route::get('entries/previous-day', [DailyMealEntryController::class, 'previousDay'])->name('entries.previous-day');
+    Route::get('entries/{entry}',      [DailyMealEntryController::class, 'show'])->name('entries.show');
+    Route::delete('entries/{entry}',   [DailyMealEntryController::class, 'destroy'])->name('entries.destroy')->middleware('role.hall');
+
+    // Reports
+    Route::get('reports',                   [MealRegisterReportController::class, 'index'])->name('reports.index');
+    Route::get('reports/export',            [MealRegisterReportController::class, 'export'])->name('reports.export');
+});
 
 // ── Profile ───────────────────────────────────────────────────────────────────
 Route::middleware('auth')->group(function () {

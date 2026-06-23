@@ -16,16 +16,18 @@ class HallBooking extends Model
         'event_type', 'booking_date', 'start_time', 'end_time', 'number_of_people',
         'has_breakfast', 'has_lunch', 'has_dinner',
         'hall_cost', 'total_amount', 'advance_amount', 'payment_status', 'status', 'notes',
+        'review_requested_at',
     ];
 
     protected $casts = [
-        'booking_date'   => 'date',
-        'hall_cost'      => 'decimal:2',
-        'total_amount'   => 'decimal:2',
-        'advance_amount' => 'decimal:2',
-        'has_breakfast'  => 'boolean',
-        'has_lunch'      => 'boolean',
-        'has_dinner'     => 'boolean',
+        'booking_date'        => 'date',
+        'hall_cost'           => 'decimal:2',
+        'total_amount'        => 'decimal:2',
+        'advance_amount'      => 'decimal:2',
+        'has_breakfast'       => 'boolean',
+        'has_lunch'           => 'boolean',
+        'has_dinner'          => 'boolean',
+        'review_requested_at' => 'datetime',
     ];
 
     // ── Relationships ──────────────────────────────────────────────────────────
@@ -133,9 +135,10 @@ class HallBooking extends Model
 
     // ── Display helpers ────────────────────────────────────────────────────────
 
-    public function isConfirmed(): bool  { return $this->status === 'confirmed'; }
-    public function isCancelled(): bool  { return $this->status === 'cancelled'; }
-    public function isCompleted(): bool  { return $this->status === 'completed'; }
+    public function isConfirmed(): bool       { return $this->status === 'confirmed'; }
+    public function isCancelled(): bool       { return $this->status === 'cancelled'; }
+    public function isCompleted(): bool       { return $this->status === 'completed'; }
+    public function isFollowUpEligible(): bool { return in_array($this->status, ['completed', 'closed']); }
 
     /** Human-readable location string for display across calendar, kitchen, invoices. */
     public function getLocationLabelAttribute(): string

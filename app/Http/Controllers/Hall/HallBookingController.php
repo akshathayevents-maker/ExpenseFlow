@@ -74,23 +74,22 @@ class HallBookingController extends Controller
 
         $halls = Hall::active()->orderBy('name')->get();
 
-        $monthOccupied = HallBooking::whereMonth('booking_date', now()->month)
-            ->whereYear('booking_date', now()->year)
+        $pendingBookings  = HallBooking::where('payment_status', '!=', 'paid')
             ->where('status', '!=', 'cancelled')
-            ->distinct('booking_date')
-            ->count('booking_date');
+            ->withSum('payments', 'amount')
+            ->get(['id', 'total_amount', 'payment_status']);
+        $pendingCollect = $pendingBookings->sum(fn($b) => max(0, $b->total_amount - ($b->payments_sum_amount ?? 0)));
 
         $stats = [
-            'today'       => HallBooking::whereDate('booking_date', today())->where('status', '!=', 'cancelled')->count(),
-            'upcoming'    => HallBooking::whereDate('booking_date', '>=', today())->where('status', '!=', 'cancelled')->count(),
-            'pending_pay' => HallBooking::where('payment_status', 'pending')->where('status', '!=', 'cancelled')->count(),
-            'month_occ'   => now()->daysInMonth > 0 ? round($monthOccupied / now()->daysInMonth * 100) : 0,
-            'week_guests' => HallBooking::whereBetween('booking_date', [now()->startOfWeek()->toDateString(), now()->endOfWeek()->toDateString()])
-                ->where('status', '!=', 'cancelled')
-                ->sum('number_of_people'),
+            'today'           => HallBooking::whereDate('booking_date', today())->where('status', '!=', 'cancelled')->count(),
+            'upcoming_guests' => HallBooking::whereDate('booking_date', '>=', today())->where('status', '!=', 'cancelled')->sum('number_of_people'),
+            'pending_collect' => $pendingCollect,
+            'month_revenue'   => HallBooking::whereMonth('booking_date', now()->month)->whereYear('booking_date', now()->year)->where('status', '!=', 'cancelled')->sum('total_amount'),
         ];
 
-        return view('hall.bookings.index', compact('bookings', 'halls', 'stats', 'today'));
+        $isEmployee = auth()->user()->role === 'employee';
+
+        return view('hall.bookings.index', compact('bookings', 'halls', 'stats', 'today', 'isEmployee'));
     }
 
     public function create(): View
@@ -223,9 +222,15 @@ class HallBookingController extends Controller
 
     public function edit(HallBooking $booking): View
     {
-        $halls     = Hall::active()->orderBy('name')->get();
-        $mealPlans = MealPlan::active()->orderBy('name')->get();
-        return view('hall.bookings.edit', compact('booking', 'halls', 'mealPlans'));
+        $halls       = Hall::active()->orderBy('name')->get();
+        $mealPlans   = MealPlan::active()->orderBy('name')->get();
+        $oldServices = old('services', $booking->additionalServices
+            ->map(fn($s) => [
+                'service_name' => $s->service_name,
+                'description'  => $s->description,
+                'amount'       => $s->amount,
+            ])->toArray());
+        return view('hall.bookings.edit', compact('booking', 'halls', 'mealPlans', 'oldServices'));
     }
 
     public function update(Request $request, HallBooking $booking): RedirectResponse
@@ -312,6 +317,17 @@ class HallBookingController extends Controller
     {
         $booking->delete();
         return redirect()->route('hall.bookings.index')->with('success', 'Booking deleted.');
+    }
+
+    public function markReviewRequested(HallBooking $booking): RedirectResponse
+    {
+        if (!$booking->isFollowUpEligible()) {
+            return back()->with('error', 'Follow-up only available for completed events.');
+        }
+
+        $booking->update(['review_requested_at' => now()]);
+
+        return back()->with('followup_success', 'Follow-up marked. WhatsApp/review link opened.');
     }
 
     public function calendar(): View

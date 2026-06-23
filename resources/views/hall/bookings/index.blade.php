@@ -1,1188 +1,1066 @@
 <x-admin-layout title="Hall Bookings">
 @push('styles')
 <style>
-/* ── Hall Bookings — ef-bk-* (v3 mobile-first) ─────────────────── */
-
+/* ── Hall Bookings Dashboard — hb-* ─────────────────────────────── */
 :root {
-    --bk-ink:      #131110;
-    --bk-sub:      #50473f;
-    --bk-muted:    #8a827a;
-    --bk-faint:    #bab3aa;
-    --bk-gold:     #8a6c30;
-    --bk-gold-hi:  #b89040;
-    --bk-gold-soft:#d4b06a;
-    --bk-surface:  #fdfaf5;
-    --bk-cream:    #f7f3ec;
-    --bk-border:   rgba(100,82,42,.11);
-    --bk-border-s: rgba(100,82,42,.22);
-    --bk-shadow:   0 1px 3px rgba(18,14,8,.06), 0 3px 10px rgba(18,14,8,.04);
-    --bk-shadow-h: 0 4px 18px rgba(18,14,8,.11), 0 1px 4px rgba(18,14,8,.06);
-    --bk-r:        14px;
-    --bk-ease:     cubic-bezier(.25,.46,.45,.94);
+    --hb-gold:       #a0763a;
+    --hb-gold-hi:    #b8882a;
+    --hb-gold-soft:  #d4b06a;
+    --hb-ink:        #131110;
+    --hb-sub:        #50473f;
+    --hb-muted:      #8a827a;
+    --hb-faint:      #bab3aa;
+    --hb-border:     rgba(100,82,42,.12);
+    --hb-border-s:   rgba(100,82,42,.24);
+    --hb-surface:    #ffffff;
+    --hb-cream:      #faf8f3;
+    --hb-r:          14px;
+    --hb-r-sm:       10px;
+    --hb-shadow:     0 1px 3px rgba(18,14,8,.06), 0 3px 10px rgba(18,14,8,.04);
+    --hb-ease:       cubic-bezier(.25,.46,.45,.94);
+
+    /* Status */
+    --hb-confirmed: #16a34a;
+    --hb-pending:   #f59e0b;
+    --hb-completed: #2563eb;
+    --hb-cancelled: #dc2626;
 }
 
-.ef-bk-shell {
+*, *::before, *::after { box-sizing: border-box; }
+
+.hb-shell {
     max-width: 1400px;
     margin: 0 auto;
-    padding-bottom: 100px;
+    padding-bottom: 120px;
 }
 
-/* ── Flash ─────────────────────────────────────────────────────── */
-.ef-bk-flash {
-    align-items: center;
-    border-radius: 10px;
+/* ── Flash ───────────────────────────────────────────────────────── */
+.hb-flash {
     display: flex;
-    font-size: .83rem;
+    align-items: center;
     gap: 9px;
+    border-radius: var(--hb-r-sm);
+    font-size: .83rem;
     margin-bottom: 14px;
     padding: 11px 14px;
 }
-.ef-bk-flash.--success { background: rgba(15,120,80,.07); border: 1px solid rgba(15,120,80,.18); color: #0A5C40; }
-.ef-bk-flash.--error   { background: rgba(180,60,50,.07); border: 1px solid rgba(180,60,50,.18); color: #8B2020; }
+.hb-flash.--success { background: rgba(22,163,74,.07); border: 1px solid rgba(22,163,74,.18); color: #0A5C40; }
+.hb-flash.--error   { background: rgba(220,38,38,.07); border: 1px solid rgba(220,38,38,.18); color: #8B2020; }
 
-/* ══════════════════════════════════════════════════════════════════
-   HERO — compact command bar with operational summary
-══════════════════════════════════════════════════════════════════ */
-.ef-bk-hero {
-    background: linear-gradient(135deg, #10180d 0%, #182414 50%, #0e1a0c 100%);
-    border: 1px solid rgba(255,255,255,.06);
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 12px;
-    overflow: hidden;
-    padding: 16px 20px;
-    position: relative;
-}
-.ef-bk-hero::before {
-    background: radial-gradient(circle, rgba(180,145,60,.15) 0%, transparent 65%);
-    border-radius: 50%;
-    content: "";
-    height: 240px;
-    pointer-events: none;
-    position: absolute;
-    right: -40px;
-    top: -90px;
-    width: 240px;
-}
-.ef-bk-hero-left {
-    position: relative;
-    z-index: 1;
-    min-width: 0;
-    flex: 1;
-}
-.ef-bk-hero-title {
-    color: #f8f5ee;
-    font-size: 1.3rem;
-    font-weight: 780;
-    letter-spacing: -.02em;
-    line-height: 1.1;
-    margin-bottom: 8px;
-}
-/* Operational summary pills below title */
-.ef-bk-hero-summary {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    align-items: center;
-}
-.ef-bk-hero-pill {
-    align-items: center;
-    border-radius: 7px;
-    display: inline-flex;
-    font-size: .7rem;
-    font-weight: 700;
-    gap: 4px;
-    padding: 3px 9px;
-    white-space: nowrap;
-}
-.ef-bk-hero-pill.--neutral {
-    background: rgba(255,255,255,.08);
-    color: rgba(248,245,238,.65);
-}
-.ef-bk-hero-pill.--amber {
-    background: rgba(180,145,60,.22);
-    color: #e8c870;
-}
-.ef-bk-hero-pill.--red {
-    background: rgba(200,75,68,.22);
-    color: #f08080;
-}
-.ef-bk-hero-pill.--green {
-    background: rgba(15,123,95,.22);
-    color: #6adbaa;
-}
-.ef-bk-hero-pill i { font-size: .7rem; }
-.ef-bk-hero-pill .ef-bk-pulse {
-    animation: bk-pulse 1.8s ease-in-out infinite;
-    background: currentColor;
-    border-radius: 50%;
-    display: inline-block;
-    height: 5px;
-    width: 5px;
-}
-
-.ef-bk-hero-actions {
-    align-items: center;
-    display: flex;
-    flex-shrink: 0;
-    gap: 6px;
-    position: relative;
-    z-index: 1;
-}
-.ef-bk-hbtn {
-    align-items: center;
-    border-radius: 9px;
-    cursor: pointer;
-    display: inline-flex;
-    font-family: inherit;
-    font-size: .76rem;
-    font-weight: 660;
-    gap: 5px;
-    padding: 7px 12px;
-    text-decoration: none;
-    transition: all .15s var(--bk-ease);
-    white-space: nowrap;
-    border: 1.5px solid rgba(255,255,255,.12);
-    background: rgba(255,255,255,.07);
-    color: rgba(248,245,238,.8);
-}
-.ef-bk-hbtn:hover { background: rgba(255,255,255,.14); color: #f8f5ee; border-color: rgba(255,255,255,.2); }
-.ef-bk-hbtn.--gold {
-    background: rgba(180,145,60,.25);
-    border-color: rgba(180,145,60,.45);
-    color: #e8c870;
-}
-.ef-bk-hbtn.--gold:hover { background: rgba(180,145,60,.38); color: #f5d882; }
-
-/* ══════════════════════════════════════════════════════════════════
-   KPI STRIP — horizontally scrollable on mobile
-══════════════════════════════════════════════════════════════════ */
-.ef-bk-kpi-scroll {
-    overflow-x: auto;
-    scrollbar-width: none;
-    margin-bottom: 12px;
-    -webkit-overflow-scrolling: touch;
-}
-.ef-bk-kpi-scroll::-webkit-scrollbar { display: none; }
-.ef-bk-kpi-row {
+/* ── Stats ───────────────────────────────────────────────────────── */
+.hb-stats {
     display: grid;
-    grid-template-columns: repeat(5, minmax(104px, 1fr));
-    gap: 8px;
-    min-width: 560px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
 }
-.ef-bk-kpi {
-    background: var(--bk-surface);
-    border: 1px solid var(--bk-border);
-    border-radius: var(--bk-r);
-    box-shadow: var(--bk-shadow);
-    padding: 10px 12px;
+.hb-stat {
+    background: var(--hb-surface);
+    border: 1.5px solid var(--hb-border);
+    border-radius: var(--hb-r);
+    padding: 16px 18px;
+    box-shadow: var(--hb-shadow);
+    min-width: 0;
 }
-.ef-bk-kpi-label {
-    align-items: center;
-    color: var(--bk-muted);
+.hb-stat-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    background: var(--hb-gold);
+    color: #fff;
     display: flex;
-    font-size: .6rem;
-    font-weight: 720;
-    gap: 4px;
-    letter-spacing: .1em;
-    margin-bottom: 5px;
-    text-transform: uppercase;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    margin-bottom: 10px;
+    flex-shrink: 0;
 }
-.ef-bk-kpi-val {
-    color: var(--bk-ink);
-    font-size: 1.35rem;
-    font-weight: 800;
+.hb-stat-val {
+    font-size: 1.7rem;
+    font-weight: 900;
+    color: var(--hb-ink);
     line-height: 1;
     letter-spacing: -.02em;
-    font-variant-numeric: tabular-nums;
 }
-.ef-bk-kpi-val.--gold   { color: var(--bk-gold); }
-.ef-bk-kpi-val.--red    { color: #8B2020; }
-.ef-bk-kpi-val.--green  { color: #0A6640; }
-.ef-bk-kpi-note {
-    color: var(--bk-faint);
-    font-size: .65rem;
-    margin-top: 3px;
-}
-@keyframes bk-pulse {
-    0%,100% { box-shadow: 0 0 0 0 rgba(138,108,48,.5); }
-    50%      { box-shadow: 0 0 0 4px rgba(138,108,48,0); }
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   FILTER BAR — sticky, glass
-══════════════════════════════════════════════════════════════════ */
-.ef-bk-filter {
-    background: rgba(253,250,245,.97);
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
-    border: 1px solid var(--bk-border);
-    border-radius: 12px;
-    box-shadow: var(--bk-shadow);
-    margin-bottom: 12px;
-    padding: 10px 12px;
-    position: sticky;
-    top: 8px;
-    z-index: 30;
-}
-.ef-bk-filter-row1 {
-    align-items: center;
-    display: flex;
-    gap: 8px;
-    margin-bottom: 8px;
-}
-.ef-bk-search-wrap { position: relative; flex: 1; min-width: 0; }
-.ef-bk-search-ico {
-    color: var(--bk-faint);
-    font-size: .8rem;
-    left: 10px;
-    pointer-events: none;
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-}
-.ef-bk-search {
-    background: var(--bk-cream);
-    border: 1.5px solid var(--bk-border-s);
-    border-radius: 8px;
-    color: var(--bk-ink);
-    font-family: inherit;
-    font-size: .82rem;
-    font-size: 16px; /* prevent iOS zoom */
-    outline: none;
-    padding: 8px 10px 8px 28px;
-    transition: border-color .14s;
-    width: 100%;
-}
-.ef-bk-search:focus { border-color: var(--bk-gold); background: #fff; }
-.ef-bk-search::placeholder { color: var(--bk-faint); font-size: .82rem; }
-.ef-bk-filter-btns { display: flex; gap: 6px; flex-shrink: 0; }
-.ef-bk-filt-btn {
-    align-items: center;
-    background: var(--bk-cream);
-    border: 1.5px solid var(--bk-border-s);
-    border-radius: 8px;
-    color: var(--bk-muted);
-    cursor: pointer;
-    display: inline-flex;
-    font-family: inherit;
-    font-size: .76rem;
-    font-weight: 640;
-    gap: 5px;
-    padding: 7px 11px;
-    transition: all .14s;
-    white-space: nowrap;
-    min-height: 36px;
-}
-.ef-bk-filt-btn:hover { border-color: var(--bk-gold-hi); color: var(--bk-gold); }
-.ef-bk-filt-btn.--active {
-    background: rgba(138,108,48,.08);
-    border-color: var(--bk-gold);
-    color: var(--bk-gold);
-}
-.ef-bk-filter-dot {
-    background: var(--bk-gold);
-    border-radius: 50%;
-    display: inline-block;
-    height: 5px;
-    width: 5px;
-    flex-shrink: 0;
-}
-
-/* Quick chips */
-.ef-bk-chips {
-    display: flex;
-    gap: 5px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 2px; /* prevent shadow clip */
-}
-.ef-bk-chips::-webkit-scrollbar { display: none; }
-.ef-bk-chip {
-    background: transparent;
-    border: 1.5px solid var(--bk-border-s);
-    border-radius: 20px;
-    color: var(--bk-muted);
-    cursor: pointer;
-    display: inline-block;
-    flex-shrink: 0;
-    font-size: .72rem;
-    font-weight: 660;
-    padding: 4px 12px;
-    text-decoration: none;
-    transition: all .14s;
-    white-space: nowrap;
-}
-.ef-bk-chip:hover { border-color: var(--bk-ink); color: var(--bk-ink); }
-.ef-bk-chip.--active {
-    background: var(--bk-ink);
-    border-color: var(--bk-ink);
-    color: var(--bk-surface);
-}
-
-/* Advanced drawer */
-.ef-bk-adv { max-height: 0; overflow: hidden; transition: max-height .28s ease; }
-.ef-bk-adv.--open { max-height: 400px; }
-.ef-bk-adv-inner {
-    align-items: end;
-    border-top: 1px solid var(--bk-border);
-    display: grid;
-    gap: 8px;
-    grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
-    margin-top: 10px;
-    padding-top: 10px;
-}
-.ef-bk-adv-label {
-    color: var(--bk-muted);
-    display: block;
-    font-size: .62rem;
+.hb-stat-label {
+    font-size: .67rem;
     font-weight: 700;
-    letter-spacing: .1em;
-    margin-bottom: 4px;
     text-transform: uppercase;
-}
-.ef-bk-adv-input,
-.ef-bk-adv-select {
-    background: #fff;
-    border: 1.5px solid var(--bk-border-s);
-    border-radius: 8px;
-    color: var(--bk-ink);
-    font-family: inherit;
-    font-size: .82rem;
-    outline: none;
-    padding: 7px 10px;
-    transition: border-color .14s;
-    width: 100%;
-}
-.ef-bk-adv-input:focus,
-.ef-bk-adv-select:focus { border-color: var(--bk-gold); }
-.ef-bk-adv-select {
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 12 12'%3E%3Cpath fill='%23aaa' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 10px center;
-    padding-right: 26px;
-}
-.ef-bk-adv-row { display: flex; gap: 7px; align-items: center; }
-.ef-bk-btn-apply {
-    background: var(--bk-ink);
-    border: none;
-    border-radius: 8px;
-    color: var(--bk-surface);
-    cursor: pointer;
-    font-family: inherit;
-    font-size: .8rem;
-    font-weight: 660;
-    min-height: 36px;
-    padding: 7px 16px;
-    white-space: nowrap;
-}
-.ef-bk-btn-clear {
-    background: transparent;
-    border: 1.5px solid var(--bk-border-s);
-    border-radius: 8px;
-    color: var(--bk-muted);
-    font-size: .8rem;
-    font-weight: 640;
-    padding: 7px 12px;
-    text-decoration: none;
-    white-space: nowrap;
-    display: inline-flex;
-    align-items: center;
+    letter-spacing: .07em;
+    color: var(--hb-faint);
+    margin-top: 5px;
 }
 
-/* Results meta */
-.ef-bk-meta-bar {
-    align-items: center;
+/* ── Top bar ─────────────────────────────────────────────────────── */
+.hb-topbar {
     display: flex;
-    justify-content: space-between;
+    gap: 10px;
+    align-items: center;
     margin-bottom: 10px;
 }
-.ef-bk-meta-bar span { color: var(--bk-muted); font-size: .76rem; }
-.ef-bk-meta-bar strong { color: var(--bk-ink); }
-
-/* ══════════════════════════════════════════════════════════════════
-   BOOKING LIST
-══════════════════════════════════════════════════════════════════ */
-.ef-bk-list {
-    display: grid;
-    gap: 10px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin-bottom: 20px;
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   BOOKING CARD — redesigned mobile hierarchy
-   Priority: Customer Name > Amount > Status > Details
-══════════════════════════════════════════════════════════════════ */
-.ef-bk-card {
-    background: var(--bk-surface);
-    border: 1px solid var(--bk-border);
-    border-left: 3px solid transparent;
-    border-radius: var(--bk-r);
-    box-shadow: var(--bk-shadow);
+.hb-search-wrap {
+    flex: 1;
     display: flex;
-    flex-direction: column;
-    position: relative;
-    transition: box-shadow .16s var(--bk-ease);
-}
-.ef-bk-card:hover { box-shadow: var(--bk-shadow-h); }
-.ef-bk-card.--confirmed { border-left-color: #0F7B5F; }
-.ef-bk-card.--completed { border-left-color: #2F6FED; }
-.ef-bk-card.--cancelled { border-left-color: #C84B44; opacity: .72; }
-.ef-bk-card:has(.dropdown-menu.show) { z-index: 50; }
-
-/* ── Dropdown polish ────────────────────────────────────────────── */
-.ef-bk-card .dropdown-menu {
-    border: 1px solid var(--bk-border-s);
-    border-radius: 12px;
-    box-shadow: 0 10px 32px rgba(18,14,8,.16), 0 2px 6px rgba(18,14,8,.06);
-    font-size: .82rem;
-    min-width: 185px;
-    padding: 5px;
-    z-index: 1000;
-}
-.ef-bk-card .dropdown-item {
-    border-radius: 7px;
-    color: var(--bk-sub);
-    font-weight: 580;
-    padding: 9px 12px;
-    transition: background .1s, color .1s;
-}
-.ef-bk-card .dropdown-item:hover { background: var(--bk-cream); color: var(--bk-ink); }
-.ef-bk-card .dropdown-item.--danger { color: #C84B44; }
-.ef-bk-card .dropdown-item.--danger:hover { background: rgba(200,75,68,.07); color: #9B1C1C; }
-.ef-bk-card .dropdown-divider { border-color: var(--bk-border); margin: 4px 0; }
-
-/* ── Card top: avatar + name + event + status badge ────────────── */
-.ef-bk-r1 {
-    align-items: center;
-    display: flex;
-    gap: 10px;
-    padding: 12px 14px 9px;
-}
-.ef-bk-av {
-    align-items: center;
-    border-radius: 9px;
-    color: rgba(255,255,255,.92);
-    display: flex;
-    flex-shrink: 0;
-    font-size: .82rem;
-    font-weight: 800;
-    height: 36px;
-    justify-content: center;
-    letter-spacing: -.01em;
-    width: 36px;
-}
-.ef-bk-r1-text { flex: 1; min-width: 0; }
-.ef-bk-name {
-    color: var(--bk-ink);
-    font-size: .92rem;
-    font-weight: 740;
-    line-height: 1.2;
+    gap: 0;
+    background: var(--hb-surface);
+    border: 1.5px solid var(--hb-border-s);
+    border-radius: var(--hb-r-sm);
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
-.ef-bk-evtype {
-    color: var(--bk-muted);
-    font-size: .67rem;
-    font-weight: 620;
-    letter-spacing: .04em;
-    margin-top: 1px;
+.hb-search-wrap:focus-within { border-color: var(--hb-gold); }
+.hb-search-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 11px 14px;
+    font-size: .88rem;
+    color: var(--hb-ink);
+    background: transparent;
+    min-width: 0;
+    height: 46px;
 }
-.ef-bk-badge {
-    border-radius: 6px;
-    flex-shrink: 0;
-    font-size: .58rem;
-    font-weight: 780;
-    letter-spacing: .08em;
-    padding: 3px 8px;
-    text-transform: uppercase;
-    white-space: nowrap;
+.hb-search-btn {
+    background: none;
+    border: none;
+    padding: 0 14px;
+    color: var(--hb-muted);
+    cursor: pointer;
+    font-size: 1rem;
+    height: 46px;
+    display: flex;
+    align-items: center;
 }
-.ef-bk-badge.--confirmed { background: rgba(15,123,95,.1); border: 1px solid rgba(15,123,95,.2); color: #0A5240; }
-.ef-bk-badge.--completed { background: rgba(47,111,237,.1); border: 1px solid rgba(47,111,237,.2); color: #1A3E8A; }
-.ef-bk-badge.--cancelled { background: rgba(200,75,68,.08); border: 1px solid rgba(200,75,68,.2); color: #8B2020; }
-
-/* ── Amount highlight block ────────────────────────────────────── */
-.ef-bk-amount-row {
-    align-items: baseline;
+.hb-search-btn:hover { color: var(--hb-gold); }
+.hb-topbar-right {
     display: flex;
     gap: 8px;
-    padding: 0 14px 8px;
+    align-items: center;
+    flex-shrink: 0;
 }
-.ef-bk-amt {
-    color: var(--bk-ink);
-    font-size: 1.2rem;
-    font-variant-numeric: tabular-nums;
-    font-weight: 820;
-    letter-spacing: -.02em;
-    line-height: 1;
+.hb-view-toggle {
+    display: flex;
+    background: var(--hb-cream);
+    border: 1.5px solid var(--hb-border);
+    border-radius: var(--hb-r-sm);
+    overflow: hidden;
 }
-.ef-bk-pchip {
-    border-radius: 5px;
-    display: inline-block;
-    font-size: .6rem;
-    font-weight: 780;
-    letter-spacing: .07em;
-    padding: 2px 7px;
-    text-transform: uppercase;
+.hb-vt-btn {
+    background: none;
+    border: none;
+    padding: 0 11px;
+    height: 44px;
+    min-width: 44px;
+    cursor: pointer;
+    color: var(--hb-muted);
+    font-size: .95rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .14s, color .14s;
 }
-.ef-bk-pchip.--pending { background: rgba(138,108,48,.09); border: 1px solid rgba(138,108,48,.2);  color: #7A5A18; }
-.ef-bk-pchip.--partial { background: rgba(47,111,237,.09); border: 1px solid rgba(47,111,237,.2);  color: #1A3E8A; }
-.ef-bk-pchip.--paid    { background: rgba(15,123,95,.09);  border: 1px solid rgba(15,123,95,.2);   color: #0A5240; }
+.hb-vt-btn.--active { background: var(--hb-gold); color: #fff; }
+.hb-vt-btn:not(.--active):hover { background: var(--hb-border); color: var(--hb-ink); }
+.hb-filter-btn {
+    position: relative;
+    background: var(--hb-surface);
+    border: 1.5px solid var(--hb-border-s);
+    border-radius: var(--hb-r-sm);
+    height: 46px;
+    min-width: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--hb-sub);
+    font-size: 1rem;
+    padding: 0 14px;
+    gap: 6px;
+    font-size: .88rem;
+    font-weight: 600;
+    transition: border-color .14s, color .14s;
+}
+.hb-filter-btn:hover { border-color: var(--hb-gold); color: var(--hb-gold); }
+.hb-filter-btn.--active { border-color: var(--hb-gold); color: var(--hb-gold); background: rgba(160,118,58,.06); }
+.hb-filter-dot {
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    width: 7px;
+    height: 7px;
+    background: var(--hb-gold);
+    border-radius: 50%;
+    border: 1.5px solid #fff;
+}
+.hb-btn-new {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--hb-ink);
+    color: #fff;
+    border-radius: var(--hb-r-sm);
+    padding: 0 18px;
+    height: 46px;
+    font-size: .88rem;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background .14s;
+}
+.hb-btn-new:hover { background: #2d2820; color: #fff; text-decoration: none; }
 
-/* ── Meta rows: hall · date · time · guests ────────────────────── */
-.ef-bk-rows {
+/* ── Quick chips ─────────────────────────────────────────────────── */
+.hb-chips {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+    margin-bottom: 14px;
+}
+.hb-chips::-webkit-scrollbar { display: none; }
+.hb-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0 14px;
+    height: 36px;
+    border-radius: 100px;
+    border: 1.5px solid var(--hb-border-s);
+    background: var(--hb-surface);
+    color: var(--hb-sub);
+    font-size: .8rem;
+    font-weight: 600;
+    white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all .14s;
+    flex-shrink: 0;
+}
+.hb-chip:hover { border-color: var(--hb-gold); color: var(--hb-gold); text-decoration: none; }
+.hb-chip.--active {
+    background: var(--hb-ink);
+    border-color: var(--hb-ink);
+    color: #fff;
+}
+.hb-chip.--active:hover { background: #2d2820; border-color: #2d2820; color: #fff; }
+
+/* ── Result bar ──────────────────────────────────────────────────── */
+.hb-result-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-size: .78rem;
+    color: var(--hb-muted);
+    font-weight: 600;
+}
+
+/* ── Card grid ───────────────────────────────────────────────────── */
+.hb-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 14px;
+    align-items: start;
+}
+
+/* ── Card ────────────────────────────────────────────────────────── */
+.hb-card {
+    background: var(--hb-surface);
+    border: 1.5px solid var(--hb-border);
+    border-radius: var(--hb-r);
+    box-shadow: var(--hb-shadow);
     display: flex;
     flex-direction: column;
-    gap: 3px;
-    padding: 0 14px 10px;
+    height: 218px;
+    overflow: hidden;
+    position: relative;
+    transition: box-shadow .14s, border-color .14s;
 }
-.ef-bk-mrow {
-    align-items: center;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 2px 8px;
-    line-height: 1;
+.hb-card:hover {
+    box-shadow: 0 4px 18px rgba(18,14,8,.10), 0 1px 4px rgba(18,14,8,.06);
+    border-color: var(--hb-border-s);
 }
-.ef-bk-mitem {
-    align-items: center;
-    color: var(--bk-sub);
-    display: inline-flex;
-    font-size: .73rem;
-    gap: 3px;
-}
-.ef-bk-mitem i { color: var(--bk-faint); font-size: .68rem; }
-.ef-bk-mdot {
-    background: var(--bk-border-s);
-    border-radius: 50%;
-    flex-shrink: 0;
+/* Status stripe — top border */
+.hb-card::before {
+    content: '';
+    display: block;
     height: 3px;
-    width: 3px;
+    width: 100%;
+    flex-shrink: 0;
+}
+.hb-card.--confirmed::before { background: var(--hb-confirmed); }
+.hb-card.--pending::before   { background: var(--hb-pending); }   /* status pending (not payment) — not used but harmless */
+.hb-card.--completed::before { background: var(--hb-completed); }
+.hb-card.--cancelled::before { background: var(--hb-cancelled); }
+
+.hb-card-inner {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    padding: 12px 14px 10px;
+    min-height: 0;
+    gap: 8px;
 }
 
-/* Meal tags */
-.ef-bk-meal-tags {
+/* Row 1: Name + event type */
+.hb-card-r1 {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    min-height: 0;
+}
+.hb-card-name {
+    font-size: .92rem;
+    font-weight: 800;
+    color: var(--hb-ink);
+    flex: 1;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+}
+.hb-card-badges {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    flex-shrink: 0;
+}
+.hb-status-badge {
+    font-size: .67rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    padding: 2px 7px;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+.hb-status-badge.--confirmed { background: rgba(22,163,74,.1);  color: var(--hb-confirmed); }
+.hb-status-badge.--completed { background: rgba(37,99,235,.1);  color: var(--hb-completed); }
+.hb-status-badge.--cancelled { background: rgba(220,38,38,.1);  color: var(--hb-cancelled); }
+
+/* Row 2: Amount + payment chip */
+.hb-card-r2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.hb-amount {
+    font-size: 1.15rem;
+    font-weight: 900;
+    color: var(--hb-ink);
+    letter-spacing: -.01em;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.hb-pay-chip {
+    font-size: .67rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    padding: 3px 8px;
+    border-radius: 100px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.hb-pay-chip.--pending { background: rgba(245,158,11,.12); color: #92400e; border: 1px solid rgba(245,158,11,.25); }
+.hb-pay-chip.--partial { background: rgba(37,99,235,.10);  color: #1e3a8a; border: 1px solid rgba(37,99,235,.22); }
+.hb-pay-chip.--paid    { background: rgba(22,163,74,.10);  color: #14532d; border: 1px solid rgba(22,163,74,.22); }
+
+/* Row 3: Meta items */
+.hb-card-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
-    padding: 0 14px 10px;
+    gap: 6px 10px;
 }
-.ef-bk-meal-tag {
-    background: rgba(138,108,48,.07);
-    border: 1px solid rgba(138,108,48,.15);
-    border-radius: 4px;
-    color: var(--bk-gold);
-    font-size: .58rem;
-    font-weight: 700;
-    letter-spacing: .05em;
-    padding: 1px 6px;
-    text-transform: uppercase;
+.hb-meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: .76rem;
+    color: var(--hb-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 140px;
+}
+.hb-meta-item i { font-size: .75rem; color: var(--hb-faint); flex-shrink: 0; }
+.hb-evt-tag {
+    display: inline-flex;
+    align-items: center;
+    font-size: .7rem;
+    color: var(--hb-muted);
+    background: var(--hb-cream);
+    border: 1px solid var(--hb-border);
+    border-radius: 6px;
+    padding: 2px 6px;
+    white-space: nowrap;
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-/* ── Card footer: actions ──────────────────────────────────────── */
-.ef-bk-foot {
-    align-items: center;
-    border-top: 1px solid var(--bk-border);
+/* Row 4: Actions */
+.hb-card-foot {
     display: flex;
     gap: 6px;
-    justify-content: flex-end;
+    align-items: center;
     margin-top: auto;
-    padding: 8px 12px;
 }
-.ef-bk-acts {
-    align-items: center;
-    display: flex;
-    gap: 4px;
-}
-.ef-bk-act {
-    align-items: center;
-    border: 1.5px solid var(--bk-border-s);
-    border-radius: 8px;
-    color: var(--bk-muted);
-    cursor: pointer;
+.hb-act {
     display: inline-flex;
-    font-family: inherit;
-    font-size: .76rem;
-    font-weight: 660;
-    gap: 4px;
-    min-height: 32px;
-    padding: 5px 10px;
-    text-decoration: none;
-    transition: all .13s;
-    white-space: nowrap;
-    -webkit-tap-highlight-color: transparent;
-}
-.ef-bk-act:hover { border-color: var(--bk-ink); color: var(--bk-ink); }
-.ef-bk-act.--primary {
-    background: var(--bk-ink);
-    border-color: var(--bk-ink);
-    color: var(--bk-surface);
-}
-.ef-bk-act.--primary:hover { opacity: .84; color: var(--bk-surface); }
-.ef-bk-act.--ico { padding: 5px 8px; }
-.ef-bk-act.--wa:hover { border-color: #25d366; color: #25d366; }
-.ef-bk-more {
     align-items: center;
-    background: transparent;
-    border: 1.5px solid var(--bk-border-s);
-    border-radius: 8px;
-    color: var(--bk-muted);
-    cursor: pointer;
-    display: inline-flex;
-    font-size: .85rem;
-    min-height: 32px;
     justify-content: center;
-    padding: 0 8px;
-    transition: all .13s;
-    -webkit-tap-highlight-color: transparent;
+    gap: 5px;
+    min-height: 34px;
+    border-radius: 8px;
+    font-size: .78rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    transition: all .14s;
+    padding: 0 12px;
 }
-.ef-bk-more:hover { border-color: var(--bk-ink); color: var(--bk-ink); }
-
-/* ══════════════════════════════════════════════════════════════════
-   EMPTY STATES
-══════════════════════════════════════════════════════════════════ */
-.ef-bk-empty {
-    background: var(--bk-surface);
-    border: 1px solid var(--bk-border);
-    border-radius: 16px;
-    box-shadow: var(--bk-shadow);
-    padding: 40px 24px;
-    text-align: center;
-}
-.ef-bk-empty-icon {
-    font-size: 2.4rem;
-    line-height: 1;
-    margin-bottom: 12px;
-    opacity: .35;
-}
-.ef-bk-empty-title { color: var(--bk-ink); font-size: .98rem; font-weight: 760; margin-bottom: 6px; }
-.ef-bk-empty-note  { color: var(--bk-muted); font-size: .82rem; line-height: 1.55; margin-bottom: 20px; }
-.ef-bk-empty-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
-
-/* ── Pagination ─────────────────────────────────────────────────── */
-.ef-bk-pagination { display: flex; justify-content: center; margin-bottom: 16px; }
-
-/* ══════════════════════════════════════════════════════════════════
-   FAB — fixed above bottom navigation
-   Bottom nav = ~54px + safe-area. FAB at 54px + 14px gap + safe-area.
-══════════════════════════════════════════════════════════════════ */
-.ef-bk-fab {
-    align-items: center;
-    background: linear-gradient(135deg, #8a6c30 0%, #b89040 100%);
-    border: none;
-    border-radius: 50%;
-    bottom: calc(var(--ef-mobile-nav-height, 0px) + 16px + env(safe-area-inset-bottom, 0px));
-    box-shadow: 0 4px 16px rgba(138,108,48,.45), 0 2px 6px rgba(0,0,0,.14);
+.hb-act.--view {
+    background: var(--hb-ink);
     color: #fff;
-    cursor: pointer;
-    display: none;
-    font-size: 1.35rem;
-    height: 54px;
-    justify-content: center;
-    position: fixed;
-    right: 16px;
-    text-decoration: none;
-    transition: transform .2s var(--bk-ease), box-shadow .2s var(--bk-ease);
-    width: 54px;
-    z-index: 1050;
+    flex: 1;
 }
-.ef-bk-fab:hover { color: #fff; transform: scale(1.07); box-shadow: 0 6px 22px rgba(138,108,48,.55); }
-.ef-bk-fab:active { transform: scale(.94); }
-
-/* ══════════════════════════════════════════════════════════════════
-   RESPONSIVE
-══════════════════════════════════════════════════════════════════ */
-@media (max-width: 1199.98px) {
-    .ef-bk-list { grid-template-columns: minmax(0, 1fr); }
+.hb-act.--view:hover { background: #2d2820; color: #fff; text-decoration: none; }
+.hb-act.--ico {
+    background: var(--hb-cream);
+    border-color: var(--hb-border);
+    color: var(--hb-sub);
+    min-width: 34px;
+    padding: 0 10px;
 }
-@media (max-width: 991.98px) {
-    .ef-bk-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
-@media (max-width: 767.98px) {
-    /* Hero */
-    .ef-bk-hero { padding: 14px 16px; border-radius: 13px; }
-    .ef-bk-hero-title { font-size: 1.2rem; margin-bottom: 6px; }
-    .ef-bk-hbtn span { display: none; }
-    .ef-bk-hbtn { padding: 7px 9px; }
-
-    /* FAB + filter sticky */
-    .ef-bk-fab  { display: flex; }
-    .ef-bk-filter { top: 4px; }
-
-    /* Content clears FAB (54px) + gap (16px) + nav (--ef-mobile-nav-height) */
-    .ef-bk-shell { padding-bottom: calc(var(--ef-mobile-nav-height, 0px) + 90px + env(safe-area-inset-bottom, 0px)); }
-
-    /* Hide text search button on mobile — Enter key submits, filter icon stays */
-    .ef-bk-btn-search-mob { display: none; }
-
-    /* KPI row: slightly narrower items */
-    .ef-bk-kpi-row { grid-template-columns: repeat(5, minmax(96px, 1fr)); }
-}
-
-@media (max-width: 639.98px) {
-    /* Single column cards */
-    .ef-bk-list { grid-template-columns: minmax(0, 1fr); }
-
-    /* Card: tighter but clear hierarchy */
-    .ef-bk-r1 { padding: 12px 13px 8px; gap: 8px; }
-    .ef-bk-av { height: 34px; width: 34px; }
-    .ef-bk-name { font-size: .9rem; }
-    .ef-bk-amount-row { padding: 0 13px 8px; }
-    .ef-bk-amt { font-size: 1.15rem; }
-    .ef-bk-rows { padding: 0 13px 9px; }
-    .ef-bk-meal-tags { padding: 0 13px 9px; }
-    .ef-bk-foot { padding: 8px 10px; }
-
-    /* Mobile action consolidation: hide icon-only buttons, keep View + ⋮
-       This keeps all action links in the DOM (accessible) but hides the redundant ones */
-    .ef-bk-act.--ico { display: none; }
-    .ef-bk-act.--primary { padding: 6px 14px; font-size: .78rem; min-height: 34px; }
-    .ef-bk-more { min-height: 34px; padding: 0 10px; }
-}
-
-@media (max-width: 479.98px) {
-    .ef-bk-hero-title { font-size: 1.1rem; }
-    .ef-bk-hero-summary { gap: 4px; }
-    .ef-bk-hero-pill { font-size: .66rem; padding: 2px 8px; }
-    .ef-bk-kpi-row { grid-template-columns: repeat(5, minmax(88px, 1fr)); min-width: 480px; }
-}
-
-/* Desktop: wider grid */
-@media (min-width: 1200px) {
-    .ef-bk-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .ef-bk-kpi-row { grid-template-columns: repeat(5, minmax(108px, 1fr)); min-width: unset; }
-}
-
-/* ── Group section headers ──────────────────────────────────────── */
-.ef-bk-grp-hdr {
-    grid-column: 1 / -1;
+.hb-act.--ico:hover { border-color: var(--hb-gold-soft); color: var(--hb-gold); text-decoration: none; }
+.hb-act.--wa { color: #fff; background: #25d366; border-color: #25d366; min-width: 34px; padding: 0 10px; }
+.hb-act.--wa:hover { background: #1ebe5c; text-decoration: none; }
+.hb-more-btn {
+    min-height: 34px;
+    min-width: 34px;
     display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--hb-cream);
+    border: 1.5px solid var(--hb-border);
+    border-radius: 8px;
+    color: var(--hb-sub);
+    cursor: pointer;
+    font-size: .88rem;
+    transition: all .14s;
+    padding: 0;
+}
+.hb-more-btn:hover { border-color: var(--hb-border-s); color: var(--hb-ink); }
+
+/* ── List view ───────────────────────────────────────────────────── */
+.hb-grid.--list {
+    grid-template-columns: 1fr;
+    gap: 6px;
+}
+.hb-grid.--list .hb-card {
+    height: auto;
+    flex-direction: row;
+    align-items: stretch;
+}
+.hb-grid.--list .hb-card::before {
+    width: 4px;
+    height: auto;
+    flex-shrink: 0;
+    align-self: stretch;
+}
+.hb-grid.--list .hb-card-inner {
+    flex-direction: row;
     align-items: center;
     gap: 10px;
-    padding: 6px 2px 4px;
-    font-size: .72rem;
-    font-weight: 760;
-    letter-spacing: .07em;
-    text-transform: uppercase;
-    color: var(--bk-muted);
-    border-bottom: 1px solid var(--bk-border);
-    margin-bottom: 0;
+    padding: 10px 14px;
+    flex-wrap: nowrap;
 }
-.ef-bk-grp-hdr.--today  { color: var(--bk-gold); border-bottom-color: rgba(138,108,48,.2); }
-.ef-bk-grp-hdr.--past   { color: var(--bk-faint); }
-.ef-bk-grp-hdr-dot {
-    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
-    background: currentColor; opacity: .65;
+.hb-grid.--list .hb-card-r1 {
+    flex: 0 0 200px;
+    flex-direction: column;
+    gap: 3px;
 }
-.ef-bk-grp-hdr.--today .ef-bk-grp-hdr-dot { animation: bk-pulse 1.8s ease-in-out infinite; opacity: 1; }
+.hb-grid.--list .hb-card-badges { justify-content: flex-start; }
+.hb-grid.--list .hb-card-r2 {
+    flex: 0 0 140px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+}
+.hb-grid.--list .hb-card-meta {
+    flex: 1;
+    flex-wrap: wrap;
+    row-gap: 4px;
+}
+.hb-grid.--list .hb-card-foot {
+    flex: 0 0 auto;
+    margin-top: 0;
+    gap: 4px;
+}
+.hb-grid.--list .hb-act.--view { flex: 0 0 auto; }
 
-/* ── Scroll sentinel & loader ───────────────────────────────────── */
-.ef-bk-scroll-sentinel { height: 1px; grid-column: 1 / -1; }
-.ef-bk-scroll-loader {
-    display: none; text-align: center; padding: 24px;
-    color: var(--bk-muted); font-size: .88rem;
+/* ── Sentinel / loader ───────────────────────────────────────────── */
+.hb-sentinel { height: 1px; }
+.hb-loader {
+    display: none;
+    text-align: center;
+    padding: 20px;
     grid-column: 1 / -1;
+    color: var(--hb-muted);
+    font-size: .83rem;
 }
-.ef-bk-scroll-loader.show { display: block; }
-.ef-bk-scroll-spinner {
-    display: inline-block; width: 18px; height: 18px;
-    border: 2px solid var(--bk-border-s); border-top-color: var(--bk-gold);
-    border-radius: 50%; animation: bk-spin .7s linear infinite;
-    vertical-align: middle; margin-right: 6px;
+.hb-loader.--show { display: block; }
+.hb-loader-spin {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--hb-border);
+    border-top-color: var(--hb-gold);
+    border-radius: 50%;
+    animation: hb-spin .7s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
 }
-@keyframes bk-spin { to { transform: rotate(360deg); } }
+@keyframes hb-spin { to { transform: rotate(360deg); } }
+
+/* ── Empty state ─────────────────────────────────────────────────── */
+.hb-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--hb-faint);
+}
+.hb-empty-icon { font-size: 2.4rem; margin-bottom: 12px; opacity: .5; }
+.hb-empty-text { font-size: .9rem; }
+
+/* ── FAB (mobile) ────────────────────────────────────────────────── */
+.hb-fab {
+    position: fixed;
+    bottom: 24px;
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--hb-ink);
+    color: #fff;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    box-shadow: 0 4px 20px rgba(18,14,8,.25);
+    text-decoration: none;
+    z-index: 200;
+    transition: background .14s, transform .14s;
+}
+.hb-fab:hover { background: #2d2820; color: #fff; transform: scale(1.06); text-decoration: none; }
+
+/* ── Bottom sheet ────────────────────────────────────────────────── */
+.hb-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.45);
+    z-index: 1049;
+    display: none;
+    opacity: 0;
+    transition: opacity .25s;
+}
+.hb-backdrop.--open { display: block; opacity: 1; }
+.hb-sheet {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--hb-surface);
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -4px 30px rgba(18,14,8,.14);
+    transform: translateY(100%);
+    transition: transform .3s var(--hb-ease);
+    z-index: 1050;
+    max-height: 88vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+.hb-sheet.--open { transform: translateY(0); }
+.hb-sheet-handle-wrap {
+    padding: 10px 0 6px;
+    display: flex;
+    justify-content: center;
+}
+.hb-sheet-handle {
+    width: 36px;
+    height: 4px;
+    background: var(--hb-border-s);
+    border-radius: 2px;
+}
+.hb-sheet-hdr {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 20px 14px;
+    border-bottom: 1px solid var(--hb-border);
+}
+.hb-sheet-hdr h2 {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--hb-ink);
+    margin: 0;
+}
+.hb-sheet-close {
+    background: none;
+    border: none;
+    font-size: 1.1rem;
+    color: var(--hb-muted);
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    padding: 0;
+}
+.hb-sheet-close:hover { background: var(--hb-cream); color: var(--hb-ink); }
+.hb-sheet-body {
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.hb-sf-label {
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--hb-faint);
+    margin-bottom: 6px;
+    display: block;
+}
+.hb-sf-select,
+.hb-sf-input {
+    width: 100%;
+    padding: 11px 13px;
+    border: 1.5px solid var(--hb-border);
+    border-radius: var(--hb-r-sm);
+    font-size: .88rem;
+    color: var(--hb-ink);
+    background: var(--hb-surface);
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    height: 46px;
+}
+.hb-sf-select:focus, .hb-sf-input:focus { border-color: var(--hb-gold); }
+.hb-sf-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.hb-sheet-foot {
+    display: flex;
+    gap: 10px;
+    padding: 14px 20px 24px;
+    border-top: 1px solid var(--hb-border);
+}
+.hb-btn-ghost {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 48px;
+    border-radius: var(--hb-r-sm);
+    border: 1.5px solid var(--hb-border-s);
+    background: none;
+    color: var(--hb-sub);
+    font-size: .88rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all .14s;
+}
+.hb-btn-ghost:hover { border-color: var(--hb-ink); color: var(--hb-ink); text-decoration: none; }
+.hb-btn-primary {
+    flex: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 48px;
+    border-radius: var(--hb-r-sm);
+    border: none;
+    background: var(--hb-ink);
+    color: #fff;
+    font-size: .88rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .14s;
+}
+.hb-btn-primary:hover { background: #2d2820; }
+
+/* ── Dropdown menu ───────────────────────────────────────────────── */
+.dropdown-menu { border: 1.5px solid var(--hb-border); border-radius: var(--hb-r-sm); box-shadow: var(--hb-shadow); }
+.dropdown-item { font-size: .84rem; padding: 9px 16px; color: var(--hb-sub); }
+.dropdown-item:hover { background: var(--hb-cream); color: var(--hb-ink); }
+.dropdown-divider { border-color: var(--hb-border); }
+
+/* ── Responsive ──────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+    .hb-stats { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .hb-stat-val { font-size: 1.35rem; }
+    .hb-btn-new { display: none; }
+    .hb-fab { display: flex; }
+    .hb-grid { grid-template-columns: 1fr; }
+    .hb-grid.--list .hb-card-r1 { flex: 0 0 140px; }
+    .hb-grid.--list .hb-card-r2 { display: none; }
+}
+@media (min-width: 641px) and (max-width: 1024px) {
+    .hb-stats { grid-template-columns: repeat(2, 1fr); }
+    .hb-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1024px) {
+    .hb-sheet {
+        left: auto;
+        right: 0;
+        width: 400px;
+        max-height: 100vh;
+        border-radius: 0;
+        top: 0;
+        bottom: 0;
+    }
+}
 </style>
 @endpush
 
 @php
-$today = now()->toDateString();
-$hasAny = fn(array $keys) => collect($keys)->some(fn($k) => request()->filled($k));
+$today    = now()->toDateString();
+$tomorrow = now()->addDay()->toDateString();
 
-$allActive      = !request()->hasAny(['status','payment_status','date_from','date_to','search','hall_id','booking_type']);
-$todayActive    = request('date_from') === $today && request('date_to') === $today
-                  && !$hasAny(['status','payment_status','search','hall_id','booking_type']);
-$upcomingActive = request('date_from') === $today && !request()->filled('date_to')
-                  && !$hasAny(['status','payment_status','search','hall_id','booking_type']);
-$pendingActive  = request('payment_status') === 'pending'
-                  && !$hasAny(['status','date_from','date_to','search','hall_id','booking_type']);
-$paidActive     = request('payment_status') === 'paid'
-                  && !$hasAny(['status','date_from','date_to','search','hall_id','booking_type']);
-$confirmedActive= request('status') === 'confirmed'
-                  && !$hasAny(['payment_status','date_from','date_to','search','hall_id','booking_type']);
-$hasAdvFilter   = request()->hasAny(['hall_id','status','payment_status','date_from','date_to','booking_type']);
+$activeFilters = request()->hasAny(['hall_id','status','payment_status','date_from','date_to','booking_type']);
 
-$avatarTones = ['#7a5a28','#3e6a5a','#4a5e8a','#6a4e7a','#5a6840'];
+$pendingFs  = strlen('₹'.number_format($stats['pending_collect'])) > 8 ? '1.2rem' : '1.7rem';
+$revenueFs  = strlen('₹'.number_format($stats['month_revenue'])) > 8  ? '1.2rem' : '1.7rem';
+$scrollPage = $bookings->currentPage() + 1;
+$scrollMore = $bookings->hasMorePages() ? 'true' : 'false';
+
+// Chip active states
+$chipToday    = request('date_from') === $today && request('date_to') === $today;
+$chipTomorrow = request('date_from') === $tomorrow && request('date_to') === $tomorrow;
+$chipPending  = request('payment_status') === 'pending' && !request()->hasAny(['date_from','date_to','status','booking_type','hall_id']);
+$chipFood     = request('booking_type') === 'food_only' && !request()->hasAny(['date_from','date_to','status','payment_status','hall_id']);
+$chipUpcoming = request('date_from') === $today && !request('date_to') && !request()->hasAny(['status','payment_status','booking_type','hall_id']);
+$chipAll      = !$activeFilters && !request('search');
 @endphp
 
-<div class="ef-bk-shell">
+<div class="hb-shell">
 
-{{-- ═══════════════════════════════════════════════════════════════
-     HERO — with operational summary
-═══════════════════════════════════════════════════════════════════ --}}
-<div class="ef-bk-hero">
-    <div class="ef-bk-hero-left">
-        <h1 class="ef-bk-hero-title">Hall Bookings</h1>
-        <div class="ef-bk-hero-summary">
-            @if($stats['today'] > 0)
-                <span class="ef-bk-hero-pill --amber">
-                    <span class="ef-bk-pulse"></span>
-                    {{ $stats['today'] }} today
-                </span>
+    {{-- Flash --}}
+    @if(session('success'))
+        <div class="hb-flash --success"><i class="bi bi-check-circle-fill"></i> {{ session('success') }}</div>
+    @endif
+    @if(session('error') || $errors->any())
+        <div class="hb-flash --error"><i class="bi bi-exclamation-triangle-fill"></i> {{ session('error') ?? $errors->first() }}</div>
+    @endif
+
+    {{-- Stats --}}
+    <div class="hb-stats">
+        <div class="hb-stat">
+            <div class="hb-stat-icon"><i class="bi bi-calendar-event"></i></div>
+            <div class="hb-stat-val">{{ $stats['today'] }}</div>
+            <div class="hb-stat-label">Today's Events</div>
+        </div>
+        <div class="hb-stat">
+            <div class="hb-stat-icon" style="background:#2563eb"><i class="bi bi-people-fill"></i></div>
+            <div class="hb-stat-val">{{ number_format($stats['upcoming_guests']) }}</div>
+            <div class="hb-stat-label">Upcoming Guests</div>
+        </div>
+        <div class="hb-stat">
+            <div class="hb-stat-icon" style="background:#f59e0b"><i class="bi bi-hourglass-split"></i></div>
+            @if($isEmployee)
+                <div class="hb-stat-val" style="font-size:1rem;color:var(--hb-faint);letter-spacing:0">—</div>
+            @else
+                <div class="hb-stat-val" style="font-size:{{ $pendingFs }}">₹{{ number_format($stats['pending_collect']) }}</div>
             @endif
-            @if($stats['pending_pay'] > 0)
-                <span class="ef-bk-hero-pill --red">
-                    <i class="bi bi-exclamation-circle"></i>
-                    {{ $stats['pending_pay'] }} pending pay
-                </span>
-            @elseif($stats['pending_pay'] === 0)
-                <span class="ef-bk-hero-pill --green">
-                    <i class="bi bi-check-circle"></i>
-                    Payments clear
-                </span>
+            <div class="hb-stat-label">Pending Collection</div>
+        </div>
+        <div class="hb-stat">
+            <div class="hb-stat-icon" style="background:#16a34a"><i class="bi bi-graph-up-arrow"></i></div>
+            @if($isEmployee)
+                <div class="hb-stat-val" style="font-size:1rem;color:var(--hb-faint);letter-spacing:0">—</div>
+            @else
+                <div class="hb-stat-val" style="font-size:{{ $revenueFs }}">₹{{ number_format($stats['month_revenue']) }}</div>
             @endif
-            <span class="ef-bk-hero-pill --neutral">
-                {{ $stats['upcoming'] }} upcoming
-            </span>
+            <div class="hb-stat-label">Monthly Revenue</div>
         </div>
     </div>
-    <div class="ef-bk-hero-actions">
-        <a href="{{ route('hall.bookings.create') }}" class="ef-bk-hbtn --gold">
-            <i class="bi bi-plus-circle"></i><span>New Booking</span>
-        </a>
-        <a href="{{ route('hall.bookings.calendar') }}" class="ef-bk-hbtn" title="Calendar">
-            <i class="bi bi-calendar3"></i><span>Calendar</span>
-        </a>
-        <a href="{{ route('hall.bookings.kitchen') }}" class="ef-bk-hbtn" title="Kitchen">
-            <i class="bi bi-cup-hot"></i><span>Kitchen</span>
-        </a>
-    </div>
-</div>
 
-{{-- ═══════════════════════════════════════════════════════════════
-     KPI STRIP
-═══════════════════════════════════════════════════════════════════ --}}
-<div class="ef-bk-kpi-scroll">
-    <div class="ef-bk-kpi-row">
-        <div class="ef-bk-kpi">
-            <div class="ef-bk-kpi-label">
-                @if($stats['today'] > 0)
-                    <span style="animation:bk-pulse 1.8s ease-in-out infinite;background:var(--bk-gold);border-radius:50%;display:inline-block;height:6px;width:6px;flex-shrink:0"></span>
-                @endif
-                Today
-            </div>
-            <div class="ef-bk-kpi-val {{ $stats['today'] > 0 ? '--gold' : '' }}">{{ $stats['today'] }}</div>
-            <div class="ef-bk-kpi-note">Active now</div>
+    {{-- Top bar --}}
+    <form class="hb-topbar" method="GET" action="{{ route('hall.bookings.index') }}" id="hbSearchForm">
+        {{-- Preserve other filters when searching --}}
+        @foreach(request()->except('search','page') as $k => $v)
+            <input type="hidden" name="{{ $k }}" value="{{ $v }}">
+        @endforeach
+        <div class="hb-search-wrap">
+            <input type="search" name="search" class="hb-search-input"
+                   placeholder="Search name or mobile…"
+                   value="{{ request('search') }}"
+                   autocomplete="off">
+            <button type="submit" class="hb-search-btn" aria-label="Search">
+                <i class="bi bi-search"></i>
+            </button>
         </div>
-        <div class="ef-bk-kpi">
-            <div class="ef-bk-kpi-label">Upcoming</div>
-            <div class="ef-bk-kpi-val">{{ $stats['upcoming'] }}</div>
-            <div class="ef-bk-kpi-note">From today</div>
-        </div>
-        <div class="ef-bk-kpi">
-            <div class="ef-bk-kpi-label">Pending Pay</div>
-            <div class="ef-bk-kpi-val {{ $stats['pending_pay'] > 0 ? '--red' : '' }}">{{ $stats['pending_pay'] }}</div>
-            <div class="ef-bk-kpi-note">{{ $stats['pending_pay'] > 0 ? 'Needs attention' : 'All clear' }}</div>
-        </div>
-        <div class="ef-bk-kpi">
-            <div class="ef-bk-kpi-label">Occupancy</div>
-            <div class="ef-bk-kpi-val --green">{{ $stats['month_occ'] }}<span style="font-size:.75rem;font-weight:640">%</span></div>
-            <div class="ef-bk-kpi-note">{{ now()->format('M') }}</div>
-        </div>
-        <div class="ef-bk-kpi">
-            <div class="ef-bk-kpi-label">Guests</div>
-            <div class="ef-bk-kpi-val">{{ number_format($stats['week_guests']) }}</div>
-            <div class="ef-bk-kpi-note">This week</div>
-        </div>
-    </div>
-</div>
-
-{{-- ═══════════════════════════════════════════════════════════════
-     FILTER BAR — sticky
-═══════════════════════════════════════════════════════════════════ --}}
-<div class="ef-bk-filter">
-    <form method="GET" id="bkFilterForm">
-        {{-- Search row --}}
-        <div class="ef-bk-filter-row1">
-            <div class="ef-bk-search-wrap">
-                <i class="bi bi-search ef-bk-search-ico"></i>
-                <input type="text" name="search" class="ef-bk-search"
-                       placeholder="Search name or mobile…"
-                       value="{{ request('search') }}" autocomplete="off">
-            </div>
-            <div class="ef-bk-filter-btns">
-                <button type="button" id="bkFiltToggle"
-                        class="ef-bk-filt-btn {{ $hasAdvFilter ? '--active' : '' }}"
-                        onclick="bkToggleAdv()">
-                    <i class="bi bi-sliders2"></i>
-                    @if($hasAdvFilter)<span class="ef-bk-filter-dot"></span>@endif
+        <div class="hb-topbar-right">
+            {{-- View toggle --}}
+            <div class="hb-view-toggle" role="group" aria-label="View mode">
+                <button type="button" class="hb-vt-btn --active" data-view="card" title="Card view" aria-pressed="true">
+                    <i class="bi bi-grid-3x3-gap"></i>
                 </button>
-                {{-- Desktop: show Search button; hidden on mobile via CSS (Enter key works) --}}
-                <button type="submit" class="ef-bk-btn-apply ef-bk-btn-search-mob">
-                    <i class="bi bi-search" style="font-size:.75rem"></i>
+                <button type="button" class="hb-vt-btn" data-view="list" title="List view" aria-pressed="false">
+                    <i class="bi bi-list-ul"></i>
                 </button>
             </div>
+            {{-- Filter --}}
+            <button type="button" class="hb-filter-btn {{ $activeFilters ? '--active' : '' }}" id="hbOpenSheet" aria-expanded="false" aria-controls="hbSheet">
+                <i class="bi bi-sliders"></i>
+                <span class="d-none d-sm-inline">Filter</span>
+                @if($activeFilters)<span class="hb-filter-dot"></span>@endif
+            </button>
+            {{-- New (desktop) --}}
+            <a href="{{ route('hall.bookings.create') }}" class="hb-btn-new">
+                <i class="bi bi-plus-lg"></i> New Booking
+            </a>
         </div>
+    </form>
 
-        {{-- Quick chips --}}
-        <div class="ef-bk-chips">
-            <a href="{{ route('hall.bookings.index') }}"
-               class="ef-bk-chip {{ $allActive ? '--active' : '' }}">All</a>
-            <a href="{{ route('hall.bookings.index', ['date_from' => $today, 'date_to' => $today]) }}"
-               class="ef-bk-chip {{ $todayActive ? '--active' : '' }}">Today</a>
-            <a href="{{ route('hall.bookings.index', ['date_from' => $today]) }}"
-               class="ef-bk-chip {{ $upcomingActive ? '--active' : '' }}">Upcoming</a>
-            <a href="{{ route('hall.bookings.index', ['payment_status' => 'pending']) }}"
-               class="ef-bk-chip {{ $pendingActive ? '--active' : '' }}">Pending Pay</a>
-            <a href="{{ route('hall.bookings.index', ['status' => 'confirmed']) }}"
-               class="ef-bk-chip {{ $confirmedActive ? '--active' : '' }}">Confirmed</a>
-            <a href="{{ route('hall.bookings.index', ['payment_status' => 'paid']) }}"
-               class="ef-bk-chip {{ $paidActive ? '--active' : '' }}">Paid</a>
+    {{-- Quick chips --}}
+    <div class="hb-chips" role="list" aria-label="Quick filters">
+        <a role="listitem" href="{{ route('hall.bookings.index') }}"
+           class="hb-chip {{ $chipAll ? '--active' : '' }}">
+            <i class="bi bi-collection"></i> All
+        </a>
+        <a role="listitem" href="{{ route('hall.bookings.index', array_merge(request()->except(['date_from','date_to','page']), ['date_from' => $today, 'date_to' => $today])) }}"
+           class="hb-chip {{ $chipToday ? '--active' : '' }}">
+            <i class="bi bi-sun"></i> Today
+        </a>
+        <a role="listitem" href="{{ route('hall.bookings.index', array_merge(request()->except(['date_from','date_to','page']), ['date_from' => $tomorrow, 'date_to' => $tomorrow])) }}"
+           class="hb-chip {{ $chipTomorrow ? '--active' : '' }}">
+            <i class="bi bi-arrow-right-circle"></i> Tomorrow
+        </a>
+        <a role="listitem" href="{{ route('hall.bookings.index', ['payment_status' => 'pending']) }}"
+           class="hb-chip {{ $chipPending ? '--active' : '' }}">
+            <i class="bi bi-hourglass"></i> Pending Pay
+        </a>
+        <a role="listitem" href="{{ route('hall.bookings.index', ['booking_type' => 'food_only']) }}"
+           class="hb-chip {{ $chipFood ? '--active' : '' }}">
+            <i class="bi bi-egg-fried"></i> Food Only
+        </a>
+        <a role="listitem" href="{{ route('hall.bookings.index', array_merge(request()->except(['date_from','date_to','page']), ['date_from' => $today])) }}"
+           class="hb-chip {{ $chipUpcoming ? '--active' : '' }}">
+            <i class="bi bi-calendar-range"></i> Upcoming
+        </a>
+    </div>
+
+    {{-- Result bar --}}
+    <div class="hb-result-bar">
+        <span>{{ number_format($bookings->total()) }} booking{{ $bookings->total() !== 1 ? 's' : '' }}
+        @if($activeFilters || request('search'))
+            &nbsp;·&nbsp;<a href="{{ route('hall.bookings.index') }}" style="color:var(--hb-gold);text-decoration:none">Clear filters</a>
+        @endif
+        </span>
+    </div>
+
+    {{-- Booking grid --}}
+    <div class="hb-grid" id="hbGrid">
+        @include('hall.bookings._booking_cards', ['bookings' => $bookings, 'today' => $today, 'isEmployee' => $isEmployee])
+        @if($bookings->isEmpty())
+            <div class="hb-empty">
+                <div class="hb-empty-icon"><i class="bi bi-calendar-x"></i></div>
+                <div class="hb-empty-text">No bookings found. <a href="{{ route('hall.bookings.index') }}" style="color:var(--hb-gold)">Clear filters</a> or <a href="{{ route('hall.bookings.create') }}" style="color:var(--hb-gold)">create one</a>.</div>
+            </div>
+        @endif
+        <div class="hb-sentinel" id="hbSentinel" style="grid-column:1/-1"></div>
+        <div class="hb-loader" id="hbLoader" style="grid-column:1/-1">
+            <span class="hb-loader-spin"></span> Loading more…
         </div>
+    </div>
 
-        {{-- Advanced drawer --}}
-        <div class="ef-bk-adv {{ $hasAdvFilter ? '--open' : '' }}" id="bkAdvPanel">
-            <div class="ef-bk-adv-inner">
-                <div>
-                    <label class="ef-bk-adv-label">Booking Type</label>
-                    <select name="booking_type" class="ef-bk-adv-select">
-                        <option value="">All Types</option>
-                        @foreach(\App\Models\HallBooking::bookingTypes() as $v => $l)
-                            <option value="{{ $v }}" {{ request('booking_type') === $v ? 'selected' : '' }}>{{ $l }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="ef-bk-adv-label">Hall</label>
-                    <select name="hall_id" class="ef-bk-adv-select">
-                        <option value="">All Halls</option>
-                        @foreach($halls as $h)
-                            <option value="{{ $h->id }}" {{ request('hall_id') == $h->id ? 'selected' : '' }}>{{ $h->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="ef-bk-adv-label">Status</label>
-                    <select name="status" class="ef-bk-adv-select">
-                        <option value="">All Status</option>
-                        @foreach(\App\Models\HallBooking::statuses() as $v => $l)
-                            <option value="{{ $v }}" {{ request('status') === $v ? 'selected' : '' }}>{{ $l }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="ef-bk-adv-label">Payment</label>
-                    <select name="payment_status" class="ef-bk-adv-select">
-                        <option value="">All Payments</option>
-                        @foreach(\App\Models\HallBooking::paymentStatuses() as $v => $l)
-                            <option value="{{ $v }}" {{ request('payment_status') === $v ? 'selected' : '' }}>{{ $l }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="ef-bk-adv-label">From</label>
-                    <input type="date" name="date_from" class="ef-bk-adv-input" value="{{ request('date_from') }}">
-                </div>
-                <div>
-                    <label class="ef-bk-adv-label">To</label>
-                    <input type="date" name="date_to" class="ef-bk-adv-input" value="{{ request('date_to') }}">
-                </div>
-                <div style="display:flex;flex-direction:column;justify-content:flex-end">
-                    <div class="ef-bk-adv-row">
-                        <button type="submit" class="ef-bk-btn-apply">Apply</button>
-                        <a href="{{ route('hall.bookings.index') }}" class="ef-bk-btn-clear">Clear</a>
-                    </div>
+</div>
+
+{{-- FAB (mobile) --}}
+<a href="{{ route('hall.bookings.create') }}" class="hb-fab" aria-label="New Booking">
+    <i class="bi bi-plus-lg"></i>
+</a>
+
+{{-- Backdrop --}}
+<div class="hb-backdrop" id="hbBackdrop" role="presentation"></div>
+
+{{-- Bottom / side sheet filter --}}
+<div class="hb-sheet" id="hbSheet" role="dialog" aria-modal="true" aria-label="Filter bookings">
+    <div class="hb-sheet-handle-wrap" aria-hidden="true"><div class="hb-sheet-handle"></div></div>
+    <div class="hb-sheet-hdr">
+        <h2>Filter Bookings</h2>
+        <button type="button" class="hb-sheet-close" id="hbCloseSheet" aria-label="Close filters">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+    <form method="GET" action="{{ route('hall.bookings.index') }}" id="hbFilterForm">
+        @if(request('search'))
+            <input type="hidden" name="search" value="{{ request('search') }}">
+        @endif
+        <div class="hb-sheet-body">
+            <div>
+                <label class="hb-sf-label">Hall / Venue</label>
+                <select name="hall_id" class="hb-sf-select">
+                    <option value="">All halls</option>
+                    @foreach($halls as $h)
+                        <option value="{{ $h->id }}" {{ request('hall_id') == $h->id ? 'selected' : '' }}>{{ $h->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="hb-sf-label">Booking Type</label>
+                <select name="booking_type" class="hb-sf-select">
+                    <option value="">All types</option>
+                    <option value="hall_only" {{ request('booking_type') === 'hall_only' ? 'selected' : '' }}>Hall Only</option>
+                    <option value="hall_food" {{ request('booking_type') === 'hall_food' ? 'selected' : '' }}>Hall + Food</option>
+                    <option value="food_only" {{ request('booking_type') === 'food_only' ? 'selected' : '' }}>Food Only</option>
+                </select>
+            </div>
+            <div>
+                <label class="hb-sf-label">Event Status</label>
+                <select name="status" class="hb-sf-select">
+                    <option value="">All statuses</option>
+                    <option value="confirmed"  {{ request('status') === 'confirmed'  ? 'selected' : '' }}>Confirmed</option>
+                    <option value="completed"  {{ request('status') === 'completed'  ? 'selected' : '' }}>Completed</option>
+                    <option value="cancelled"  {{ request('status') === 'cancelled'  ? 'selected' : '' }}>Cancelled</option>
+                </select>
+            </div>
+            <div>
+                <label class="hb-sf-label">Payment Status</label>
+                <select name="payment_status" class="hb-sf-select">
+                    <option value="">All payments</option>
+                    <option value="pending" {{ request('payment_status') === 'pending' ? 'selected' : '' }}>Pending</option>
+                    <option value="partial" {{ request('payment_status') === 'partial' ? 'selected' : '' }}>Partial</option>
+                    <option value="paid"    {{ request('payment_status') === 'paid'    ? 'selected' : '' }}>Paid</option>
+                </select>
+            </div>
+            <div>
+                <label class="hb-sf-label">Date Range</label>
+                <div class="hb-sf-row">
+                    <input type="date" name="date_from" class="hb-sf-input" value="{{ request('date_from') }}" placeholder="From">
+                    <input type="date" name="date_to"   class="hb-sf-input" value="{{ request('date_to') }}"   placeholder="To">
                 </div>
             </div>
+        </div>
+        <div class="hb-sheet-foot">
+            <a href="{{ route('hall.bookings.index', request('search') ? ['search' => request('search')] : []) }}"
+               class="hb-btn-ghost">Reset</a>
+            <button type="submit" class="hb-btn-primary">Apply Filters</button>
         </div>
     </form>
 </div>
 
-{{-- Results meta --}}
-<div class="ef-bk-meta-bar">
-    <span>
-        <strong>{{ $bookings->total() }}</strong> {{ Str::plural('booking', $bookings->total()) }}
-        @if(request()->hasAny(['search','hall_id','status','payment_status','date_from','date_to']))
-            <span style="color:var(--bk-faint)"> · filtered</span>
-            <span style="color:var(--bk-faint)"> · </span>
-            <a href="{{ route('hall.bookings.index') }}"
-               style="color:var(--bk-gold);font-weight:660;text-decoration:none">Clear</a>
-        @endif
-    </span>
-    <span>Today · Upcoming · Past</span>
-</div>
-
-{{-- ═══════════════════════════════════════════════════════════════
-     BOOKING CARDS
-═══════════════════════════════════════════════════════════════════ --}}
-@if($bookings->isNotEmpty())
-<div class="ef-bk-list" id="efBkList">
-    @include('hall.bookings._booking_cards', ['bookings' => $bookings, 'today' => $today])
-    <div class="ef-bk-scroll-sentinel" id="efBkSentinel"></div>
-    <div class="ef-bk-scroll-loader" id="efBkLoader">
-        <span class="ef-bk-scroll-spinner"></span> Loading more…
-    </div>
-</div>
-
-@else
-{{-- ═══════════════════════════════════════════════════════════════
-     EMPTY STATE
-═══════════════════════════════════════════════════════════════════ --}}
-<div class="ef-bk-empty">
-    @if(request()->hasAny(['search','hall_id','status','payment_status','date_from','date_to']))
-        <div class="ef-bk-empty-icon">🔍</div>
-        <h3 class="ef-bk-empty-title">No bookings match</h3>
-        <p class="ef-bk-empty-note">
-            No results for your current filters.<br>Try a different search or broaden your selection.
-        </p>
-        <div class="ef-bk-empty-actions">
-            <a href="{{ route('hall.bookings.index') }}" class="ef-bk-btn-clear">
-                <i class="bi bi-x-circle me-1"></i>Clear Filters
-            </a>
-        </div>
-    @else
-        <div class="ef-bk-empty-icon">📅</div>
-        <h3 class="ef-bk-empty-title">No bookings yet</h3>
-        <p class="ef-bk-empty-note">
-            Your venue calendar is empty.<br>Create your first hall booking to get started.
-        </p>
-        <div class="ef-bk-empty-actions">
-            <a href="{{ route('hall.bookings.create') }}" class="ef-bk-hbtn --gold" style="display:inline-flex">
-                <i class="bi bi-plus-circle"></i><span>Create Booking</span>
-            </a>
-            <a href="{{ route('hall.bookings.calendar') }}" class="ef-bk-hbtn" style="display:inline-flex">
-                <i class="bi bi-calendar3"></i><span>View Calendar</span>
-            </a>
-        </div>
-    @endif
-</div>
-@endif
-
-</div>{{-- /shell --}}
-
-{{-- FAB — mobile new booking, positioned above bottom nav --}}
-<a href="{{ route('hall.bookings.create') }}" class="ef-bk-fab ef-mobile-fab" title="New Booking" aria-label="Create new booking">
-    <i class="bi bi-plus"></i>
-</a>
-
 @push('scripts')
 <script>
-function bkToggleAdv() {
-    const panel = document.getElementById('bkAdvPanel');
-    const btn   = document.getElementById('bkFiltToggle');
-    const open  = panel.classList.toggle('--open');
-    btn.classList.toggle('--active', open);
-}
-
-// Disable empty fields before submit (prevents ?search=&date_from= in URL)
-document.getElementById('bkFilterForm').addEventListener('submit', function () {
-    this.querySelectorAll('input[type="text"], input[type="date"], select').forEach(el => {
-        if (!el.value.trim()) el.disabled = true;
-    });
-});
-
-// ── Group headers + infinite scroll ────────────────────────────────────────
 (function () {
-    var GROUP_LABELS = { today: 'Today', upcoming: 'Upcoming', past: 'Past Bookings' };
+    /* ── View toggle ──────────────────────────────────────────────── */
+    var grid = document.getElementById('hbGrid');
+    var vtBtns = document.querySelectorAll('.hb-vt-btn');
+    var storedView = localStorage.getItem('hb_view') || 'card';
 
-    function makeGroupHeader(group) {
-        var el = document.createElement('div');
-        el.className = 'ef-bk-grp-hdr --' + group;
-        el.dataset.group = group;
-        el.innerHTML = '<span class="ef-bk-grp-hdr-dot"></span>' + (GROUP_LABELS[group] || group);
-        return el;
-    }
-
-    // Insert group-transition headers among card nodes, returns new lastGroup
-    function injectHeaders(cards, container, lastGroup) {
-        var cur = lastGroup;
-        cards.forEach(function (card) {
-            var g = card.dataset && card.dataset.group;
-            if (!g) return;
-            if (g !== cur) {
-                container.insertBefore(makeGroupHeader(g), card);
-                cur = g;
-            }
+    function setView(mode) {
+        storedView = mode;
+        localStorage.setItem('hb_view', mode);
+        grid.classList.toggle('--list', mode === 'list');
+        vtBtns.forEach(function(btn) {
+            var active = btn.dataset.view === mode;
+            btn.classList.toggle('--active', active);
+            btn.setAttribute('aria-pressed', active ? 'true' : 'false');
         });
-        return cur;
+    }
+    setView(storedView);
+    vtBtns.forEach(function(btn) {
+        btn.addEventListener('click', function() { setView(btn.dataset.view); });
+    });
+
+    /* ── Bottom sheet ─────────────────────────────────────────────── */
+    var sheet    = document.getElementById('hbSheet');
+    var backdrop = document.getElementById('hbBackdrop');
+    var openBtn  = document.getElementById('hbOpenSheet');
+    var closeBtn = document.getElementById('hbCloseSheet');
+
+    function openSheet() {
+        sheet.classList.add('--open');
+        backdrop.classList.add('--open');
+        openBtn && openBtn.setAttribute('aria-expanded', 'true');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeSheet() {
+        sheet.classList.remove('--open');
+        backdrop.classList.remove('--open');
+        openBtn && openBtn.setAttribute('aria-expanded', 'false');
+        document.body.style.overflow = '';
     }
 
-    // Run on initial page cards
-    var list = document.getElementById('efBkList');
-    if (list) {
-        var initial = Array.from(list.querySelectorAll('.ef-bk-card'));
-        injectHeaders(initial, list, null);
-    }
+    openBtn  && openBtn.addEventListener('click', openSheet);
+    closeBtn && closeBtn.addEventListener('click', closeSheet);
+    backdrop && backdrop.addEventListener('click', closeSheet);
 
-    // Infinite scroll
-    var sentinel = document.getElementById('efBkSentinel');
-    var loader   = document.getElementById('efBkLoader');
-    if (!sentinel || !list) return;
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && sheet.classList.contains('--open')) closeSheet();
+    });
 
-    var nextPage  = {{ $bookings->hasMorePages() ? $bookings->currentPage() + 1 : 'null' }};
-    var hasMore   = {{ $bookings->hasMorePages() ? 'true' : 'false' }};
+    /* Touch-swipe down to close sheet */
+    var touchStartY = 0;
+    sheet.addEventListener('touchstart', function(e) { touchStartY = e.touches[0].clientY; }, { passive: true });
+    sheet.addEventListener('touchend', function(e) {
+        if (e.changedTouches[0].clientY - touchStartY > 80 && sheet.scrollTop === 0) closeSheet();
+    }, { passive: true });
+
+    /* ── Infinite scroll ──────────────────────────────────────────── */
+    var sentinel  = document.getElementById('hbSentinel');
+    var loader    = document.getElementById('hbLoader');
+    var nextPage  = {{ $scrollPage }};
+    var hasMore   = {{ $scrollMore }};
     var loading   = false;
-    var lastGroup = (function () {
-        var hdrs = list.querySelectorAll('.ef-bk-grp-hdr');
-        return hdrs.length ? hdrs[hdrs.length - 1].dataset.group : null;
-    })();
+    var baseUrl   = '{{ $bookings->url(1) }}';
 
-    if (!hasMore) { sentinel.remove(); return; }
+    function buildUrl(page) {
+        var params = new URLSearchParams(window.location.search);
+        params.set('page', page);
+        return window.location.pathname + '?' + params.toString();
+    }
 
-    function loadMore() {
+    function fetchMore() {
         if (loading || !hasMore) return;
         loading = true;
-        loader.classList.add('show');
+        loader.classList.add('--show');
 
-        var params = new URLSearchParams(window.location.search);
-        params.set('page', nextPage);
-        var url = window.location.pathname + '?' + params.toString();
+        fetch(buildUrl(nextPage), {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            loading  = false;
+            hasMore  = data.hasMore;
+            nextPage = data.nextPage;
+            loader.classList.remove('--show');
 
-        fetch(url, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                if (data.html) {
-                    var tmp = document.createElement('div');
-                    tmp.innerHTML = data.html;
-                    var newCards = Array.from(tmp.querySelectorAll('.ef-bk-card'));
-
-                    // Build a fragment with headers, then append before sentinel
-                    var frag = document.createDocumentFragment();
-                    var cur  = lastGroup;
-                    newCards.forEach(function (card) {
-                        var g = card.dataset.group;
-                        if (g && g !== cur) {
-                            frag.appendChild(makeGroupHeader(g));
-                            cur = g;
-                        }
-                        frag.appendChild(card);
-                    });
-                    lastGroup = cur;
-                    list.insertBefore(frag, sentinel);
-                }
-                hasMore  = data.hasMore;
-                nextPage = data.nextPage;
-                loading  = false;
-                loader.classList.remove('show');
-                if (!hasMore) { observer.disconnect(); sentinel.remove(); }
-            })
-            .catch(function () { loading = false; loader.classList.remove('show'); });
+            var tmp = document.createElement('div');
+            tmp.innerHTML = data.html;
+            while (tmp.firstChild) {
+                grid.insertBefore(tmp.firstChild, sentinel);
+            }
+            if (!hasMore && sentinel) sentinel.remove();
+        })
+        .catch(function() { loading = false; loader.classList.remove('--show'); });
     }
 
-    var observer = new IntersectionObserver(function (entries) {
-        if (entries[0].isIntersecting) loadMore();
-    }, { rootMargin: '300px' });
-
-    observer.observe(sentinel);
+    if (sentinel && hasMore) {
+        var obs = new IntersectionObserver(function(entries) {
+            if (entries[0].isIntersecting) fetchMore();
+        }, { rootMargin: '200px' });
+        obs.observe(sentinel);
+    }
 })();
 </script>
 @endpush
-
 </x-admin-layout>
