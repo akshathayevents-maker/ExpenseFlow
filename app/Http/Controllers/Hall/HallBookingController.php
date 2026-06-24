@@ -522,9 +522,21 @@ class HallBookingController extends Controller
         } elseif ($totalPaid > 0) {
             $status = 'partial';
         }
-        $booking->update(['payment_status' => $status]);
 
-        return back()->with('success', 'Payment recorded.');
+        $updates = ['payment_status' => $status];
+        if ($status === 'paid' && $booking->status === 'confirmed') {
+            $updates['status'] = 'completed';
+        } elseif ($totalPaid > 0 && $booking->status === 'pending') {
+            $updates['status'] = 'confirmed';
+        }
+        $booking->update($updates);
+
+        $msg = match(true) {
+            $status === 'paid'                          => 'Payment complete — booking marked as Completed.',
+            isset($updates['status']) => 'Payment recorded — booking confirmed.',
+            default                                     => 'Payment recorded.',
+        };
+        return back()->with('success', $msg);
     }
 
     public function kitchen(): View
