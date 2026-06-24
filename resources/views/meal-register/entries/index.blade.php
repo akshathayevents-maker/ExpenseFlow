@@ -1,153 +1,460 @@
 <x-admin-layout title="Meal Entries">
 @push('styles')
 <style>
-:root{
-    --me-gold:#a0723a;--me-gold-dim:rgba(160,114,58,.1);
-    --me-ink:#1c1712;--me-muted:#7a6e62;--me-faint:#b0a89a;
-    --me-border:#e8e2d8;--me-surface:#fff;
-    --me-green:#16a34a;--me-orange:#d97706;--me-blue:#2563eb;
+/* Meal Entries — Operations Register */
+:root {
+    --me-gold:    #a0723a;
+    --me-gold-bg: #fdf7ee;
+    --me-ink:     #1c1712;
+    --me-sub:     #4a4238;
+    --me-muted:   #7a6e62;
+    --me-faint:   #b0a89a;
+    --me-border:  rgba(0,0,0,.08);
+    --me-surface: #fff;
+    --me-bg:      #f5f3ef;
+    --me-green:   #16a34a;
+    --me-green-bg:#f0fdf4;
+    --me-red:     #dc2626;
+    --me-red-bg:  #fef2f2;
+    --me-gray-bg: #f3f4f6;
+    --me-shadow:  0 1px 2px rgba(0,0,0,.05), 0 3px 10px rgba(0,0,0,.06);
+    --me-shadow-h:0 2px 6px rgba(0,0,0,.08), 0 8px 24px rgba(0,0,0,.1);
+    --me-r:       14px;
 }
-.mei-wrap{max-width:900px;margin:0 auto}
-.mei-hdr{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
-.mei-title{font-size:1.2rem;font-weight:900;color:var(--me-ink);margin:0;flex:1}
-.mei-btn-new{display:inline-flex;align-items:center;gap:7px;padding:10px 18px;border-radius:10px;background:var(--me-gold);color:#fff;font-size:.85rem;font-weight:700;text-decoration:none}
-.mei-btn-new:hover{background:#b8832a;color:#fff}
-.mei-filters{background:#fff;border:1.5px solid var(--me-border);border-radius:14px;padding:16px;margin-bottom:18px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
-.mei-filter-group{display:flex;flex-direction:column;gap:4px;flex:1;min-width:140px}
-.mei-filter-label{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--me-faint)}
-.mei-filter-ctrl{padding:9px 12px;border:1.5px solid var(--me-border);border-radius:8px;font-size:.85rem;color:var(--me-ink);background:#fff;outline:none;min-height:40px}
-.mei-filter-ctrl:focus{border-color:var(--me-gold)}
-.mei-filter-btn{padding:9px 18px;border-radius:8px;font-size:.83rem;font-weight:700;border:none;cursor:pointer;min-height:40px}
-.mei-filter-apply{background:var(--me-gold);color:#fff}
-.mei-filter-clear{background:#f7f5f2;color:var(--me-muted);border:1.5px solid var(--me-border);text-decoration:none;display:inline-flex;align-items:center}
-.mei-card{background:var(--me-surface);border:1.5px solid var(--me-border);border-radius:14px;padding:16px;margin-bottom:12px;transition:box-shadow .13s}
-.mei-card:hover{box-shadow:0 4px 18px rgba(0,0,0,.07)}
-.mei-card-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px}
-.mei-date-badge{background:rgba(160,114,58,.1);color:var(--me-gold);font-size:.78rem;font-weight:800;padding:5px 10px;border-radius:8px;white-space:nowrap}
-.mei-client-name{font-size:.95rem;font-weight:800;color:var(--me-ink);flex:1}
-.mei-show-link{font-size:.78rem;font-weight:700;color:var(--me-gold);text-decoration:none;white-space:nowrap}
-.mei-show-link:hover{text-decoration:underline}
-.mei-meal-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
-.mei-meal-chip{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:8px;background:#faf8f5;border:1px solid var(--me-border);font-size:.78rem}
-.mei-meal-label{font-weight:700;color:var(--me-ink)}
-.mei-meal-counts{color:var(--me-muted)}
-.mei-var-over{color:var(--me-green);font-weight:700}
-.mei-var-under{color:var(--me-orange);font-weight:700}
-.mei-var-eq{color:var(--me-blue);font-weight:700}
-.mei-totals{display:flex;gap:16px;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--me-border)}
-.mei-total-item{font-size:.75rem;color:var(--me-muted)}
-.mei-total-item strong{color:var(--me-ink)}
-.mei-empty{text-align:center;padding:48px 20px;color:var(--me-faint);font-size:.9rem}
-.mei-badge-employee{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;background:rgba(37,99,235,.07);color:var(--me-blue);font-size:.72rem;font-weight:700;margin-bottom:12px}
+
+#main-content { background: var(--me-bg) !important; }
+
+.me-wrap { max-width: 680px; margin: 0 auto; padding: 0 0 80px; }
+
+/* ── Sticky toolbar ── */
+.me-toolbar {
+    align-items: center;
+    background: var(--me-bg);
+    display: flex;
+    gap: 10px;
+    justify-content: space-between;
+    padding: 14px 0 10px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+.me-page-title {
+    color: var(--me-ink);
+    font-size: 1.05rem;
+    font-weight: 900;
+    margin: 0;
+}
+.me-btn-new {
+    align-items: center;
+    background: var(--me-gold);
+    border-radius: 10px;
+    color: #fff;
+    display: inline-flex;
+    font-size: .78rem;
+    font-weight: 720;
+    gap: 5px;
+    padding: 8px 14px;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.me-btn-new:hover { background: #b8832a; color: #fff; }
+
+/* ── Filters ── */
+.me-filter-bar {
+    background: var(--me-surface);
+    border: 1px solid var(--me-border);
+    border-radius: var(--me-r);
+    box-shadow: var(--me-shadow);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding: 12px 14px;
+}
+.me-fg { display: flex; flex-direction: column; flex: 1; gap: 3px; min-width: 120px; }
+.me-fg-lbl { color: var(--me-faint); font-size: .6rem; font-weight: 720; letter-spacing: .07em; text-transform: uppercase; }
+.me-fc {
+    appearance: none;
+    background: var(--me-bg);
+    border: 1px solid var(--me-border);
+    border-radius: 8px;
+    color: var(--me-ink);
+    font-size: .8rem;
+    min-height: 36px;
+    outline: none;
+    padding: 0 10px;
+    width: 100%;
+}
+.me-fc:focus { border-color: var(--me-gold); }
+.me-filter-btns { align-items: flex-end; display: flex; flex-shrink: 0; gap: 6px; }
+.me-fb {
+    align-items: center;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    font-size: .78rem;
+    font-weight: 700;
+    gap: 5px;
+    min-height: 36px;
+    padding: 0 13px;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.me-fb.--apply { background: var(--me-gold); border: none; color: #fff; }
+.me-fb.--apply:hover { background: #b8832a; }
+.me-fb.--clear { background: none; border: 1px solid var(--me-border); color: var(--me-muted); }
+.me-fb.--clear:hover { border-color: var(--me-ink); color: var(--me-ink); }
+
+/* ── Entry card ── */
+.me-card {
+    background: var(--me-surface);
+    border: 1px solid var(--me-border);
+    border-radius: var(--me-r);
+    box-shadow: var(--me-shadow);
+    cursor: pointer;
+    display: block;
+    margin-bottom: 10px;
+    overflow: hidden;
+    text-decoration: none;
+    transition: box-shadow .15s, transform .12s;
+}
+.me-card:hover {
+    box-shadow: var(--me-shadow-h);
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+/* Card header */
+.me-card-hdr {
+    align-items: center;
+    border-bottom: 1px solid var(--me-border);
+    display: flex;
+    gap: 10px;
+    padding: 12px 15px 10px;
+}
+.me-client {
+    color: var(--me-ink);
+    flex: 1;
+    font-size: .98rem;
+    font-weight: 800;
+    letter-spacing: -.01em;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.me-date {
+    color: var(--me-muted);
+    flex-shrink: 0;
+    font-size: .71rem;
+    font-weight: 640;
+}
+.me-status-chip {
+    border-radius: 100px;
+    flex-shrink: 0;
+    font-size: .62rem;
+    font-weight: 720;
+    padding: 3px 9px;
+    white-space: nowrap;
+}
+.me-status-chip.--done    { background: var(--me-green-bg); color: var(--me-green); }
+.me-status-chip.--partial { background: var(--me-gold-bg);  color: var(--me-gold); }
+.me-status-chip.--pending { background: var(--me-gray-bg);  color: var(--me-muted); }
+
+/* Meal rows */
+.me-meals { padding: 4px 0; }
+.me-meal-row {
+    align-items: center;
+    display: flex;
+    gap: 0;
+    padding: 7px 15px;
+    border-bottom: 1px solid rgba(0,0,0,.04);
+}
+.me-meal-row:last-child { border-bottom: none; }
+.me-meal-icon { flex-shrink: 0; font-size: .95rem; margin-right: 8px; }
+.me-meal-name {
+    color: var(--me-sub);
+    flex: 1;
+    font-size: .77rem;
+    font-weight: 680;
+}
+/* Plan / Actual / Variance triplet */
+.me-meal-nums {
+    align-items: baseline;
+    display: flex;
+    flex-shrink: 0;
+    gap: 0;
+}
+.me-num-cell {
+    min-width: 44px;
+    text-align: right;
+}
+.me-num-val {
+    color: var(--me-ink);
+    display: block;
+    font-size: .86rem;
+    font-weight: 800;
+    line-height: 1;
+}
+.me-num-val.--gray  { color: var(--me-faint); font-weight: 500; }
+.me-num-val.--green { color: var(--me-green); }
+.me-num-val.--red   { color: var(--me-red); }
+.me-num-lbl {
+    color: var(--me-faint);
+    display: block;
+    font-size: .56rem;
+    font-weight: 680;
+    letter-spacing: .04em;
+    margin-top: 1px;
+    text-transform: uppercase;
+}
+.me-num-div {
+    align-self: center;
+    color: var(--me-border);
+    font-size: .7rem;
+    margin: 0 4px;
+    padding-bottom: 12px;
+}
+
+/* Summary footer */
+.me-footer {
+    border-top: 1px solid var(--me-border);
+    display: flex;
+}
+.me-foot-cell {
+    border-right: 1px solid var(--me-border);
+    flex: 1;
+    padding: 8px 10px;
+    text-align: center;
+}
+.me-foot-cell:last-child { border-right: none; }
+.me-foot-val {
+    color: var(--me-ink);
+    display: block;
+    font-size: 1rem;
+    font-weight: 900;
+    line-height: 1;
+}
+.me-foot-val.--green { color: var(--me-green); }
+.me-foot-val.--red   { color: var(--me-red); }
+.me-foot-val.--muted { color: var(--me-muted); }
+.me-foot-lbl {
+    color: var(--me-faint);
+    display: block;
+    font-size: .58rem;
+    font-weight: 700;
+    letter-spacing: .05em;
+    margin-top: 2px;
+    text-transform: uppercase;
+}
+
+/* Open entry link */
+.me-open-link {
+    background: var(--me-bg);
+    border-top: 1px solid var(--me-border);
+    color: var(--me-gold);
+    display: block;
+    font-size: .72rem;
+    font-weight: 720;
+    padding: 8px 15px;
+    text-align: right;
+    text-decoration: none;
+}
+
+/* Empty state */
+.me-empty {
+    padding: 48px 20px;
+    text-align: center;
+}
+.me-empty-ico { color: var(--me-faint); display: block; font-size: 2rem; margin-bottom: 10px; }
+.me-empty-txt { color: var(--me-muted); font-size: .85rem; }
+
+/* Remarks */
+.me-remarks {
+    border-top: 1px solid var(--me-border);
+    color: var(--me-muted);
+    font-size: .7rem;
+    padding: 6px 15px;
+}
+.me-remarks i { margin-right: 4px; opacity: .5; }
+
+/* Employee badge */
+.me-emp-badge {
+    align-items: center;
+    background: rgba(37,99,235,.06);
+    border-radius: 8px;
+    color: #2563eb;
+    display: inline-flex;
+    font-size: .72rem;
+    font-weight: 700;
+    gap: 5px;
+    margin-bottom: 12px;
+    padding: 5px 11px;
+}
+
+@media (max-width: 480px) {
+    .me-filter-bar { flex-direction: column; }
+    .me-fg { min-width: 100%; }
+    .me-filter-btns { flex-direction: row; width: 100%; }
+    .me-fb { flex: 1; justify-content: center; }
+}
 </style>
 @endpush
 
-<div class="mei-wrap">
-    <div class="mei-hdr">
-        <h1 class="mei-title"><i class="bi bi-journal-text me-2" style="color:var(--me-gold)"></i>Meal Entries</h1>
+<div class="me-wrap px-3 px-md-0">
+
+    {{-- Toolbar --}}
+    <div class="me-toolbar">
+        <h1 class="me-page-title"><i class="bi bi-journal-check me-2" style="color:var(--me-gold)"></i>Meal Register</h1>
         @if(!$isEmployee)
-        <a href="{{ route('meal-register.entries.create') }}" class="mei-btn-new">
+        <a href="{{ route('meal-register.entries.create') }}" class="me-btn-new">
             <i class="bi bi-plus-lg"></i> New Entry
         </a>
         @endif
     </div>
 
     @if($isEmployee)
-    <div class="mei-badge-employee"><i class="bi bi-person-circle"></i> Showing last 7 days</div>
+    <div class="me-emp-badge"><i class="bi bi-person-circle"></i> Showing your last 7 days</div>
     @endif
 
     @if(session('success'))
-    <div class="alert alert-success alert-dismissible fade show mb-3" style="border-radius:10px;font-size:.84rem">
+    <div class="alert alert-success alert-dismissible fade show mb-3" style="border-radius:10px;font-size:.83rem">
         <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     @endif
 
-    {{-- Filters (admin/manager only) --}}
+    {{-- Filters --}}
     @if(!$isEmployee)
-    <form method="GET" class="mei-filters">
-        <div class="mei-filter-group">
-            <span class="mei-filter-label">Client</span>
-            <select name="client_id" class="mei-filter-ctrl">
+    <form method="GET" class="me-filter-bar">
+        <div class="me-fg">
+            <span class="me-fg-lbl">Client</span>
+            <select name="client_id" class="me-fc">
                 <option value="">All clients</option>
                 @foreach($clients as $c)
                     <option value="{{ $c->id }}" {{ request('client_id') == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
                 @endforeach
             </select>
         </div>
-        <div class="mei-filter-group">
-            <span class="mei-filter-label">From</span>
-            <input type="date" name="from" class="mei-filter-ctrl" value="{{ request('from') }}">
+        <div class="me-fg" style="max-width:148px">
+            <span class="me-fg-lbl">From</span>
+            <input type="date" name="from" class="me-fc" value="{{ request('from') }}">
         </div>
-        <div class="mei-filter-group">
-            <span class="mei-filter-label">To</span>
-            <input type="date" name="to" class="mei-filter-ctrl" value="{{ request('to') }}">
+        <div class="me-fg" style="max-width:148px">
+            <span class="me-fg-lbl">To</span>
+            <input type="date" name="to" class="me-fc" value="{{ request('to') }}">
         </div>
-        <button type="submit" class="mei-filter-btn mei-filter-apply"><i class="bi bi-funnel me-1"></i>Filter</button>
-        @if(request()->hasAny(['client_id','from','to']))
-        <a href="{{ route('meal-register.entries.index') }}" class="mei-filter-btn mei-filter-clear">Clear</a>
-        @endif
+        <div class="me-filter-btns">
+            <button type="submit" class="me-fb --apply"><i class="bi bi-funnel"></i> Filter</button>
+            @if(request()->hasAny(['client_id','from','to']))
+            <a href="{{ route('meal-register.entries.index') }}" class="me-fb --clear"><i class="bi bi-x"></i></a>
+            @endif
+        </div>
     </form>
     @endif
 
+    {{-- Entry cards --}}
     @forelse($entries as $entry)
     @php
-        $types = \App\Models\MealEntryItem::mealTypes();
-        $itemsByType = $entry->items->keyBy('meal_type');
+        $types      = \App\Models\MealEntryItem::mealTypes();
+        $byType     = $entry->items->keyBy('meal_type');
+        $totPlan    = $entry->totalPlanned();
+        $totAct     = $entry->totalActual();
+        $totVar     = $totAct - $totPlan;
+        $hasActuals = $totAct > 0;
+        $allFilled  = $byType->filter(fn($i) => $i->planned_count !== null)->every(fn($i) => $i->actual_count !== null);
+
+        if ($hasActuals && $allFilled) {
+            $stChip = 'Completed'; $stCls = '--done';
+        } elseif ($hasActuals) {
+            $stChip = 'Partial';   $stCls = '--partial';
+        } else {
+            $stChip = 'Pending';   $stCls = '--pending';
+        }
     @endphp
-    <div class="mei-card">
-        <div class="mei-card-top">
-            <span class="mei-date-badge"><i class="bi bi-calendar3 me-1"></i>{{ $entry->entry_date->format('d M Y') }}</span>
-            <span class="mei-client-name">{{ $entry->client?->name ?? '—' }}</span>
-            <a href="{{ route('meal-register.entries.show', $entry) }}" class="mei-show-link">
-                <i class="bi bi-eye me-1"></i>View
-            </a>
+
+    <a href="{{ route('meal-register.entries.show', $entry) }}" class="me-card">
+
+        {{-- Header --}}
+        <div class="me-card-hdr">
+            <span class="me-client">{{ $entry->client?->name ?? '—' }}</span>
+            <span class="me-date">{{ $entry->entry_date->format('d M Y') }}</span>
+            <span class="me-status-chip {{ $stCls }}">{{ $stChip }}</span>
         </div>
 
-        <div class="mei-meal-row">
+        {{-- Meal rows --}}
+        <div class="me-meals">
             @foreach($types as $key => $meta)
-            @php $item = $itemsByType[$key] ?? null; @endphp
-            @if($item)
-            <div class="mei-meal-chip">
-                <span>{{ $meta['icon'] }}</span>
-                <span class="mei-meal-label">{{ $meta['label'] }}</span>
-                <span class="mei-meal-counts">
-                    P:{{ $item->planned_count ?? '—' }}
-                    / A:{{ $item->actual_count ?? '—' }}
-                    @if($item->planned_count !== null && $item->actual_count !== null)
-                        @php $v = $item->actual_count - $item->planned_count; @endphp
-                        @if($v > 0)<span class="mei-var-over">(+{{ $v }})</span>
-                        @elseif($v < 0)<span class="mei-var-under">({{ $v }})</span>
-                        @else<span class="mei-var-eq">(=)</span>@endif
-                    @endif
-                </span>
+            @php
+                $item = $byType[$key] ?? null;
+                if (!$item) continue;
+                $plan = $item->planned_count;
+                $act  = $item->actual_count;
+                $var  = ($plan !== null && $act !== null) ? ($act - $plan) : null;
+                $varCls = $var === null ? '--gray' : ($var > 0 ? '--green' : ($var < 0 ? '--red' : '--gray'));
+                $varStr = $var === null ? '—' : ($var > 0 ? '+' . $var : (string)$var);
+            @endphp
+            <div class="me-meal-row">
+                <span class="me-meal-icon">{{ $meta['icon'] }}</span>
+                <span class="me-meal-name">{{ $meta['label'] }}</span>
+                <div class="me-meal-nums">
+                    <div class="me-num-cell">
+                        <span class="me-num-val {{ $plan === null ? '--gray' : '' }}">{{ $plan ?? '—' }}</span>
+                        <span class="me-num-lbl">Plan</span>
+                    </div>
+                    <span class="me-num-div">·</span>
+                    <div class="me-num-cell">
+                        <span class="me-num-val {{ $act === null ? '--gray' : '' }}">{{ $act ?? '—' }}</span>
+                        <span class="me-num-lbl">Act</span>
+                    </div>
+                    <span class="me-num-div">·</span>
+                    <div class="me-num-cell">
+                        <span class="me-num-val {{ $varCls }}">{{ $varStr }}</span>
+                        <span class="me-num-lbl">Var</span>
+                    </div>
+                </div>
             </div>
-            @endif
             @endforeach
         </div>
 
-        <div class="mei-totals">
-            <div class="mei-total-item">Planned: <strong>{{ $entry->totalPlanned() }}</strong></div>
-            <div class="mei-total-item">Actual: <strong>{{ $entry->totalActual() }}</strong></div>
-            @php $totalVar = $entry->totalActual() - $entry->totalPlanned(); @endphp
-            @if($totalVar !== 0)
-            <div class="mei-total-item">
-                Variance: <strong class="{{ $totalVar > 0 ? 'mei-var-over' : 'mei-var-under' }}">{{ $totalVar > 0 ? '+' : '' }}{{ $totalVar }}</strong>
-            </div>
-            @endif
-            @if($entry->remarks)
-            <div class="mei-total-item" style="flex:1">
-                <i class="bi bi-chat-left-text me-1" style="color:var(--me-faint)"></i>{{ Str::limit($entry->remarks, 60) }}
-            </div>
-            @endif
+        {{-- Remarks --}}
+        @if($entry->remarks)
+        <div class="me-remarks">
+            <i class="bi bi-chat-left-text"></i>{{ Str::limit($entry->remarks, 80) }}
         </div>
-    </div>
+        @endif
+
+        {{-- Summary footer --}}
+        <div class="me-footer">
+            <div class="me-foot-cell">
+                <span class="me-foot-val">{{ $totPlan ?: '—' }}</span>
+                <span class="me-foot-lbl">Planned</span>
+            </div>
+            <div class="me-foot-cell">
+                <span class="me-foot-val {{ $totAct === 0 ? '--muted' : '' }}">{{ $totAct ?: '—' }}</span>
+                <span class="me-foot-lbl">Actual</span>
+            </div>
+            <div class="me-foot-cell">
+                @if($totPlan > 0 && $totAct > 0)
+                <span class="me-foot-val {{ $totVar > 0 ? '--green' : ($totVar < 0 ? '--red' : '--muted') }}">
+                    {{ $totVar > 0 ? '+' . $totVar : ($totVar === 0 ? '=' : $totVar) }}
+                </span>
+                @else
+                <span class="me-foot-val --muted">—</span>
+                @endif
+                <span class="me-foot-lbl">Variance</span>
+            </div>
+        </div>
+
+    </a>
     @empty
-    <div class="mei-empty">
-        <i class="bi bi-inbox" style="font-size:2rem;display:block;margin-bottom:10px;opacity:.4"></i>
-        No entries found.
+    <div class="me-empty">
+        <i class="bi bi-inbox me-empty-ico"></i>
+        <div class="me-empty-txt">No entries found.</div>
         @if(!$isEmployee)
-        <br><a href="{{ route('meal-register.entries.create') }}" style="color:var(--me-gold);font-weight:700">Create the first entry</a>
+        <a href="{{ route('meal-register.entries.create') }}" style="color:var(--me-gold);font-weight:720;font-size:.82rem;text-decoration:none;display:inline-block;margin-top:8px">
+            + Create first entry
+        </a>
         @endif
     </div>
     @endforelse
@@ -155,5 +462,6 @@
     @if($entries->hasPages())
     <div class="mt-4">{{ $entries->links() }}</div>
     @endif
+
 </div>
 </x-admin-layout>
