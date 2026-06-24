@@ -172,6 +172,18 @@
     .ef-eb-section { padding: 16px; }
     .ef-eb-grid { grid-template-columns: 1fr; }
     .ef-eb-meal-grid { grid-template-columns: 1fr 1fr; }
+
+    /* Additional services — stack inputs vertically on mobile */
+    .ef-addon-col-headers { display: none; }
+    .ef-addon-row { flex-wrap: wrap; gap: 8px; align-items: flex-start; }
+    .ef-addon-col-name,
+    .ef-addon-col-desc { flex: 1 1 100%; min-width: 0; }
+    .ef-addon-col-amt  { flex: 1 1 calc(100% - 52px); min-width: 0; }
+    .ef-addon-col-del  { flex: 0 0 44px; align-self: flex-end; padding-bottom: 2px; }
+    .ef-addon-mobile-label { display: block; }
+    .ef-addon-amount-input { text-align: left !important; }
+    .ef-addon-chips { padding: 10px 12px; gap: 6px; }
+    .ef-addon-chip { padding: 6px 12px; font-size: .8rem; }
 }
 </style>
 @endpush
@@ -725,15 +737,7 @@
         updateAddonEmpty(); updateAddonSubtotal();
     }
 
-    document.getElementById('addServiceBtn').addEventListener('click', () => addServiceRow());
-    document.querySelectorAll('.ef-addon-chip').forEach(chip => {
-        chip.addEventListener('click', () => addServiceRow(chip.dataset.name));
-    });
-    document.querySelectorAll('.ef-service-amount').forEach(el => {
-        el.addEventListener('input', updateAddonSubtotal);
-    });
-    updateAddonSubtotal();
-
+    // Define recalcTotal BEFORE updateAddonSubtotal() is called — it calls recalcTotal internally
     window.recalcTotal = function() {
         const currentType = bookingTypeInput ? bookingTypeInput.value : 'hall_food';
         const guests    = parseInt(document.getElementById('number_of_people').value || 0);
@@ -772,12 +776,21 @@
         }
     };
 
+    document.getElementById('addServiceBtn').addEventListener('click', () => addServiceRow());
+    document.querySelectorAll('.ef-addon-chip').forEach(chip => {
+        chip.addEventListener('click', () => addServiceRow(chip.dataset.name));
+    });
+    document.querySelectorAll('.ef-service-amount').forEach(el => {
+        el.addEventListener('input', updateAddonSubtotal);
+    });
+
     document.getElementById('number_of_people').addEventListener('input', recalcTotal);
     if (hallCostInput) hallCostInput.addEventListener('input', recalcTotal);
     document.getElementById('advance_amount').addEventListener('input', recalcTotal);
 
     /* ── Init ── */
     applyBookingType(bookingTypeInput ? bookingTypeInput.value : 'hall_food');
+    updateAddonSubtotal(); // initialise subtotal + total from pre-filled services
 
 })();
 </script>
