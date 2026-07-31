@@ -366,17 +366,17 @@
             {{-- Meal checkboxes --}}
             <div style="display:flex;gap:20px;margin-top:16px;flex-wrap:wrap">
                 <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.85rem;font-weight:600;color:var(--ef-ink-2)">
-                    <input type="checkbox" name="has_breakfast" value="1" {{ old('has_breakfast', $booking->has_breakfast) ? 'checked' : '' }}
+                    <input type="checkbox" id="has_breakfast" name="has_breakfast" value="1" {{ old('has_breakfast', $booking->has_breakfast) ? 'checked' : '' }}
                            style="width:16px;height:16px;accent-color:var(--ef-emerald)">
                     <i class="bi bi-cup-hot" style="color:#d97706"></i> Breakfast
                 </label>
                 <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.85rem;font-weight:600;color:var(--ef-ink-2)">
-                    <input type="checkbox" name="has_lunch" value="1" {{ old('has_lunch', $booking->has_lunch) ? 'checked' : '' }}
+                    <input type="checkbox" id="has_lunch" name="has_lunch" value="1" {{ old('has_lunch', $booking->has_lunch) ? 'checked' : '' }}
                            style="width:16px;height:16px;accent-color:var(--ef-emerald)">
                     <i class="bi bi-sun" style="color:#f59e0b"></i> Lunch
                 </label>
                 <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.85rem;font-weight:600;color:var(--ef-ink-2)">
-                    <input type="checkbox" name="has_dinner" value="1" {{ old('has_dinner', $booking->has_dinner) ? 'checked' : '' }}
+                    <input type="checkbox" id="has_dinner" name="has_dinner" value="1" {{ old('has_dinner', $booking->has_dinner) ? 'checked' : '' }}
                            style="width:16px;height:16px;accent-color:var(--ef-emerald)">
                     <i class="bi bi-moon-stars" style="color:#6366f1"></i> Dinner
                 </label>
@@ -649,6 +649,32 @@
     }
 
     [hallSel, dateFld, startFld, endFld].forEach(el => el.addEventListener('change', checkAvailability));
+
+    /* ── Meal-based time autofill ── */
+    const mealTimePresets = {
+        'breakfast':               ['07:00', '09:00'],
+        'lunch':                   ['12:00', '15:00'],
+        'dinner':                  ['19:00', '22:00'],
+        'breakfast,lunch':         ['07:00', '15:00'],
+        'lunch,dinner':            ['12:00', '22:00'],
+        'breakfast,dinner':        ['07:00', '22:00'],
+        'breakfast,lunch,dinner':  ['07:00', '22:00'],
+    };
+    function autofillMealTimes() {
+        if (startFld.value || endFld.value) return; // don't override manual entry
+        const keys = [];
+        if (document.getElementById('has_breakfast').checked) keys.push('breakfast');
+        if (document.getElementById('has_lunch').checked)     keys.push('lunch');
+        if (document.getElementById('has_dinner').checked)    keys.push('dinner');
+        const preset = mealTimePresets[keys.join(',')];
+        if (!preset) return;
+        startFld.value = preset[0];
+        endFld.value   = preset[1];
+        checkAvailability();
+    }
+    ['has_breakfast', 'has_lunch', 'has_dinner'].forEach(id => {
+        document.getElementById(id).addEventListener('change', autofillMealTimes);
+    });
 
     /* ── Meal plan card selector ── */
     window.selectMealCard = function(card) {

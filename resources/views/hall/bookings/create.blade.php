@@ -1059,6 +1059,29 @@
     function selectedMeals() {
         return meals.filter(i => i.checked).map(i => mealLabels[i.id]);
     }
+
+    /* ───── Meal-based time autofill ───── */
+    const mealTimePresets = {
+        'breakfast':               ['07:00', '09:00'],
+        'lunch':                   ['12:00', '15:00'],
+        'dinner':                  ['19:00', '22:00'],
+        'breakfast,lunch':         ['07:00', '15:00'],
+        'lunch,dinner':            ['12:00', '22:00'],
+        'breakfast,dinner':        ['07:00', '22:00'],
+        'breakfast,lunch,dinner':  ['07:00', '22:00'],
+    };
+    function autofillMealTimes() {
+        if (fields.start.value || fields.end.value) return; // don't override manual entry
+        const keys = [];
+        if (document.getElementById('has_breakfast').checked) keys.push('breakfast');
+        if (document.getElementById('has_lunch').checked)     keys.push('lunch');
+        if (document.getElementById('has_dinner').checked)    keys.push('dinner');
+        const preset = mealTimePresets[keys.join(',')];
+        if (!preset) return;
+        fields.start.value = preset[0];
+        fields.end.value   = preset[1];
+        checkAvailability();
+    }
     function mealCost() {
         const price  = Number(fields.mealPlan.options[fields.mealPlan.selectedIndex]?.dataset?.price || 0);
         const guests = Number(fields.people.value || 0);
@@ -1338,7 +1361,7 @@
             if (['hall_id', 'booking_date', 'start_time', 'end_time'].includes(field.id)) checkAvailability();
         });
     });
-    meals.forEach(meal => meal.addEventListener('change', updateSummary));
+    meals.forEach(meal => meal.addEventListener('change', () => { autofillMealTimes(); updateSummary(); }));
     document.querySelectorAll('input[name="status"], input[name="payment_method"]').forEach(el => el.addEventListener('change', updateSummary));
 
     document.getElementById('saveDraftBtn').addEventListener('click', saveDraft);
