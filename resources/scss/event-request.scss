@@ -1,0 +1,684 @@
+// ═══════════════════════════════════════════════════════════════════════
+// Event Request Portal — public booking experience
+// Premium catering-configurator theme. Organized by component.
+// ═══════════════════════════════════════════════════════════════════════
+
+// ── Tokens ─────────────────────────────────────────────────────────────
+:root {
+    --erp-bg:        #FAF7F2;
+    --erp-surface:   #FFFFFF;
+    --erp-surface-2: #F3EEE4;
+    --erp-border:    #EAE2D2;
+    --erp-ink:       #2A211A;
+    --erp-ink-2:     #6B5D4C;
+    --erp-ink-3:     #9C8F79;
+
+    --erp-primary:   #3E2D23;
+    --erp-primary-ink: #FFFFFF;
+    --erp-gold:      #C89B3C;
+    --erp-gold-ink:  #8A6820;
+    --erp-good:      #2E7D32;
+    --erp-good-bg:   #E8F3E9;
+    --erp-warn:      #B8720C;
+    --erp-warn-bg:   #FCEFDD;
+    --erp-crit:      #C0392B;
+    --erp-crit-bg:   #FBEAEA;
+
+    --erp-radius-lg: 18px;
+    --erp-radius-md: 13px;
+    --erp-radius-sm: 9px;
+    --erp-shadow-sm: 0 1px 2px rgba(42, 33, 26, .05), 0 6px 18px rgba(42, 33, 26, .05);
+    --erp-shadow-md: 0 4px 12px rgba(42, 33, 26, .07), 0 14px 32px rgba(42, 33, 26, .08);
+}
+
+* { box-sizing: border-box; }
+
+body.erp-body {
+    background: var(--erp-bg);
+    color: var(--erp-ink);
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+::selection { background: var(--erp-gold); color: #fff; }
+
+@media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+
+// ── Header ───────────────────────────────────────────────────────────
+.erp-header {
+    background: var(--erp-primary);
+    color: #fff;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.erp-header .erp-mark {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--erp-gold), #8a6428);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.05rem;
+    flex-shrink: 0;
+}
+.erp-header .erp-brand-name { font-weight: 700; font-size: .95rem; letter-spacing: .01em; }
+.erp-header .erp-brand-sub { font-size: .7rem; color: rgba(255,255,255,.62); }
+
+// ── Shell ────────────────────────────────────────────────────────────
+.erp-shell { max-width: 1180px; margin: 0 auto; padding: 26px 20px 40px; }
+@media (max-width: 640px) { .erp-shell { padding: 16px 14px 32px; } }
+
+.erp-card {
+    background: var(--erp-surface);
+    border: 1px solid var(--erp-border);
+    border-radius: var(--erp-radius-lg);
+    box-shadow: var(--erp-shadow-sm);
+}
+
+// ── Hero ─────────────────────────────────────────────────────────────
+.erp-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+.erp-hero-title { font-size: 1.75rem; font-weight: 750; letter-spacing: -.01em; line-height: 1.15; margin: 0; }
+.erp-hero-sub { color: var(--erp-ink-2); font-size: .92rem; margin-top: 6px; max-width: 46ch; }
+.erp-hero-side { display: flex; align-items: center; gap: 14px; }
+.erp-hero-icon {
+    width: 56px; height: 56px;
+    border-radius: 16px;
+    background: var(--erp-surface-2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem;
+    color: var(--erp-gold-ink);
+    flex-shrink: 0;
+}
+.erp-step-pill {
+    font-size: .72rem;
+    font-weight: 700;
+    background: var(--erp-surface-2);
+    color: var(--erp-ink-2);
+    padding: 6px 14px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+@media (max-width: 640px) { .erp-hero-title { font-size: 1.4rem; } }
+
+// ── Progress bar ─────────────────────────────────────────────────────
+.erp-progress { display: flex; align-items: center; gap: 8px; margin-bottom: 22px; }
+.erp-progress .dot { flex: 1; height: 4px; border-radius: 3px; background: var(--erp-border); transition: background .25s ease; }
+.erp-progress .dot.done { background: var(--erp-gold); }
+
+// ── Steps ────────────────────────────────────────────────────────────
+.erp-step { display: none; }
+.erp-step.active { display: block; animation: erpFade .25s ease; }
+@keyframes erpFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+// ── Form fields (floating label) ─────────────────────────────────────
+.erp-field-group { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+@media (max-width: 640px) { .erp-field-group { grid-template-columns: 1fr; } }
+
+.erp-float {
+    position: relative;
+}
+.erp-float .erp-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--erp-ink-3);
+    font-size: 1rem;
+    pointer-events: none;
+    transition: color .15s;
+}
+.erp-float input,
+.erp-float select,
+.erp-float textarea {
+    width: 100%;
+    border: 1.5px solid var(--erp-border);
+    background: var(--erp-bg);
+    color: var(--erp-ink);
+    border-radius: var(--erp-radius-sm);
+    padding: 19px 14px 8px 40px;
+    font-size: .92rem;
+    font-family: inherit;
+    transition: border-color .15s, box-shadow .15s;
+}
+.erp-float textarea { padding-left: 14px; min-height: 88px; resize: vertical; }
+.erp-float label {
+    position: absolute;
+    left: 40px;
+    top: 14px;
+    font-size: .84rem;
+    color: var(--erp-ink-3);
+    pointer-events: none;
+    transform-origin: left top;
+    transition: transform .14s ease, color .14s ease, top .14s ease;
+}
+.erp-float textarea ~ label { left: 14px; }
+.erp-float input:focus,
+.erp-float select:focus,
+.erp-float textarea:focus {
+    outline: none;
+    border-color: var(--erp-gold);
+    box-shadow: 0 0 0 4px rgba(200, 155, 60, .14);
+}
+.erp-float input:focus ~ .erp-icon,
+.erp-float select:focus ~ .erp-icon { color: var(--erp-gold-ink); }
+.erp-float input:focus ~ label,
+.erp-float input:not(:placeholder-shown) ~ label,
+.erp-float select ~ label,
+.erp-float textarea:focus ~ label,
+.erp-float textarea:not(:placeholder-shown) ~ label {
+    top: 5px;
+    font-size: .64rem;
+    font-weight: 700;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    color: var(--erp-ink-2);
+}
+// <select> has a permanent value, so its label is always in the "up" position
+.erp-float select ~ label { top: 5px; font-size: .64rem; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
+.erp-field-error { color: var(--erp-crit); font-size: .76rem; margin-top: 5px; }
+
+// ── Pill picker (Meal Type) ──────────────────────────────────────────
+.erp-pill-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.erp-pill {
+    border: 1.5px solid var(--erp-border);
+    background: var(--erp-surface);
+    color: var(--erp-ink);
+    border-radius: 999px;
+    padding: 10px 20px;
+    font-size: .85rem;
+    font-weight: 650;
+    cursor: pointer;
+    transition: transform .12s ease, background .15s, color .15s, border-color .15s, box-shadow .15s;
+}
+.erp-pill:hover { transform: translateY(-1px); border-color: var(--erp-gold); }
+.erp-pill.selected {
+    background: var(--erp-primary);
+    border-color: var(--erp-primary);
+    color: #fff;
+    box-shadow: var(--erp-shadow-sm);
+}
+
+// ── Menu-type selector (Veg / Non-Veg / Both cards) ──────────────────
+.erp-menutype-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+@media (max-width: 560px) { .erp-menutype-row { grid-template-columns: 1fr; } }
+.erp-menutype-card {
+    border: 1.5px solid var(--erp-border);
+    background: var(--erp-surface);
+    border-radius: var(--erp-radius-md);
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform .12s ease, border-color .15s, box-shadow .15s, background .15s;
+}
+.erp-menutype-card:hover { transform: translateY(-2px); }
+.erp-menutype-card .emoji { font-size: 1.6rem; display: block; margin-bottom: 6px; }
+.erp-menutype-card .label { font-weight: 700; font-size: .88rem; }
+.erp-menutype-card.selected {
+    border-color: var(--erp-gold);
+    background: rgba(200, 155, 60, .08);
+    box-shadow: 0 0 0 4px rgba(200, 155, 60, .12);
+}
+
+// ── Section header (shared) ──────────────────────────────────────────
+.erp-section-title { font-weight: 750; font-size: 1rem; margin-bottom: 2px; }
+.erp-section-sub { color: var(--erp-ink-3); font-size: .82rem; margin-bottom: 18px; }
+
+// ── Builder layout ───────────────────────────────────────────────────
+.erp-builder-layout { display: grid; grid-template-columns: 1fr 320px; gap: 22px; align-items: start; }
+@media (max-width: 940px) { .erp-builder-layout { grid-template-columns: 1fr; } }
+
+// ── Accordion categories ─────────────────────────────────────────────
+.erp-category {
+    border: 1px solid var(--erp-border);
+    border-radius: var(--erp-radius-md);
+    margin-bottom: 12px;
+    overflow: hidden;
+    background: var(--erp-surface);
+    transition: box-shadow .15s;
+}
+.erp-category.open { box-shadow: var(--erp-shadow-sm); }
+.erp-category-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 18px;
+    cursor: pointer;
+    user-select: none;
+    gap: 12px;
+}
+.erp-category-title-wrap { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.erp-category-icon { font-size: 1.1rem; flex-shrink: 0; }
+.erp-category-title { font-weight: 700; font-size: .95rem; }
+.erp-category-desc { font-size: .74rem; color: var(--erp-ink-3); margin-top: 2px; }
+.erp-category-meta { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.erp-category-count {
+    font-size: .72rem; font-weight: 700; color: var(--erp-gold-ink);
+    background: rgba(200, 155, 60, .12);
+    border-radius: 999px; padding: 3px 10px;
+    min-width: 24px; text-align: center;
+}
+.erp-category-chevron { color: var(--erp-ink-3); transition: transform .2s ease; }
+.erp-category.open .erp-category-chevron { transform: rotate(180deg); }
+
+.erp-category-body {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows .25s ease;
+}
+.erp-category-body > div { overflow: hidden; }
+.erp-category.open .erp-category-body { grid-template-rows: 1fr; }
+.erp-category-body-inner { padding: 0 16px 16px; }
+
+.erp-veg-divider {
+    font-size: .68rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--erp-ink-3); margin: 14px 0 8px;
+    display: flex; align-items: center; gap: 6px;
+}
+.erp-veg-divider:first-child { margin-top: 2px; }
+.erp-veg-divider::before { content: ''; width: 8px; height: 8px; border-radius: 50%; }
+.erp-veg-divider.veg::before { background: var(--erp-good); }
+.erp-veg-divider.non_veg::before { background: var(--erp-crit); }
+
+// ── Dish rows — a menu checklist, not a product grid ──────────────────
+// One compact 48–56px row per dish. A circular selector replaces the "Add"
+// button; descriptions stay collapsed until the row is tapped, so 8–10
+// dishes fit on screen at once instead of 2–3 bulky cards.
+.erp-dish-list { display: flex; flex-direction: column; }
+
+.erp-dish-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 4px;
+    border-bottom: 1px solid var(--erp-border);
+    min-height: 48px;
+    animation: erpCardIn .18s ease;
+    transition: background .12s;
+}
+@keyframes erpCardIn { from { opacity: 0; } to { opacity: 1; } }
+.erp-dish-list .erp-dish-row:last-child { border-bottom: none; }
+.erp-dish-row.selected { background: rgba(200, 155, 60, .06); }
+
+.erp-dish-selector {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 1.5px solid var(--erp-border);
+    background: var(--erp-surface);
+    color: transparent;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .8rem;
+    flex-shrink: 0;
+    margin-top: 1px;
+    cursor: pointer;
+    transition: background .14s, border-color .14s, color .14s, transform .1s;
+}
+.erp-dish-selector:active { transform: scale(.9); }
+.erp-dish-row.selected .erp-dish-selector {
+    background: var(--erp-gold);
+    border-color: var(--erp-gold);
+    color: #fff;
+}
+
+.erp-veg-dot {
+    width: 11px; height: 11px; border: 1.5px solid; border-radius: 3px; flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-bottom: -1px;
+}
+.erp-veg-dot.veg { border-color: var(--erp-good); }
+.erp-veg-dot.veg::after { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--erp-good); }
+.erp-veg-dot.non_veg { border-color: var(--erp-crit); }
+.erp-veg-dot.non_veg::after { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--erp-crit); }
+
+.erp-dish-main { flex: 1; min-width: 0; }
+.erp-dish-line { display: flex; align-items: baseline; gap: 7px; }
+.erp-dish-name { font-weight: 650; font-size: .87rem; line-height: 1.3; flex: 1; min-width: 0; }
+.erp-dish-price { font-weight: 700; font-size: .85rem; font-variant-numeric: tabular-nums; flex-shrink: 0; color: var(--erp-ink); }
+.erp-dish-tags { font-size: .68rem; color: var(--erp-gold-ink); margin-top: 2px; font-weight: 650; }
+.erp-dish-desc {
+    font-size: .78rem;
+    color: var(--erp-ink-3);
+    line-height: 1.45;
+    margin-top: 6px;
+    display: none;
+}
+.erp-dish-row.expanded .erp-dish-desc { display: block; }
+
+// ── Empty state ───────────────────────────────────────────────────────
+.erp-empty {
+    text-align: center;
+    padding: 56px 24px;
+    color: var(--erp-ink-2);
+}
+.erp-empty .glyph { font-size: 2.4rem; margin-bottom: 12px; opacity: .55; }
+.erp-empty .title { font-weight: 700; font-size: 1rem; margin-bottom: 4px; color: var(--erp-ink); }
+.erp-empty .body { font-size: .85rem; max-width: 40ch; margin: 0 auto; }
+.erp-empty-page { max-width: 480px; margin: 60px auto; }
+
+// ── Live summary — desktop sticky rail ────────────────────────────────
+.erp-summary-rail { position: sticky; top: 18px; }
+.erp-summary-line { display: flex; justify-content: space-between; font-size: .86rem; padding: 8px 0; border-top: 1px solid var(--erp-border); }
+.erp-summary-line:first-of-type { border-top: none; }
+.erp-summary-total { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; padding-top: 14px; border-top: 1.5px solid var(--erp-border); }
+.erp-summary-total strong {
+    font-size: 1.5rem;
+    font-variant-numeric: tabular-nums;
+    transition: transform .18s ease;
+}
+.erp-summary-total strong.bump { transform: scale(1.08); color: var(--erp-gold-ink); }
+
+// ── Buttons ────────────────────────────────────────────────────────────
+.erp-btn {
+    border: none;
+    border-radius: 13px;
+    padding: 13px 24px;
+    font-weight: 700;
+    font-size: .92rem;
+    cursor: pointer;
+    transition: transform .1s ease, box-shadow .15s, opacity .15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    overflow: hidden;
+}
+.erp-btn:disabled { opacity: .5; cursor: not-allowed; }
+.erp-btn-primary { background: var(--erp-primary); color: #fff; }
+.erp-btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: var(--erp-shadow-md); }
+.erp-btn-gold { background: var(--erp-gold); color: #fff; }
+.erp-btn-gold:hover:not(:disabled) { background: var(--erp-gold-ink); transform: translateY(-1px); }
+.erp-btn-ghost { background: transparent; border: 1.5px solid var(--erp-border); color: var(--erp-ink); }
+.erp-btn-ghost:hover { border-color: var(--erp-gold); }
+.erp-btn-block { width: 100%; justify-content: center; }
+.erp-btn-icon { width: 44px; height: 44px; padding: 0; justify-content: center; flex-shrink: 0; }
+
+// Ripple
+.erp-btn .erp-ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,.5);
+    transform: scale(0);
+    animation: erpRipple .5s ease-out;
+    pointer-events: none;
+}
+@keyframes erpRipple { to { transform: scale(3.2); opacity: 0; } }
+
+.erp-spinner {
+    width: 15px; height: 15px;
+    border: 2px solid rgba(255,255,255,.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: erpSpin .6s linear infinite;
+}
+@keyframes erpSpin { to { transform: rotate(360deg); } }
+
+// ── Mobile bottom sheet (breakdown) — hidden until "View Summary" ───────
+// This is a real overlay sheet, distinct from .erp-stickybar (the always-
+// docked compact strip). It must stay fully off-screen/non-interactive
+// until .expanded is added, or it silently blocks taps on whatever's
+// underneath (category rows) even while "closed".
+.erp-sheet { display: none; }
+@media (max-width: 940px) {
+    .erp-summary-rail { display: none; }
+    .erp-sheet {
+        display: block;
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+        background: var(--erp-surface);
+        border-top: 1px solid var(--erp-border);
+        border-radius: 18px 18px 0 0;
+        box-shadow: 0 -8px 24px rgba(42, 33, 26, .12);
+        padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+        transform: translateY(100%);
+        opacity: 0;
+        pointer-events: none;
+        visibility: hidden;
+        transition: transform .22s ease, opacity .22s ease, visibility .22s;
+    }
+    .erp-sheet.expanded {
+        transform: translateY(0);
+        opacity: 1;
+        pointer-events: auto;
+        visibility: visible;
+    }
+    .erp-sheet-backdrop {
+        display: none;
+        position: fixed; inset: 0; z-index: 49;
+        background: rgba(42, 33, 26, .32);
+        opacity: 0;
+        transition: opacity .22s ease;
+    }
+    .erp-sheet-backdrop.expanded { display: block; opacity: 1; }
+    .erp-sheet-handle { width: 36px; height: 4px; border-radius: 3px; background: var(--erp-border); margin: 0 auto 10px; }
+    .erp-sheet-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .erp-sheet-toggle-btn { padding: 8px 14px; flex: 1; justify-content: space-between; text-align: left; }
+    .erp-sheet-total-label { font-size: .7rem; color: var(--erp-ink-3); font-weight: 650; }
+    .erp-sheet-total-value { font-size: 1.15rem; font-weight: 750; font-variant-numeric: tabular-nums; }
+    .erp-sheet-actions { display: flex; gap: 8px; }
+    .erp-sheet-detail { margin-top: 12px; max-height: 60vh; overflow-y: auto; border-top: 1px solid var(--erp-border); padding-top: 12px; }
+    .erp-sheet-selected-list { margin-top: 10px; display: flex; flex-direction: column; gap: 2px; }
+    .erp-sheet-selected-item {
+        display: flex; justify-content: space-between; gap: 10px;
+        font-size: .82rem; padding: 6px 0; border-top: 1px solid var(--erp-border);
+    }
+    .erp-sheet-selected-item:first-child { border-top: none; }
+    .erp-sheet-selected-item .name { color: var(--erp-ink); }
+    .erp-sheet-selected-item .price { color: var(--erp-ink-3); flex-shrink: 0; font-variant-numeric: tabular-nums; }
+    body.erp-body { padding-bottom: 96px; }
+}
+
+// ── Small helpers ─────────────────────────────────────────────────────
+.erp-eyebrow { font-size: .66rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--erp-gold-ink); }
+.erp-chip { font-size: .64rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; display: inline-block; }
+.erp-chip-warn { background: var(--erp-warn-bg); color: var(--erp-warn); }
+.erp-chip-good { background: var(--erp-good-bg); color: var(--erp-good); }
+.erp-chip-crit { background: var(--erp-crit-bg); color: var(--erp-crit); }
+
+// ── Status / tracking page ───────────────────────────────────────────
+.erp-status-card { max-width: 640px; margin: 0 auto; padding: 28px 26px; }
+.erp-status-banner { max-width: 640px; margin: 0 auto 16px; padding: 16px 20px; background: var(--erp-good-bg); border-color: transparent; }
+.erp-status-banner .title { font-weight: 700; color: var(--erp-good); font-size: .9rem; }
+.erp-status-banner .body { font-size: .82rem; color: var(--erp-ink-2); margin-top: 2px; }
+.erp-status-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; }
+.erp-status-title { font-size: 1.35rem; font-weight: 700; margin: 0; }
+.erp-status-grid { margin-top: 22px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px 22px; }
+.erp-status-kv .k { font-weight: 700; color: var(--erp-ink-3); font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; }
+.erp-status-kv .v { font-weight: 650; margin-top: 2px; }
+.erp-status-note { margin-top: 20px; border-radius: 10px; padding: 14px 16px; }
+.erp-status-note .heading { font-weight: 700; font-size: .82rem; margin-bottom: 4px; }
+.erp-status-note .body { font-size: .86rem; color: var(--erp-ink-2); }
+.erp-status-note-warn { background: var(--erp-warn-bg); }
+.erp-status-note-warn .heading { color: var(--erp-warn); }
+.erp-status-note-crit { background: var(--erp-crit-bg); }
+.erp-status-note-crit .heading { color: var(--erp-crit); }
+.erp-status-items { margin-top: 24px; border-top: 1px solid var(--erp-border); padding-top: 18px; }
+.erp-status-items-title { font-weight: 700; font-size: .82rem; margin-bottom: 12px; }
+.erp-status-item-row { display: flex; justify-content: space-between; font-size: .85rem; background: var(--erp-bg); border: 1px solid var(--erp-border); border-radius: 8px; padding: 9px 12px; }
+.erp-status-item-row + .erp-status-item-row { margin-top: 8px; }
+.erp-status-total-bar { margin-top: 20px; display: flex; justify-content: space-between; align-items: center; background: var(--erp-surface-2); border-radius: 10px; padding: 14px 16px; }
+.erp-status-actions { margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+
+// ═══════════════════════════════════════════════════════════════════════
+// Step 2 — Category browser (mobile-first, lazy-rendered)
+// ═══════════════════════════════════════════════════════════════════════
+
+// ── Global diet filter tabs ───────────────────────────────────────────
+.erp-filter-tabs {
+    display: flex;
+    gap: 6px;
+    background: var(--erp-surface-2);
+    border-radius: 999px;
+    padding: 4px;
+    margin-bottom: 16px;
+}
+.erp-filter-tab {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--erp-ink-2);
+    font-size: .8rem;
+    font-weight: 700;
+    padding: 9px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+    white-space: nowrap;
+}
+.erp-filter-tab.selected { background: var(--erp-primary); color: #fff; }
+
+// ── Category list rows ────────────────────────────────────────────────
+.erp-cat-list { display: flex; flex-direction: column; gap: 10px; }
+.erp-cat-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--erp-surface);
+    border: 1.5px solid var(--erp-border);
+    border-radius: var(--erp-radius-md);
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: border-color .14s, box-shadow .14s, transform .1s;
+    min-height: 64px;
+}
+.erp-cat-row:hover { border-color: var(--erp-gold); box-shadow: var(--erp-shadow-sm); }
+.erp-cat-row:active { transform: scale(.99); }
+.erp-cat-row-icon { font-size: 1.5rem; flex-shrink: 0; width: 34px; text-align: center; }
+.erp-cat-row-main { flex: 1; min-width: 0; }
+.erp-cat-row-name { font-weight: 700; font-size: .92rem; display: flex; align-items: center; gap: 7px; }
+.erp-cat-row-name-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.erp-cat-row-filtered { font-weight: 500; font-size: .72rem; color: var(--erp-ink-3); white-space: nowrap; }
+.erp-cat-row-meta { font-size: .76rem; color: var(--erp-ink-3); margin-top: 2px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.erp-cat-row-chevron { color: var(--erp-ink-3); font-size: 1.1rem; flex-shrink: 0; transition: transform .2s ease; }
+
+.erp-cat-complete-glyph {
+    font-size: .8rem;
+    color: var(--erp-ink-3);
+    flex-shrink: 0;
+    width: 16px;
+    text-align: center;
+}
+.erp-cat-complete-glyph.done { color: var(--erp-gold-ink); font-weight: 700; }
+
+.erp-progress-badge {
+    font-size: .68rem;
+    font-weight: 750;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: var(--erp-surface-2);
+    color: var(--erp-ink-3);
+}
+.erp-progress-badge.has-selection {
+    background: var(--erp-good-bg);
+    color: var(--erp-good);
+}
+
+// Desktop inline accordion body reuses .erp-category-body's grid-rows
+// trick, just under the row instead of a separate accordion header.
+.erp-cat-inline-body {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows .25s ease;
+    margin-top: -4px;
+}
+.erp-cat-inline-body > div { overflow: hidden; }
+.erp-cat-inline-body.open { grid-template-rows: 1fr; margin-top: 6px; }
+.erp-cat-inline-body-inner {
+    border: 1.5px solid var(--erp-border);
+    border-top: none;
+    border-radius: 0 0 var(--erp-radius-md) var(--erp-radius-md);
+    padding: 4px 14px 14px;
+    background: var(--erp-surface-2);
+}
+
+// ── Search box (shared, mobile overlay + desktop inline body) ────────
+.erp-search-box { position: relative; margin: 10px 0 14px; }
+.erp-search-box input {
+    width: 100%;
+    border: 1.5px solid var(--erp-border);
+    background: var(--erp-surface);
+    border-radius: 999px;
+    padding: 10px 14px 10px 38px;
+    font-size: .86rem;
+    font-family: inherit;
+}
+.erp-search-box input:focus { outline: none; border-color: var(--erp-gold); box-shadow: 0 0 0 3px rgba(200, 155, 60, .14); }
+.erp-search-box i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--erp-ink-3); }
+
+.erp-cat-empty { text-align: center; padding: 28px 10px; color: var(--erp-ink-3); font-size: .84rem; }
+
+// ── Full-screen mobile category selector ─────────────────────────────
+.erp-cat-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--erp-bg);
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform .26s ease;
+    visibility: hidden;
+}
+.erp-cat-overlay.open { transform: translateX(0); visibility: visible; }
+.erp-cat-overlay-header {
+    flex-shrink: 0;
+    background: var(--erp-surface);
+    border-bottom: 1px solid var(--erp-border);
+    padding: 14px 16px calc(14px + env(safe-area-inset-top));
+    padding-top: 14px;
+}
+.erp-cat-overlay-title-row { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.erp-cat-overlay-back {
+    border: none; background: var(--erp-surface-2); color: var(--erp-ink);
+    width: 44px; height: 44px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; flex-shrink: 0; cursor: pointer;
+}
+.erp-cat-overlay-title { font-weight: 750; font-size: 1.05rem; flex: 1; }
+.erp-cat-overlay-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 4px 16px 20px; }
+.erp-cat-overlay-footer {
+    flex-shrink: 0;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    background: var(--erp-surface);
+    border-top: 1px solid var(--erp-border);
+}
+
+// ── Review (Step 3) ───────────────────────────────────────────────────
+.erp-review-recap { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 20px; margin-bottom: 20px; }
+@media (max-width: 560px) { .erp-review-recap { grid-template-columns: 1fr 1fr; } }
+.erp-review-kv .k { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--erp-ink-3); }
+.erp-review-kv .v { font-weight: 650; font-size: .88rem; margin-top: 2px; }
+.erp-review-group { margin-bottom: 16px; }
+.erp-review-group-title { font-weight: 700; font-size: .78rem; color: var(--erp-ink-2); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .04em; }
+.erp-review-item-row { display: flex; align-items: baseline; gap: 8px; font-size: .86rem; padding: 8px 0; border-top: 1px solid var(--erp-border); }
+.erp-review-item-row:first-of-type { border-top: none; }
+.erp-review-item-row .check { color: var(--erp-good); font-weight: 700; flex-shrink: 0; }
+.erp-review-item-row .name { flex: 1; min-width: 0; }
+.erp-review-item-row .price { color: var(--erp-ink-3); flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.erp-review-line { display: flex; justify-content: space-between; align-items: center; font-size: .85rem; margin-top: 16px; }
+
+// ── Sticky mobile bar (compact, always visible on Step 2) ─────────────
+.erp-stickybar {
+    display: none;
+}
+@media (max-width: 940px) {
+    .erp-stickybar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: 45;
+        background: var(--erp-primary);
+        color: #fff;
+        padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    }
+    .erp-stickybar-info { display: flex; flex-direction: column; line-height: 1.3; }
+    .erp-stickybar-count { font-size: .72rem; color: rgba(255,255,255,.7); font-weight: 650; }
+    .erp-stickybar-total { font-size: 1.05rem; font-weight: 750; font-variant-numeric: tabular-nums; }
+    body.erp-body { padding-bottom: 78px; }
+}

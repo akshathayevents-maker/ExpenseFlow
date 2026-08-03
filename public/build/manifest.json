@@ -1,6 +1,6 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-rHyIDWzB.css",
+    "file": "assets/app-DrIEQQhS.css",
     "name": "app",
     "names": [
       "app.css"
@@ -12,6 +12,21 @@
     "file": "assets/app-DXs_tY9g.js",
     "name": "app",
     "src": "resources/js/app.js",
+    "isEntry": true
+  },
+  "resources/js/event-request-public.js": {
+    "file": "assets/event-request-public-CCNLiVjV.js",
+    "name": "event-request-public",
+    "src": "resources/js/event-request-public.js",
+    "isEntry": true
+  },
+  "resources/scss/event-request.scss": {
+    "file": "assets/event-request-lepaPugo.css",
+    "name": "event-request",
+    "names": [
+      "event-request.css"
+    ],
+    "src": "resources/scss/event-request.scss",
     "isEntry": true
   }
 }

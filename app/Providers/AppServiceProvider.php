@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\EventRequest;
 use App\Models\ExpenseRequest;
+use App\Policies\EventRequestPolicy;
 use App\Policies\ExpenseRequestPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -14,5 +16,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(ExpenseRequest::class, ExpenseRequestPolicy::class);
+        Gate::policy(EventRequest::class, EventRequestPolicy::class);
     }
 }

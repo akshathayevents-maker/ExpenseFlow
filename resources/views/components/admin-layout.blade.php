@@ -650,6 +650,7 @@
     $grpAnalytics = request()->routeIs('admin.analytics.*','admin.reports.*');
     $grpOps       = request()->routeIs('admin.daily-closings.*','admin.audit-logs.*','admin.settings.*');
     $grpHall      = request()->routeIs('hall.*');
+    $grpEventReq  = request()->routeIs('admin.event-requests.*', 'admin.event-request-menu.*');
     $grpKitchen   = request()->routeIs('kitchen.recipes.*');
     $grpMenu      = request()->routeIs('menu.*');
     $grpMealReg   = request()->routeIs('meal-register.*');
@@ -824,6 +825,29 @@
             </a>
         </div>
 
+        {{-- Event Requests ──────────────────────────────────────── --}}
+        <button class="sidebar-group-btn {{ $grpEventReq ? 'has-active' : '' }}"
+                data-bs-toggle="collapse" data-bs-target="#grp-event-requests"
+                aria-expanded="{{ $grpEventReq ? 'true' : 'false' }}">
+            <i class="bi bi-stars sb-grp-icon"></i>
+            <span class="sb-grp-label">Event Requests</span>
+            <i class="bi bi-chevron-down sidebar-chevron"></i>
+        </button>
+        <div class="collapse sidebar-group-body {{ $grpEventReq ? 'show' : '' }}" id="grp-event-requests">
+            <a href="{{ route('admin.event-requests.index') }}"
+               class="nav-link {{ request()->routeIs('admin.event-requests.*') ? 'active' : '' }}">
+                <i class="bi bi-inbox"></i> Requests
+            </a>
+            <a href="{{ route('admin.event-request-menu.categories.index') }}"
+               class="nav-link {{ request()->routeIs('admin.event-request-menu.categories.*') ? 'active' : '' }}">
+                <i class="bi bi-collection"></i> Menu Categories
+            </a>
+            <a href="{{ route('admin.event-request-menu.items.index') }}"
+               class="nav-link {{ request()->routeIs('admin.event-request-menu.items.*') ? 'active' : '' }}">
+                <i class="bi bi-journal-text"></i> Menu Items
+            </a>
+        </div>
+
         {{-- Kitchen ─────────────────────────────────────────────── --}}
         <button class="sidebar-group-btn {{ ($grpKitchen || $grpMenu) ? 'has-active' : '' }}"
                 data-bs-toggle="collapse" data-bs-target="#grp-kitchen-admin"
@@ -920,6 +944,29 @@
             <a href="{{ route('hall.reports.index') }}"
                class="nav-link {{ request()->routeIs('hall.reports.*') ? 'active' : '' }}">
                 <i class="bi bi-file-earmark-bar-graph"></i> Reports
+            </a>
+        </div>
+
+        {{-- Event Requests ──────────────────────────────────────── --}}
+        <button class="sidebar-group-btn {{ $grpEventReq ? 'has-active' : '' }}"
+                data-bs-toggle="collapse" data-bs-target="#grp-event-requests"
+                aria-expanded="{{ $grpEventReq ? 'true' : 'false' }}">
+            <i class="bi bi-stars sb-grp-icon"></i>
+            <span class="sb-grp-label">Event Requests</span>
+            <i class="bi bi-chevron-down sidebar-chevron"></i>
+        </button>
+        <div class="collapse sidebar-group-body {{ $grpEventReq ? 'show' : '' }}" id="grp-event-requests">
+            <a href="{{ route('admin.event-requests.index') }}"
+               class="nav-link {{ request()->routeIs('admin.event-requests.*') ? 'active' : '' }}">
+                <i class="bi bi-inbox"></i> Requests
+            </a>
+            <a href="{{ route('admin.event-request-menu.categories.index') }}"
+               class="nav-link {{ request()->routeIs('admin.event-request-menu.categories.*') ? 'active' : '' }}">
+                <i class="bi bi-collection"></i> Menu Categories
+            </a>
+            <a href="{{ route('admin.event-request-menu.items.index') }}"
+               class="nav-link {{ request()->routeIs('admin.event-request-menu.items.*') ? 'active' : '' }}">
+                <i class="bi bi-journal-text"></i> Menu Items
             </a>
         </div>
 
