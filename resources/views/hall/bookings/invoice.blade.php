@@ -673,7 +673,7 @@ table, thead, tbody, tfoot, tr, th, td {
         <div class="hero-eyebrow">Booking Confirmation</div>
         <div class="hero-customer">{{ $booking->customer_name }}</div>
         <div class="hero-event">
-            <strong>{{ $eventLabel }}</strong> &nbsp;&bull;&nbsp; {{ $booking->hall->name }} &nbsp;&bull;&nbsp;
+            <strong>{{ $eventLabel }}</strong> &nbsp;&bull;&nbsp; {{ $booking->location_label }} &nbsp;&bull;&nbsp;
             {{ $booking->booking_date->format('d M Y') }} &nbsp;&bull;&nbsp;
             {{ $start }}&ndash;{{ $end }}
         </div>
@@ -707,7 +707,7 @@ table, thead, tbody, tfoot, tr, th, td {
         </div>
         <div class="snap-cell">
             <div class="snap-label">Venue &amp; Date</div>
-            <div class="snap-value">{{ $booking->hall->name }}</div>
+            <div class="snap-value">{{ $booking->location_label }}</div>
             <div class="snap-sub">{{ $booking->booking_date->format('D, d M Y') }}</div>
             <div class="snap-sub">{{ $start }} &ndash; {{ $end }}</div>
         </div>
@@ -784,7 +784,7 @@ table, thead, tbody, tfoot, tr, th, td {
                 <tr class="{{ $altRowIdx % 2 === 0 ? 'alt' : '' }}">
                     <td>
                         <div class="cost-item-name">Hall Rental</div>
-                        <div class="cost-item-sub">{{ $booking->hall->name }}</div>
+                        <div class="cost-item-sub">{{ $booking->location_label }}</div>
                     </td>
                     <td class="tc">1</td>
                     <td class="t-right">{!! $rs !!}{{ number_format($booking->hall_cost, 2) }}</td>

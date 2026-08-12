@@ -1422,14 +1422,22 @@ if ('serviceWorker' in navigator) {
             || window.navigator.standalone === true
             || document.referrer.includes('android-app://');
     }
+    // Reserve space at the bottom of the scroll container while the banner
+    // is visible, so it doesn't sit on top of the last row of content or
+    // action buttons on any page. #main-content already carries an
+    // !important responsive padding rule (for the mobile bottom nav's
+    // safe-area), so this must also be !important to actually win.
+    var mainContent = document.getElementById('main-content');
     function showBanner() {
         if (isStandalone() || isDismissed()) return;
         banner.style.display = 'block';
         banner.removeAttribute('aria-hidden');
+        if (mainContent) mainContent.style.setProperty('padding-bottom', 'calc(96px + env(safe-area-inset-bottom, 0px))', 'important');
     }
     function hideBanner() {
         banner.style.display = 'none';
         banner.setAttribute('aria-hidden', 'true');
+        if (mainContent) mainContent.style.removeProperty('padding-bottom');
     }
 
     // ── Android Chrome: beforeinstallprompt ─────────────────────

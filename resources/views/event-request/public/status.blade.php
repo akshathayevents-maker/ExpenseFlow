@@ -47,8 +47,8 @@
             <div class="erp-status-items-title">Selected items ({{ $eventRequest->items->count() }})</div>
             @foreach($eventRequest->items as $item)
                 <div class="erp-status-item-row">
-                    <span>{{ $item->name_snapshot }}</span>
-                    <span class="text-muted">₹{{ number_format($item->price_per_person_snapshot, 0) }}/person</span>
+                    <span class="name">{{ $item->name_snapshot }}</span>
+                    <span class="price text-muted">₹{{ number_format($item->price_per_person_snapshot, 0) }}/person</span>
                 </div>
             @endforeach
         </div>

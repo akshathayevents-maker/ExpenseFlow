@@ -1,11 +1,14 @@
 <x-admin-layout title="Menu Categories">
+<x-event-request.admin-responsive-styles />
 <div class="container-fluid py-4" style="max-width:860px">
-    <div class="d-flex align-items-center justify-content-between mb-4">
-        <div>
+    <div class="erm-header">
+        <div class="erm-header-text">
             <div class="text-uppercase small fw-bold" style="color:#B8893E;letter-spacing:.08em;font-size:.7rem">Event Request Portal</div>
             <h1 class="h3 fw-bold mb-0">Menu Categories</h1>
         </div>
-        <a href="{{ route('admin.event-request-menu.items.index') }}" class="btn btn-outline-dark">Manage Items</a>
+        <div class="erm-header-actions">
+            <a href="{{ route('admin.event-request-menu.items.index') }}" class="btn btn-outline-dark">Manage Items</a>
+        </div>
     </div>
 
     @if(session('status'))<div class="alert alert-success">{{ session('status') }}</div>@endif
@@ -17,7 +20,7 @@
 
     <x-premium.card class="mb-4">
         <h2 class="h6 fw-bold mb-3">Add category</h2>
-        <form method="POST" action="{{ route('admin.event-request-menu.categories.store') }}" class="row g-2">
+        <form method="POST" action="{{ route('admin.event-request-menu.categories.store') }}" class="row g-2 erm-form-1col">
             @csrf
             <div class="col-md-4"><input class="form-control" name="name" placeholder="e.g. Main Course" required></div>
             <div class="col-md-5"><input class="form-control" name="description" placeholder="Description (optional)"></div>
@@ -27,38 +30,88 @@
     </x-premium.card>
 
     <x-premium.card>
-        <div class="table-responsive">
-            <table class="table align-middle mb-0">
-                <thead><tr class="small text-uppercase text-muted"><th>Order</th><th>Name</th><th>Description</th><th>Items</th><th>Status</th><th></th></tr></thead>
-                <tbody>
-                    @foreach($categories as $cat)
-                        <tr>
-                            <td>{{ $cat->display_order }}</td>
-                            <td class="fw-bold">{{ $cat->name }}</td>
-                            <td class="text-muted small">{{ $cat->description }}</td>
-                            <td>{{ $cat->items_count }}</td>
-                            <td><span class="badge {{ $cat->is_active ? 'text-bg-success' : 'text-bg-secondary' }}">{{ $cat->is_active ? 'Active' : 'Inactive' }}</span></td>
-                            <td class="text-end">
-                                <div class="d-flex gap-2 justify-content-end">
-                                    <button type="button" class="btn btn-sm btn-outline-dark js-edit-category"
-                                            data-action="{{ route('admin.event-request-menu.categories.update', $cat) }}"
-                                            data-name="{{ $cat->name }}"
-                                            data-description="{{ $cat->description }}"
-                                            data-order="{{ $cat->display_order }}"
-                                            data-active="{{ $cat->is_active ? 1 : 0 }}">
-                                        Edit
+        @if($categories->isEmpty())
+            <div class="erm-empty">
+                <div class="glyph"><i class="bi bi-tags"></i></div>
+                <div class="title">No categories yet.</div>
+                <div class="body">Add your first category using the form above.</div>
+            </div>
+        @else
+            {{-- Desktop table (>=768px) --}}
+            <div class="erm-desktop-table">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead><tr class="small text-uppercase text-muted"><th>Order</th><th>Name</th><th>Description</th><th>Items</th><th>Status</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach($categories as $cat)
+                                <tr>
+                                    <td>{{ $cat->display_order }}</td>
+                                    <td class="fw-bold">{{ $cat->name }}</td>
+                                    <td class="text-muted small">{{ $cat->description }}</td>
+                                    <td>{{ $cat->items_count }}</td>
+                                    <td><span class="badge {{ $cat->is_active ? 'text-bg-success' : 'text-bg-secondary' }}">{{ $cat->is_active ? 'Active' : 'Inactive' }}</span></td>
+                                    <td class="text-end">
+                                        <div class="d-flex gap-2 justify-content-end">
+                                            @include('event-request.admin.menu._category-edit-trigger', ['cat' => $cat, 'class' => 'btn btn-sm btn-outline-dark'])
+                                            <form method="POST" action="{{ route('admin.event-request-menu.categories.destroy', $cat) }}" onsubmit="return confirm('Delete this category and its items?')">
+                                                @csrf @method('DELETE')
+                                                <button class="btn btn-sm btn-outline-danger">Delete</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {{-- Mobile cards (<768px) --}}
+            <div class="erm-mobile-cards">
+                @foreach($categories as $cat)
+                    <div class="erm-card">
+                        <div class="erm-card-top">
+                            <div>
+                                <div class="erm-card-title">{{ $cat->name }}</div>
+                                @if($cat->description)
+                                    <div class="erm-card-subtitle">{{ $cat->description }}</div>
+                                @endif
+                            </div>
+                            <span class="badge {{ $cat->is_active ? 'text-bg-success' : 'text-bg-secondary' }} flex-shrink-0">{{ $cat->is_active ? 'Active' : 'Inactive' }}</span>
+                        </div>
+                        <div class="erm-card-grid">
+                            <div class="erm-card-field">
+                                <div class="k">Items</div>
+                                <div class="v">{{ $cat->items_count }}</div>
+                            </div>
+                            <div class="erm-card-field">
+                                <div class="k">Order</div>
+                                <div class="v">{{ $cat->display_order }}</div>
+                            </div>
+                        </div>
+                        <div class="erm-card-footer">
+                            <a href="{{ route('admin.event-request-menu.items.index', ['category_id' => $cat->id]) }}" class="small text-muted text-decoration-none">View items <i class="bi bi-arrow-right"></i></a>
+                            <div class="erm-card-actions">
+                                @include('event-request.admin.menu._category-edit-trigger', ['cat' => $cat, 'class' => 'btn btn-outline-dark'])
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-dark erm-more-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="More actions">
+                                        <i class="bi bi-three-dots"></i>
                                     </button>
-                                    <form method="POST" action="{{ route('admin.event-request-menu.categories.destroy', $cat) }}" onsubmit="return confirm('Delete this category and its items?')">
-                                        @csrf @method('DELETE')
-                                        <button class="btn btn-sm btn-outline-danger">Delete</button>
-                                    </form>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li>
+                                            <form method="POST" action="{{ route('admin.event-request-menu.categories.destroy', $cat) }}" onsubmit="return confirm('Delete this category and its items?')">
+                                                @csrf @method('DELETE')
+                                                <button class="dropdown-item text-danger">Delete</button>
+                                            </form>
+                                        </li>
+                                    </ul>
                                 </div>
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @endif
     </x-premium.card>
 </div>
 
