@@ -17,8 +17,8 @@ use App\Models\HallBooking;
  */
 class InvoiceCalculationService
 {
-    public const DEFAULT_CGST_RATE = 3.00;
-    public const DEFAULT_SGST_RATE = 3.00;
+    public const DEFAULT_CGST_RATE = 2.50;
+    public const DEFAULT_SGST_RATE = 2.50;
 
     /**
      * @return array{

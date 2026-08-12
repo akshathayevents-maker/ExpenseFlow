@@ -28,7 +28,20 @@ class EventRequestController extends Controller
 
         $requests = EventRequest::query()
             ->status($request->input('status'))
-            ->when($request->filled('client'), fn ($q) => $q->where('client_name', 'ilike', '%'.$request->input('client').'%'))
+            ->when($request->filled('client'), function ($q) use ($request) {
+                $term = trim($request->input('client'));
+                $like = '%'.$term.'%';
+                $refId = preg_match('/^ER-?0*(\d+)$/i', $term, $m) ? (int) $m[1] : (ctype_digit($term) ? (int) $term : null);
+
+                $q->where(function ($q) use ($like, $refId) {
+                    $q->where('client_name', 'ilike', $like)
+                        ->orWhere('client_mobile', 'ilike', $like)
+                        ->orWhere('event_name', 'ilike', $like);
+                    if ($refId !== null) {
+                        $q->orWhere('id', $refId);
+                    }
+                });
+            })
             ->when($request->filled('meal_type'), fn ($q) => $q->where('meal_type', $request->input('meal_type')))
             ->when($request->filled('menu_type'), fn ($q) => $q->where('menu_type', $request->input('menu_type')))
             ->when($request->filled('date'), fn ($q) => $q->whereDate('event_date', $request->input('date')))

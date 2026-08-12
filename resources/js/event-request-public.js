@@ -7,6 +7,8 @@
 // lazily, only when a category is actually opened (see renderCategoryBody).
 
 const rupee = value => '₹' + Math.round(value).toLocaleString('en-IN');
+const CGST_RATE = 2.5;
+const SGST_RATE = 2.5;
 const escapeHtml = str => String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const isDesktop = () => window.matchMedia('(min-width: 940px)').matches;
 
@@ -341,7 +343,10 @@ function recalcTotals() {
     const guestInput = document.getElementById('guest_count');
     const guests = Number(guestInput ? guestInput.value : 0) || 0;
     const perPerson = [...selected].reduce((sum, id) => sum + (itemIndex.get(id)?.item.price || 0), 0);
-    const total = perPerson * guests;
+    const subtotal = perPerson * guests;
+    const cgst = subtotal * CGST_RATE / 100;
+    const sgst = subtotal * SGST_RATE / 100;
+    const total = subtotal + cgst + sgst;
     const count = selected.size;
 
     const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
@@ -349,6 +354,9 @@ function recalcTotals() {
     setText('sumGuests', guests.toLocaleString('en-IN'));
     setText('sumCount', count);
     setText('sumPerPerson', rupee(perPerson));
+    setText('sumSubtotal', rupee(subtotal));
+    setText('sumCgst', rupee(cgst));
+    setText('sumSgst', rupee(sgst));
     setText('sumTotal', rupee(total));
     bumpTotal(document.getElementById('sumTotal'));
 
@@ -359,6 +367,9 @@ function recalcTotals() {
     setText('sheetGuests', guests.toLocaleString('en-IN'));
     setText('sheetCount', count);
     setText('sheetPerPerson', rupee(perPerson));
+    setText('sheetSubtotal', rupee(subtotal));
+    setText('sheetCgst', rupee(cgst));
+    setText('sheetSgst', rupee(sgst));
     setText('sheetTotal', rupee(total));
     bumpTotal(document.getElementById('sheetTotal'));
 
@@ -449,10 +460,16 @@ function buildReview() {
 
     const guests = Number(document.getElementById('guest_count')?.value || 0);
     const perPerson = [...selected].reduce((sum, id) => sum + (itemIndex.get(id)?.item.price || 0), 0);
-    const perPersonEl = document.getElementById('reviewPerPerson');
-    if (perPersonEl) perPersonEl.textContent = rupee(perPerson);
-    const totalEl = document.getElementById('reviewTotal');
-    if (totalEl) totalEl.textContent = rupee(perPerson * guests);
+    const subtotal = perPerson * guests;
+    const cgst = subtotal * CGST_RATE / 100;
+    const sgst = subtotal * SGST_RATE / 100;
+
+    const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+    setText('reviewPerPerson', rupee(perPerson));
+    setText('reviewSubtotal', rupee(subtotal));
+    setText('reviewCgst', rupee(cgst));
+    setText('reviewSgst', rupee(sgst));
+    setText('reviewTotal', rupee(subtotal + cgst + sgst));
 }
 
 function initStepNavigation() {

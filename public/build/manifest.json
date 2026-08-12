@@ -1,6 +1,6 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-DBiQ9859.css",
+    "file": "assets/app-DxzMKRDC.css",
     "name": "app",
     "names": [
       "app.css"
@@ -15,7 +15,7 @@
     "isEntry": true
   },
   "resources/js/event-request-public.js": {
-    "file": "assets/event-request-public-CCNLiVjV.js",
+    "file": "assets/event-request-public-DkqMC2eS.js",
     "name": "event-request-public",
     "src": "resources/js/event-request-public.js",
     "isEntry": true

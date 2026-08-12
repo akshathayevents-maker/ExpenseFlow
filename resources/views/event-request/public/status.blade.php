@@ -4,6 +4,10 @@
         'scheduled' => 'erp-chip-good',
         default => 'erp-chip-warn',
     };
+    $subtotal = (float) $eventRequest->estimated_total;
+    $cgstAmount = round($subtotal * 0.025, 2);
+    $sgstAmount = round($subtotal * 0.025, 2);
+    $grandTotal = $subtotal + $cgstAmount + $sgstAmount;
 @endphp
 <x-event-request.public-layout title="Track your request">
 
@@ -53,9 +57,12 @@
             @endforeach
         </div>
 
+        <div class="erp-summary-line" style="margin-top:14px"><span>Subtotal</span><strong>₹{{ number_format($subtotal, 0) }}</strong></div>
+        <div class="erp-summary-line"><span>CGST @ 2.5%</span><strong>₹{{ number_format($cgstAmount, 2) }}</strong></div>
+        <div class="erp-summary-line"><span>SGST @ 2.5%</span><strong>₹{{ number_format($sgstAmount, 2) }}</strong></div>
         <div class="erp-status-total-bar">
             <span class="fw-bold small text-muted">Estimated total</span>
-            <strong style="font-size:1.15rem">₹{{ number_format($eventRequest->estimated_total, 0) }}</strong>
+            <strong style="font-size:1.15rem">₹{{ number_format($grandTotal, 2) }}</strong>
         </div>
 
         <div class="erp-status-actions">

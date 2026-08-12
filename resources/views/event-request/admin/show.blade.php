@@ -32,20 +32,65 @@
 @endphp
 <x-admin-layout title="Event Request · {{ $eventRequest->referenceNumber() }}">
 <style>
+    /* ── Page shell: constrain very wide desktops, tighten section rhythm ── */
+    .erq-wrap { max-width: 1400px; margin: 0 auto; }
+    .erq-wrap .ef-card-body { padding: 14px 16px; }
+    @media (min-width: 768px) { .erq-wrap .ef-card-body { padding: 16px 20px; } }
+
+    /* Sticky sidebar is a desktop-only affordance. Below lg, Bootstrap's
+       col-lg-4/col-lg-8 stack into full-width blocks — if this stayed
+       `position: sticky` at every width, it would detach and float on top
+       of the main column's own content (including the Approve/Reject
+       buttons there), making taps land on the wrong element. */
+    .erq-sidebar-sticky { position: static; }
+    @media (min-width: 992px) {
+        .erq-sidebar-sticky { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
+    }
+
+    /* ── Compact header ── */
+    .erq-back { font-size: .82rem; }
+    .erq-header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .erq-header-row h1 { font-size: 1.25rem; overflow-wrap: anywhere; }
+    .erq-ref { font-size: .78rem; color: #8a8370; }
+
+    /* ── Compact section-progress nav (anchors into the page, not a wizard) ── */
+    .erq-progress { display: flex; gap: 6px; overflow-x: auto; -ms-overflow-style: none; scrollbar-width: none; padding-bottom: 2px; }
+    .erq-progress::-webkit-scrollbar { display: none; }
+    .erq-progress a {
+        flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;
+        font-size: .74rem; font-weight: 650; color: #6B5D4C; text-decoration: none;
+        padding: 6px 12px; border-radius: 999px; border: 1px solid #e9e3d5; background: #fff;
+        min-height: 32px;
+    }
+    .erq-progress a:hover { border-color: #B8893E; color: #4a4536; }
+    .erq-progress a .dot { width: 6px; height: 6px; border-radius: 50%; background: #c8c4bb; flex-shrink: 0; }
+
+    /* ── Level-1 section headings ── */
+    .erq-h { font-size: .82rem; font-weight: 750; text-transform: uppercase; letter-spacing: .04em; color: #2A211A; margin-bottom: 2px; }
+    .erq-h-sub { font-size: .74rem; color: #9c8f79; margin-bottom: 12px; }
+
+    /* ── Public link — compact, secondary ── */
+    .erq-link-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .erq-link-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .03em; color: #9c8f79; font-weight: 700; margin-bottom: 4px; }
+
+    /* ── Selected Menu ── */
+    .erq-menu-empty { text-align: center; padding: 20px 12px; color: #8a8370; }
+    .erq-menu-empty .glyph { font-size: 1.6rem; opacity: .5; margin-bottom: 6px; }
+
     .erq-chip {
         border: 1.5px solid #e2dccc; background: #fff; color: #4a4536;
         font-size: .78rem; font-weight: 650; padding: 6px 13px; border-radius: 999px;
         cursor: pointer; transition: background .12s, border-color .12s, color .12s;
-        white-space: nowrap;
+        white-space: nowrap; min-height: 32px; display: inline-flex; align-items: center;
     }
     .erq-chip:hover { border-color: #B8893E; }
     .erq-chip.active { background: #3E2D23; border-color: #3E2D23; color: #fff; }
 
-    .erq-cat-block { margin-bottom: 18px; }
+    .erq-cat-block { margin-bottom: 14px; }
     .erq-cat-block:last-child { margin-bottom: 0; }
-    .erq-cat-head { display: flex; align-items: center; justify-content: space-between; padding: 6px 2px; cursor: pointer; }
-    .erq-cat-head-name { font-weight: 700; font-size: .88rem; display: flex; align-items: center; gap: 6px; }
-    .erq-cat-head-progress { font-size: .74rem; font-weight: 650; color: #8a8370; }
+    .erq-cat-head { display: flex; align-items: center; justify-content: space-between; padding: 6px 2px; cursor: pointer; min-height: 36px; }
+    .erq-cat-head-name { font-weight: 700; font-size: .86rem; display: flex; align-items: center; gap: 6px; }
+    .erq-cat-head-progress { font-size: .72rem; font-weight: 650; color: #8a8370; }
     .erq-cat-head-progress.has-selection { color: #8A6820; }
     .erq-cat-chevron { transition: transform .18s ease; color: #9c8f79; }
     .erq-cat-block.collapsed .erq-cat-chevron { transform: rotate(-90deg); }
@@ -54,13 +99,13 @@
     .erq-row {
         display: flex; align-items: center; gap: 10px;
         padding: 8px 10px; border-radius: 10px; cursor: pointer;
-        min-height: 46px; transition: background .12s, border-color .12s, box-shadow .12s;
+        min-height: 44px; transition: background .12s, border-color .12s, box-shadow .12s;
         border: 1.5px solid transparent;
     }
     .erq-row + .erq-row { margin-top: 4px; }
     .erq-row-glyph { width: 20px; text-align: center; flex-shrink: 0; font-size: .95rem; }
     .erq-row-main { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8px; }
-    .erq-row-name { font-size: .86rem; min-width: 0; }
+    .erq-row-name { font-size: .86rem; min-width: 0; overflow-wrap: anywhere; }
     .erq-row-price { font-size: .82rem; font-variant-numeric: tabular-nums; flex-shrink: 0; margin-left: auto; }
     .erq-row-tag { font-size: .68rem; font-weight: 650; flex-shrink: 0; }
 
@@ -92,39 +137,94 @@
     .erq-summary-cat-title { font-size: .72rem; font-weight: 750; text-transform: uppercase; letter-spacing: .04em; color: #6B5D4C; margin: 10px 0 2px; }
     .erq-summary-cat-title:first-child { margin-top: 0; }
 
-    .erq-stat-line { display: flex; justify-content: space-between; font-size: .84rem; padding: 6px 0; border-top: 1px solid #eee; }
+    .erq-stat-line { display: flex; justify-content: space-between; align-items: baseline; font-size: .84rem; padding: 6px 0; border-top: 1px solid #eee; }
     .erq-stat-line:first-of-type { border-top: none; }
+    .erq-stat-line.total { font-weight: 700; }
+    .erq-stat-line .k { color: #6B5D4C; }
     .erq-changes-bar { display: flex; gap: 16px; flex-wrap: wrap; background: #f3f0e8; border-radius: 10px; padding: 10px 14px; }
     .erq-changes-bar .stat { font-size: .78rem; font-weight: 650; }
     .erq-changes-bar .stat.added { color: #2563eb; }
     .erq-changes-bar .stat.removed { color: #dc3545; }
+
+    /* ── Event details fields — lighter than their section container ── */
+    .erq-field label { font-size: .74rem; font-weight: 650; color: #6B5D4C; margin-bottom: 5px; }
+    .erq-field .form-control, .erq-field .form-select, .erq-field textarea.form-control {
+        min-height: 44px; border-color: #e2dccc;
+    }
+    .erq-field textarea.form-control { min-height: unset; }
+    .erq-field .form-control:focus, .erq-field .form-select:focus {
+        border-color: #B8893E; box-shadow: 0 0 0 .2rem rgba(184,137,62,.15);
+    }
+
+    /* ── History (collapsible on mobile, always open on desktop) ── */
+    .erq-history-toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; background: none; border: none; padding: 0; cursor: pointer; min-height: 32px; }
+    .erq-history-body { display: none; margin-top: 12px; }
+    .erq-history-body.expanded { display: block; }
+    .erq-history-chevron { transition: transform .18s ease; color: #9c8f79; }
+    .erq-history-toggle[aria-expanded="true"] .erq-history-chevron { transform: rotate(180deg); }
+    @media (min-width: 992px) {
+        .erq-history-toggle { display: none; }
+        .erq-history-body { display: block !important; margin-top: 0; }
+    }
+
+    /* ── Sticky mobile action bar ── */
+    .erq-mobile-bar {
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: 1030;
+        background: #fff; border-top: 1px solid #e9e3d5;
+        padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+        display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        box-shadow: 0 -2px 10px rgba(42,33,26,.06);
+    }
+    .erq-mobile-bar .meta { min-width: 0; }
+    .erq-mobile-bar .meta .amount { font-size: 1rem; font-weight: 800; color: #2A211A; font-variant-numeric: tabular-nums; }
+    .erq-mobile-bar .meta .sub { font-size: .72rem; color: #8a8370; }
+    .erq-mobile-bar .btn { min-height: 44px; flex-shrink: 0; }
+    .erq-bar-spacer { display: none; }
+    @media (max-width: 991.98px) {
+        .erq-bar-spacer { display: block; height: 72px; }
+    }
 </style>
 
 <div class="container-fluid py-4">
+<div class="erq-wrap">
 
-    <a href="{{ route('admin.event-requests.index') }}" class="text-decoration-none small text-muted mb-2 d-inline-block"><i class="bi bi-arrow-left"></i> Event Requests</a>
+    <a href="{{ route('admin.event-requests.index') }}" class="erq-back text-decoration-none text-muted mb-2 d-inline-block"><i class="bi bi-arrow-left"></i> Event Requests</a>
 
-    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+    <div class="erq-header-row mb-2">
         <div>
-            <h1 class="h3 fw-bold mb-0">{{ $eventRequest->event_name ?: $eventRequest->client_name ?: 'Untitled request' }}</h1>
-            <div class="text-muted small">{{ $eventRequest->referenceNumber() }}</div>
+            <h1 class="fw-bold mb-0">{{ $eventRequest->event_name ?: $eventRequest->client_name ?: 'Untitled request' }}</h1>
+            <div class="erq-ref">{{ $eventRequest->referenceNumber() }}</div>
         </div>
         <span class="badge {{ $statusChip }} fs-6">{{ $eventRequest->statusLabel() }}</span>
+    </div>
+
+    <div class="erq-progress mb-3">
+        <a href="#selectedMenuSection"><span class="dot"></span>Menu</a>
+        <a href="#eventDetailsSection"><span class="dot"></span>Details</a>
+        <a href="#menuReviewSection"><span class="dot"></span>Review</a>
+        @if($canDecide)
+            <a href="#decisionSection"><span class="dot"></span>Decision</a>
+        @endif
     </div>
 
     @if(session('status'))
         <div class="alert alert-success">{{ session('status') }}</div>
     @endif
 
-    {{-- Public link management --}}
-    <x-premium.card class="mb-4">
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
-            <div class="flex-grow-1" style="min-width:260px">
-                <div class="small fw-bold text-muted mb-1">Public link</div>
+    {{-- Public link — compact, secondary --}}
+    <x-premium.card class="mb-3">
+        <div class="erq-link-row">
+            <div class="flex-grow-1" style="min-width:240px">
+                <div class="erq-link-label">Public request link</div>
                 @if($publicUrl)
+                    @php
+                        $waMessage = 'Hi'.($eventRequest->client_name ? ' '.$eventRequest->client_name : '').", here's your event request link: ".$publicUrl;
+                        $waHref = 'https://wa.me/?text='.rawurlencode($waMessage);
+                    @endphp
                     <div class="input-group">
                         <input type="text" class="form-control font-monospace small" readonly value="{{ $publicUrl }}" id="publicLinkInput">
                         <button class="btn btn-outline-dark" type="button" onclick="navigator.clipboard.writeText(document.getElementById('publicLinkInput').value)">Copy</button>
+                        <a class="btn btn-outline-success" href="{{ $waHref }}" target="_blank" rel="noopener" aria-label="Share on WhatsApp"><i class="bi bi-whatsapp me-1"></i>WhatsApp</a>
                     </div>
                 @else
                     <div class="text-muted small">No active link.</div>
@@ -151,13 +251,15 @@
     <script type="application/json" id="erqSelectedIds">{!! json_encode(array_values($selectedItemIds), $jsonFlags) !!}</script>
     <script type="application/json" id="erqBaselineIds">{!! json_encode(array_values($clientBaselineItemIds), $jsonFlags) !!}</script>
 
-    <div class="row g-4">
+    <div class="row g-3">
         <div class="col-lg-8">
 
             {{-- Selected menu summary — the first thing the admin should see --}}
-            <x-premium.card class="mb-4">
+            <x-premium.card class="mb-3" id="selectedMenuSection">
                 <div class="d-flex align-items-center justify-content-between mb-2">
-                    <h2 class="h6 fw-bold mb-0">Selected Menu</h2>
+                    <div>
+                        <div class="erq-h mb-0">Selected Menu</div>
+                    </div>
                     <span class="badge text-bg-dark" id="summaryCountBadge">0 Items Selected</span>
                 </div>
                 <div id="summaryList"></div>
@@ -171,64 +273,66 @@
                 @method('PUT')
                 <div id="selectedInputsContainer"></div>
 
-                <x-premium.card class="mb-4">
-                    <h2 class="h6 fw-bold mb-3">Event details</h2>
+                <x-premium.card class="mb-3" id="eventDetailsSection">
+                    <div class="erq-h">Event Details</div>
+                    <div class="erq-h-sub">Client, schedule and menu preferences for this request</div>
                     <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold">Client Name</label>
+                        <div class="col-md-6 erq-field">
+                            <label class="form-label">Client Name</label>
                             <input class="form-control" name="client_name" value="{{ old('client_name', $eventRequest->client_name) }}" required>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold">Mobile Number</label>
+                        <div class="col-md-6 erq-field">
+                            <label class="form-label">Mobile Number</label>
                             <input class="form-control" name="client_mobile" value="{{ old('client_mobile', $eventRequest->client_mobile) }}" required>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold">Email</label>
+                        <div class="col-md-6 erq-field">
+                            <label class="form-label">Email</label>
                             <input type="email" class="form-control" name="client_email" value="{{ old('client_email', $eventRequest->client_email) }}">
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold">Event Name</label>
+                        <div class="col-md-6 erq-field">
+                            <label class="form-label">Event Name</label>
                             <input class="form-control" name="event_name" value="{{ old('event_name', $eventRequest->event_name) }}">
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold">Event Date</label>
+                        <div class="col-md-4 erq-field">
+                            <label class="form-label">Event Date</label>
                             <input type="date" class="form-control" name="event_date" value="{{ old('event_date', $eventRequest->event_date?->toDateString()) }}" required>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold">Guest Count</label>
+                        <div class="col-md-4 erq-field">
+                            <label class="form-label">Guest Count</label>
                             <input type="number" min="1" class="form-control" name="guest_count" id="guestCountInput" value="{{ old('guest_count', $eventRequest->guest_count) }}" required>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold">Meal Type</label>
+                        <div class="col-md-4 erq-field">
+                            <label class="form-label">Meal Type</label>
                             <select class="form-select" name="meal_type" required>
                                 @foreach(\App\Models\EventRequest::mealTypes() as $value => $label)
                                     <option value="{{ $value }}" @selected(old('meal_type', $eventRequest->meal_type) === $value)>{{ $label }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold">Menu Type</label>
+                        <div class="col-md-4 erq-field">
+                            <label class="form-label">Menu Type</label>
                             <select class="form-select" name="menu_type" required>
                                 @foreach(\App\Models\EventRequest::menuTypes() as $value => $label)
                                     <option value="{{ $value }}" @selected(old('menu_type', $eventRequest->menu_type) === $value)>{{ $label }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-12">
-                            <label class="form-label small fw-bold">Special Instructions</label>
+                        <div class="col-12 erq-field">
+                            <label class="form-label">Special Instructions</label>
                             <textarea class="form-control" name="special_instructions" rows="3">{{ old('special_instructions', $eventRequest->special_instructions) }}</textarea>
                         </div>
                     </div>
                 </x-premium.card>
 
-                <x-premium.card class="mb-4" id="menuReviewSection">
-                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-                        <h2 class="h6 fw-bold mb-0">Menu Review</h2>
+                <x-premium.card class="mb-3" id="menuReviewSection">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-1">
+                        <div class="erq-h mb-0">Menu Review</div>
                         <div class="btn-group btn-group-sm" role="group" id="viewModeToggle">
                             <button type="button" class="btn btn-outline-dark active" data-mode="selected">Selected Only</button>
                             <button type="button" class="btn btn-outline-dark" data-mode="all">Show All</button>
                         </div>
                     </div>
+                    <div class="erq-h-sub">Toggle items on or off — client's original picks stay marked</div>
 
                     <div class="d-flex flex-wrap gap-2 mb-3" id="quickFilters">
                         <button type="button" class="erq-chip active" data-qf="">All shown</button>
@@ -253,15 +357,16 @@
                     </div>
                 </x-premium.card>
 
-                <div class="d-flex justify-content-end mt-3 mb-4">
-                    <button type="submit" class="btn btn-dark">Save changes</button>
+                <div class="d-none d-lg-flex justify-content-end mt-3 mb-3">
+                    <button type="submit" class="btn btn-dark">Save Changes</button>
                 </div>
             </form>
 
             {{-- Decision actions --}}
             @if($canDecide)
-            <x-premium.card class="mb-4">
-                <h2 class="h6 fw-bold mb-3">Decision</h2>
+            <x-premium.card class="mb-3" id="decisionSection">
+                <div class="erq-h">Decision</div>
+                <div class="erq-h-sub">Approve to confirm this event, or send it back for changes</div>
                 <div class="d-flex gap-2 flex-wrap">
                     <form method="POST" action="{{ route('admin.event-requests.approve', $eventRequest) }}" id="approveForm">
                         @csrf
@@ -274,7 +379,7 @@
             @endif
 
             @if($eventRequest->status === 'scheduled' && $eventRequest->hallBooking)
-                <x-premium.card class="mb-4">
+                <x-premium.card class="mb-3">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
                             <div class="fw-bold small text-success"><i class="bi bi-calendar-check me-1"></i>On the calendar</div>
@@ -287,16 +392,16 @@
         </div>
 
         <div class="col-lg-4">
-            <div class="position-sticky" style="top:16px">
+            <div class="erq-sidebar-sticky">
 
-                {{-- Sticky review panel — never scroll back up to approve --}}
-                <x-premium.card class="mb-4">
-                    <h2 class="h6 fw-bold mb-3">Client Selection</h2>
-                    <div class="erq-stat-line"><span>Items</span><strong id="sideCount">0</strong></div>
-                    <div class="erq-stat-line"><span>Veg</span><strong id="sideVeg">0</strong></div>
-                    <div class="erq-stat-line"><span>Non-Veg</span><strong id="sideNonVeg">0</strong></div>
-                    <div class="erq-stat-line"><span>Per Person</span><strong id="sidePerPerson">₹0</strong></div>
-                    <div class="erq-stat-line"><span class="fw-bold">Estimated Total</span><strong id="sideTotal" class="fs-6">₹0</strong></div>
+                {{-- Request summary — mirrors the sticky mobile bar's numbers --}}
+                <x-premium.card class="mb-3">
+                    <div class="erq-h mb-2">Request Summary</div>
+                    <div class="erq-stat-line"><span class="k">Items</span><strong id="sideCount">0</strong></div>
+                    <div class="erq-stat-line"><span class="k">Veg</span><strong id="sideVeg">0</strong></div>
+                    <div class="erq-stat-line"><span class="k">Non-Veg</span><strong id="sideNonVeg">0</strong></div>
+                    <div class="erq-stat-line"><span class="k">Per Person</span><strong id="sidePerPerson">₹0</strong></div>
+                    <div class="erq-stat-line total"><span class="k">Estimated Total</span><strong id="sideTotal" class="fs-6">₹0</strong></div>
 
                     @if($canDecide)
                         <hr>
@@ -308,11 +413,15 @@
                     @endif
                 </x-premium.card>
 
-                {{-- Revision timeline --}}
+                {{-- Revision timeline — collapsed by default on mobile, always visible on desktop --}}
                 <x-premium.card>
-                    <h2 class="h6 fw-bold mb-3">History</h2>
-                    <div class="d-flex flex-column gap-3">
-                        @foreach($eventRequest->revisions as $rev)
+                    <button type="button" class="erq-history-toggle" id="historyToggle" aria-expanded="false" aria-controls="historyBody">
+                        <span class="erq-h mb-0">History &middot; {{ $eventRequest->revisions->count() }} {{ Str::plural('update', $eventRequest->revisions->count()) }}</span>
+                        <i class="bi bi-chevron-down erq-history-chevron"></i>
+                    </button>
+                    <div class="d-none d-lg-block erq-h mb-2" style="margin-top:0">History</div>
+                    <div class="d-flex flex-column gap-3 erq-history-body" id="historyBody">
+                        @forelse($eventRequest->revisions as $rev)
                             <div class="d-flex gap-2">
                                 <div class="mt-1"><i class="bi bi-circle-fill" style="font-size:.5rem;color:#B8893E"></i></div>
                                 <div>
@@ -323,13 +432,28 @@
                                     @endif
                                 </div>
                             </div>
-                        @endforeach
+                        @empty
+                            <div class="text-muted small">No previous updates.</div>
+                        @endforelse
                     </div>
                 </x-premium.card>
             </div>
         </div>
     </div>
+
 </div>
+</div>
+
+{{-- Sticky mobile action bar — keeps guest count / estimated total and the
+     primary Save action visible without scrolling back down. --}}
+<div class="erq-mobile-bar d-lg-none">
+    <div class="meta">
+        <div class="sub"><span id="stickyGuestCount">0</span> Guests</div>
+        <div class="amount" id="stickyTotal">₹0</div>
+    </div>
+    <button type="submit" form="adminEditForm" class="btn btn-dark">Save Changes</button>
+</div>
+<div class="erq-bar-spacer"></div>
 
 {{-- Need Changes modal --}}
 <div class="modal fade" id="needChangesModal" tabindex="-1">
@@ -518,7 +642,7 @@
         });
 
         if (!byCategory.size) {
-            list.innerHTML = '<div class="text-muted small">No items selected yet.</div>';
+            list.innerHTML = '<div class="erq-menu-empty"><div class="glyph"><i class="bi bi-basket"></i></div><div>No menu selected.</div></div>';
         } else {
             list.innerHTML = '';
             byCategory.forEach((items, categoryName) => {
@@ -565,6 +689,8 @@
         document.getElementById('sideNonVeg').textContent = current.size - vegCount;
         document.getElementById('sidePerPerson').textContent = rupee(perPerson);
         document.getElementById('sideTotal').textContent = rupee(total);
+        document.getElementById('stickyGuestCount').textContent = guests;
+        document.getElementById('stickyTotal').textContent = rupee(total);
     }
 
     function renderAll() {
@@ -602,6 +728,15 @@
     });
 
     document.getElementById('guestCountInput').addEventListener('input', recalcTotals);
+
+    // History — collapsible on mobile only (CSS forces it open at lg+ and
+    // hides this toggle there, so the listener is inert but harmless on desktop).
+    const historyToggle = document.getElementById('historyToggle');
+    const historyBody = document.getElementById('historyBody');
+    historyToggle.addEventListener('click', () => {
+        const expanded = historyBody.classList.toggle('expanded');
+        historyToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    });
 
     // Before-saving confirmation — only interrupts when the menu actually changed.
     const form = document.getElementById('adminEditForm');

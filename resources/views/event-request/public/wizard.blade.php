@@ -180,6 +180,9 @@
                     <div class="erp-summary-line"><span>Guests</span><strong id="sumGuests">0</strong></div>
                     <div class="erp-summary-line"><span>Selected items</span><strong id="sumCount">0</strong></div>
                     <div class="erp-summary-line"><span>Cost per person</span><strong id="sumPerPerson">₹0</strong></div>
+                    <div class="erp-summary-line"><span>Subtotal</span><strong id="sumSubtotal">₹0</strong></div>
+                    <div class="erp-summary-line"><span>CGST @ 2.5%</span><strong id="sumCgst">₹0</strong></div>
+                    <div class="erp-summary-line"><span>SGST @ 2.5%</span><strong id="sumSgst">₹0</strong></div>
                     <div class="erp-summary-total">
                         <span style="font-size:.85rem;color:var(--erp-ink-2);font-weight:650">Estimated total</span>
                         <strong id="sumTotal">₹0</strong>
@@ -202,6 +205,18 @@
                 <div class="erp-review-line">
                     <span class="fw-bold small text-muted">Per person cost</span>
                     <strong id="reviewPerPerson">₹0</strong>
+                </div>
+                <div class="erp-review-line">
+                    <span class="fw-bold small text-muted">Subtotal</span>
+                    <strong id="reviewSubtotal">₹0</strong>
+                </div>
+                <div class="erp-review-line">
+                    <span class="fw-bold small text-muted">CGST @ 2.5%</span>
+                    <strong id="reviewCgst">₹0</strong>
+                </div>
+                <div class="erp-review-line">
+                    <span class="fw-bold small text-muted">SGST @ 2.5%</span>
+                    <strong id="reviewSgst">₹0</strong>
                 </div>
                 <div class="erp-status-total-bar">
                     <span class="fw-bold small text-muted">Estimated total</span>
@@ -254,6 +269,9 @@
             <div class="erp-summary-line"><span>Guests</span><strong id="sheetGuests">0</strong></div>
             <div class="erp-summary-line"><span>Selected items</span><strong id="sheetCount">0</strong></div>
             <div class="erp-summary-line"><span>Cost per person</span><strong id="sheetPerPerson">₹0</strong></div>
+            <div class="erp-summary-line"><span>Subtotal</span><strong id="sheetSubtotal">₹0</strong></div>
+            <div class="erp-summary-line"><span>CGST @ 2.5%</span><strong id="sheetCgst">₹0</strong></div>
+            <div class="erp-summary-line"><span>SGST @ 2.5%</span><strong id="sheetSgst">₹0</strong></div>
             <div class="erp-sheet-selected-list" id="sheetSelectedList"></div>
             <button type="button" class="erp-btn erp-btn-gold erp-btn-block mt-3" id="sheetActionBtn">Continue</button>
         </div>

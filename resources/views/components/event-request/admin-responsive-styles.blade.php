@@ -209,4 +209,121 @@
         .modal-footer { flex-wrap: wrap; }
         .modal-footer > * { flex: 1 1 auto; }
     }
+
+    /* ══════════════════════════════════════════════════════════════════
+       Event Requests list page — opt-in "erm-req-*" additions.
+       Scoped to this page only; does not alter categories/items markup
+       which keep using the base .erm-card / .erm-chip rules above. ══════ */
+
+    /* Compact single-row mobile header: title + icon action on one line,
+       subtitle beneath. Desktop keeps the original spacious .erm-header. */
+    .erm-req-header-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .erm-req-header-row h1 { min-width: 0; overflow-wrap: anywhere; }
+    .erm-req-subtitle { font-size: .8rem; color: #8a8370; margin-top: 2px; }
+    @media (max-width: 767.98px) {
+        .erm-req-header-row .btn { min-height: 40px; padding: 0 14px; font-size: .84rem; flex-shrink: 0; }
+    }
+
+    /* Search + filter-icon-button row */
+    .erm-req-search-row { display: flex; gap: 8px; align-items: stretch; }
+    .erm-req-search-row .erm-req-search-wrap { position: relative; flex: 1 1 auto; min-width: 0; }
+    .erm-req-search-row .erm-req-search-wrap input { padding-left: 36px; min-height: 44px; }
+    .erm-req-search-row .erm-req-search-icon {
+        position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+        color: #9c8f79; pointer-events: none; font-size: .95rem;
+    }
+    .erm-req-filter-btn {
+        flex-shrink: 0; width: 44px; height: 44px;
+        display: inline-flex; align-items: center; justify-content: center;
+        border-radius: 10px; position: relative;
+    }
+    .erm-req-filter-btn .erm-req-filter-dot {
+        position: absolute; top: 5px; right: 5px;
+        width: 8px; height: 8px; border-radius: 50%;
+        background: #B8893E; border: 1.5px solid #fff;
+    }
+
+    /* Horizontally scrollable chip strip (mobile only) — page itself never
+       scrolls; only this strip does. Scrollbar hidden for a cleaner look
+       but content remains fully reachable via touch/trackpad scroll. */
+    .erm-req-chip-scroll {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 8px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+        padding-bottom: 2px;
+    }
+    .erm-req-chip-scroll::-webkit-scrollbar { display: none; }
+    .erm-req-chip-scroll .erm-chip { flex-shrink: 0; }
+
+    /* Result count line above the list */
+    .erm-req-count { font-size: .8rem; color: #8a8370; margin-bottom: 8px; }
+
+    /* Status badges — small, strong, uppercase, restrained semantic colors.
+       Color is paired with a leading dot so status is never conveyed by
+       color alone. */
+    .erm-req-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        font-size: .66rem; font-weight: 800; text-transform: uppercase; letter-spacing: .03em;
+        padding: 4px 9px; border-radius: 999px; line-height: 1.3; white-space: nowrap; flex-shrink: 0;
+    }
+    .erm-req-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .erm-req-badge.is-neutral { background: #eef1f5; color: #3d5570; }
+    .erm-req-badge.is-neutral::before { background: #3d7ba8; }
+    .erm-req-badge.is-amber { background: #fbf1de; color: #8a6820; }
+    .erm-req-badge.is-amber::before { background: #B8893E; }
+    .erm-req-badge.is-orange { background: #fbe9de; color: #9a4a1f; }
+    .erm-req-badge.is-orange::before { background: #c9622c; }
+    .erm-req-badge.is-green { background: #e7f3ea; color: #2f7a4f; }
+    .erm-req-badge.is-green::before { background: #2f7a4f; }
+    .erm-req-badge.is-red { background: #fbe9e9; color: #c0392b; }
+    .erm-req-badge.is-red::before { background: #c0392b; }
+    .erm-req-badge.is-gray { background: #f1ede4; color: #8a8370; }
+    .erm-req-badge.is-gray::before { background: #8a8370; }
+
+    /* Request card — dense info hierarchy per spec: name+badge, ref/event,
+       date+guests, menu+total, then a slim footer (not a full-width button). */
+    .erm-req-card-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .erm-req-card-name { font-weight: 700; font-size: .98rem; min-width: 0; overflow-wrap: anywhere; }
+    .erm-req-card-sub { font-size: .78rem; color: #8a8370; margin-top: 2px; overflow-wrap: anywhere; }
+    .erm-req-card-meta {
+        display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px;
+        margin-top: 10px; font-size: .82rem; color: #4a4536;
+    }
+    .erm-req-card-meta .item { display: inline-flex; align-items: center; gap: 5px; min-width: 0; }
+    .erm-req-card-meta .item i { color: #9c8f79; font-size: .85rem; }
+    .erm-req-card-money {
+        display: flex; align-items: baseline; justify-content: space-between;
+        margin-top: 8px; padding-top: 8px; border-top: 1px solid #f0ece0;
+    }
+    .erm-req-card-money .label { font-size: .72rem; color: #9c8f79; text-transform: uppercase; letter-spacing: .03em; }
+    .erm-req-card-money .value { font-size: .92rem; font-weight: 700; color: #2A211A; font-variant-numeric: tabular-nums; }
+    .erm-req-card-footer {
+        display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        margin-top: 8px;
+    }
+    .erm-req-card-footer .time { font-size: .72rem; color: #9c8f79; }
+    .erm-req-card-link {
+        font-size: .78rem; font-weight: 700; color: #3E2D23; text-decoration: none;
+        display: inline-flex; align-items: center; gap: 4px; min-height: 32px; padding: 4px 2px;
+    }
+    .erm-req-card-link:hover { color: #B8893E; }
+    /* Whole card is a clickable target on mobile (link overlay), while the
+       visible "View Request →" affordance stays a compact footer element. */
+    .erm-req-card-hit { position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
+    .erm-req-card-hit:focus-visible { outline: 2px solid #B8893E; outline-offset: 2px; }
+    .erm-card.erm-req-card { position: relative; padding: 14px 16px; }
+    .erm-req-card-footer .erm-req-card-link { position: relative; z-index: 2; }
+
+    /* Desktop table: keep restrained — no heavy borders/shadows, tight
+       vertical rhythm, secondary event line under client name. */
+    .erm-req-table-client .name { font-weight: 700; }
+    .erm-req-table-client .sub { font-size: .78rem; color: #8a8370; margin-top: 1px; }
+
+    @media (min-width: 900px) {
+        .erm-req-count { font-size: .82rem; }
+    }
 </style>

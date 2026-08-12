@@ -665,6 +665,15 @@
         const needsHall = type !== 'food_only';
         const hasFood   = type !== 'hall_only';
 
+        // iOS Safari doesn't dismiss an open native picker/keyboard when its
+        // input is hidden via display:none — it's left orphaned as a blank
+        // sheet floating over the page. Blur whatever's focused first so any
+        // open picker closes before we hide the section underneath it.
+        const active = document.activeElement;
+        if (active && typeof active.blur === 'function' && active !== document.body) {
+            active.blur();
+        }
+
         fieldHall.style.display         = needsHall ? '' : 'none';
         hallSel.required                = needsHall;
         fieldServiceLoc.style.display   = needsHall ? 'none' : '';
