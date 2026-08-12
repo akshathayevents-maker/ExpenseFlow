@@ -7,6 +7,7 @@ use App\Models\BookingPayment;
 use App\Models\Hall;
 use App\Models\HallBooking;
 use App\Models\MealPlan;
+use App\Services\InvoiceCalculationService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -19,6 +20,11 @@ use Illuminate\View\View;
 
 class HallBookingController extends Controller
 {
+    public function __construct(
+        private readonly InvoiceCalculationService $invoiceCalc,
+    ) {
+    }
+
     public function index(Request $request): View|JsonResponse
     {
         $today = now()->toDateString();
@@ -133,7 +139,15 @@ class HallBookingController extends Controller
             'services.*.service_name' => ['required_with:services.*', 'string', 'max:150'],
             'services.*.description'  => ['nullable', 'string', 'max:500'],
             'services.*.amount'       => ['required_with:services.*', 'numeric', 'min:0'],
+            'uses_mixed_food'      => ['nullable', 'boolean'],
+            'food_splits'          => ['nullable', 'array'],
+            'food_splits.*.meal_plan_id' => ['required_with:food_splits.*', 'exists:meal_plans,id'],
+            'food_splits.*.guest_count'  => ['required_with:food_splits.*', 'integer', 'min:1'],
         ], []));
+
+        if ($error = $this->foodSplitGuestMismatchError($request, $data)) {
+            return back()->withInput()->withErrors(['food_splits' => $error]);
+        }
 
         // Hall conflict check — food_only bookings NEVER participate in hall conflict checks.
         // Multiple food-only orders on the same date/time are always allowed.
@@ -154,14 +168,16 @@ class HallBookingController extends Controller
         }
 
         DB::transaction(function () use ($data, $request) {
-            $data['created_by']    = Auth::id();
-            $data['has_breakfast'] = $request->boolean('has_breakfast');
-            $data['has_lunch']     = $request->boolean('has_lunch');
-            $data['has_dinner']    = $request->boolean('has_dinner');
-            $data['hall_cost']     = (float) ($data['hall_cost'] ?? 0);
+            $data['created_by']     = Auth::id();
+            $data['has_breakfast']  = $request->boolean('has_breakfast');
+            $data['has_lunch']      = $request->boolean('has_lunch');
+            $data['has_dinner']     = $request->boolean('has_dinner');
+            $data['hall_cost']      = (float) ($data['hall_cost'] ?? 0);
+            $data['uses_mixed_food'] = $request->boolean('uses_mixed_food');
 
             $services = $data['services'] ?? [];
-            unset($data['services']);
+            $foodSplits = $data['food_splits'] ?? [];
+            unset($data['services'], $data['food_splits']);
 
             $booking = HallBooking::create($data);
 
@@ -175,6 +191,8 @@ class HallBookingController extends Controller
                     ]);
                 }
             }
+
+            $this->saveFoodSplits($booking, $data['uses_mixed_food'], $foodSplits);
 
             // Record advance payment if > 0
             if ((float) $data['advance_amount'] > 0) {
@@ -195,20 +213,59 @@ class HallBookingController extends Controller
 
     public function show(HallBooking $booking): View
     {
-        $booking->load(['hall', 'mealPlan', 'creator', 'meals', 'payments.recorder', 'additionalServices']);
+        $booking->load(['hall', 'mealPlan', 'creator', 'meals', 'payments.recorder', 'additionalServices', 'foodSplits']);
         return view('hall.bookings.show', compact('booking'));
     }
 
     public function invoice(HallBooking $booking): View
     {
-        $booking->load(['hall', 'mealPlan', 'creator', 'meals', 'payments.recorder', 'additionalServices']);
-        return view('hall.bookings.invoice', compact('booking'));
+        $booking->load(['hall', 'mealPlan', 'creator', 'meals', 'payments.recorder', 'additionalServices', 'foodSplits']);
+        $calc = $this->invoiceCalc->calculate($booking);
+
+        return view('hall.bookings.invoice', [
+            'booking'  => $booking,
+            'calc'     => $calc,
+            'editable' => true, // screen view shows the invoice-details config panel; the PDF never does
+        ]);
+    }
+
+    /**
+     * Saves the invoice number/date and tax rates the admin configured
+     * before generating the invoice, then redirects back so the printable
+     * view (and any later PDF download) reflects exactly what was saved.
+     */
+    public function updateInvoiceDetails(Request $request, HallBooking $booking): RedirectResponse
+    {
+        $data = $request->validate([
+            'invoice_number' => [
+                'required', 'string', 'max:50',
+                'regex:/^[A-Za-z0-9\-\/_. ]+$/', // blocks HTML/script content, keeps it a plain document identifier
+                'unique:hall_bookings,invoice_number,' . $booking->id,
+            ],
+            'invoice_date' => ['required', 'date'],
+            'cgst_rate'    => ['required', 'numeric', 'min:0', 'max:28'],
+            'sgst_rate'    => ['required', 'numeric', 'min:0', 'max:28'],
+        ], [
+            'invoice_number.regex' => 'Invoice number may only contain letters, numbers, and - / _ . characters.',
+            'invoice_number.unique' => 'That invoice number is already used by another booking.',
+        ]);
+
+        $booking->update($data);
+
+        return redirect()->route('hall.bookings.invoice', $booking)
+            ->with('status', 'Invoice details saved.');
     }
 
     public function downloadPdf(HallBooking $booking): Response
     {
-        $booking->load(['hall', 'mealPlan', 'creator', 'meals', 'payments.recorder', 'additionalServices']);
-        $pdf = Pdf::loadView('hall.bookings.invoice', compact('booking'))
+        $booking->load(['hall', 'mealPlan', 'creator', 'meals', 'payments.recorder', 'additionalServices', 'foodSplits']);
+        $calc = $this->invoiceCalc->calculate($booking);
+
+        $pdf = Pdf::loadView('hall.bookings.invoice', [
+            'booking'  => $booking,
+            'calc'     => $calc,
+            'editable' => false,
+        ])
             ->setPaper('a4', 'portrait')
             ->setOption('margin_top', 12)
             ->setOption('margin_bottom', 12)
@@ -217,7 +274,8 @@ class HallBookingController extends Controller
             ->setOption('defaultFont', 'dejavu sans')   // DejaVu Sans TTF — has U+20B9 rupee glyph
             ->setOption('isHtml5ParserEnabled', true)
             ->setOption('isRemoteEnabled', false);
-        return $pdf->download("Akshathay-Booking-{$booking->id}.pdf");
+        $filename = str_replace(['/', '\\'], '-', $booking->effective_invoice_number);
+        return $pdf->download("{$filename}.pdf");
     }
 
     public function edit(HallBooking $booking): View
@@ -230,7 +288,12 @@ class HallBookingController extends Controller
                 'description'  => $s->description,
                 'amount'       => $s->amount,
             ])->toArray());
-        return view('hall.bookings.edit', compact('booking', 'halls', 'mealPlans', 'oldServices'));
+        $oldFoodSplits = old('food_splits', $booking->foodSplits
+            ->map(fn($s) => [
+                'meal_plan_id' => $s->meal_plan_id,
+                'guest_count'  => $s->guest_count,
+            ])->toArray());
+        return view('hall.bookings.edit', compact('booking', 'halls', 'mealPlans', 'oldServices', 'oldFoodSplits'));
     }
 
     public function update(Request $request, HallBooking $booking): RedirectResponse
@@ -267,7 +330,15 @@ class HallBookingController extends Controller
             'services.*.service_name' => ['required_with:services.*', 'string', 'max:150'],
             'services.*.description'  => ['nullable', 'string', 'max:500'],
             'services.*.amount'       => ['required_with:services.*', 'numeric', 'min:0'],
+            'uses_mixed_food'      => ['nullable', 'boolean'],
+            'food_splits'          => ['nullable', 'array'],
+            'food_splits.*.meal_plan_id' => ['required_with:food_splits.*', 'exists:meal_plans,id'],
+            'food_splits.*.guest_count'  => ['required_with:food_splits.*', 'integer', 'min:1'],
         ]);
+
+        if ($error = $this->foodSplitGuestMismatchError($request, $data)) {
+            return back()->withInput()->withErrors(['food_splits' => $error]);
+        }
 
         if (in_array($data['booking_type'], ['hall_only', 'hall_food'])) {
             $conflict = HallBooking::needsHall()
@@ -286,15 +357,17 @@ class HallBookingController extends Controller
             }
         }
 
-        $data['has_breakfast'] = $request->boolean('has_breakfast');
-        $data['has_lunch']     = $request->boolean('has_lunch');
-        $data['has_dinner']    = $request->boolean('has_dinner');
-        $data['hall_cost']     = (float) ($data['hall_cost'] ?? 0);
+        $data['has_breakfast']   = $request->boolean('has_breakfast');
+        $data['has_lunch']       = $request->boolean('has_lunch');
+        $data['has_dinner']      = $request->boolean('has_dinner');
+        $data['hall_cost']       = (float) ($data['hall_cost'] ?? 0);
+        $data['uses_mixed_food'] = $request->boolean('uses_mixed_food');
 
         $services = $data['services'] ?? [];
-        unset($data['services']);
+        $foodSplits = $data['food_splits'] ?? [];
+        unset($data['services'], $data['food_splits']);
 
-        DB::transaction(function () use ($booking, $data, $services) {
+        DB::transaction(function () use ($booking, $data, $services, $foodSplits) {
             $booking->update($data);
 
             // Replace all additional services
@@ -308,6 +381,8 @@ class HallBookingController extends Controller
                     ]);
                 }
             }
+
+            $this->saveFoodSplits($booking, $data['uses_mixed_food'], $foodSplits);
         });
 
         return redirect()->route('hall.bookings.show', $booking)->with('success', 'Booking updated.');
@@ -317,6 +392,68 @@ class HallBookingController extends Controller
     {
         $booking->delete();
         return redirect()->route('hall.bookings.index')->with('success', 'Booking deleted.');
+    }
+
+    /**
+     * When mixed food is enabled, the split guest counts must add up to the
+     * booking's total guest count. Returns an error message, or null when
+     * valid / not applicable — single check shared by store() and update()
+     * so the rule can never drift between create and edit.
+     */
+    private function foodSplitGuestMismatchError(Request $request, array $data): ?string
+    {
+        if (! $request->boolean('uses_mixed_food')) {
+            return null;
+        }
+
+        $splits = $data['food_splits'] ?? [];
+        $splitGuestTotal = array_sum(array_column($splits, 'guest_count'));
+        $bookingGuestTotal = (int) ($data['number_of_people'] ?? 0);
+
+        if (empty($splits) || $splitGuestTotal !== $bookingGuestTotal) {
+            return 'Food plan guest counts must equal the total number of guests.';
+        }
+
+        return null;
+    }
+
+    /**
+     * Replaces a booking's food-split rows. Prices are always recomputed
+     * server-side from the authoritative MealPlan record — never trusted
+     * from client input — exactly like the rest of this controller treats
+     * money. Turning mixed food off simply clears any existing rows, which
+     * is the "mixed → normal" conversion case.
+     *
+     * @param  array<int, array{meal_plan_id: int, guest_count: int}>  $splits
+     */
+    private function saveFoodSplits(HallBooking $booking, bool $usesMixedFood, array $splits): void
+    {
+        $booking->foodSplits()->delete();
+
+        if (! $usesMixedFood) {
+            return;
+        }
+
+        $mealPlans = MealPlan::whereIn('id', array_column($splits, 'meal_plan_id'))->get()->keyBy('id');
+
+        foreach (array_values($splits) as $index => $split) {
+            $plan = $mealPlans->get($split['meal_plan_id']);
+            if (! $plan) {
+                continue;
+            }
+
+            $guestCount = (int) $split['guest_count'];
+            $price = (float) $plan->price_per_person;
+
+            $booking->foodSplits()->create([
+                'meal_plan_id'    => $plan->id,
+                'meal_plan_name'  => $plan->name,
+                'guest_count'     => $guestCount,
+                'price_per_guest' => $price,
+                'amount'          => round($price * $guestCount, 2),
+                'sort_order'      => $index,
+            ]);
+        }
     }
 
     public function markReviewRequested(HallBooking $booking): RedirectResponse

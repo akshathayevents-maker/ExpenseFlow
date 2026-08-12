@@ -327,7 +327,14 @@
             {{-- Hidden input carries the selected ID --}}
             <input type="hidden" id="meal_plan_id" name="meal_plan_id" value="{{ old('meal_plan_id', $booking->meal_plan_id ?? '') }}">
 
-            <div class="ef-eb-meal-grid">
+            <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.85rem;font-weight:600;color:var(--ef-ink-2);margin-bottom:14px">
+                <input type="checkbox" id="mixedFoodToggle" style="width:16px;height:16px;accent-color:var(--ef-emerald)"
+                       {{ old('uses_mixed_food', $booking->uses_mixed_food) ? 'checked' : '' }}>
+                Split guests across multiple food plans
+            </label>
+            <input type="hidden" name="uses_mixed_food" id="uses_mixed_food" value="{{ old('uses_mixed_food', $booking->uses_mixed_food) ? '1' : '0' }}">
+
+            <div class="ef-eb-meal-grid" id="normalMealPlanField" style="{{ old('uses_mixed_food', $booking->uses_mixed_food) ? 'display:none' : '' }}">
                 {{-- No plan option --}}
                 <div class="ef-eb-meal-card no-plan {{ old('meal_plan_id', $booking->meal_plan_id) == '' ? 'selected' : '' }}"
                      data-id="" data-price="0" onclick="selectMealCard(this)">
@@ -352,6 +359,57 @@
                     @endif
                 </div>
                 @endforeach
+            </div>
+
+            <div id="mixedFoodSection" style="{{ old('uses_mixed_food', $booking->uses_mixed_food) ? '' : 'display:none' }}">
+                <div class="ef-addon-col-headers">
+                    <div class="ef-addon-col-h ef-addon-col-name">Food Plan</div>
+                    <div class="ef-addon-col-h ef-addon-col-desc">Guests</div>
+                    <div class="ef-addon-col-h ef-addon-col-amt">Amount</div>
+                    <div class="ef-addon-col-h ef-addon-col-del"></div>
+                </div>
+                <div id="foodSplitsContainer">
+                    @foreach($oldFoodSplits as $i => $split)
+                    <div class="ef-addon-card" data-food-split-index="{{ $i }}">
+                        <div class="ef-addon-row">
+                            <div class="ef-addon-col-name">
+                                <label class="ef-addon-mobile-label">Food Plan</label>
+                                <select class="ef-select ef-food-split-plan" name="food_splits[{{ $i }}][meal_plan_id]" required>
+                                    <option value="">Select plan</option>
+                                    @foreach($mealPlans as $plan)
+                                        <option value="{{ $plan->id }}" data-price="{{ $plan->price_per_person }}" @selected(($split['meal_plan_id'] ?? null) == $plan->id)>
+                                            {{ $plan->name }} · ₹{{ number_format($plan->price_per_person, 0) }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="ef-addon-col-desc">
+                                <label class="ef-addon-mobile-label">Guests</label>
+                                <input type="number" min="1" class="ef-input ef-food-split-guests" name="food_splits[{{ $i }}][guest_count]" value="{{ $split['guest_count'] ?? '' }}" required>
+                            </div>
+                            <div class="ef-addon-col-amt">
+                                <label class="ef-addon-mobile-label">Amount</label>
+                                <div class="ef-input-prefix-wrap">
+                                    <span class="ef-input-prefix">₹</span>
+                                    <input type="text" class="ef-input ef-input-prefixed ef-food-split-amount" value="0" readonly tabindex="-1">
+                                </div>
+                            </div>
+                            <div class="ef-addon-col-del">
+                                <button type="button" class="ef-addon-remove" onclick="removeFoodSplit(this)" title="Remove">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+                <div class="ef-addon-actions">
+                    <button type="button" class="ef-addon-add-btn" id="addFoodSplitBtn">
+                        <i class="bi bi-plus-circle-fill"></i> <span>Add Food Plan</span>
+                    </button>
+                </div>
+                <div class="ef-field-error" id="foodSplitError" style="display:none;margin-top:8px">Food plan guest counts must equal the total number of guests.</div>
+                <div class="ef-eb-meal-estimate-sub" id="foodSplitSummary" style="margin-top:6px"></div>
             </div>
 
             {{-- Catering estimate box --}}
@@ -689,6 +747,110 @@
         return '₹' + Math.round(n).toLocaleString('en-IN');
     }
 
+    /* ── Mixed food (split guests across multiple plans) ── */
+    let foodSplitIndex = {{ count($oldFoodSplits) }};
+
+    function isMixedFoodEnabled() {
+        return document.getElementById('mixedFoodToggle').checked;
+    }
+
+    function addFoodSplitRow(mealPlanId = '', guestCount = '') {
+        const idx = foodSplitIndex++;
+        const container = document.getElementById('foodSplitsContainer');
+        const card = document.createElement('div');
+        card.className = 'ef-addon-card';
+        card.dataset.foodSplitIndex = idx;
+        const sourceOptions = [...document.querySelectorAll('.ef-eb-meal-card[data-id]')]
+            .filter(c => c.dataset.id !== '')
+            .map(c => `<option value="${c.dataset.id}" data-price="${c.dataset.price}" ${String(c.dataset.id) === String(mealPlanId) ? 'selected' : ''}>${escHtml(c.querySelector('.ef-eb-meal-name').textContent.trim())} · ₹${Number(c.dataset.price).toLocaleString('en-IN')}</option>`)
+            .join('');
+        card.innerHTML = `
+            <div class="ef-addon-row">
+                <div class="ef-addon-col-name">
+                    <label class="ef-addon-mobile-label">Food Plan</label>
+                    <select class="ef-select ef-food-split-plan" name="food_splits[${idx}][meal_plan_id]" required>
+                        <option value="">Select plan</option>
+                        ${sourceOptions}
+                    </select>
+                </div>
+                <div class="ef-addon-col-desc">
+                    <label class="ef-addon-mobile-label">Guests</label>
+                    <input type="number" min="1" class="ef-input ef-food-split-guests" name="food_splits[${idx}][guest_count]" value="${escHtml(guestCount)}" required>
+                </div>
+                <div class="ef-addon-col-amt">
+                    <label class="ef-addon-mobile-label">Amount</label>
+                    <div class="ef-input-prefix-wrap">
+                        <span class="ef-input-prefix">₹</span>
+                        <input type="text" class="ef-input ef-input-prefixed ef-food-split-amount" value="0" readonly tabindex="-1">
+                    </div>
+                </div>
+                <div class="ef-addon-col-del">
+                    <button type="button" class="ef-addon-remove" onclick="removeFoodSplit(this)" title="Remove">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>`;
+        container.appendChild(card);
+        card.querySelector('.ef-food-split-plan').addEventListener('change', onFoodSplitRowChange);
+        card.querySelector('.ef-food-split-guests').addEventListener('input', onFoodSplitRowChange);
+        onFoodSplitRowChange();
+    }
+
+    window.removeFoodSplit = function (btn) {
+        btn.closest('.ef-addon-card').remove();
+        onFoodSplitRowChange();
+    };
+
+    function onFoodSplitRowChange() {
+        document.querySelectorAll('#foodSplitsContainer .ef-addon-card').forEach(row => {
+            const sel = row.querySelector('.ef-food-split-plan');
+            const guests = Number(row.querySelector('.ef-food-split-guests').value || 0);
+            const price = Number(sel.options[sel.selectedIndex]?.dataset?.price || 0);
+            row.querySelector('.ef-food-split-amount').value = (price * guests).toFixed(2);
+        });
+        validateFoodSplitGuests();
+        recalcTotal();
+    }
+
+    function validateFoodSplitGuests() {
+        const errorEl = document.getElementById('foodSplitError');
+        const summaryEl = document.getElementById('foodSplitSummary');
+        if (!isMixedFoodEnabled()) { errorEl.style.display = 'none'; return true; }
+
+        const splitTotal = [...document.querySelectorAll('.ef-food-split-guests')]
+            .reduce((sum, el) => sum + Number(el.value || 0), 0);
+        const bookingGuests = Number(document.getElementById('number_of_people').value || 0);
+        const valid = splitTotal === bookingGuests && splitTotal > 0;
+
+        errorEl.style.display = valid ? 'none' : '';
+        summaryEl.textContent = `Split guests: ${splitTotal} of ${bookingGuests} booking guests`;
+        return valid;
+    }
+
+    document.getElementById('mixedFoodToggle').addEventListener('change', function () {
+        const enabled = this.checked;
+        document.getElementById('uses_mixed_food').value = enabled ? '1' : '0';
+        document.getElementById('normalMealPlanField').style.display = enabled ? 'none' : '';
+        document.getElementById('mixedFoodSection').style.display = enabled ? '' : 'none';
+        if (enabled && document.querySelectorAll('#foodSplitsContainer .ef-addon-card').length === 0) {
+            addFoodSplitRow();
+        }
+        validateFoodSplitGuests();
+        recalcTotal();
+    });
+    document.getElementById('addFoodSplitBtn').addEventListener('click', () => addFoodSplitRow());
+    document.querySelectorAll('.ef-food-split-plan').forEach(el => el.addEventListener('change', onFoodSplitRowChange));
+    document.querySelectorAll('.ef-food-split-guests').forEach(el => el.addEventListener('input', onFoodSplitRowChange));
+    document.getElementById('number_of_people').addEventListener('input', validateFoodSplitGuests);
+    if (isMixedFoodEnabled()) onFoodSplitRowChange();
+
+    document.getElementById('bookingForm')?.addEventListener('submit', function (e) {
+        if (isMixedFoodEnabled() && !validateFoodSplitGuests()) {
+            e.preventDefault();
+            document.getElementById('foodSplitError').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    });
+
     /* ── Add-on services ── */
     let serviceIndex = {{ count($oldServices) }};
 
@@ -772,7 +934,13 @@
 
         const mealCard  = document.querySelector('.ef-eb-meal-card.selected');
         const mealPrice = mealCard ? parseFloat(mealCard.dataset.price || 0) : 0;
-        const mealCost  = currentType === 'hall_only' ? 0 : mealPrice * guests;
+        const mixedFoodCost = [...document.querySelectorAll('#foodSplitsContainer .ef-addon-card')].reduce((sum, row) => {
+            const sel = row.querySelector('.ef-food-split-plan');
+            const g = Number(row.querySelector('.ef-food-split-guests').value || 0);
+            const p = Number(sel.options[sel.selectedIndex]?.dataset?.price || 0);
+            return sum + (p * g);
+        }, 0);
+        const mealCost  = currentType === 'hall_only' ? 0 : (isMixedFoodEnabled() ? mixedFoodCost : mealPrice * guests);
 
         let addonTotal = 0;
         document.querySelectorAll('.ef-addon-amount-input').forEach(el => { addonTotal += parseFloat(el.value || 0); });

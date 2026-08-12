@@ -17,6 +17,8 @@ class HallBooking extends Model
         'has_breakfast', 'has_lunch', 'has_dinner',
         'hall_cost', 'total_amount', 'advance_amount', 'payment_status', 'status', 'notes',
         'review_requested_at',
+        'invoice_number', 'invoice_date', 'cgst_rate', 'sgst_rate',
+        'uses_mixed_food',
     ];
 
     protected $casts = [
@@ -28,6 +30,10 @@ class HallBooking extends Model
         'has_lunch'           => 'boolean',
         'has_dinner'          => 'boolean',
         'review_requested_at' => 'datetime',
+        'invoice_date'        => 'date',
+        'cgst_rate'           => 'decimal:2',
+        'sgst_rate'           => 'decimal:2',
+        'uses_mixed_food'     => 'boolean',
     ];
 
     // ── Relationships ──────────────────────────────────────────────────────────
@@ -60,6 +66,12 @@ class HallBooking extends Model
     public function additionalServices(): HasMany
     {
         return $this->hasMany(BookingAdditionalService::class);
+    }
+
+    /** Structured veg/non-veg (or any) food split rows — only meaningful when uses_mixed_food is true. */
+    public function foodSplits(): HasMany
+    {
+        return $this->hasMany(HallBookingFoodSplit::class)->orderBy('sort_order');
     }
 
     // ── Booking type predicates ────────────────────────────────────────────────
@@ -105,8 +117,20 @@ class HallBooking extends Model
 
     // ── Computed attributes ────────────────────────────────────────────────────
 
+    /**
+     * Total food cost — the single authoritative source for every consumer
+     * (booking totals, show page, invoice line items). Mixed-food bookings
+     * sum their structured split rows; normal bookings use the single
+     * meal plan × guest count, exactly as before.
+     */
     public function getMealCostAttribute(): float
     {
+        if ($this->uses_mixed_food) {
+            return $this->relationLoaded('foodSplits')
+                ? (float) $this->foodSplits->sum('amount')
+                : (float) $this->foodSplits()->sum('amount');
+        }
+
         $pricePerPerson = (float) ($this->mealPlan?->price_per_person ?? 0);
         return $pricePerPerson * (int) $this->number_of_people;
     }
@@ -147,6 +171,21 @@ class HallBooking extends Model
             return $this->service_location ?? 'External catering';
         }
         return $this->hall?->name ?? '—';
+    }
+
+    /**
+     * The invoice number to display/use. Falls back to a booking-id-derived
+     * default when nothing has been saved yet — this is distinct from (and
+     * never overwrites) the booking reference (BK-####).
+     */
+    public function getEffectiveInvoiceNumberAttribute(): string
+    {
+        return $this->invoice_number ?: 'INV-' . str_pad((string) $this->id, 4, '0', STR_PAD_LEFT);
+    }
+
+    public function getBookingReferenceAttribute(): string
+    {
+        return 'BK-' . str_pad((string) $this->id, 4, '0', STR_PAD_LEFT);
     }
 
     // ── Static lookup tables ───────────────────────────────────────────────────

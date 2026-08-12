@@ -221,7 +221,7 @@
 /* ── Action bar ──────────────────────────────────────────────────── */
 .bs-actions {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 8px;
     margin-bottom: 16px;
 }
@@ -588,9 +588,9 @@
 @media (max-width: 480px) {
     .bs-hero-name { font-size: 1.25rem; }
     .bs-kpi-val   { font-size: 1rem; }
-    .bs-actions   { grid-template-columns: repeat(4, 1fr); gap: 6px; }
-    .bs-act       { height: 54px; font-size: .64rem; }
-    .bs-act i     { font-size: .95rem; }
+    .bs-actions   { grid-template-columns: repeat(5, 1fr); gap: 5px; }
+    .bs-act       { height: 54px; font-size: .58rem; padding: 0 2px; }
+    .bs-act i     { font-size: .9rem; }
     .bs-form-row  { grid-template-columns: 1fr; }
 }
 </style>
@@ -636,7 +636,9 @@
         . "📅 Date: {$booking->booking_date->format('d M Y')}\n"
         . "⏰ Time: {$start->format('h:i A')} – {$end->format('h:i A')}\n\n"
         . "👥 Guests: " . number_format($booking->number_of_people) . "\n"
-        . ($booking->mealPlan ? "🍽️ Meal Plan: {$booking->mealPlan->name}\n" : "")
+        . ($booking->uses_mixed_food && $booking->foodSplits->isNotEmpty()
+            ? "🍽️ Food Plans: " . $booking->foodSplits->map(fn ($s) => "{$s->meal_plan_name} ({$s->guest_count})")->implode(', ') . "\n"
+            : ($booking->mealPlan ? "🍽️ Meal Plan: {$booking->mealPlan->name}\n" : ""))
         . "\n💰 Payment:\n"
         . "₹" . number_format($totalPaid) . " Paid\n"
         . ($balance > 0 ? "₹" . number_format($balance) . " Pending\n" : "Fully Settled\n")
@@ -759,6 +761,9 @@
 
     {{-- ── Action bar ──────────────────────────────────────────────── --}}
     <div class="bs-actions">
+        <a href="{{ route('hall.bookings.invoice', $booking) }}" class="bs-act">
+            <i class="bi bi-receipt"></i> Edit Invoice
+        </a>
         <a href="{{ route('hall.bookings.invoice', $booking) }}?print=1" target="_blank" class="bs-act">
             <i class="bi bi-printer"></i> Print
         </a>
@@ -816,7 +821,25 @@
                         @endif
                     </div>
                 </div>
-                @if($booking->mealPlan)
+                @if($booking->uses_mixed_food && $booking->foodSplits->isNotEmpty())
+                <div class="bs-row" style="align-items:flex-start">
+                    <span class="bs-row-label">Food Plans</span>
+                    <div class="bs-row-val">
+                        <div style="display:flex;flex-direction:column;gap:6px">
+                            @foreach($booking->foodSplits as $split)
+                            <div style="display:flex;justify-content:space-between;gap:10px;font-size:.85rem">
+                                <span>{{ $split->meal_plan_name }} <span class="--muted">— {{ number_format($split->guest_count) }} guests × ₹{{ number_format($split->price_per_guest, 2) }}</span></span>
+                                <strong>₹{{ number_format($split->amount, 2) }}</strong>
+                            </div>
+                            @endforeach
+                            <div style="display:flex;justify-content:space-between;border-top:1px solid var(--ef-border,#e5e0d5);padding-top:6px;margin-top:2px;font-weight:700">
+                                <span>Total Food</span>
+                                <span>₹{{ number_format($booking->meal_cost, 2) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @elseif($booking->mealPlan)
                 <div class="bs-row">
                     <span class="bs-row-label">Meal Plan</span>
                     <span class="bs-row-val">{{ $booking->mealPlan->name }}@if($booking->mealPlan->price_per_person) · ₹{{ number_format($booking->mealPlan->price_per_person, 2) }}/person @endif</span>

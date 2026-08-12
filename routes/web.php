@@ -241,6 +241,7 @@ Route::prefix('hall')->name('hall.')->middleware(['auth', 'verified', 'role.hall
     Route::delete('bookings/{booking}',                 [HallBookingController::class, 'destroy'])->name('bookings.destroy');
     Route::post('bookings/{booking}/payments',          [HallBookingController::class, 'addPayment'])->name('bookings.payments.add');
     Route::get('bookings/{booking}/invoice',            [HallBookingController::class, 'invoice'])->name('bookings.invoice');
+    Route::post('bookings/{booking}/invoice',           [HallBookingController::class, 'updateInvoiceDetails'])->name('bookings.invoice.update');
     Route::get('bookings/{booking}/invoice/pdf',        [HallBookingController::class, 'downloadPdf'])->name('bookings.invoice.pdf');
     Route::post('bookings/{booking}/mark-review',       [HallBookingController::class, 'markReviewRequested'])->name('bookings.mark-review');
 
