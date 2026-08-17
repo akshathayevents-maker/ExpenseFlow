@@ -32,7 +32,7 @@
 .hb-shell {
     max-width: 1400px;
     margin: 0 auto;
-    padding-bottom: 140px;
+    padding-bottom: 24px;
 }
 
 /* ── Flash ───────────────────────────────────────────────────────── */
@@ -59,7 +59,16 @@
     min-width: 0;
     position: relative;
     overflow: hidden;
+    display: block;
+    text-decoration: none;
+    transition: box-shadow .15s, transform .15s;
 }
+a.hb-stat:hover, a.hb-stat:focus-visible {
+    box-shadow: 0 2px 8px rgba(0,0,0,.08), 0 8px 20px rgba(0,0,0,.08);
+    transform: translateY(-1px);
+    text-decoration: none;
+}
+a.hb-stat:focus-visible { outline: 2px solid var(--hb-gold); outline-offset: 2px; }
 .hb-stat::after {
     content: '';
     position: absolute;
@@ -165,11 +174,11 @@
 }
 .hb-filter-btn:hover,
 .hb-filter-btn.--active { color: var(--hb-gold); background: #fff8ef; }
-.hb-filter-dot {
-    position: absolute; top: 8px; right: 8px;
-    width: 6px; height: 6px;
-    background: var(--hb-gold); border-radius: 50%;
-    border: 1.5px solid var(--hb-bg);
+.hb-filter-count {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 16px; height: 16px; padding: 0 4px;
+    background: var(--hb-gold); color: #fff; border-radius: 999px;
+    font-size: .64rem; font-weight: 800; line-height: 1;
 }
 .hb-btn-new {
     display: inline-flex; align-items: center; gap: 6px;
@@ -370,10 +379,13 @@
 }
 .hb-act.--more:hover { background: rgba(0,0,0,.08); color: var(--hb-ink); }
 
-/* ── List view ───────────────────────────────────────────────────── */
+/* ── List view (dense ledger row on desktop) ──────────────────────── */
+.hb-list-col-head {
+    display: none;
+}
 .hb-grid.--list {
     grid-template-columns: 1fr;
-    gap: 7px;
+    gap: 6px;
 }
 .hb-grid.--list .hb-card {
     min-height: unset;
@@ -384,28 +396,53 @@
     flex-direction: row;
     align-items: center;
     flex: 1;
-    gap: 12px;
-    padding: 12px 14px;
+    gap: 14px;
+    padding: 10px 14px;
     flex-wrap: nowrap;
+    min-width: 0;
 }
 .hb-grid.--list .hb-card-top {
-    flex: 0 0 190px;
+    flex: 0 0 170px;
     flex-direction: column;
     align-items: flex-start;
     gap: 2px;
+    min-width: 0;
 }
-.hb-grid.--list .hb-card-sub { flex: 0 0 auto; flex-direction: column; align-items: flex-start; }
-.hb-grid.--list .hb-meta { flex: 1; row-gap: 2px; }
+.hb-grid.--list .hb-name { max-width: 100%; }
+.hb-grid.--list .hb-amt { font-size: 1.05rem; }
+.hb-grid.--list .hb-card-sub { flex: 0 0 110px; flex-direction: column; align-items: flex-start; gap: 4px; }
+.hb-grid.--list .hb-evt-tag { max-width: 100%; }
+.hb-grid.--list .hb-meta { flex: 1; row-gap: 2px; min-width: 0; }
 .hb-grid.--list .hb-card-footer {
     flex: 0 0 auto;
-    flex-direction: column;
+    flex-direction: row;
     border-top: none;
     border-left: 1px solid var(--hb-border);
-    padding: 10px 12px;
+    padding: 10px 0 10px 14px;
+    margin: 8px 14px 8px 0;
     background: transparent;
-    gap: 5px;
+    gap: 6px;
 }
-.hb-grid.--list .hb-act.--view { width: 80px; flex: unset; }
+.hb-grid.--list .hb-act.--view { width: auto; flex: unset; padding: 0 16px; }
+
+@media (min-width: 1025px) {
+    .hb-list-col-head.--show {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 8px 14px;
+        margin-bottom: 4px;
+        font-size: .68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: var(--hb-faint);
+    }
+    .hb-list-col-head .c1 { flex: 0 0 170px; }
+    .hb-list-col-head .c2 { flex: 0 0 110px; }
+    .hb-list-col-head .c3 { flex: 1; }
+    .hb-list-col-head .c4 { flex: 0 0 auto; width: 150px; text-align: right; }
+}
 
 /* ── Dropdown ────────────────────────────────────────────────────── */
 .hb-dropdown {
@@ -439,20 +476,34 @@
 /* ── Empty ───────────────────────────────────────────────────────── */
 .hb-empty { grid-column: 1/-1; text-align: center; padding: 60px 20px; color: var(--hb-faint); }
 .hb-empty-icon { font-size: 2.5rem; margin-bottom: 14px; opacity: .4; }
-.hb-empty-text { font-size: .92rem; }
-
-/* ── FAB ─────────────────────────────────────────────────────────── */
-.hb-fab {
-    position: fixed; bottom: 90px; right: 20px;
-    width: 56px; height: 56px; border-radius: 50%;
-    background: var(--hb-gold); color: #fff;
-    display: none; align-items: center; justify-content: center;
-    font-size: 1.4rem;
-    box-shadow: 0 4px 14px rgba(176,125,59,.45), 0 1px 3px rgba(0,0,0,.12);
-    text-decoration: none; z-index: 200;
-    transition: background .15s, transform .15s;
+.hb-empty-text { font-size: .92rem; line-height: 1.6; }
+.hb-empty-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-top: 16px; padding: 0 20px; height: 44px; border-radius: 10px;
+    background: var(--hb-gold); color: #fff; font-size: .88rem; font-weight: 700;
+    text-decoration: none; box-shadow: 0 2px 8px rgba(176,125,59,.35);
 }
-.hb-fab:hover { background: var(--hb-gold-hi); color: #fff; transform: scale(1.06); text-decoration: none; }
+.hb-empty-btn:hover { background: var(--hb-gold-hi); color: #fff; text-decoration: none; }
+
+/* ── Mobile sticky "New Booking" bar (replaces a floating FAB so it can
+   never sit on top of a card — it pushes the list up via padding instead) ── */
+.hb-mobile-new {
+    display: none;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 200;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+    background: rgba(247,246,243,.92);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid var(--hb-border);
+}
+.hb-mobile-new a {
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    height: 48px; border-radius: 12px;
+    background: var(--hb-gold); color: #fff;
+    font-size: .92rem; font-weight: 700;
+    text-decoration: none;
+    box-shadow: 0 2px 10px rgba(176,125,59,.35);
+}
+.hb-mobile-new a:hover { background: var(--hb-gold-hi); color: #fff; text-decoration: none; }
 
 /* ── Bottom sheet ────────────────────────────────────────────────── */
 .hb-backdrop {
@@ -534,7 +585,8 @@
     .hb-stats { grid-template-columns: repeat(2, 1fr); gap: 8px; }
     .hb-stat-val { font-size: 1.4rem; }
     .hb-btn-new { display: none; }
-    .hb-fab { display: flex; }
+    .hb-mobile-new { display: block; }
+    .hb-shell { padding-bottom: 76px; }
     .hb-grid { grid-template-columns: 1fr; }
     .hb-name { font-size: .95rem; }
     .hb-amt  { font-size: 1.15rem; }
@@ -560,6 +612,10 @@ $today    = now()->toDateString();
 $tomorrow = now()->addDay()->toDateString();
 
 $activeFilters = request()->hasAny(['hall_id','status','payment_status','date_from','date_to','booking_type']);
+$activeFilterCount = collect(request()->only(['hall_id','status','payment_status','date_from','date_to','booking_type']))->filter()->count();
+
+$monthStart = now()->startOfMonth()->toDateString();
+$monthEnd   = now()->endOfMonth()->toDateString();
 
 // Abbreviate large numbers for KPI display
 $fmtKpi = function($n) {
@@ -578,6 +634,13 @@ $chipPending  = request('payment_status') === 'pending' && !request()->hasAny(['
 $chipFood     = request('booking_type') === 'food_only' && !request()->hasAny(['date_from','date_to','status','payment_status','hall_id']);
 $chipUpcoming = request('date_from') === $today && !request('date_to') && !request()->hasAny(['status','payment_status','booking_type','hall_id']);
 $chipAll      = !$activeFilters && !request('search');
+
+$contextLabel = $chipToday ? 'Today'
+    : ($chipTomorrow ? 'Tomorrow'
+    : ($chipPending ? 'Pending Payment'
+    : ($chipFood ? 'Food Only'
+    : ($chipUpcoming ? 'Upcoming'
+    : null))));
 @endphp
 
 <div class="hb-shell">
@@ -590,32 +653,35 @@ $chipAll      = !$activeFilters && !request('search');
         <div class="hb-flash --error"><i class="bi bi-exclamation-triangle-fill"></i> {{ session('error') ?? $errors->first() }}</div>
     @endif
 
-    {{-- KPI Stats --}}
+    {{-- KPI Stats — each meaningful one links into the filtered list --}}
     <div class="hb-stats">
-        <div class="hb-stat">
+        <a href="{{ route('hall.bookings.index', ['date_from' => $today, 'date_to' => $today]) }}" class="hb-stat">
             <div class="hb-stat-val">{{ $stats['today'] }}</div>
             <div class="hb-stat-label">Today's Events</div>
-        </div>
-        <div class="hb-stat --blue">
+        </a>
+        <a href="{{ route('hall.bookings.index', ['date_from' => $today]) }}" class="hb-stat --blue">
             <div class="hb-stat-val">{{ number_format($stats['upcoming_guests']) }}</div>
             <div class="hb-stat-label">Upcoming Guests</div>
-        </div>
+        </a>
+        @if($isEmployee)
         <div class="hb-stat --amber">
-            @if($isEmployee)
-                <div class="hb-stat-val" style="color:var(--hb-faint)">—</div>
-            @else
-                <div class="hb-stat-val">{{ $fmtKpi($stats['pending_collect']) }}</div>
-            @endif
+            <div class="hb-stat-val" style="color:var(--hb-faint)">—</div>
             <div class="hb-stat-label">Pending Collection</div>
         </div>
         <div class="hb-stat --green">
-            @if($isEmployee)
-                <div class="hb-stat-val" style="color:var(--hb-faint)">—</div>
-            @else
-                <div class="hb-stat-val">{{ $fmtKpi($stats['month_revenue']) }}</div>
-            @endif
+            <div class="hb-stat-val" style="color:var(--hb-faint)">—</div>
             <div class="hb-stat-label">Monthly Revenue</div>
         </div>
+        @else
+        <a href="{{ route('hall.bookings.index', ['payment_status' => 'pending']) }}" class="hb-stat --amber">
+            <div class="hb-stat-val">{{ $fmtKpi($stats['pending_collect']) }}</div>
+            <div class="hb-stat-label">Pending Collection</div>
+        </a>
+        <a href="{{ route('hall.bookings.index', ['date_from' => $monthStart, 'date_to' => $monthEnd]) }}" class="hb-stat --green">
+            <div class="hb-stat-val">{{ $fmtKpi($stats['month_revenue']) }}</div>
+            <div class="hb-stat-label">Monthly Revenue</div>
+        </a>
+        @endif
     </div>
 
     {{-- Sticky search + filters --}}
@@ -644,8 +710,8 @@ $chipAll      = !$activeFilters && !request('search');
                 </div>
                 <button type="button" class="hb-filter-btn {{ $activeFilters ? '--active' : '' }}" id="hbOpenSheet" aria-expanded="false" aria-controls="hbSheet">
                     <i class="bi bi-sliders"></i>
-                    <span class="d-none d-sm-inline">Filter</span>
-                    @if($activeFilters)<span class="hb-filter-dot"></span>@endif
+                    <span class="d-none d-sm-inline">Filters</span>
+                    @if($activeFilterCount)<span class="hb-filter-count">{{ $activeFilterCount }}</span>@endif
                 </button>
                 <a href="{{ route('hall.bookings.create') }}" class="hb-btn-new">
                     <i class="bi bi-plus-lg"></i> New Booking
@@ -671,11 +737,23 @@ $chipAll      = !$activeFilters && !request('search');
 
     {{-- Result bar --}}
     <div class="hb-result-bar">
-        <span>{{ number_format($bookings->total()) }} booking{{ $bookings->total() !== 1 ? 's' : '' }}
-        @if($activeFilters || request('search'))
-            &nbsp;·&nbsp;<a href="{{ route('hall.bookings.index') }}" style="color:var(--hb-gold);text-decoration:none">Clear filters</a>
-        @endif
+        <span>
+            {{ number_format($bookings->total()) }} booking{{ $bookings->total() !== 1 ? 's' : '' }}
+            @if($contextLabel)
+                &nbsp;·&nbsp;<strong style="color:var(--hb-ink)">{{ $contextLabel }}</strong>
+            @endif
+            @if($activeFilters || request('search'))
+                &nbsp;·&nbsp;<a href="{{ route('hall.bookings.index') }}" style="color:var(--hb-gold);text-decoration:none">Clear filters</a>
+            @endif
         </span>
+    </div>
+
+    {{-- Desktop list-view column header (shown only in list mode via JS) --}}
+    <div class="hb-list-col-head" id="hbListColHead">
+        <span class="c1">Customer</span>
+        <span class="c2">Event</span>
+        <span class="c3">Details</span>
+        <span class="c4">Amount / Actions</span>
     </div>
 
     {{-- Card grid --}}
@@ -684,7 +762,10 @@ $chipAll      = !$activeFilters && !request('search');
         @if($bookings->isEmpty())
             <div class="hb-empty">
                 <div class="hb-empty-icon"><i class="bi bi-calendar-x"></i></div>
-                <div class="hb-empty-text">No bookings found. <a href="{{ route('hall.bookings.index') }}" style="color:var(--hb-gold)">Clear filters</a> or <a href="{{ route('hall.bookings.create') }}" style="color:var(--hb-gold)">create one</a>.</div>
+                <div class="hb-empty-text">
+                    No bookings found.<br>Try changing your filters or search criteria.
+                </div>
+                <a href="{{ route('hall.bookings.index') }}" class="hb-empty-btn">Clear Filters</a>
             </div>
         @endif
         <div class="hb-sentinel" id="hbSentinel" style="grid-column:1/-1"></div>
@@ -695,10 +776,10 @@ $chipAll      = !$activeFilters && !request('search');
 
 </div>
 
-{{-- FAB (mobile) --}}
-<a href="{{ route('hall.bookings.create') }}" class="hb-fab" aria-label="New Booking">
-    <i class="bi bi-plus-lg"></i>
-</a>
+{{-- Sticky "New Booking" bar (mobile) — full-width, never overlaps a card --}}
+<div class="hb-mobile-new">
+    <a href="{{ route('hall.bookings.create') }}"><i class="bi bi-plus-lg"></i> New Booking</a>
+</div>
 
 {{-- Backdrop --}}
 <div class="hb-backdrop" id="hbBackdrop" role="presentation"></div>
@@ -774,6 +855,7 @@ $chipAll      = !$activeFilters && !request('search');
 (function () {
     /* ── View toggle ──────────────────────────────────────────────── */
     var grid = document.getElementById('hbGrid');
+    var listColHead = document.getElementById('hbListColHead');
     var vtBtns = document.querySelectorAll('.hb-vt-btn');
     var storedView = localStorage.getItem('hb_view') || 'card';
 
@@ -781,6 +863,7 @@ $chipAll      = !$activeFilters && !request('search');
         storedView = mode;
         localStorage.setItem('hb_view', mode);
         grid.classList.toggle('--list', mode === 'list');
+        if (listColHead) listColHead.classList.toggle('--show', mode === 'list');
         vtBtns.forEach(function(btn) {
             var active = btn.dataset.view === mode;
             btn.classList.toggle('--active', active);

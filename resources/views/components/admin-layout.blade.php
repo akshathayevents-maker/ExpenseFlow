@@ -465,18 +465,37 @@
         #main-content {
             margin-left: var(--sb-width);
             margin-top: var(--tb-height);
-            /*
-             * ANDROID SCROLL FIX: Use 100dvh (dynamic viewport height).
-             * 100vh on Android Chrome = page height BEFORE the URL bar hides.
-             * When the URL bar hides (on scroll), 100vh doesn't update, causing
-             * content to be shorter than the visible viewport = blank gap.
-             * 100dvh tracks the actual visible viewport including URL-bar changes.
-             * Use clip not hidden: hidden creates a BFC that confuses Android
-             * Chrome's scroll container detection.
-             */
-            min-height: calc(100dvh - var(--tb-height));
             overflow-x: clip;
             padding: 32px;
+        }
+        /*
+         * ANDROID SCROLL FIX (desktop/tablet only — min-width:768px):
+         * Use 100dvh (dynamic viewport height). 100vh on Android Chrome = page
+         * height BEFORE the URL bar hides; when it hides on scroll, 100vh
+         * doesn't update, leaving a blank gap. 100dvh tracks the real visible
+         * viewport including URL-bar changes.
+         *
+         * NOT applied below 768px: at those widths mobile.css takes over the
+         * whole page shell (html/body pinned to the STABLE 100svh, #main-content
+         * is the sole `flex:1; min-height:0; overflow-y:auto` scroll region —
+         * see public/css/mobile.css "SCROLL CONTAINER ARCHITECTURE"). dvh is
+         * keyboard-reactive: it shrinks when the on-screen keyboard opens and
+         * must grow back when it closes. Having min-height:100dvh on the SAME
+         * element that mobile.css already sizes with flex inside that fixed,
+         * non-scrolling svh shell raced dvh's keyboard-driven recalculation
+         * against the flex layout — after the keyboard closed, #main-content
+         * was left rendered at the stale, keyboard-open dvh height instead of
+         * regrowing to fill the flex column, leaving the lower half of the
+         * page blank. mobile.css's min-height:0 is correct and sufficient on
+         * its own (flex:1 already fills the fixed-height shell); this rule
+         * must stay out of that breakpoint entirely rather than being patched
+         * to "recalculate," since two competing viewport-height strategies on
+         * one element is the actual bug, not a missing resize listener.
+         */
+        @media (min-width: 768px) {
+            #main-content {
+                min-height: calc(100dvh - var(--tb-height));
+            }
         }
 
         /* ── Mobile ──────────────────────────────────────────────────────── */
