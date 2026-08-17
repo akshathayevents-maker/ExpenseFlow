@@ -249,9 +249,12 @@
     <div class="erp-stickybar" id="mobileStickyBar">
         <div class="erp-stickybar-info">
             <span class="erp-stickybar-count"><span id="barCount">0</span> Items Selected</span>
-            <span class="erp-stickybar-total" id="barTotal">₹0</span>
+            <span class="erp-stickybar-perperson"><span id="barPerPerson">₹0</span><span class="unit">/person</span></span>
         </div>
-        <button type="button" class="erp-btn erp-btn-gold" id="viewSummaryBtn">View Summary</button>
+        <div class="erp-stickybar-actions">
+            <span class="erp-stickybar-total-label">Total <span id="barTotal">₹0</span></span>
+            <button type="button" class="erp-btn erp-btn-gold" id="viewSummaryBtn">View Summary</button>
+        </div>
     </div>
 
     {{-- Bottom sheet — full breakdown, opened from "View Summary" --}}

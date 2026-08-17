@@ -15,13 +15,13 @@
     "isEntry": true
   },
   "resources/js/event-request-public.js": {
-    "file": "assets/event-request-public-DkqMC2eS.js",
+    "file": "assets/event-request-public-CcvHkBaB.js",
     "name": "event-request-public",
     "src": "resources/js/event-request-public.js",
     "isEntry": true
   },
   "resources/scss/event-request.scss": {
-    "file": "assets/event-request-DVpSpHZO.css",
+    "file": "assets/event-request-BDWyu1xg.css",
     "name": "event-request",
     "names": [
       "event-request.css"

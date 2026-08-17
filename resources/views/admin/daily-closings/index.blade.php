@@ -3,587 +3,259 @@
 @push('styles')
 <style>
 /* ═══════════════════════════════════════════════════════
-   Daily Closings — End-of-Day Financial Operations Center
+   Daily Closing — compact financial reconciliation screen
    ═══════════════════════════════════════════════════════ */
 
-.ef-dc-shell {
-    max-width: 1480px;
-    margin: 0 auto;
-    padding-bottom: 88px;
-}
+.ef-dc-shell { max-width: 1360px; margin: 0 auto; padding-bottom: 88px; }
 
-/* ── Hero ─────────────────────────────────────────────── */
-.ef-dc-hero {
-    align-items: stretch;
-    background: linear-gradient(135deg, rgba(255,253,250,.98), rgba(249,247,242,.94));
-    border: 1px solid var(--ef-border);
-    border-radius: 20px;
-    box-shadow: var(--ef-shadow);
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(300px, 420px);
-    margin-bottom: 18px;
-    overflow: hidden;
-}
-
-.ef-dc-hero-main { padding: 32px 36px; }
-
-.ef-dc-hero-side {
-    background: rgba(20,20,18,.022);
-    border-left: 1px solid var(--ef-border);
+/* ── Header ───────────────────────────────────────────── */
+.ef-dc-header {
     display: flex;
-    flex-direction: column;
+    align-items: flex-start;
     justify-content: space-between;
-    padding: 32px 36px;
-}
-
-.ef-dc-title {
-    color: var(--ef-ink);
-    font-size: clamp(2.4rem, 4vw, 3.8rem);
-    font-weight: 780;
-    letter-spacing: -.01em;
-    line-height: .96;
-    margin: 8px 0 16px;
-}
-
-.ef-dc-subtitle {
-    color: var(--ef-muted);
-    display: flex;
+    gap: 1rem;
     flex-wrap: wrap;
-    font-size: .92rem;
-    gap: 6px 16px;
-    margin: 0;
+    margin-bottom: 1rem;
+}
+.ef-dc-eyebrow { font-size: .68rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--ef-gold); margin-bottom: .2rem; }
+.ef-dc-title { font-size: 1.5rem; font-weight: 800; color: var(--ef-ink); letter-spacing: -.01em; line-height: 1.15; }
+.ef-dc-sub { color: var(--ef-muted); font-size: .82rem; margin-top: .2rem; }
+
+.ef-dc-header-right { display: flex; flex-direction: column; align-items: flex-end; gap: .5rem; flex-shrink: 0; }
+.ef-dc-status-pill {
+    display: inline-flex; align-items: center; gap: .45rem;
+    border-radius: 999px; padding: .3rem .75rem .3rem .5rem;
+    font-size: .78rem; font-weight: 700;
+}
+.ef-dc-status-pill.--open   { background: rgba(184,137,62,.1);  color: var(--ef-gold); border: 1px solid rgba(184,137,62,.22); }
+.ef-dc-status-pill.--closed { background: rgba(61,115,88,.1);   color: var(--ef-emerald); border: 1px solid rgba(61,115,88,.22); }
+.ef-dc-status-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+.ef-dc-actions { display: flex; gap: .5rem; flex-wrap: wrap; justify-content: flex-end; }
+@media (max-width: 575.98px) {
+    .ef-dc-header { flex-direction: column; }
+    .ef-dc-header-right { align-items: stretch; width: 100%; }
+    .ef-dc-actions { display: none; } /* mobile uses the sticky bottom bar instead */
 }
 
-.ef-dc-subtitle i { font-size: .75rem; opacity: .6; }
-
-.ef-dc-today-status {
-    align-items: center;
-    border-radius: 14px;
-    display: flex;
-    gap: 12px;
-    margin-bottom: 22px;
-    padding: 14px 16px;
-}
-
-.ef-dc-today-status.--closed {
-    background: rgba(61,115,88,.08);
-    border: 1px solid rgba(61,115,88,.2);
-}
-
-.ef-dc-today-status.--open {
-    background: rgba(169,131,56,.07);
-    border: 1px solid rgba(169,131,56,.18);
-}
-
-.ef-dc-today-icon {
-    align-items: center;
-    border-radius: 50%;
-    display: flex;
-    flex-shrink: 0;
-    font-size: 1.1rem;
-    height: 36px;
-    justify-content: center;
-    width: 36px;
-}
-
-.ef-dc-today-status.--closed .ef-dc-today-icon {
-    background: rgba(61,115,88,.14);
-    color: var(--ef-emerald);
-}
-
-.ef-dc-today-status.--open .ef-dc-today-icon {
-    background: rgba(169,131,56,.13);
-    color: var(--ef-gold);
-}
-
-.ef-dc-today-label {
-    color: var(--ef-faint);
-    font-size: .62rem;
-    font-weight: 760;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-}
-
-.ef-dc-today-value {
-    color: var(--ef-ink);
-    font-size: .96rem;
-    font-weight: 760;
-    margin-top: 2px;
-}
-
-.ef-dc-today-status.--open .ef-dc-today-value { color: var(--ef-gold); }
-.ef-dc-today-status.--closed .ef-dc-today-value { color: var(--ef-emerald); }
-
-.ef-dc-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: flex-end;
-}
-
-/* ── Metrics Strip ────────────────────────────────────── */
-.ef-dc-metrics {
+/* ── Reconciliation strip: Expenses / Payments / Variance ─ */
+.ef-dc-strip {
     display: grid;
-    gap: 12px;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    margin-bottom: 18px;
+    grid-template-columns: 1fr 1fr 1.2fr;
+    gap: .65rem;
+    margin-bottom: .85rem;
 }
+@media (max-width: 575.98px) { .ef-dc-strip { grid-template-columns: 1fr 1fr; } }
 
-.ef-dc-metric {
-    background: rgba(255,253,250,.92);
+.ef-dc-figure {
+    background: var(--ef-surface);
     border: 1px solid var(--ef-border);
-    border-radius: var(--ef-radius);
-    box-shadow: var(--ef-shadow);
-    min-height: 112px;
-    padding: 20px 22px;
-    transition: border-color .18s var(--ef-ease), box-shadow .18s var(--ef-ease), transform .18s var(--ef-ease);
+    border-radius: var(--ef-radius-sm);
+    padding: .8rem .95rem;
 }
+.ef-dc-figure-label { font-size: .66rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--ef-faint); }
+.ef-dc-figure-value { font-size: 1.25rem; font-weight: 800; color: var(--ef-ink); letter-spacing: -.01em; margin-top: .25rem; font-variant-numeric: tabular-nums; }
+.ef-dc-figure-note { font-size: .72rem; color: var(--ef-muted); margin-top: .2rem; }
 
-.ef-dc-metric:hover {
-    border-color: var(--ef-border-strong);
-    box-shadow: var(--ef-shadow-hover);
-    transform: translateY(-1px);
+.ef-dc-variance-card {
+    display: flex; align-items: center; justify-content: space-between; gap: .5rem;
 }
-
-.ef-dc-metric-icon {
-    color: var(--ef-faint);
-    font-size: .88rem;
-    margin-bottom: 12px;
+.ef-dc-variance-card .ef-dc-figure-value { font-size: 1.35rem; }
+@media (max-width: 575.98px) {
+    .ef-dc-variance-card { grid-column: 1 / -1; }
 }
+.ef-dc-variance-card.--pos     { border-color: rgba(184,137,62,.3);  background: rgba(184,137,62,.05); }
+.ef-dc-variance-card.--pos     .ef-dc-figure-value { color: var(--ef-gold); }
+.ef-dc-variance-card.--neg     { border-color: rgba(200,75,68,.3);   background: rgba(200,75,68,.04); }
+.ef-dc-variance-card.--neg     .ef-dc-figure-value { color: var(--ef-danger); }
+.ef-dc-variance-card.--zero    { border-color: rgba(61,115,88,.3);   background: rgba(61,115,88,.05); }
+.ef-dc-variance-card.--zero    .ef-dc-figure-value { color: var(--ef-emerald); }
+.ef-dc-variance-icon { font-size: 1.3rem; opacity: .5; flex-shrink: 0; }
 
-.ef-dc-metric-label {
-    color: var(--ef-faint);
-    font-size: .63rem;
-    font-weight: 760;
-    letter-spacing: .13em;
-    text-transform: uppercase;
+/* ── Attention / reconciled banner ────────────────────── */
+.ef-dc-attention {
+    display: flex; align-items: center; justify-content: space-between; gap: .85rem; flex-wrap: wrap;
+    border-radius: var(--ef-radius-sm);
+    padding: .75rem .95rem;
+    margin-bottom: .85rem;
 }
-
-.ef-dc-metric-value {
-    color: var(--ef-ink);
-    font-size: 1.32rem;
-    font-variant-numeric: tabular-nums;
-    font-weight: 780;
-    line-height: 1;
-    margin-top: 10px;
+.ef-dc-attention.--draft {
+    background: rgba(184,137,62,.06); border: 1px solid rgba(184,137,62,.22);
 }
-
-.ef-dc-metric-note {
-    color: var(--ef-muted);
-    font-size: .73rem;
-    line-height: 1.45;
-    margin-top: 7px;
+.ef-dc-attention.--reconciled {
+    background: rgba(61,115,88,.06); border: 1px solid rgba(61,115,88,.22);
 }
+.ef-dc-attention-text { display: flex; align-items: center; gap: .6rem; min-width: 0; }
+.ef-dc-attention-icon {
+    width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: .95rem;
+}
+.ef-dc-attention.--draft .ef-dc-attention-icon { background: rgba(184,137,62,.14); color: var(--ef-gold); }
+.ef-dc-attention.--reconciled .ef-dc-attention-icon { background: rgba(61,115,88,.14); color: var(--ef-emerald); }
+.ef-dc-attention-title { font-size: .85rem; font-weight: 700; color: var(--ef-ink); }
+.ef-dc-attention-sub { font-size: .76rem; color: var(--ef-muted); margin-top: .05rem; }
+.ef-dc-attention .ef-btn { flex-shrink: 0; }
 
-.ef-dc-metric.--draft .ef-dc-metric-value    { color: var(--ef-bluegray); }
-.ef-dc-metric.--verified .ef-dc-metric-value { color: var(--ef-emerald); }
-.ef-dc-metric.--variance-pos .ef-dc-metric-value { color: var(--ef-gold); }
-.ef-dc-metric.--variance-neg .ef-dc-metric-value { color: var(--ef-danger); }
-.ef-dc-metric.--balanced .ef-dc-metric-value { color: var(--ef-emerald); }
-
-/* ── Filter Bar ───────────────────────────────────────── */
+/* ── Filter bar ───────────────────────────────────────── */
 .ef-dc-filter-bar {
-    background: rgba(255,253,250,.94);
+    background: var(--ef-surface);
     border: 1px solid var(--ef-border);
-    border-radius: var(--ef-radius);
-    box-shadow: var(--ef-shadow);
-    margin-bottom: 16px;
+    border-radius: var(--ef-radius-sm);
+    margin-bottom: .85rem;
+}
+.ef-dc-filter-inner { align-items: flex-end; display: flex; flex-wrap: wrap; gap: .5rem .85rem; padding: .7rem .85rem; }
+.ef-dc-filter-group { display: flex; flex-direction: column; gap: .25rem; }
+.ef-dc-filter-label { color: var(--ef-faint); font-size: .64rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+.ef-dc-filter-input, .ef-dc-filter-select {
+    background: var(--ef-surface-2); border: 1px solid var(--ef-border-strong); border-radius: 8px;
+    color: var(--ef-ink-2); font-size: .82rem; height: 38px; padding: 0 .6rem;
+}
+.ef-dc-filter-input:focus, .ef-dc-filter-select:focus { background: #fff; border-color: var(--ef-gold); box-shadow: 0 0 0 3px rgba(184,137,62,.12); outline: 0; }
+.ef-dc-filter-sep { color: var(--ef-faint); font-size: .78rem; padding-bottom: .5rem; }
+.ef-dc-filter-actions { align-items: center; display: flex; gap: .5rem; margin-left: auto; }
+.ef-dc-filter-chip {
+    align-items: center; background: rgba(184,137,62,.09); border: 1px solid rgba(184,137,62,.2);
+    border-radius: 999px; color: var(--ef-gold); display: flex; font-size: .68rem; font-weight: 700;
+    gap: .3rem; padding: .2rem .6rem;
+}
+@media (max-width: 767.98px) {
+    .ef-dc-filter-bar { display: none; }
+    .ef-dc-filter-bar.--mobile-open { display: block; }
+    .ef-dc-filter-inner { flex-direction: column; align-items: stretch; }
+    .ef-dc-filter-sep { display: none; }
+    .ef-dc-filter-input, .ef-dc-filter-select { width: 100%; min-height: 44px; }
+    .ef-dc-filter-actions { margin-left: 0; }
 }
 
-.ef-dc-filter-inner {
-    align-items: flex-end;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px 16px;
-    padding: 16px 22px;
-}
-
-.ef-dc-filter-group {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
-
-.ef-dc-filter-label {
-    color: var(--ef-faint);
-    font-size: .6rem;
-    font-weight: 760;
-    letter-spacing: .13em;
-    text-transform: uppercase;
-}
-
-.ef-dc-filter-input,
-.ef-dc-filter-select {
-    background: rgba(251,250,247,.96);
-    border: 1px solid var(--ef-border-strong);
-    border-radius: 10px;
-    color: var(--ef-ink-2);
-    font-size: .84rem;
-    font-weight: 540;
-    height: 38px;
-    padding: 0 11px;
-    transition: background .16s var(--ef-ease), border-color .16s var(--ef-ease), box-shadow .16s var(--ef-ease);
-}
-
-.ef-dc-filter-input:focus,
-.ef-dc-filter-select:focus {
-    background: #fff;
-    border-color: rgba(20,20,18,.48);
-    box-shadow: 0 0 0 4px rgba(20,20,18,.052);
-    outline: 0;
-}
-
-.ef-dc-filter-sep {
-    background: var(--ef-border);
-    height: 30px;
-    width: 1px;
-    flex-shrink: 0;
-}
-
-.ef-dc-filter-range-label {
-    color: var(--ef-faint);
-    font-size: .78rem;
-    padding-bottom: 8px;
-}
-
-.ef-dc-filter-actions {
-    align-items: center;
-    display: flex;
-    gap: 8px;
-    margin-left: auto;
-}
-
-.ef-dc-filter-active-chip {
-    align-items: center;
-    background: rgba(169,131,56,.09);
-    border: 1px solid rgba(169,131,56,.18);
-    border-radius: 999px;
-    color: var(--ef-gold);
-    display: flex;
-    font-size: .66rem;
-    font-weight: 760;
-    gap: 5px;
-    letter-spacing: .06em;
-    padding: 4px 10px;
-    text-transform: uppercase;
-}
-
-/* ── Closings List ────────────────────────────────────── */
-.ef-dc-list-wrap {
-    background: rgba(255,253,250,.94);
+/* ── Closings list ─────────────────────────────────────── */
+.ef-dc-list {
+    background: var(--ef-surface);
     border: 1px solid var(--ef-border);
-    border-radius: var(--ef-radius);
-    box-shadow: var(--ef-shadow);
+    border-radius: var(--ef-radius-sm);
     overflow: hidden;
+    margin-bottom: .85rem;
 }
-
-.ef-dc-list-header {
-    align-items: center;
-    border-bottom: 1px solid rgba(20,20,18,.065);
-    display: flex;
-    gap: 14px;
-    justify-content: space-between;
-    padding: 14px 24px;
+.ef-dc-list-head {
+    padding: .65rem .95rem; border-bottom: 1px solid var(--ef-border);
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
 }
+.ef-dc-list-title { font-size: .72rem; font-weight: 750; color: var(--ef-ink); letter-spacing: .05em; text-transform: uppercase; }
+.ef-dc-list-count { font-size: .78rem; color: var(--ef-muted); }
 
-.ef-dc-list-title {
-    color: var(--ef-faint);
-    font-size: .63rem;
-    font-weight: 760;
-    letter-spacing: .14em;
-    text-transform: uppercase;
-}
-
-.ef-dc-list-count {
-    color: var(--ef-muted);
-    font-size: .76rem;
+/* Desktop column header */
+.ef-dc-col-head { display: none; }
+@media (min-width: 900px) {
+    .ef-dc-col-head {
+        display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr .9fr auto;
+        gap: .75rem; padding: .5rem .95rem; background: var(--ef-surface-2); border-bottom: 1px solid var(--ef-border);
+        font-size: .64rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--ef-muted);
+    }
+    .ef-dc-col-head .num { text-align: right; }
 }
 
 .ef-dc-row {
-    align-items: center;
-    border-bottom: 1px solid rgba(20,20,18,.06);
     display: grid;
-    gap: 18px;
-    grid-template-columns: 68px minmax(0, 1fr) 120px auto;
-    padding: 20px 24px;
-    transition: background .15s var(--ef-ease);
+    grid-template-columns: 1fr;
+    gap: .3rem;
+    padding: .7rem .95rem;
+    border-bottom: 1px solid var(--ef-border);
+    position: relative;
+    transition: background .12s;
+}
+.ef-dc-row:last-child { border-bottom: none; }
+.ef-dc-row:hover { background: var(--ef-surface-2); }
+@media (min-width: 900px) {
+    .ef-dc-row { grid-template-columns: 1.3fr 1fr 1fr 1fr .9fr auto; align-items: center; gap: .75rem; padding: .6rem .95rem; }
 }
 
-.ef-dc-row:last-child { border-bottom: 0; }
+.ef-dc-row-date { display: flex; align-items: center; gap: .5rem; min-width: 0; }
+.ef-dc-row-date-label { font-size: .87rem; font-weight: 700; color: var(--ef-ink); white-space: nowrap; }
+.ef-dc-row-today {
+    background: rgba(184,137,62,.12); border: 1px solid rgba(184,137,62,.25); border-radius: 5px;
+    color: var(--ef-gold); font-size: .6rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase;
+    padding: .12rem .4rem; flex-shrink: 0;
+}
+.ef-dc-row-status-mobile { margin-left: auto; }
+@media (min-width: 900px) { .ef-dc-row-status-mobile { display: none; } }
 
-.ef-dc-row:hover { background: rgba(20,20,18,.016); }
-
-/* Date column */
-.ef-dc-date { line-height: 1; }
-
-.ef-dc-date-day {
-    color: var(--ef-ink);
-    font-size: 2rem;
-    font-variant-numeric: tabular-nums;
-    font-weight: 780;
-    line-height: .92;
+.ef-dc-row-figure { display: flex; flex-direction: row; align-items: baseline; justify-content: space-between; gap: .5rem; }
+.ef-dc-row-figure .k { font-size: .72rem; font-weight: 600; color: var(--ef-muted); }
+.ef-dc-row-figure .v { font-size: .87rem; font-weight: 700; color: var(--ef-ink); font-variant-numeric: tabular-nums; }
+@media (min-width: 900px) {
+    .ef-dc-row-figure { flex-direction: column; text-align: right; }
+    .ef-dc-row-figure .k { display: none; }
 }
 
-.ef-dc-date-mon {
-    color: var(--ef-muted);
-    font-size: .7rem;
-    font-weight: 680;
-    letter-spacing: .03em;
-    margin-top: 5px;
-    text-transform: uppercase;
-}
+.ef-dc-row-variance .v { font-weight: 800; }
+.ef-dc-row-variance.--pos .v  { color: var(--ef-gold); }
+.ef-dc-row-variance.--neg .v  { color: var(--ef-danger); }
+.ef-dc-row-variance.--zero .v { color: var(--ef-emerald); }
 
-.ef-dc-date-today {
-    background: rgba(169,131,56,.11);
-    border: 1px solid rgba(169,131,56,.2);
-    border-radius: 6px;
-    color: var(--ef-gold);
-    display: inline-block;
-    font-size: .58rem;
-    font-weight: 780;
-    letter-spacing: .08em;
-    margin-top: 6px;
-    padding: 2px 6px;
-    text-transform: uppercase;
-}
+.ef-dc-row-status { display: none; }
+@media (min-width: 900px) { .ef-dc-row-status { display: flex; align-items: center; } }
 
-/* Body column */
-.ef-dc-row-amounts {
-    display: flex;
-    gap: 22px;
-    margin-bottom: 7px;
-}
+.ef-dc-row-meta { font-size: .72rem; color: var(--ef-faint); margin-top: .1rem; }
+@media (min-width: 900px) { .ef-dc-row-meta { display: none; } }
 
-.ef-dc-amount-group {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-}
-
-.ef-dc-amount-label {
-    color: var(--ef-faint);
-    font-size: .6rem;
-    font-weight: 760;
-    letter-spacing: .11em;
-    text-transform: uppercase;
-}
-
-.ef-dc-amount-value {
-    color: var(--ef-ink);
-    font-size: .98rem;
-    font-variant-numeric: tabular-nums;
-    font-weight: 760;
-}
-
-.ef-dc-amount-value.--payment {
-    color: var(--ef-muted);
-    font-weight: 580;
-}
-
-.ef-dc-row-meta {
-    color: var(--ef-faint);
-    font-size: .74rem;
-    line-height: 1.5;
-}
-
-/* Variance column */
-.ef-dc-variance {
-    text-align: right;
-}
-
-.ef-dc-variance-label {
-    color: var(--ef-faint);
-    font-size: .6rem;
-    font-weight: 760;
-    letter-spacing: .1em;
-    margin-bottom: 5px;
-    text-transform: uppercase;
-}
-
-.ef-dc-variance-value {
-    color: var(--ef-muted);
-    font-size: .9rem;
-    font-variant-numeric: tabular-nums;
-    font-weight: 680;
-}
-
-.ef-dc-variance.--pos .ef-dc-variance-value { color: var(--ef-gold); }
-.ef-dc-variance.--neg .ef-dc-variance-value { color: var(--ef-danger); }
-.ef-dc-variance.--zero .ef-dc-variance-value { color: var(--ef-emerald); }
-
-/* End column */
-.ef-dc-row-end {
-    align-items: center;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.ef-dc-row-actions {
-    display: flex;
-    gap: 5px;
+.ef-dc-row-actions { display: flex; gap: .4rem; align-items: center; position: relative; z-index: 2; }
+.ef-dc-row-actions .ef-btn { min-height: 36px; font-size: .78rem; padding: 0 .65rem; }
+@media (max-width: 899.98px) {
+    .ef-dc-row-actions { margin-top: .3rem; }
+    .ef-dc-row-actions .ef-btn { flex: 1; justify-content: center; min-height: 40px; }
+    .ef-dc-row-actions .dropdown { flex-shrink: 0; }
+    .ef-dc-row-actions .dropdown .ef-btn { flex: none; width: 44px; }
 }
 
 /* Pagination */
-.ef-dc-pagination {
-    display: flex;
-    justify-content: center;
-    margin-top: 16px;
-}
-
+.ef-dc-pagination { display: flex; justify-content: center; margin-top: 1rem; }
 .ef-dc-pagination .pagination { gap: 4px; margin: 0; }
-
 .ef-dc-pagination .page-link {
-    background: rgba(255,253,250,.92);
-    border: 1px solid var(--ef-border);
-    border-radius: 10px !important;
-    color: var(--ef-ink-2);
-    font-size: .8rem;
-    font-weight: 650;
-    height: 36px;
-    line-height: 36px;
-    min-width: 36px;
-    padding: 0 10px;
-    text-align: center;
-    transition: background .15s var(--ef-ease), border-color .15s var(--ef-ease);
+    background: var(--ef-surface); border: 1px solid var(--ef-border); border-radius: 8px !important;
+    color: var(--ef-ink-2); font-size: .8rem; font-weight: 650; height: 36px; line-height: 36px; min-width: 36px; padding: 0 10px; text-align: center;
 }
-
-.ef-dc-pagination .page-link:hover {
-    background: var(--ef-surface-2);
-    border-color: var(--ef-border-strong);
-    color: var(--ef-ink);
-}
-
-.ef-dc-pagination .active .page-link {
-    background: var(--ef-ink);
-    border-color: var(--ef-ink);
-    color: #fffdfa;
-}
-
+.ef-dc-pagination .active .page-link { background: var(--ef-ink); border-color: var(--ef-ink); color: #fffdfa; }
 .ef-dc-pagination .disabled .page-link { opacity: .38; }
 
-/* Modal */
-.ef-dc-modal .modal-content {
-    background: #fffdfa;
-    border: 1px solid var(--ef-border);
-    border-radius: 18px;
-    box-shadow: 0 28px 80px rgba(24,22,18,.2);
-}
-
-.ef-dc-modal .modal-header,
-.ef-dc-modal .modal-footer {
-    border-color: var(--ef-border);
-    padding: 20px 24px;
-}
-
-.ef-dc-modal .modal-body { padding: 24px; }
-
-.ef-dc-modal .modal-title {
-    color: var(--ef-ink);
-    font-size: .96rem;
-    font-weight: 760;
-}
+/* Modal (reused) */
+.ef-dc-modal .modal-content { background: #fffdfa; border: 1px solid var(--ef-border); border-radius: 16px; }
+.ef-dc-modal .modal-header, .ef-dc-modal .modal-footer { border-color: var(--ef-border); padding: 1rem 1.2rem; }
+.ef-dc-modal .modal-body { padding: 1.2rem; }
+.ef-dc-modal .modal-title { color: var(--ef-ink); font-size: .92rem; font-weight: 750; }
 
 /* Mobile sticky bar */
 .ef-dc-mobile-bar {
     backdrop-filter: blur(18px) saturate(160%);
     background: rgba(255,253,250,.94);
     border-top: 1px solid var(--ef-border);
-    bottom: 0;
-    display: none;
-    gap: 8px;
-    grid-template-columns: 1fr 1fr auto;
-    left: 0;
-    padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
-    position: fixed;
-    right: 0;
-    z-index: 1040;
+    bottom: 0; display: none; gap: .5rem; grid-template-columns: 1fr 1fr auto;
+    left: 0; padding: .6rem .85rem calc(.6rem + env(safe-area-inset-bottom));
+    position: fixed; right: 0; z-index: 1040;
 }
-
-/* ── Responsive ───────────────────────────────────────── */
-@media (max-width: 1199.98px) {
-    .ef-dc-hero { grid-template-columns: 1fr; }
-    .ef-dc-hero-side {
-        border-left: 0;
-        border-top: 1px solid var(--ef-border);
-    }
-    .ef-dc-actions { justify-content: flex-start; }
-    .ef-dc-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
-
-@media (max-width: 767.98px) {
-    .ef-dc-shell { padding-bottom: 86px; }
-
-    .ef-dc-hero-main,
-    .ef-dc-hero-side { padding: 24px; }
-
-    .ef-dc-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-
-    .ef-dc-filter-bar { display: none; }
-    .ef-dc-filter-bar.--mobile-open { display: block; }
-    .ef-dc-filter-inner {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    .ef-dc-filter-sep { display: none; }
-    .ef-dc-filter-input,
-    .ef-dc-filter-select { width: 100%; }
-    .ef-dc-filter-actions { margin-left: 0; }
-
-    .ef-dc-row {
-        grid-template-columns: 56px minmax(0, 1fr) auto;
-        gap: 12px;
-        padding: 16px 18px;
-    }
-
-    .ef-dc-variance { display: none; }
-
-    .ef-dc-row-end {
-        flex-direction: row;
-        flex-wrap: wrap;
-        justify-content: flex-end;
-    }
-
-    .ef-dc-mobile-bar { display: grid; }
-}
+@media (max-width: 767.98px) { .ef-dc-mobile-bar { display: grid; } }
 
 @media print {
-    .ef-dc-filter-bar,
-    .ef-dc-actions,
-    .ef-dc-mobile-bar,
-    .ef-dc-row-actions { display: none !important; }
+    .ef-dc-filter-bar, .ef-dc-actions, .ef-dc-mobile-bar, .ef-dc-row-actions { display: none !important; }
 }
 </style>
 @endpush
 
 <div class="ef-dc-shell">
 
-    {{-- ═══ HERO ════════════════════════════════════════════════════════════ --}}
-    <header class="ef-dc-hero">
-
-        <div class="ef-dc-hero-main">
-            <p class="ef-eyebrow">End-of-Day Financial Operations</p>
-            <h1 class="ef-dc-title">Daily Closings</h1>
-            <p class="ef-dc-subtitle">
-                <span><i class="bi bi-calendar3"></i> {{ now()->format('l, d F Y') }}</span>
-                <span><i class="bi bi-building"></i> Operational reconciliation center</span>
-            </p>
-        </div>
-
-        <div class="ef-dc-hero-side">
-
-            <div class="ef-dc-today-status {{ $todayClosed ? '--closed' : '--open' }}">
-                <div class="ef-dc-today-icon">
-                    <i class="bi {{ $todayClosed ? 'bi-check-circle-fill' : 'bi-clock' }}"></i>
-                </div>
-                <div>
-                    <div class="ef-dc-today-label">Today's status</div>
-                    <div class="ef-dc-today-value">
-                        {{ $todayClosed ? 'Day closed' : 'Awaiting closure' }}
-                    </div>
-                </div>
+    {{-- ═══ HEADER ══════════════════════════════════════════════════════════ --}}
+    <div class="ef-dc-header">
+        <div>
+            <div class="ef-dc-eyebrow d-none d-md-block">End-of-Day Financial Operations</div>
+            <div class="ef-dc-title">Daily Closing</div>
+            <div class="ef-dc-sub">
+                <span class="d-md-none">Daily reconciliation</span>
+                <span class="d-none d-md-inline">Review and reconcile daily expenses and payments</span>
             </div>
-
+        </div>
+        <div class="ef-dc-header-right">
+            <span class="ef-dc-status-pill {{ $todayClosed ? '--closed' : '--open' }}">
+                <span class="dot"></span>
+                {{ $todayClosed ? 'Today closed' : 'Today awaiting closure' }}
+            </span>
             <div class="ef-dc-actions">
                 @if(!$todayClosed)
                     <a href="{{ route('admin.daily-closings.create') }}" class="ef-btn ef-btn-dark">
@@ -593,62 +265,70 @@
                 <button class="ef-btn" data-bs-toggle="modal" data-bs-target="#pastDateModal">
                     <i class="bi bi-calendar-plus"></i> Past Date
                 </button>
-                <button class="ef-btn" onclick="window.print()" title="Print Summary">
+                <button class="ef-btn" onclick="window.print()" title="Print Summary" aria-label="Print summary">
                     <i class="bi bi-printer"></i>
                 </button>
             </div>
-
         </div>
-    </header>
+    </div>
 
-    {{-- ═══ METRICS STRIP ════════════════════════════════════════════════════ --}}
+    {{-- ═══ RECONCILIATION STRIP ═══════════════════════════════════════════════ --}}
     @php
         $variance      = $summary['variance'];
-        $varianceTone  = $variance > 0.005  ? '--variance-pos'
-                       : ($variance < -0.005 ? '--variance-neg' : '--balanced');
-        $varianceSign  = $variance < -0.005 ? '−' : ($variance > 0.005 ? '' : '');
+        $varClass      = $variance > 0.005  ? '--pos' : ($variance < -0.005 ? '--neg' : '--zero');
         $varianceNote  = $variance > 0.005  ? 'Outstanding balance'
                        : ($variance < -0.005 ? 'Overpaid' : 'Balanced');
+        $varianceIcon  = $variance > 0.005  ? 'bi-exclamation-circle'
+                       : ($variance < -0.005 ? 'bi-arrow-down-circle' : 'bi-check-circle');
     @endphp
-
-    <div class="ef-dc-metrics">
-
-        <div class="ef-dc-metric">
-            <div class="ef-dc-metric-icon"><i class="bi bi-arrow-up-circle"></i></div>
-            <div class="ef-dc-metric-label">Total Expenses</div>
-            <div class="ef-dc-metric-value">₹{{ number_format($summary['expense_total'], 2) }}</div>
-            <div class="ef-dc-metric-note">{{ $summary['total_count'] }} closing{{ $summary['total_count'] != 1 ? 's' : '' }} in view</div>
+    <div class="ef-dc-strip">
+        <div class="ef-dc-figure">
+            <div class="ef-dc-figure-label">Total Expenses</div>
+            <div class="ef-dc-figure-value">₹{{ number_format($summary['expense_total'], 2) }}</div>
+            <div class="ef-dc-figure-note">{{ $summary['total_count'] }} {{ Str::plural('closing', $summary['total_count']) }} in view</div>
         </div>
-
-        <div class="ef-dc-metric">
-            <div class="ef-dc-metric-icon"><i class="bi bi-arrow-down-circle"></i></div>
-            <div class="ef-dc-metric-label">Total Payments</div>
-            <div class="ef-dc-metric-value">₹{{ number_format($summary['payment_total'], 2) }}</div>
-            <div class="ef-dc-metric-note">Disbursed this period</div>
+        <div class="ef-dc-figure">
+            <div class="ef-dc-figure-label">Total Payments</div>
+            <div class="ef-dc-figure-value">₹{{ number_format($summary['payment_total'], 2) }}</div>
+            <div class="ef-dc-figure-note">Disbursed this period</div>
         </div>
-
-        <div class="ef-dc-metric --draft">
-            <div class="ef-dc-metric-icon"><i class="bi bi-pencil-square"></i></div>
-            <div class="ef-dc-metric-label">Draft Closings</div>
-            <div class="ef-dc-metric-value">{{ $summary['draft_count'] }}</div>
-            <div class="ef-dc-metric-note">Pending review</div>
+        <div class="ef-dc-figure ef-dc-variance-card {{ $varClass }}">
+            <div>
+                <div class="ef-dc-figure-label">Net Variance</div>
+                <div class="ef-dc-figure-value">₹{{ number_format(abs($variance), 2) }}</div>
+                <div class="ef-dc-figure-note">{{ $varianceNote }}</div>
+            </div>
+            <i class="bi {{ $varianceIcon }} ef-dc-variance-icon"></i>
         </div>
-
-        <div class="ef-dc-metric --verified">
-            <div class="ef-dc-metric-icon"><i class="bi bi-shield-check"></i></div>
-            <div class="ef-dc-metric-label">Verified</div>
-            <div class="ef-dc-metric-value">{{ $summary['verified_count'] }}</div>
-            <div class="ef-dc-metric-note">{{ $summary['closed_count'] }} finalized</div>
-        </div>
-
-        <div class="ef-dc-metric {{ $varianceTone }}">
-            <div class="ef-dc-metric-icon"><i class="bi bi-plusminus"></i></div>
-            <div class="ef-dc-metric-label">Net Variance</div>
-            <div class="ef-dc-metric-value">₹{{ number_format(abs($variance), 2) }}</div>
-            <div class="ef-dc-metric-note">{{ $varianceNote }}</div>
-        </div>
-
     </div>
+
+    {{-- ═══ ATTENTION / RECONCILED BANNER ═════════════════════════════════════ --}}
+    @if($summary['total_count'] > 0)
+        @if($summary['draft_count'] > 0)
+            <div class="ef-dc-attention --draft">
+                <div class="ef-dc-attention-text">
+                    <div class="ef-dc-attention-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                    <div>
+                        <div class="ef-dc-attention-title">{{ $summary['draft_count'] }} {{ Str::plural('closing', $summary['draft_count']) }} needs review</div>
+                        <div class="ef-dc-attention-sub">{{ $summary['verified_count'] }} verified · {{ $summary['closed_count'] }} finalized</div>
+                    </div>
+                </div>
+                <a href="{{ route('admin.daily-closings.index', array_merge(request()->except('status'), ['status' => 'draft'])) }}" class="ef-btn ef-btn-dark">
+                    Review Drafts <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+        @else
+            <div class="ef-dc-attention --reconciled">
+                <div class="ef-dc-attention-text">
+                    <div class="ef-dc-attention-icon"><i class="bi bi-check-circle-fill"></i></div>
+                    <div>
+                        <div class="ef-dc-attention-title">All closings verified</div>
+                        <div class="ef-dc-attention-sub">{{ $summary['verified_count'] }} verified · {{ $summary['closed_count'] }} finalized</div>
+                    </div>
+                </div>
+            </div>
+        @endif
+    @endif
 
     {{-- ═══ FILTER BAR ═══════════════════════════════════════════════════════ --}}
     <div class="ef-dc-filter-bar" id="filterBar">
@@ -660,15 +340,13 @@
                        value="{{ request('from') }}" max="{{ today()->toDateString() }}">
             </div>
 
-            <div class="ef-dc-filter-range-label">—</div>
+            <div class="ef-dc-filter-sep">—</div>
 
             <div class="ef-dc-filter-group">
                 <label class="ef-dc-filter-label">To</label>
                 <input type="date" name="to" class="ef-dc-filter-input"
                        value="{{ request('to') }}" max="{{ today()->toDateString() }}">
             </div>
-
-            <div class="ef-dc-filter-sep"></div>
 
             <div class="ef-dc-filter-group">
                 <label class="ef-dc-filter-label">Status</label>
@@ -694,9 +372,7 @@
 
             <div class="ef-dc-filter-actions">
                 @if(request()->hasAny(['from','to','status','created_by']))
-                    <span class="ef-dc-filter-active-chip">
-                        <i class="bi bi-funnel-fill"></i> Filtered
-                    </span>
+                    <span class="ef-dc-filter-chip"><i class="bi bi-funnel-fill"></i> Filtered</span>
                     <a href="{{ route('admin.daily-closings.index') }}" class="ef-btn" title="Clear filters">
                         <i class="bi bi-x"></i> Reset
                     </a>
@@ -710,133 +386,133 @@
     </div>
 
     {{-- ═══ CLOSINGS LIST ═════════════════════════════════════════════════════ --}}
-    <div class="ef-dc-list-wrap">
+    <div class="ef-dc-list">
 
-        <div class="ef-dc-list-header">
+        <div class="ef-dc-list-head">
             <span class="ef-dc-list-title">Reconciliation Entries</span>
             <span class="ef-dc-list-count">
-                {{ $closings->total() }} record{{ $closings->total() != 1 ? 's' : '' }}
+                {{ $closings->total() }} {{ Str::plural('record', $closings->total()) }}
                 @if($closings->total() > 0)
                     · showing {{ $closings->firstItem() }}–{{ $closings->lastItem() }}
                 @endif
             </span>
         </div>
 
+        @if($closings->isNotEmpty())
+        <div class="ef-dc-col-head">
+            <span>Date</span>
+            <span class="num">Expenses</span>
+            <span class="num">Payments</span>
+            <span class="num">Variance</span>
+            <span>Status</span>
+            <span></span>
+        </div>
+        @endif
+
         @forelse($closings as $closing)
         @php
             $tones     = ['draft' => 'neutral', 'verified' => 'emerald', 'closed' => 'bluegray'];
             $tone      = $tones[$closing->status] ?? 'neutral';
-            $rowVar    = (float)$closing->expense_total - (float)$closing->payment_total;
-            $varClass  = $rowVar > 0.005 ? '--pos' : ($rowVar < -0.005 ? '--neg' : '--zero');
+            $rowVar    = (float) $closing->expense_total - (float) $closing->payment_total;
+            $rowVarCls = $rowVar > 0.005 ? '--pos' : ($rowVar < -0.005 ? '--neg' : '--zero');
         @endphp
 
         <div class="ef-dc-row">
+            <div class="ef-dc-row-date">
+                <span class="ef-dc-row-date-label">{{ $closing->date->format('d M Y') }}</span>
+                @if($closing->date->isToday())<span class="ef-dc-row-today">Today</span>@endif
+                <span class="ef-dc-row-status-mobile"><x-premium.chip :tone="$tone">{{ ucfirst($closing->status) }}</x-premium.chip></span>
+            </div>
 
-            {{-- Date block --}}
-            <div class="ef-dc-date">
-                <div class="ef-dc-date-day">{{ $closing->date->format('d') }}</div>
-                <div class="ef-dc-date-mon">{{ $closing->date->format('M Y') }}</div>
-                @if($closing->date->isToday())
-                    <span class="ef-dc-date-today">Today</span>
+            <div class="ef-dc-row-figure">
+                <span class="k">Expenses</span>
+                <span class="v">₹{{ number_format($closing->expense_total, 2) }}</span>
+            </div>
+
+            <div class="ef-dc-row-figure">
+                <span class="k">Payments</span>
+                <span class="v">₹{{ number_format($closing->payment_total, 2) }}</span>
+            </div>
+
+            <div class="ef-dc-row-figure ef-dc-row-variance {{ $rowVarCls }}">
+                <span class="k">Variance</span>
+                <span class="v">@if($rowVar < -0.005)−@endif₹{{ number_format(abs($rowVar), 2) }}</span>
+            </div>
+
+            <div class="ef-dc-row-status">
+                <x-premium.chip :tone="$tone">{{ ucfirst($closing->status) }}</x-premium.chip>
+            </div>
+
+            <div class="ef-dc-row-actions">
+                @if($closing->canEdit())
+                    <a href="{{ route('admin.daily-closings.edit', $closing) }}" class="ef-btn ef-btn-dark">
+                        <i class="bi bi-pencil-square"></i> Review &amp; Edit
+                    </a>
+                @else
+                    <a href="{{ route('admin.daily-closings.show', $closing) }}" class="ef-btn">
+                        <i class="bi bi-eye"></i> View Details
+                    </a>
+                @endif
+
+                @if($closing->canEdit())
+                    <div class="dropdown">
+                        <button class="ef-btn ef-btn-icon" data-bs-toggle="dropdown"
+                                aria-expanded="false" aria-label="More actions" title="More actions">
+                            <i class="bi bi-three-dots"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm"
+                            style="border-color:var(--ef-border);border-radius:12px;min-width:170px">
+                            <li>
+                                <a class="dropdown-item" style="font-size:.84rem" href="{{ route('admin.daily-closings.show', $closing) }}">
+                                    <i class="bi bi-eye me-2 opacity-60"></i> View Details
+                                </a>
+                            </li>
+                            <li>
+                                <form method="POST" action="{{ route('admin.daily-closings.recalculate', $closing) }}">
+                                    @csrf @method('PATCH')
+                                    <button type="submit" class="dropdown-item" style="font-size:.84rem">
+                                        <i class="bi bi-arrow-repeat me-2 opacity-60"></i> Recalculate
+                                    </button>
+                                </form>
+                            </li>
+                            @if($closing->canDelete())
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <button class="dropdown-item" style="color:var(--ef-danger);font-size:.84rem"
+                                            data-bs-toggle="modal" data-bs-target="#deleteModal{{ $closing->id }}">
+                                        <i class="bi bi-trash me-2 opacity-70"></i> Delete
+                                    </button>
+                                </li>
+                            @endif
+                        </ul>
+                    </div>
                 @endif
             </div>
 
-            {{-- Financial body --}}
-            <div>
-                <div class="ef-dc-row-amounts">
-                    <div class="ef-dc-amount-group">
-                        <span class="ef-dc-amount-label">Expenses</span>
-                        <span class="ef-dc-amount-value">₹{{ number_format($closing->expense_total, 2) }}</span>
-                    </div>
-                    <div class="ef-dc-amount-group">
-                        <span class="ef-dc-amount-label">Payments</span>
-                        <span class="ef-dc-amount-value --payment">₹{{ number_format($closing->payment_total, 2) }}</span>
-                    </div>
-                </div>
-                <div class="ef-dc-row-meta">
-                    {{ $closing->expense_count }} expense{{ $closing->expense_count != 1 ? 's' : '' }}
-                    &nbsp;·&nbsp;
-                    @if($closing->updater)
-                        Updated {{ $closing->updated_at->format('d M, h:i A') }}&nbsp;by&nbsp;{{ $closing->updater->name }}
-                    @else
-                        Created {{ $closing->created_at->format('d M, h:i A') }}&nbsp;by&nbsp;{{ $closing->creator->name }}
-                    @endif
-                </div>
+            <div class="ef-dc-row-meta">
+                {{ $closing->expense_count }} {{ Str::plural('expense', $closing->expense_count) }}
+                &nbsp;·&nbsp;
+                @if($closing->updater)
+                    Updated {{ $closing->updated_at->format('d M, h:i A') }} by {{ $closing->updater->name }}
+                @else
+                    Created {{ $closing->created_at->format('d M, h:i A') }} by {{ $closing->creator->name }}
+                @endif
             </div>
-
-            {{-- Variance --}}
-            <div class="ef-dc-variance {{ $varClass }}">
-                <div class="ef-dc-variance-label">Variance</div>
-                <div class="ef-dc-variance-value">
-                    @if($rowVar < -0.005) −@endif₹{{ number_format(abs($rowVar), 2) }}
-                </div>
-            </div>
-
-            {{-- Status + Actions --}}
-            <div class="ef-dc-row-end">
-                <x-premium.chip :tone="$tone">{{ ucfirst($closing->status) }}</x-premium.chip>
-
-                <div class="ef-dc-row-actions">
-                    <a href="{{ route('admin.daily-closings.show', $closing) }}"
-                       class="ef-btn ef-btn-icon" title="View">
-                        <i class="bi bi-eye"></i>
-                    </a>
-
-                    @if($closing->canEdit())
-                        <a href="{{ route('admin.daily-closings.edit', $closing) }}"
-                           class="ef-btn ef-btn-icon" title="Edit">
-                            <i class="bi bi-pencil"></i>
-                        </a>
-
-                        <div class="dropdown">
-                            <button class="ef-btn ef-btn-icon" data-bs-toggle="dropdown"
-                                    aria-expanded="false" title="More actions">
-                                <i class="bi bi-three-dots"></i>
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end shadow-sm"
-                                style="border-color:var(--ef-border);border-radius:12px;min-width:170px">
-                                <li>
-                                    <form method="POST"
-                                          action="{{ route('admin.daily-closings.recalculate', $closing) }}">
-                                        @csrf @method('PATCH')
-                                        <button type="submit" class="dropdown-item"
-                                                style="font-size:.84rem">
-                                            <i class="bi bi-arrow-repeat me-2 opacity-60"></i> Recalculate
-                                        </button>
-                                    </form>
-                                </li>
-                                @if($closing->canDelete())
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <button class="dropdown-item" style="color:var(--ef-danger)"
-                                                style="font-size:.84rem"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#deleteModal{{ $closing->id }}">
-                                            <i class="bi bi-trash me-2 opacity-70"></i> Delete
-                                        </button>
-                                    </li>
-                                @endif
-                            </ul>
-                        </div>
-                    @endif
-                </div>
-            </div>
-
         </div>
 
         @empty
 
         <div class="ef-empty-state">
             <div class="ef-empty-orb"><i class="bi bi-calendar-check"></i></div>
-            <h3 style="color:var(--ef-ink);font-size:1.1rem;font-weight:760;margin:0 0 8px">
-                No daily closings found
+            <h3 style="color:var(--ef-ink);font-size:1.05rem;font-weight:750;margin:0 0 6px">
+                No daily closings yet
             </h3>
-            <p style="color:var(--ef-muted);font-size:.88rem;margin:0 0 22px;max-width:320px;line-height:1.6">
-                Financial reconciliation entries will appear here once the first closing is recorded.
+            <p style="color:var(--ef-muted);font-size:.86rem;margin:0 0 18px;max-width:320px;line-height:1.6">
+                Create a closing to reconcile today's expenses and payments.
             </p>
             @if(!$todayClosed)
                 <a href="{{ route('admin.daily-closings.create') }}" class="ef-btn ef-btn-dark">
-                    <i class="bi bi-calendar-check"></i> Close Today
+                    <i class="bi bi-plus-lg"></i> Create Closing
                 </a>
             @endif
         </div>
@@ -864,7 +540,7 @@
             style="justify-content:center">
         <i class="bi bi-calendar-plus"></i> Past Date
     </button>
-    <button class="ef-btn ef-btn-icon" id="mobileFilterBtn" title="Filter">
+    <button class="ef-btn ef-btn-icon" id="mobileFilterBtn" title="Filter" aria-label="Toggle filters">
         <i class="bi bi-funnel"></i>
         @if(request()->hasAny(['from','to','status','created_by']))
             <span style="position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--ef-gold);"></span>

@@ -57,7 +57,8 @@
             @endforeach
         </div>
 
-        <div class="erp-summary-line" style="margin-top:14px"><span>Subtotal</span><strong>₹{{ number_format($subtotal, 0) }}</strong></div>
+        <div class="erp-summary-line" style="margin-top:14px"><span>Cost per person</span><strong>₹{{ number_format($eventRequest->per_person_cost, 0) }}</strong></div>
+        <div class="erp-summary-line"><span>Subtotal</span><strong>₹{{ number_format($subtotal, 0) }}</strong></div>
         <div class="erp-summary-line"><span>CGST @ 2.5%</span><strong>₹{{ number_format($cgstAmount, 2) }}</strong></div>
         <div class="erp-summary-line"><span>SGST @ 2.5%</span><strong>₹{{ number_format($sgstAmount, 2) }}</strong></div>
         <div class="erp-status-total-bar">

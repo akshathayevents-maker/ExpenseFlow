@@ -361,6 +361,7 @@ function recalcTotals() {
     bumpTotal(document.getElementById('sumTotal'));
 
     setText('barCount', count);
+    setText('barPerPerson', rupee(perPerson));
     setText('barTotal', rupee(total));
     bumpTotal(document.getElementById('barTotal'));
 
