@@ -26,9 +26,24 @@ class MenuComposerController extends Controller
     {
         $this->requireAdmin();
 
+        // Future events first (nearest first), then past events (most recent
+        // first) — never plain ascending/descending date order. "Today" is
+        // derived from the app's configured timezone (config('app.timezone')
+        // via Carbon's today()), not the DB server's CURRENT_DATE, so the
+        // boundary can't drift if they ever differ.
+        $today = today()->toDateString();
+
         $drafts = MenuDraft::where('created_by', auth()->id())
-            ->latest('updated_at')
-            ->paginate(12);
+            ->when($request->filled('search'), fn ($q) => $q->where(fn ($q2) => $q2
+                ->where('title', 'ilike', '%' . $request->input('search') . '%')
+                ->orWhere('venue', 'ilike', '%' . $request->input('search') . '%')
+            ))
+            ->orderByRaw('CASE WHEN event_date IS NULL THEN 2 WHEN event_date >= ? THEN 0 ELSE 1 END', [$today])
+            ->orderByRaw('CASE WHEN event_date >= ? THEN event_date END ASC', [$today])
+            ->orderByRaw('CASE WHEN event_date < ? THEN event_date END DESC', [$today])
+            ->orderBy('updated_at', 'desc')
+            ->paginate(12)
+            ->withQueryString();
 
         // AJAX infinite-scroll: return rendered card HTML + pagination meta
         if ($request->expectsJson()) {
@@ -37,12 +52,14 @@ class MenuComposerController extends Controller
                 'html'     => $html,
                 'hasMore'  => $drafts->hasMorePages(),
                 'nextPage' => $drafts->currentPage() + 1,
+                'total'    => $drafts->total(),
             ]);
         }
 
         $templates = MenuTemplate::orderBy('name')->get();
+        $filters   = $request->only(['search']);
 
-        return view('menu.composer.index', compact('drafts', 'templates'));
+        return view('menu.composer.index', compact('drafts', 'templates', 'filters'));
     }
 
     // ── New composer ───────────────────────────────────────────────────────

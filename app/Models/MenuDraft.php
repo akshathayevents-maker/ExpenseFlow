@@ -70,4 +70,48 @@ class MenuDraft extends Model
     {
         return $this->event_date?->format('d M Y');
     }
+
+    // ── Date status (drives sort grouping + card badge) ─────────────────────
+    // "Today" always comes from the app's configured timezone (Carbon's
+    // today()), never the raw event_date value's own timezone assumptions.
+
+    public function isPastEvent(): bool
+    {
+        return $this->event_date !== null && $this->event_date->lt(today());
+    }
+
+    public function isTodayEvent(): bool
+    {
+        return $this->event_date !== null && $this->event_date->isToday();
+    }
+
+    public function dateStatusLabel(): ?string
+    {
+        $date = $this->event_date;
+        if (! $date) {
+            return null;
+        }
+
+        if ($date->isToday())     return 'Today';
+        if ($date->isTomorrow())  return 'Tomorrow';
+        if ($date->isYesterday()) return 'Yesterday';
+
+        $today = today();
+
+        if ($date->greaterThan($today)) {
+            $days = (int) $today->diffInDays($date);
+            if ($days < 14) {
+                return "In {$days} days";
+            }
+            $weeks = intdiv($days, 7);
+            return 'In ' . $weeks . ' ' . \Illuminate\Support\Str::plural('week', $weeks);
+        }
+
+        $days = (int) $date->diffInDays($today);
+        if ($days < 14) {
+            return "{$days} days ago";
+        }
+        $weeks = intdiv($days, 7);
+        return $weeks . ' ' . \Illuminate\Support\Str::plural('week', $weeks) . ' ago';
+    }
 }
