@@ -957,7 +957,7 @@
         align-items: center;
         background: linear-gradient(135deg, #111111 0%, #2a2a2a 100%);
         border-radius: 999px;
-        bottom: calc(var(--ef-mobile-nav-height, 0px) + 16px + env(safe-area-inset-bottom, 0px));
+        bottom: calc(16px + env(safe-area-inset-bottom, 0px));
         box-shadow:
             0 8px 32px rgba(0,0,0,.35),
             0 2px 8px rgba(0,0,0,.18),

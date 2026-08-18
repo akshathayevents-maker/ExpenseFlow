@@ -477,18 +477,6 @@ a.ef-ad-card-aside:hover { color: var(--ad-emerald-dk); }
 }
 .ef-ad-empty p { color: var(--ad-muted); font-size: .86rem; margin-bottom: 16px; }
 
-/* ── Mobile bottom bar ─────────────────────────────────────────── */
-.ef-ad-mobile-bar {
-    display: none;
-    background: linear-gradient(135deg, rgba(11,34,26,.97) 0%, rgba(18,49,38,.97) 100%) !important;
-    border-top: 1px solid rgba(255,255,255,.07) !important;
-    bottom: 0; left: 0; right: 0;
-    gap: 8px;
-    padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
-    position: fixed;
-    z-index: 999;
-}
-
 /* ── Responsive ────────────────────────────────────────────────── */
 @media (max-width: 1199.98px) {
     .ef-ad-metrics { grid-template-columns: repeat(4, 1fr); }
@@ -510,8 +498,6 @@ a.ef-ad-card-aside:hover { color: var(--ad-emerald-dk); }
     .ef-ad-hero { padding: 22px 18px; border-radius: 16px; }
     .ef-ad-hero-title { font-size: 1.35rem; }
     .ef-ad-metrics { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-    .ef-ad-mobile-bar { display: flex; }
-    .ef-ad-page { padding-bottom: 76px; }
 }
 @media (max-width: 575.98px) {
     .ef-ad-hero-side { flex-direction: column; }
@@ -888,22 +874,6 @@ a.ef-ad-card-aside:hover { color: var(--ad-emerald-dk); }
     </div>
 </div>
 
-</div>
-
-{{-- Mobile bottom bar --}}
-<div class="ef-ad-mobile-bar">
-    <a href="{{ route('admin.expense-requests.index', ['status' => 'pending']) }}"
-       class="ef-ad-btn ef-ad-btn-primary flex-fill justify-content-center">
-        <i class="bi bi-check2-square"></i> Review ({{ $stats['pending_approvals'] }})
-    </a>
-    <a href="{{ route('admin.wallets.index') }}"
-       class="ef-ad-btn flex-fill justify-content-center">
-        <i class="bi bi-wallet2"></i> Wallets
-    </a>
-    <a href="{{ route('admin.employees.index') }}"
-       class="ef-ad-btn flex-fill justify-content-center">
-        <i class="bi bi-people"></i> Team
-    </a>
 </div>
 
 </x-admin-layout>

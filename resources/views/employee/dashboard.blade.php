@@ -623,9 +623,9 @@ a.ef-ew-kpi-card:hover, .ef-ew-kpi-card:hover {
     .ef-ew-sidebar      { grid-template-columns: 1fr; }
     .ef-ew-fab          { display: flex; }
     /* FAB positioned above mobile nav — see mobile.css .ef-mobile-fab */
-    .ef-ew-fab          { bottom: calc(var(--ef-mobile-nav-height, 0px) + 16px + env(safe-area-inset-bottom, 0px)); z-index: 1050; }
-    /* Last content section clears FAB (58px) + gap (16px) + nav (--ef-mobile-nav-height) */
-    .ef-ew-main         { padding-bottom: calc(var(--ef-mobile-nav-height, 0px) + 90px + env(safe-area-inset-bottom, 0px)); }
+    .ef-ew-fab          { bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 1050; }
+    /* Last content section clears FAB (58px) + gap (16px) */
+    .ef-ew-main         { padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px)); }
 }
 @media (max-width: 479.98px) {
     .ef-ew-kpi { grid-template-columns: repeat(2, 1fr); }

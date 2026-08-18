@@ -49,108 +49,24 @@
 .mt-topbar-safe { margin-top:  var(--ef-topbar-height); }
 .pt-topbar-safe { padding-top: var(--ef-topbar-height); }
 
-/* ══════════════════════════════════════════════════════════════════
-   BOTTOM NAV — hidden on desktop, shown on mobile.
-   Declare position:fixed HERE (outside @media) so iOS never needs to
-   "re-learn" the positioning when the media query activates.
-   ══════════════════════════════════════════════════════════════════ */
-.ef-m-bottomnav {
-    display: none;
-    /* CRITICAL: declare fixed positioning outside the @media block.
-       iOS Safari can mis-composite fixed elements that first appear
-       inside a conditional rule — declaring here + showing in @media is safer. */
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 1045;
-}
-
-/* ── Mobile nav items base (flex always for icon layout) ──────────── */
-.ef-m-bottomnav-item {
-    align-items: center;
-    background: none;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    font-size: .55rem;
-    font-weight: 700;
-    gap: 3px;
-    justify-content: center;
-    letter-spacing: .04em;
-    min-height: 52px;
-    padding: 6px 4px;
-    text-decoration: none;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, .45);
-    transition: color .15s ease, background .15s ease;
-    border-radius: 10px;
-}
-
-.ef-m-bottomnav-item:active {
-    /* Touch feedback — scale, not translate (translate would affect z-compositing) */
-    opacity: .7;
-    transition: opacity .08s ease;
-}
-
-.ef-m-bottomnav-item.active {
-    color: #E2C47E;
-    background: rgba(184, 137, 62, .13);
-    /* Pill indicator via box-shadow — no transform required */
-    box-shadow: inset 0 2px 0 rgba(184, 137, 62, .5);
-}
-
-
-.ef-m-bottomnav-item:hover {
-    color: #D6B97A;
-    background: rgba(184, 137, 62, .08);
-}
-
-.ef-m-bottomnav-item i {
-    font-size: 1.25rem;
-    line-height: 1;
-}
-
-.ef-m-bottomnav-icon-wrap {
-    display: inline-flex;
-    position: relative;
-}
-
-.ef-m-nav-badge {
-    background: #C84B44;
-    border-radius: 10px;
-    color: #fff;
-    font-size: .48rem;
-    font-weight: 800;
-    left: 55%;
-    line-height: 1.4;
-    min-width: 14px;
-    padding: 1px 3px;
-    position: absolute;
-    text-align: center;
-    top: -4px;
-}
-
 /* ═══════════════════════════════════════════════════════════════════
    MOBILE BREAKPOINT — everything below here applies ≤ 767.98px
    ═══════════════════════════════════════════════════════════════════ */
 @media (max-width: 767.98px) {
 
-/* Mobile nav height variables — single source of truth.
-   --mn-height        : full height including SAI (for overlays that clear the nav exactly)
-   --ef-mobile-nav-height : base height only; add env(safe-area-inset-bottom) at use-site */
-:root {
-    --mn-height: calc(54px + env(safe-area-inset-bottom, 0px));
-    --ef-mobile-nav-height: 54px;
-}
+/* --mn-height / --ef-mobile-nav-height (bottom-nav height) removed along
+   with the bottom navigation itself. Every consumer across the app reads
+   these through var(--x, 0px) with an explicit 0px fallback, so removing
+   the declaration — rather than leaving it at some new value — makes
+   every one of those calc() expressions collapse to just its real
+   gap/safe-area terms automatically. No per-file edits needed for that
+   part; see the per-page audit for any literal (non-var) leftover gaps. */
 
 /* ── Floating Action Button utility ─────────────────────────────
-   Apply class="ef-mobile-fab" to any position:fixed FAB that must
-   appear above the mobile bottom navigation.
-   Individual components keep their size, colour, and right/left
-   positioning — only bottom and z-index are managed here.
+   Apply class="ef-mobile-fab" to any position:fixed FAB. Individual
+   components keep their size, colour, and right/left positioning —
+   only bottom and z-index are managed here. (Previously also cleared
+   the bottom nav; that term is now always 0 — see note above.)
    ────────────────────────────────────────────────────────────── */
 .ef-mobile-fab {
     bottom: calc(var(--ef-mobile-nav-height, 0px) + 16px + env(safe-area-inset-bottom, 0px)) !important;
@@ -159,19 +75,16 @@
 }
 
 /* ── 1. Base layout — SCROLL CONTAINER ARCHITECTURE ──────────────
-   ROOT CAUSE of "bottom nav scrolls with content on long pages":
-
    iOS Safari corrupts position:fixed during momentum (kinetic) scroll
    on long pages — the fixed element drifts upward with page content.
-   overscroll-behavior and ::after fills help with elastic bounce but
-   NOT with kinetic scroll corruption. No CSS-only fix exists for that.
+   No CSS-only fix exists for that, so the app avoids body-level scroll
+   entirely:
 
-   CORRECT ARCHITECTURE (native app pattern):
    • html + body = exact viewport size, overflow:hidden — NO body scroll
    • #main-content = the ONLY scroll container (overflow-y:auto, flex:1)
-   • .ef-m-bottomnav = position:static inside body's flex column
-     → nav is always at the bottom of body; body never scrolls, so
-       the nav is physically incapable of scrolling with content.
+
+   There is no bottom navigation any more; #main-content is body's only
+   flex child and fills 100% of the remaining height on its own.
    ──────────────────────────────────────────────────────────────── */
 
 html {
@@ -196,13 +109,13 @@ body {
     height: 100svh;
     overflow: hidden;
     overscroll-behavior: none;
-    /* Flex column: topbar (fixed, out-of-flow) → main-content (flex:1) → bottom-nav */
+    /* Flex column: topbar (fixed, out-of-flow) → main-content (flex:1, sole child) */
     display: flex;
     flex-direction: column;
 }
 
 #main-content {
-    /* Fill remaining body height after bottom-nav, scroll internally */
+    /* Sole flex child of body — fills all remaining height, scrolls internally */
     flex: 1;
     /* CRITICAL: without min-height:0, flex child grows to content size and
        overflow-y:auto never triggers — body would overflow instead */
@@ -215,58 +128,9 @@ body {
      */
     overflow-x: clip;
     -webkit-overflow-scrolling: touch;
-    /* Bottom padding: nav is now in flow, no need to clear fixed bar.
-       Just breathing room + safe-area for content at page bottom. */
+    /* Breathing room + safe-area for content at the natural page bottom. */
     padding: 12px 14px calc(16px + env(safe-area-inset-bottom, 0px)) !important;
 }
-
-/* ── Bottom nav — static in flex column (no longer position:fixed) ─
-   With body as a fixed-height flex container that never scrolls, the
-   nav sits permanently at the bottom as a static flex child.
-   position:fixed is no longer needed — the nav cannot drift because
-   there is no body scroll to drift with.
-   ──────────────────────────────────────────────────────────────── */
-.ef-m-bottomnav {
-    /* Show (was display:none outside @media) */
-    display: flex;
-
-    /* Layout */
-    align-items: center;
-    gap: 4px;
-
-    /* Safe-area padding for iPhone home indicator */
-    padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
-    min-height: calc(54px + env(safe-area-inset-bottom, 0px));
-
-    /* ARCHITECTURE CHANGE: override position:fixed from outside @media.
-       Nav is a static flex child of body — never scrolls, always visible. */
-    position: static;
-    width: 100%;
-    flex-shrink: 0;
-    bottom: auto;
-    left: auto;
-    right: auto;
-    z-index: 1045;
-
-    /* Glass appearance */
-    background: rgba(10, 13, 11, .92);
-    border-top: 1px solid rgba(184, 137, 62, .15);
-    box-shadow: 0 -1px 0 rgba(255, 255, 255, .04), 0 -8px 32px rgba(0, 0, 0, .28);
-    -webkit-backdrop-filter: blur(28px) saturate(180%);
-    backdrop-filter: blur(28px) saturate(180%);
-
-    /* No animation needed — static element renders immediately */
-}
-
-/* ::after floor fill removed — no longer needed.
-   Previously patched elastic bounce reveal below a position:fixed nav.
-   Nav is now position:static in flex body; there is no gap below it. */
-.ef-m-bottomnav::after {
-    display: none;
-}
-
-/* Hide pages' own fixed bottom bars since global nav replaces navigation */
-.ef-ad-mobile-bar { display: none !important; }
 
 /* ── 2. DS Hero — compact card ─────────────────────────────────── */
 

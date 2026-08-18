@@ -522,9 +522,9 @@
     .ef-req-card-footer{ padding: 0 14px 12px; }
     .ef-req-fab        { display: flex; }
     /* FAB positioned above mobile nav */
-    .ef-req-fab        { bottom: calc(var(--ef-mobile-nav-height, 0px) + 16px + env(safe-area-inset-bottom, 0px)); z-index: 1050; }
-    /* Page content clears FAB (56px) + gap (16px) + nav (--ef-mobile-nav-height) */
-    .ef-req-page       { padding-bottom: calc(var(--ef-mobile-nav-height, 0px) + 90px + env(safe-area-inset-bottom, 0px)); }
+    .ef-req-fab        { bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 1050; }
+    /* Page content clears FAB (56px) + gap (16px) */
+    .ef-req-page       { padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px)); }
     .ef-req-hero-stats { display: none; }
 }
 </style>

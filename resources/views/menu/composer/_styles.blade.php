@@ -602,14 +602,13 @@
     .mc-meta-row { grid-template-columns: 1fr; }
     .mc-section-picker { grid-template-columns: repeat(2, 1fr); }
     .mc-action-bar {
-        bottom: var(--mn-height, 0px);
-        padding-bottom: 12px;
-        z-index: 1050;
+        /* Sits flush at the true screen bottom (no bottom nav any more) —
+           base rule's padding-bottom already includes safe-area-inset-bottom. */
         gap: 6px;
     }
     .mc-bar-pdf { padding: 9px 12px; font-size: .82rem; }
     .mc-bar-save, .mc-bar-copy { padding: 9px 14px; font-size: .82rem; }
-    .mc-shell { padding-bottom: calc(var(--ef-mobile-nav-height, 0px) + 110px + env(safe-area-inset-bottom, 0px)); }
+    .mc-shell { padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px)); }
 }
 @media (max-width: 419.98px) {
     .mc-section-picker { grid-template-columns: repeat(2, 1fr); }

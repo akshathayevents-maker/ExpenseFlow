@@ -559,9 +559,6 @@
         @php
             $unreadCount = auth()->user()->hasMany(\App\Models\AppNotification::class)->whereNull('read_at')->count();
             $recentNotifications = \App\Models\AppNotification::where('user_id', auth()->id())->latest()->limit(6)->get();
-            $mPendingCount = in_array(auth()->user()->role, ['admin', 'manager'])
-                ? \App\Models\ExpenseRequest::where('status', 'pending')->count()
-                : 0;
         @endphp
         {{-- Notification bell --}}
         <div class="dropdown">
@@ -1157,103 +1154,6 @@
     {{ $slot }}
 </main>
 
-{{-- Mobile bottom navigation (shown on screens ≤ 767px via CSS) --}}
-@auth
-@php $mRole = auth()->user()->role ?? 'employee'; @endphp
-<nav class="ef-m-bottomnav" role="navigation" aria-label="Mobile navigation">
-    @if($mRole === 'admin')
-        <a href="{{ route('admin.dashboard') }}"
-           class="ef-m-bottomnav-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
-            <div class="ef-m-bottomnav-icon-wrap"><i class="bi bi-speedometer2"></i></div>
-            <span>Home</span>
-        </a>
-        <a href="{{ route('admin.expense-requests.index') }}"
-           class="ef-m-bottomnav-item {{ request()->routeIs('admin.expense-requests.*') ? 'active' : '' }}">
-            <div class="ef-m-bottomnav-icon-wrap">
-                <i class="bi bi-file-earmark-text"></i>
-                @if($mPendingCount > 0)
-                    <span class="ef-m-nav-badge">{{ $mPendingCount > 99 ? '99+' : $mPendingCount }}</span>
-                @endif
-            </div>
-            <span>Expenses</span>
-        </a>
-        <a href="{{ route('admin.wallets.index') }}"
-           class="ef-m-bottomnav-item {{ request()->routeIs('admin.wallets.*') ? 'active' : '' }}">
-            <div class="ef-m-bottomnav-icon-wrap"><i class="bi bi-wallet2"></i></div>
-            <span>Wallets</span>
-        </a>
-        <button type="button" class="ef-m-bottomnav-item" onclick="document.getElementById('sidebar-toggle').click()">
-            <div class="ef-m-bottomnav-icon-wrap">
-                <i class="bi bi-grid-3x3-gap"></i>
-                @if($unreadCount > 0)
-                    <span class="ef-m-nav-badge">{{ $unreadCount > 99 ? '99+' : $unreadCount }}</span>
-                @endif
-            </div>
-            <span>Menu</span>
-        </button>
-
-    @elseif($mRole === 'manager')
-        <a href="{{ route('manager.dashboard') }}"
-           class="ef-m-bottomnav-item {{ request()->routeIs('manager.dashboard') ? 'active' : '' }}">
-            <div class="ef-m-bottomnav-icon-wrap"><i class="bi bi-speedometer2"></i></div>
-            <span>Home</span>
-        </a>
-        <a href="{{ route('manager.expense-requests.index') }}"
-           class="ef-m-bottomnav-item {{ request()->routeIs('manager.expense-requests.*') ? 'active' : '' }}">
-            <div class="ef-m-bottomnav-icon-wrap">
-                <i class="bi bi-file-earmark-text"></i>
-                @if($mPendingCount > 0)
-                    <span class="ef-m-nav-badge">{{ $mPendingCount > 99 ? '99+' : $mPendingCount }}</span>
-                @endif
-            </div>
-            <span>Requests</span>
-        </a>
-        <a href="{{ route('hall.dashboard') }}"
-           class="ef-m-bottomnav-item {{ request()->routeIs('hall.*') ? 'active' : '' }}">
-            <div class="ef-m-bottomnav-icon-wrap"><i class="bi bi-building"></i></div>
-            <span>Hall</span>
-        </a>
-        <button type="button" class="ef-m-bottomnav-item" onclick="document.getElementById('sidebar-toggle').click()">
-            <div class="ef-m-bottomnav-icon-wrap">
-                <i class="bi bi-grid-3x3-gap"></i>
-                @if($unreadCount > 0)
-                    <span class="ef-m-nav-badge">{{ $unreadCount > 99 ? '99+' : $unreadCount }}</span>
-                @endif
-            </div>
-            <span>Menu</span>
-        </button>
-
-    @else
-        {{-- Employee --}}
-        <a href="{{ route('employee.dashboard') }}"
-           class="ef-m-bottomnav-item {{ request()->routeIs('employee.dashboard') ? 'active' : '' }}">
-            <div class="ef-m-bottomnav-icon-wrap"><i class="bi bi-speedometer2"></i></div>
-            <span>Home</span>
-        </a>
-        <a href="{{ route('employee.expense-requests.index') }}"
-           class="ef-m-bottomnav-item {{ request()->routeIs('employee.expense-requests.index') ? 'active' : '' }}">
-            <div class="ef-m-bottomnav-icon-wrap"><i class="bi bi-list-ul"></i></div>
-            <span>Requests</span>
-        </a>
-        <a href="{{ route('employee.kitchen.calculator') }}"
-           class="ef-m-bottomnav-item {{ request()->routeIs('employee.kitchen.*') ? 'active' : '' }}">
-            <div class="ef-m-bottomnav-icon-wrap"><i class="bi bi-fire"></i></div>
-            <span>Kitchen</span>
-        </a>
-        <a href="{{ route('employee.wallet.show') }}"
-           class="ef-m-bottomnav-item {{ request()->routeIs('employee.wallet.*') ? 'active' : '' }}">
-            <div class="ef-m-bottomnav-icon-wrap"><i class="bi bi-wallet2"></i></div>
-            <span>Wallet</span>
-        </a>
-        <a href="{{ route('employee.expense-requests.create') }}"
-           class="ef-m-bottomnav-item {{ request()->routeIs('employee.expense-requests.create') ? 'active' : '' }}">
-            <div class="ef-m-bottomnav-icon-wrap"><i class="bi bi-plus-circle"></i></div>
-            <span>New</span>
-        </a>
-    @endif
-</nav>
-@endauth
-
 {{-- ── PWA Install Prompt ──────────────────────────────────────────── --}}
 {{-- Shown on Android (beforeinstallprompt) and iOS (manual instruction) --}}
 <div id="pwa-install-banner" aria-hidden="true" style="
@@ -1443,9 +1343,9 @@ if ('serviceWorker' in navigator) {
     }
     // Reserve space at the bottom of the scroll container while the banner
     // is visible, so it doesn't sit on top of the last row of content or
-    // action buttons on any page. #main-content already carries an
-    // !important responsive padding rule (for the mobile bottom nav's
-    // safe-area), so this must also be !important to actually win.
+    // action buttons on any page. #main-content already carries its own
+    // !important responsive padding rule (mobile.css), so this must also
+    // be !important to actually win.
     var mainContent = document.getElementById('main-content');
     function showBanner() {
         if (isStandalone() || isDismissed()) return;

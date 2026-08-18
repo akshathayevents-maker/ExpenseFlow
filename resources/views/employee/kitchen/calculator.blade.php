@@ -677,13 +677,12 @@ mark.kc-hl {
 @media (max-width: 767.98px) {
     .kc-sticky-bar {
         display: block;
-        bottom: var(--mn-height, 0px); /* above mobile nav — height from mobile.css:--mn-height */
-        z-index: 1050;                 /* above nav z-index: 1045 */
-        padding-bottom: 12px;          /* no safe-area inset — bar is no longer at screen edge */
+        /* Sits flush at the true screen bottom (no bottom nav any more) —
+           base rule's padding-bottom already includes safe-area-inset-bottom. */
     }
     .kc-calc-btn.--desktop { display: none; }
-    /* Focused input stays above bar + nav combined */
-    html { scroll-padding-bottom: calc(var(--mn-height, 0px) + 80px); }
+    /* Focused input stays above the sticky bar */
+    html { scroll-padding-bottom: 80px; }
 }
 @media (min-width: 768px) {
     .kc-calc-btn.--mobile-bar { display: none; }
@@ -814,8 +813,8 @@ mark.kc-hl {
     .kc-ing-row     { padding: 13px 14px; }
     .kc-ing-name    { font-size: .95rem; }
     .kc-ing-qty     { font-size: 1rem; }
-    /* Content must scroll past: sticky bar (~88px) + nav (--mn-height) */
-    .kc-wrap        { padding-bottom: calc(var(--mn-height, 0px) + 100px); }
+    /* Content must scroll past the sticky action bar (~88px) */
+    .kc-wrap        { padding-bottom: 100px; }
 }
 @media (max-width: 479.98px) {
     .kc-preset-btn  { padding: 8px 2px; font-size: .78rem; }
