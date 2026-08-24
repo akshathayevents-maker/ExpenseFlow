@@ -178,9 +178,21 @@
     max-height: 320px;
     overflow-y: auto;
     overflow-x: hidden;
-    z-index: 1050;
+    z-index: 1042;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
+}
+/* ── Keyboard-aware mode (mobile only) ─────────────────────────
+   Applied/positioned via JS (kcPositionCombo in the script block below)
+   using window.visualViewport, never trusting window.innerHeight/vh —
+   those do not reliably reflect the space actually left above an open
+   on-screen keyboard. top/left/width/max-height are all set inline by
+   JS per-frame; this class only switches the positioning scheme itself
+   and is removed (inline styles cleared) outside the mobile breakpoint,
+   restoring the normal in-flow absolute dropdown used on desktop. */
+.kc-combo-dropdown.--kbd-fixed {
+    position: fixed;
+    right: auto;
 }
 .kc-combo-list {
     list-style: none;
@@ -1119,6 +1131,7 @@ window.KcCategories = @json($categories);
 
         comboList.innerHTML = html;
         comboFocusedIdx = -1;
+        kcPositionCombo(); // result count changed — available space may have too
 
         comboList.querySelectorAll('.kc-combo-item').forEach(li => {
             li.addEventListener('mousedown', e => {
@@ -1140,6 +1153,70 @@ window.KcCategories = @json($categories);
              + escHtml(text.slice(idx + q.length));
     }
 
+    /* ── Combo: keyboard-aware positioning (mobile only) ──────
+       Never trusts window.innerHeight/vh while the on-screen keyboard is
+       open — those are inconsistent across browsers (some shrink with the
+       keyboard, some don't). window.visualViewport.height/offsetTop is the
+       one reliable source for "what is actually visible right now", and
+       getBoundingClientRect() shares the same coordinate origin as
+       position:fixed's containing block in every browser, so an explicit
+       pixel `top` computed from the two together is robust regardless of
+       how a given browser handles the keyboard resize. */
+    const isMobileViewport = () => window.matchMedia('(max-width: 767.98px)').matches;
+
+    function kcPositionCombo() {
+        if (!comboDropdownOpen) return;
+
+        if (!isMobileViewport() || !window.visualViewport) {
+            // Desktop (or no visualViewport support): restore the plain
+            // in-flow absolute dropdown — no inline overrides.
+            comboDropdown.classList.remove('--kbd-fixed');
+            comboDropdown.style.top = '';
+            comboDropdown.style.left = '';
+            comboDropdown.style.width = '';
+            comboDropdown.style.maxHeight = '';
+            return;
+        }
+
+        const vv = window.visualViewport;
+        const viewportTop    = vv.offsetTop;
+        const viewportBottom = vv.offsetTop + vv.height;
+        const rect = comboInput.getBoundingClientRect();
+        const gap = 6;
+        // Keep suggestions clear of the fixed topbar (--tb-height, admin
+        // layout) at the top, and never crowd flush against the edge.
+        const topSafe = Math.max(viewportTop + 8, viewportTop);
+
+        const spaceBelow = viewportBottom - rect.bottom - gap;
+        const spaceAbove = rect.top - topSafe - gap;
+        const preferBelow = spaceBelow >= 140 || spaceBelow >= spaceAbove;
+
+        comboDropdown.classList.add('--kbd-fixed');
+        comboDropdown.style.left  = rect.left + 'px';
+        comboDropdown.style.width = rect.width + 'px';
+
+        if (preferBelow) {
+            const maxH = Math.max(90, Math.min(320, spaceBelow));
+            comboDropdown.style.top = (rect.bottom + gap) + 'px';
+            comboDropdown.style.maxHeight = maxH + 'px';
+        } else {
+            const maxH = Math.max(90, Math.min(320, spaceAbove));
+            comboDropdown.style.top = (rect.top - gap - maxH) + 'px';
+            comboDropdown.style.maxHeight = maxH + 'px';
+        }
+    }
+
+    // Reposition on keyboard open/close and on page scroll while the
+    // dropdown is open — never on every keystroke (that's handled by
+    // comboRender() re-running the same positioning call, not by
+    // scrolling the page).
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', kcPositionCombo);
+        window.visualViewport.addEventListener('scroll', kcPositionCombo);
+    }
+    window.addEventListener('scroll', kcPositionCombo, { passive: true });
+    window.addEventListener('orientationchange', kcPositionCombo);
+
     /* ── Combo: open/close ──────────────────────────────────── */
     function comboOpenDropdown() {
         if (comboDropdownOpen) return;
@@ -1147,11 +1224,17 @@ window.KcCategories = @json($categories);
         comboDropdown.style.display = 'block';
         comboInput.setAttribute('aria-expanded', 'true');
         comboRender(comboSelectedId ? '' : comboInput.value);
+        kcPositionCombo();
     }
     function comboCloseDropdown() {
         if (!comboDropdownOpen) return;
         comboDropdownOpen = false;
         comboDropdown.style.display = 'none';
+        comboDropdown.classList.remove('--kbd-fixed');
+        comboDropdown.style.top = '';
+        comboDropdown.style.left = '';
+        comboDropdown.style.width = '';
+        comboDropdown.style.maxHeight = '';
         comboInput.setAttribute('aria-expanded', 'false');
         comboFocusedIdx = -1;
     }
@@ -1210,6 +1293,22 @@ window.KcCategories = @json($categories);
     comboInput.addEventListener('focus', () => {
         comboOpenDropdown();
         if (stickyBar) stickyBar.classList.add('--kbd-hidden');
+
+        if (isMobileViewport()) {
+            // Bring the input clear of the fixed topbar once, on focus —
+            // not on every keystroke. The keyboard itself animates open
+            // asynchronously (varies by browser/OS), so visualViewport's
+            // resize event (listened above) is what keeps the dropdown
+            // correctly positioned as that animation plays out; this is
+            // just about the input's own scroll position within the page.
+            const rect = comboInput.getBoundingClientRect();
+            const topSafe = 72; // clears the fixed topbar + a little breathing room
+            if (rect.top < topSafe) {
+                comboInput.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            }
+            // Re-check positioning after the keyboard finishes animating in.
+            setTimeout(kcPositionCombo, 300);
+        }
     });
     comboInput.addEventListener('blur', () => {
         // Delay so mousedown/touchend on items fires first

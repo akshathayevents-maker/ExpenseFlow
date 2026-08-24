@@ -127,7 +127,7 @@ test('attendance rows written by leave approval carry source and leave_request_i
     $user = User::factory()->create();
     $type = LeaveType::create(['name' => 'Casual Leave', 'code' => 'CL', 'allow_half_day' => true, 'is_active' => true]);
 
-    $request = LeaveRequest::create([
+    $request = hardenedLeaveRequest([
         'user_id' => $user->id, 'leave_type_id' => $type->id,
         'start_date' => '2026-08-20', 'end_date' => '2026-08-20',
         'is_half_day' => false, 'days_requested' => 1, 'reason' => 'Personal', 'status' => 'approved',
@@ -229,12 +229,16 @@ test('outstanding_amount is not mass-assignable on EmployeeAdvance', function ()
     $admin = User::factory()->create(['role' => 'admin']);
     $user  = User::factory()->create();
 
-    $advance = EmployeeAdvance::create([
+    $advance = new EmployeeAdvance();
+    $advance->fill([
         'user_id' => $user->id, 'origin' => 'admin_recorded',
-        'request_status' => 'approved', 'payment_status' => 'paid',
-        'original_amount' => 20000, 'outstanding_amount' => 999999, // attempted injection
-        'created_by' => $admin->id,
+        'outstanding_amount' => 999999, // attempted injection via fill()
     ]);
+    $advance->forceFill([
+        'request_status' => 'approved', 'payment_status' => 'paid',
+        'original_amount' => 20000, 'created_by' => $admin->id,
+    ]);
+    $advance->save();
 
     // outstanding_amount silently ignored by mass assignment; DB default (0) applies.
     expect((float) $advance->fresh()->outstanding_amount)->toBe(0.0);
@@ -244,11 +248,13 @@ test('advance transactions are linked and balance_after is stored per row, not r
     $admin = User::factory()->create(['role' => 'admin']);
     $user  = User::factory()->create();
 
-    $advance = EmployeeAdvance::create([
-        'user_id' => $user->id, 'origin' => 'admin_recorded',
+    $advance = new EmployeeAdvance();
+    $advance->fill(['user_id' => $user->id, 'origin' => 'admin_recorded']);
+    $advance->forceFill([
         'request_status' => 'approved', 'payment_status' => 'paid',
         'original_amount' => 20000, 'created_by' => $admin->id,
     ]);
+    $advance->save();
     $advance->forceFill(['outstanding_amount' => 20000])->save();
 
     AdvanceTransaction::create([
@@ -268,7 +274,10 @@ test('employee cannot see another employee advance via the relationship scope', 
     $a = User::factory()->create();
     $b = User::factory()->create();
 
-    EmployeeAdvance::create(['user_id' => $a->id, 'origin' => 'admin_recorded', 'request_status' => 'approved', 'payment_status' => 'paid', 'original_amount' => 5000, 'created_by' => $admin->id]);
+    $advance = new EmployeeAdvance();
+    $advance->fill(['user_id' => $a->id, 'origin' => 'admin_recorded']);
+    $advance->forceFill(['request_status' => 'approved', 'payment_status' => 'paid', 'original_amount' => 5000, 'created_by' => $admin->id]);
+    $advance->save();
 
     expect($a->advances()->count())->toBe(1);
     expect($b->advances()->count())->toBe(0);

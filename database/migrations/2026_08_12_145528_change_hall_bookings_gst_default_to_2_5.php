@@ -10,8 +10,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        DB::statement('ALTER TABLE hall_bookings ALTER COLUMN cgst_rate SET DEFAULT 2.50');
-        DB::statement('ALTER TABLE hall_bookings ALTER COLUMN sgst_rate SET DEFAULT 2.50');
+        // Postgres-only syntax (production driver). The test suite runs on
+        // SQLite in-memory, which has no ALTER COLUMN ... SET DEFAULT — the
+        // column default doesn't affect test correctness there since tests
+        // always insert values explicitly, so it's safely skipped.
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement('ALTER TABLE hall_bookings ALTER COLUMN cgst_rate SET DEFAULT 2.50');
+            DB::statement('ALTER TABLE hall_bookings ALTER COLUMN sgst_rate SET DEFAULT 2.50');
+        }
 
         // Bring forward bookings still at the old 3% default with no invoice
         // issued yet. Bookings that already have an invoice_number are left
@@ -28,8 +34,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement('ALTER TABLE hall_bookings ALTER COLUMN cgst_rate SET DEFAULT 3.00');
-        DB::statement('ALTER TABLE hall_bookings ALTER COLUMN sgst_rate SET DEFAULT 3.00');
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement('ALTER TABLE hall_bookings ALTER COLUMN cgst_rate SET DEFAULT 3.00');
+            DB::statement('ALTER TABLE hall_bookings ALTER COLUMN sgst_rate SET DEFAULT 3.00');
+        }
 
         DB::table('hall_bookings')
             ->whereNull('invoice_number')

@@ -4,6 +4,7 @@ namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\Validator;
 
 class StoreEmployeeRequest extends FormRequest
 {
@@ -15,12 +16,26 @@ class StoreEmployeeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name'      => ['required', 'string', 'max:255'],
-            'phone'     => ['nullable', 'string', 'max:20'],
-            'email'     => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password'  => ['required', Password::defaults()],
-            'role'      => ['required', 'in:admin,manager,employee'],
-            'is_active' => ['boolean'],
+            'name'                  => ['required', 'string', 'max:255'],
+            'phone'                 => ['nullable', 'string', 'max:20'],
+            'email'                 => ['required', 'email', 'max:255', 'unique:users,email'],
+            'password'              => ['required', Password::defaults()],
+            'role'                  => ['required', 'in:admin,manager,employee'],
+            'is_active'             => ['boolean'],
+            'employment_start_date' => ['nullable', 'date'],
+            'employment_end_date'   => ['nullable', 'date'],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $v) {
+            $start = $this->input('employment_start_date');
+            $end   = $this->input('employment_end_date');
+
+            if ($start && $end && $end < $start) {
+                $v->errors()->add('employment_end_date', 'Employment end date must be on or after the employment start date.');
+            }
+        });
     }
 }

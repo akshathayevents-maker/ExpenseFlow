@@ -839,6 +839,23 @@ a.ef-ew-kpi-card:hover, .ef-ew-kpi-card:hover {
                     <span class="ef-ew-action-lbl">Approved</span>
                     <span class="ef-ew-action-count">{{ $stats['approved_requests'] }} requests</span>
                 </a>
+                @php
+                    $attendanceCardClass = 'action-pending';
+                    if ($todayAttendance) {
+                        $attendanceCardClass = 'action-approved';
+                        $attendanceCardText = ucfirst(str_replace('_', ' ', $todayAttendance->status)) . ' today';
+                    } elseif ($todayIsNonWorking) {
+                        $attendanceCardClass = 'action-wallet';
+                        $attendanceCardText = $todayCategory === 'holiday' ? 'Holiday today' : 'Weekly off today';
+                    } else {
+                        $attendanceCardText = 'Not marked';
+                    }
+                @endphp
+                <a href="{{ route('employee.attendance.index') }}" class="ef-ew-action-card {{ $attendanceCardClass }}">
+                    <div class="ef-ew-action-icon"><i class="bi bi-calendar-check"></i></div>
+                    <span class="ef-ew-action-lbl">Attendance</span>
+                    <span class="ef-ew-action-count">{{ $attendanceCardText }}</span>
+                </a>
                 <a href="{{ route('employee.wallet.show') }}" class="ef-ew-action-card action-wallet">
                     <div class="ef-ew-action-icon"><i class="bi bi-wallet2"></i></div>
                     <span class="ef-ew-action-lbl">My Wallet</span>

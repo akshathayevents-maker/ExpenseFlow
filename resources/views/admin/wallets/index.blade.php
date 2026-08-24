@@ -1,10 +1,14 @@
 <x-admin-layout title="Wallets">
 @push('styles')
 <style>
-/* ── Hero ──────────────────────────────────────────────── */
+/* ── Hero ──────────────────────────────────────────────────────────
+   Same dark emerald/gold hero gradient as /admin/dashboard's .ef-ad-hero
+   (and admin/wallets/show.blade.php's .ef-wfin-hero) — one visual family,
+   not a wallet-specific look. */
 .ef-wlt-hero {
-    background: linear-gradient(135deg, #0e0f0d 0%, #1a1e15 55%, #242b18 100%);
-    border-radius: var(--ef-radius);
+    background: linear-gradient(135deg, #041b14 0%, #052e21 45%, #02110c 100%);
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 20px;
     padding: 2rem 2.2rem;
     display: flex;
     align-items: center;
@@ -21,7 +25,7 @@
     right: 4rem; top: -3rem;
     width: 150px; height: 150px;
     border-radius: 50%;
-    background: rgba(22,163,74,.05);
+    background: rgba(15,123,95,.18);
     pointer-events: none;
 }
 .ef-wlt-hero::after {
@@ -30,94 +34,61 @@
     right: 1rem; top: 1rem;
     width: 70px; height: 70px;
     border-radius: 50%;
-    background: rgba(22,163,74,.04);
+    background: rgba(184,137,62,.10);
     pointer-events: none;
 }
 .ef-wlt-hero-eyebrow {
-    font-size: .72rem; font-weight: 600;
-    letter-spacing: .1em; text-transform: uppercase;
-    color: #4ade80; margin-bottom: .4rem;
-    opacity: .75;
+    font-size: .72rem; font-weight: 760;
+    letter-spacing: .18em; text-transform: uppercase;
+    color: rgba(184,137,62,.88); margin-bottom: .4rem;
 }
 .ef-wlt-hero-title {
     font-size: clamp(1.7rem, 3.5vw, 2.6rem);
-    font-weight: 700; color: #fff;
+    font-weight: 800; color: #f0fdf8;
     line-height: 1.1; letter-spacing: -.02em;
 }
-.ef-wlt-hero-sub  { color: rgba(255,255,255,.45); font-size: .875rem; margin-top: .35rem; }
-.ef-wlt-hero-date { color: rgba(255,255,255,.22); font-size: .75rem; margin-top: .5rem; letter-spacing: .02em; }
+.ef-wlt-hero-sub  { color: rgba(240,253,248,.50); font-size: .875rem; margin-top: .35rem; }
+.ef-wlt-hero-date { color: rgba(240,253,248,.30); font-size: .75rem; margin-top: .5rem; letter-spacing: .02em; }
 .ef-wlt-hero-actions { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
-.ef-wlt-btn-gold {
-    background: var(--ef-gold); color: #fff; border: none;
-    border-radius: 8px; padding: .52rem 1.1rem;
-    font-size: .82rem; font-weight: 600; cursor: pointer;
-    transition: background .2s var(--ef-ease), transform .15s;
-    text-decoration: none; display: inline-flex; align-items: center;
-    gap: .35rem; white-space: nowrap;
-}
-.ef-wlt-btn-gold:hover { background: var(--ef-gold-hi); color: #fff; transform: translateY(-1px); }
+/* Ghost/primary hero buttons — identical treatment to the shared
+   x-ds.hero component's .ef-ds-btn / .ef-ds-btn.--primary. */
 .ef-wlt-btn-ghost {
-    background: rgba(255,255,255,.08); color: rgba(255,255,255,.75);
-    border: 1px solid rgba(255,255,255,.14); border-radius: 8px;
-    padding: .48rem .95rem; font-size: .82rem; font-weight: 500;
-    cursor: pointer; transition: background .2s var(--ef-ease);
+    background: rgba(255,255,255,.08); color: rgba(240,253,248,.82);
+    border: 1px solid rgba(255,255,255,.13); border-radius: 10px;
+    padding: .48rem .95rem; font-size: .82rem; font-weight: 660;
+    cursor: pointer; transition: background .18s var(--ef-ease), color .18s var(--ef-ease);
     text-decoration: none; display: inline-flex; align-items: center;
     gap: .35rem; white-space: nowrap;
 }
-.ef-wlt-btn-ghost:hover { background: rgba(255,255,255,.16); color: #fff; }
+.ef-wlt-btn-ghost:hover { background: rgba(255,255,255,.15); color: #f0fdf8; }
+/* Alert pills — same semantic tokens as the rest of the app (danger =
+   --ef-danger, pending/attention = --ef-gold, matching how "pending"
+   states are colored elsewhere, e.g. advance/leave status chips). No
+   Tailwind-red or purple — those were never real application colors. */
 .ef-wlt-alert-pill {
-    background: rgba(239,68,68,.18); border: 1px solid rgba(239,68,68,.32);
-    color: #fca5a5; border-radius: 20px; padding: .38rem .9rem;
-    font-size: .8rem; font-weight: 600; text-decoration: none;
+    background: rgba(200,75,68,.18); border: 1px solid rgba(200,75,68,.35);
+    color: #f2a29d; border-radius: 20px; padding: .38rem .9rem;
+    font-size: .8rem; font-weight: 700; text-decoration: none;
     display: inline-flex; align-items: center; gap: .4rem;
     transition: background .2s;
 }
-.ef-wlt-alert-pill:hover { background: rgba(239,68,68,.28); color: #fca5a5; }
+.ef-wlt-alert-pill:hover { background: rgba(200,75,68,.28); color: #f2a29d; }
 .ef-wlt-reimb-pill {
-    background: rgba(139,92,246,.18); border: 1px solid rgba(139,92,246,.32);
-    color: #c4b5fd; border-radius: 20px; padding: .38rem .9rem;
-    font-size: .8rem; font-weight: 600; text-decoration: none;
+    background: rgba(184,137,62,.18); border: 1px solid rgba(184,137,62,.35);
+    color: var(--ef-gold-hi); border-radius: 20px; padding: .38rem .9rem;
+    font-size: .8rem; font-weight: 700; text-decoration: none;
     display: inline-flex; align-items: center; gap: .4rem;
     transition: background .2s;
 }
-.ef-wlt-reimb-pill:hover { background: rgba(139,92,246,.28); color: #c4b5fd; }
+.ef-wlt-reimb-pill:hover { background: rgba(184,137,62,.28); color: var(--ef-gold-hi); }
 
-/* ── KPI strip ─────────────────────────────────────────── */
-.ef-wlt-strip {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: .85rem;
-    margin-bottom: 1.5rem;
-}
-@media (max-width: 1399px) { .ef-wlt-strip { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 767px)  { .ef-wlt-strip { grid-template-columns: repeat(2, 1fr); } }
-.ef-wlt-kpi {
-    background: #fff; border: 1px solid var(--ef-border);
-    border-radius: var(--ef-radius); padding: 1.15rem 1.2rem;
-    box-shadow: var(--ef-shadow); display: block; text-decoration: none;
-    color: inherit; transition: box-shadow .2s var(--ef-ease), transform .15s;
-}
-a.ef-wlt-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-2px); }
-.ef-wlt-kpi-icon {
-    width: 32px; height: 32px; border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: .85rem; margin-bottom: .65rem;
-}
-.ef-wlt-kpi-icon.--green  { background: rgba(22,163,74,.1);   color: #15803d; }
-.ef-wlt-kpi-icon.--gold   { background: rgba(184,137,62,.12); color: var(--ef-gold); }
-.ef-wlt-kpi-icon.--warn   { background: rgba(217,119,6,.12);  color: #b45309; }
-.ef-wlt-kpi-icon.--danger { background: rgba(192,57,43,.10);  color: var(--ef-danger); }
-.ef-wlt-kpi-icon.--indigo { background: rgba(99,102,241,.1);  color: #4338ca; }
-.ef-wlt-kpi-icon.--grey   { background: rgba(107,114,128,.1); color: #374151; }
-.ef-wlt-kpi-val { font-size: 1.35rem; font-weight: 800; color: var(--ef-ink); line-height: 1; letter-spacing: -.02em; }
-.ef-wlt-kpi-val.--sm     { font-size: 1.05rem; }
-.ef-wlt-kpi-val.--danger { color: var(--ef-danger); }
-.ef-wlt-kpi-val.--warn   { color: #b45309; }
-.ef-wlt-kpi-label { font-size: .75rem; color: var(--ef-muted); margin-top: .22rem; }
+/* KPI strip: no page-local CSS — reuses the shared x-ds.kpi-card
+   component (.ef-ds-kpi*, resources/css/app.css), the same component
+   family the rest of the admin app's stat strips already use. */
 
 /* ── Filter bar ────────────────────────────────────────── */
 .ef-wlt-filter-bar {
-    background: #fff; border: 1px solid var(--ef-border);
+    background: var(--ef-surface); border: 1px solid var(--ef-border);
     border-radius: var(--ef-radius); padding: 1rem 1.2rem;
     box-shadow: var(--ef-shadow); margin-bottom: 1.5rem;
 }
@@ -137,43 +108,21 @@ a.ef-wlt-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     transition: all .18s var(--ef-ease); text-decoration: none;
     white-space: nowrap; display: inline-flex; align-items: center; gap: .3rem;
 }
-.ef-wlt-chip:hover { border-color: var(--ef-gold); color: var(--ef-gold); background: rgba(184,137,62,.06); }
-.ef-wlt-chip.--active  { background: var(--ef-gold); border-color: var(--ef-gold); color: #fff; }
-.ef-wlt-chip.--warn    { background: rgba(217,119,6,.08);  border-color: rgba(217,119,6,.3);  color: #92400e; }
-.ef-wlt-chip.--warn.--active   { background: #b45309; border-color: #b45309; color: #fff; }
-.ef-wlt-chip.--danger  { background: rgba(192,57,43,.07);  border-color: rgba(192,57,43,.3);  color: var(--ef-danger); }
+.ef-wlt-chip:hover { border-color: var(--ef-border-strong); color: var(--ef-ink); background: var(--ef-surface); }
+.ef-wlt-chip.--active  { background: var(--ef-emerald); border-color: var(--ef-emerald); color: #fff; }
+.ef-wlt-chip.--warn    { background: rgba(216,154,61,.10); border-color: rgba(216,154,61,.32); color: #7D5218; }
+.ef-wlt-chip.--warn.--active   { background: var(--ef-warning); border-color: var(--ef-warning); color: #fff; }
+.ef-wlt-chip.--danger  { background: rgba(200,75,68,.08);  border-color: rgba(200,75,68,.3);  color: var(--ef-danger); }
 .ef-wlt-chip.--danger.--active { background: var(--ef-danger); border-color: var(--ef-danger); color: #fff; }
-.ef-wlt-chip.--healthy { background: rgba(22,163,74,.08);  border-color: rgba(22,163,74,.25); color: #15803d; }
-.ef-wlt-chip.--healthy.--active { background: #15803d; border-color: #15803d; color: #fff; }
+.ef-wlt-chip.--healthy { background: rgba(15,123,95,.08);  border-color: rgba(15,123,95,.25); color: var(--ef-emerald-dk); }
+.ef-wlt-chip.--healthy.--active { background: var(--ef-emerald); border-color: var(--ef-emerald); color: #fff; }
 .ef-wlt-search-wrap { position: relative; flex: 1; min-width: 200px; }
 .ef-wlt-search-icon {
     position: absolute; left: .8rem; top: 50%;
     transform: translateY(-50%); color: var(--ef-muted);
-    font-size: .85rem; pointer-events: none;
+    font-size: .85rem; pointer-events: none; z-index: 1;
 }
-.ef-wlt-search {
-    width: 100%; border: 1px solid var(--ef-border-strong);
-    border-radius: 9px; padding: .55rem .85rem .55rem 2.2rem;
-    font-size: .875rem; color: var(--ef-ink); background: var(--ef-faint);
-    outline: none; transition: border-color .18s, background .18s, box-shadow .18s;
-}
-.ef-wlt-search::placeholder { color: #b5afa8; }
-.ef-wlt-search:focus { border-color: var(--ef-gold); background: #fff; box-shadow: 0 0 0 3px rgba(184,137,62,.12); }
-.ef-wlt-btn-search {
-    background: var(--ef-gold); color: #fff; border: none;
-    border-radius: 9px; padding: .55rem 1.1rem;
-    font-size: .875rem; font-weight: 600; cursor: pointer;
-    transition: background .18s;
-}
-.ef-wlt-btn-search:hover { background: var(--ef-gold-hi); }
-.ef-wlt-btn-clear {
-    background: transparent; color: var(--ef-muted);
-    border: 1px solid var(--ef-border); border-radius: 9px;
-    padding: .55rem .9rem; font-size: .875rem; cursor: pointer;
-    text-decoration: none; display: inline-flex; align-items: center;
-    transition: all .18s;
-}
-.ef-wlt-btn-clear:hover { border-color: var(--ef-danger); color: var(--ef-danger); }
+.ef-wlt-search-wrap .ef-input { padding-left: 2.2rem; }
 
 /* ── Wallet cards grid ─────────────────────────────────── */
 .ef-wlt-grid {
@@ -186,19 +135,20 @@ a.ef-wlt-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
 @media (max-width: 639px)  { .ef-wlt-grid { grid-template-columns: 1fr; } }
 
 .ef-wlt-card {
-    background: #fff; border: 1px solid var(--ef-border);
+    background: var(--ef-surface); border: 1px solid var(--ef-border);
     border-radius: var(--ef-radius); box-shadow: var(--ef-shadow);
     overflow: hidden; transition: box-shadow .2s var(--ef-ease), transform .15s;
     display: flex; flex-direction: column;
 }
 .ef-wlt-card:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-2px); }
 
-/* Card top accent */
-.ef-wlt-card-accent { height: 3px; background: var(--ef-border); }
-.ef-wlt-card.--healthy .ef-wlt-card-accent  { background: #16a34a; }
+/* Card top accent — 5 health states mapped onto the app's real semantic
+   tokens (emerald=success, gold=accent/good, amber=warning, danger=
+   critical/negative). No invented orange tier. */
+.ef-wlt-card.--healthy .ef-wlt-card-accent  { background: var(--ef-emerald); }
 .ef-wlt-card.--good .ef-wlt-card-accent     { background: var(--ef-gold); }
-.ef-wlt-card.--low .ef-wlt-card-accent      { background: #d97706; }
-.ef-wlt-card.--critical .ef-wlt-card-accent { background: #ea580c; }
+.ef-wlt-card.--low .ef-wlt-card-accent      { background: var(--ef-warning); }
+.ef-wlt-card.--critical .ef-wlt-card-accent { background: var(--ef-danger); }
 .ef-wlt-card.--negative .ef-wlt-card-accent { background: var(--ef-danger); }
 
 /* Card head */
@@ -229,9 +179,9 @@ a.ef-wlt-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     text-transform: uppercase; border-radius: 5px;
     padding: .15rem .5rem; white-space: nowrap; flex-shrink: 0;
 }
-.ef-wlt-role-badge.--employee { background: rgba(37,99,235,.09);  color: #1d4ed8; border: 1px solid rgba(37,99,235,.18);  }
+.ef-wlt-role-badge.--employee { background: rgba(47,111,237,.09); color: var(--ef-info); border: 1px solid rgba(47,111,237,.2); }
 .ef-wlt-role-badge.--manager  { background: rgba(184,137,62,.1);  color: var(--ef-gold); border: 1px solid rgba(184,137,62,.2); }
-.ef-wlt-role-badge.--admin    { background: rgba(107,114,128,.1); color: #374151; border: 1px solid rgba(107,114,128,.18); }
+.ef-wlt-role-badge.--admin    { background: rgba(119,115,106,.1); color: var(--ef-ink-2); border: 1px solid rgba(119,115,106,.18); }
 
 /* Card body — balance */
 .ef-wlt-card-body { padding: .2rem 1.1rem .8rem; flex: 1; }
@@ -240,8 +190,8 @@ a.ef-wlt-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     font-size: 1.6rem; font-weight: 800; color: var(--ef-ink);
     letter-spacing: -.03em; line-height: 1; margin-bottom: .7rem;
 }
-.ef-wlt-balance.--low      { color: #b45309; }
-.ef-wlt-balance.--critical { color: #ea580c; }
+.ef-wlt-balance.--low      { color: var(--ef-warning); }
+.ef-wlt-balance.--critical { color: var(--ef-danger); }
 .ef-wlt-balance.--negative { color: var(--ef-danger); }
 
 /* Balance bar */
@@ -251,11 +201,11 @@ a.ef-wlt-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
 }
 .ef-wlt-bar-fill {
     height: 100%; border-radius: 10px;
-    background: #16a34a;
+    background: var(--ef-emerald);
     transition: width .5s var(--ef-ease);
 }
-.ef-wlt-bar-fill.--low      { background: #d97706; }
-.ef-wlt-bar-fill.--critical { background: #ea580c; }
+.ef-wlt-bar-fill.--low      { background: var(--ef-warning); }
+.ef-wlt-bar-fill.--critical { background: var(--ef-danger); }
 .ef-wlt-bar-fill.--negative { background: var(--ef-danger); width: 3px !important; }
 .ef-wlt-bar-caption {
     display: flex; justify-content: space-between;
@@ -268,11 +218,11 @@ a.ef-wlt-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     text-transform: uppercase; border-radius: 5px;
     padding: .18rem .55rem; display: inline-flex; align-items: center; gap: .25rem;
 }
-.ef-wlt-health-chip.--healthy  { background: rgba(22,163,74,.1);  color: #15803d; border: 1px solid rgba(22,163,74,.2);  }
+.ef-wlt-health-chip.--healthy  { background: rgba(15,123,95,.1);  color: var(--ef-emerald-dk); border: 1px solid rgba(15,123,95,.2); }
 .ef-wlt-health-chip.--good     { background: rgba(184,137,62,.1); color: var(--ef-gold); border: 1px solid rgba(184,137,62,.2); }
-.ef-wlt-health-chip.--low      { background: rgba(217,119,6,.1);  color: #92400e; border: 1px solid rgba(217,119,6,.2);  }
-.ef-wlt-health-chip.--critical { background: rgba(234,88,12,.1);  color: #c2410c; border: 1px solid rgba(234,88,12,.2);  }
-.ef-wlt-health-chip.--negative { background: rgba(192,57,43,.08); color: var(--ef-danger); border: 1px solid rgba(192,57,43,.18); }
+.ef-wlt-health-chip.--low      { background: rgba(216,154,61,.1); color: #7D5218; border: 1px solid rgba(216,154,61,.25); }
+.ef-wlt-health-chip.--critical { background: rgba(200,75,68,.1);  color: var(--ef-danger); border: 1px solid rgba(200,75,68,.22); }
+.ef-wlt-health-chip.--negative { background: rgba(200,75,68,.08); color: var(--ef-danger); border: 1px solid rgba(200,75,68,.18); }
 
 /* Card meta */
 .ef-wlt-card-meta {
@@ -296,17 +246,17 @@ a.ef-wlt-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     display: inline-flex; align-items: center; justify-content: center;
     gap: .3rem; border: none;
 }
-.ef-wlt-foot-btn.--gold    { background: var(--ef-gold); color: #fff; }
-.ef-wlt-foot-btn.--gold:hover { background: var(--ef-gold-hi); color: #fff; }
+.ef-wlt-foot-btn.--primary { background: var(--ef-emerald); color: #fff; }
+.ef-wlt-foot-btn.--primary:hover { background: var(--ef-emerald-hi); color: #fff; }
 .ef-wlt-foot-btn.--outline { background: transparent; color: var(--ef-muted); border: 1px solid var(--ef-border); }
-.ef-wlt-foot-btn.--outline:hover { border-color: var(--ef-gold); color: var(--ef-gold); background: rgba(184,137,62,.05); }
+.ef-wlt-foot-btn.--outline:hover { border-color: var(--ef-border-strong); color: var(--ef-ink); background: var(--ef-surface-2); }
 .ef-wlt-foot-menu {
     width: 32px; height: 32px; border-radius: 7px;
     background: var(--ef-faint); border: 1px solid var(--ef-border);
     color: var(--ef-muted); display: flex; align-items: center;
     justify-content: center; cursor: pointer; transition: all .18s; flex-shrink: 0;
 }
-.ef-wlt-foot-menu:hover { border-color: var(--ef-gold); color: var(--ef-gold); background: rgba(184,137,62,.05); }
+.ef-wlt-foot-menu:hover { border-color: var(--ef-border-strong); color: var(--ef-ink); background: var(--ef-surface-2); }
 
 /* Needs Attention section header */
 .ef-wlt-section-head {
@@ -322,7 +272,7 @@ a.ef-wlt-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
 
 /* ── Empty state ───────────────────────────────────────── */
 .ef-wlt-empty {
-    background: #fff; border: 1px solid var(--ef-border);
+    background: var(--ef-surface); border: 1px solid var(--ef-border);
     border-radius: var(--ef-radius); box-shadow: var(--ef-shadow);
     padding: 4rem 2rem; text-align: center; margin-bottom: 1.5rem;
 }
@@ -338,7 +288,7 @@ a.ef-wlt-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
 
 /* ── Pagination ────────────────────────────────────────── */
 .ef-wlt-pagination {
-    background: #fff; border: 1px solid var(--ef-border);
+    background: var(--ef-surface); border: 1px solid var(--ef-border);
     border-radius: var(--ef-radius); padding: .85rem 1.4rem;
     box-shadow: var(--ef-shadow);
     display: flex; align-items: center; justify-content: space-between;
@@ -358,7 +308,9 @@ a.ef-wlt-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
 @endpush
 
 @php
-    $avatarTones = ['#B8893E','#4e7a96','#3e8a60','#6a5e8c','#807050','#5a7a64','#7a5a4e'];
+    // Avatar tones drawn only from the application's existing design
+    // tokens — no wallet-specific/purple hues.
+    $avatarTones = ['#B8893E','#0F7B5F','#2F6FED','#0d9488','#607080','#0D5C43','#D89A3D'];
 
     $fmt = fn(float $v): string =>
         $v >= 100000 ? '₹' . number_format($v/100000, 1) . 'L'
@@ -411,43 +363,52 @@ a.ef-wlt-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     </div>
 </div>
 
-{{-- ── KPI strip ───────────────────────────────────────────────── --}}
-<div class="ef-wlt-strip">
-    <div class="ef-wlt-kpi">
-        <div class="ef-wlt-kpi-icon --green"><i class="bi bi-wallet2"></i></div>
-        <div class="ef-wlt-kpi-val --sm">{{ $fmt($stats['total_balance']) }}</div>
-        <div class="ef-wlt-kpi-label">Total Balance</div>
-    </div>
-    <div class="ef-wlt-kpi">
-        <div class="ef-wlt-kpi-icon --gold"><i class="bi bi-people"></i></div>
-        <div class="ef-wlt-kpi-val">{{ number_format($stats['total_wallets']) }}</div>
-        <div class="ef-wlt-kpi-label">Active Wallets</div>
-    </div>
-    <a href="{{ route('admin.wallets.index', ['health' => 'low']) }}" class="ef-wlt-kpi">
-        <div class="ef-wlt-kpi-icon --warn"><i class="bi bi-arrow-down-circle"></i></div>
-        <div class="ef-wlt-kpi-val {{ $stats['low_balance_count'] > 0 ? '--warn' : '' }}">
-            {{ number_format($stats['low_balance_count']) }}
-        </div>
-        <div class="ef-wlt-kpi-label">Low Balance</div>
-    </a>
-    <a href="{{ route('admin.wallets.index', ['health' => 'critical']) }}" class="ef-wlt-kpi">
-        <div class="ef-wlt-kpi-icon --danger"><i class="bi bi-exclamation-triangle"></i></div>
-        <div class="ef-wlt-kpi-val {{ $stats['negative_count'] > 0 ? '--danger' : '' }}">
-            {{ number_format($stats['negative_count']) }}
-        </div>
-        <div class="ef-wlt-kpi-label">Negative Balances</div>
-    </a>
-    <a href="{{ route('admin.expense-requests.index', ['status' => 'reimbursement_pending']) }}" class="ef-wlt-kpi">
-        <div class="ef-wlt-kpi-icon --indigo"><i class="bi bi-arrow-return-left"></i></div>
-        <div class="ef-wlt-kpi-val {{ $stats['pending_reimb_count'] > 0 ? '' : '' }}">
-            {{ number_format($stats['pending_reimb_count']) }}
-        </div>
-        <div class="ef-wlt-kpi-label">Pending Reimb.</div>
-    </a>
-    <div class="ef-wlt-kpi">
-        <div class="ef-wlt-kpi-icon --grey"><i class="bi bi-graph-up"></i></div>
-        <div class="ef-wlt-kpi-val --sm">{{ $fmt($stats['avg_balance']) }}</div>
-        <div class="ef-wlt-kpi-label">Avg Balance</div>
+{{-- ── KPI strip — shared x-ds.kpi-card component ─────────────────── --}}
+<div class="ef-ds-kpi-wrap">
+    <div class="ef-ds-kpi-grid" style="--kpi-cols:6">
+        <x-ds.kpi-card
+            icon="bi-wallet2"
+            label="Total Balance"
+            :value="$fmt($stats['total_balance'])"
+            accent="emerald"
+            value-color="c-emerald"
+        />
+        <x-ds.kpi-card
+            icon="bi-people"
+            label="Active Wallets"
+            :value="number_format($stats['total_wallets'])"
+            accent="gold"
+        />
+        <x-ds.kpi-card
+            icon="bi-arrow-down-circle"
+            label="Low Balance"
+            :value="number_format($stats['low_balance_count'])"
+            :accent="$stats['low_balance_count'] > 0 ? 'amber' : 'muted'"
+            :value-color="$stats['low_balance_count'] > 0 ? 'c-amber' : ''"
+            href="{{ route('admin.wallets.index', ['health' => 'low']) }}"
+        />
+        <x-ds.kpi-card
+            icon="bi-exclamation-triangle"
+            label="Negative Balances"
+            :value="number_format($stats['negative_count'])"
+            :accent="$stats['negative_count'] > 0 ? 'danger' : 'muted'"
+            :value-color="$stats['negative_count'] > 0 ? 'c-danger' : ''"
+            href="{{ route('admin.wallets.index', ['health' => 'critical']) }}"
+        />
+        <x-ds.kpi-card
+            icon="bi-arrow-return-left"
+            label="Pending Reimb."
+            :value="number_format($stats['pending_reimb_count'])"
+            accent="bluegray"
+            href="{{ route('admin.expense-requests.index', ['status' => 'reimbursement_pending']) }}"
+        />
+        <x-ds.kpi-card
+            icon="bi-graph-up"
+            label="Avg Balance"
+            :value="$fmt($stats['avg_balance'])"
+            accent="muted"
+            value-color="c-muted"
+        />
     </div>
 </div>
 
@@ -479,14 +440,14 @@ a.ef-wlt-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     <div class="ef-wlt-filter-row">
         <div class="ef-wlt-search-wrap">
             <i class="bi bi-search ef-wlt-search-icon"></i>
-            <input type="text" name="search" class="ef-wlt-search"
+            <input type="text" name="search" class="ef-input"
                    placeholder="Search employee name or email…"
                    value="{{ $search }}">
         </div>
         @if($health)<input type="hidden" name="health" value="{{ $health }}">@endif
-        <button type="submit" class="ef-wlt-btn-search">Search</button>
+        <button type="submit" class="ef-btn ef-btn-dark">Search</button>
         @if($search || $health)
-            <a href="{{ route('admin.wallets.index') }}" class="ef-wlt-btn-clear">
+            <a href="{{ route('admin.wallets.index') }}" class="ef-btn">
                 <i class="bi bi-x-lg me-1"></i> Clear
             </a>
         @endif
@@ -502,7 +463,7 @@ a.ef-wlt-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     <div class="ef-wlt-empty-sub">
         @if($search || $health)
             Try different filters or
-            <a href="{{ route('admin.wallets.index') }}" style="color:var(--ef-gold)">clear all filters</a>.
+            <a href="{{ route('admin.wallets.index') }}" style="color:var(--ef-emerald)">clear all filters</a>.
         @else
             Employee advance balances will appear here once created.
         @endif
@@ -576,7 +537,7 @@ a.ef-wlt-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
                 <i class="bi bi-clock-history"></i> History
             </a>
             <button type="button"
-                    class="ef-wlt-foot-btn --gold"
+                    class="ef-wlt-foot-btn --primary"
                     data-bs-toggle="modal"
                     data-bs-target="#fundModal"
                     data-user-id="{{ $user->id }}"
@@ -665,8 +626,7 @@ a.ef-wlt-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
                     <button type="button" class="ef-btn" data-bs-dismiss="modal">
                         Cancel
                     </button>
-                    <button type="submit"
-                            style="background:var(--ef-gold);color:#fff;border:none;border-radius:8px;padding:.5rem 1.3rem;font-size:.875rem;font-weight:700;cursor:pointer;transition:background .18s">
+                    <button type="submit" class="ef-btn ef-btn-dark">
                         Record Transaction
                     </button>
                 </div>

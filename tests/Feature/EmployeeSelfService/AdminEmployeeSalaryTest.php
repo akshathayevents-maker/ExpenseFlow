@@ -301,3 +301,122 @@ test('invalid employment date range is rejected', function () {
     $response->assertSessionHasErrors('employment_end_date');
     expect(User::where('email', 'badrange@example.com')->exists())->toBeFalse();
 });
+
+// ── Salary screen UI ────────────────────────────────────────────────────
+
+test('salary page loads for an eligible employee', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $employee = User::factory()->create();
+
+    $this->actingAs($admin)->get(route('admin.employees.salaries.index', $employee))
+        ->assertOk()
+        ->assertSee($employee->name)
+        ->assertSee($employee->email);
+});
+
+test('salary page shows the current salary amount and effective date', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $employee = User::factory()->create();
+
+    $this->actingAs($admin)->post(route('admin.employees.salaries.store', $employee), [
+        'monthly_salary' => 27500, 'effective_from' => '2026-02-01',
+    ]);
+
+    $this->actingAs($admin)->get(route('admin.employees.salaries.index', $employee))
+        ->assertOk()
+        ->assertSee('27,500.00')
+        ->assertSee('01 Feb 2026');
+});
+
+test('salary page shows salary history entries', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $employee = User::factory()->create();
+
+    $this->actingAs($admin)->post(route('admin.employees.salaries.store', $employee), [
+        'monthly_salary' => 30000, 'effective_from' => '2026-01-01',
+    ]);
+    $this->actingAs($admin)->post(route('admin.employees.salaries.store', $employee), [
+        'monthly_salary' => 35000, 'effective_from' => '2026-06-01',
+    ]);
+
+    $this->actingAs($admin)->get(route('admin.employees.salaries.index', $employee))
+        ->assertOk()
+        ->assertSee('Salary History')
+        ->assertSee('30,000.00')
+        ->assertSee('35,000.00');
+});
+
+test('salary page shows a no-salary empty state and Set Salary label', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $employee = User::factory()->create();
+
+    $this->actingAs($admin)->get(route('admin.employees.salaries.index', $employee))
+        ->assertOk()
+        ->assertSee('No salary configured')
+        ->assertSee('Set Salary');
+});
+
+test('salary page shows Change Salary label once a salary already exists', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $employee = User::factory()->create();
+
+    $this->actingAs($admin)->post(route('admin.employees.salaries.store', $employee), [
+        'monthly_salary' => 30000, 'effective_from' => '2026-01-01',
+    ]);
+
+    $this->actingAs($admin)->get(route('admin.employees.salaries.index', $employee))
+        ->assertOk()
+        ->assertSee('Change Salary')
+        ->assertDontSee('Set Salary');
+});
+
+test('setting salary from the salary page redirects back to the same page with the new amount', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $employee = User::factory()->create();
+
+    $this->actingAs($admin)->post(route('admin.employees.salaries.store', $employee), [
+        'monthly_salary' => 22000, 'effective_from' => '2026-01-01',
+    ])->assertRedirect(route('admin.employees.salaries.index', $employee));
+
+    $this->actingAs($admin)->get(route('admin.employees.salaries.index', $employee))
+        ->assertOk()->assertSee('22,000.00');
+});
+
+test('changing salary from the salary page reflects the new current salary and preserves history', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $employee = User::factory()->create();
+
+    $this->actingAs($admin)->post(route('admin.employees.salaries.store', $employee), [
+        'monthly_salary' => 30000, 'effective_from' => '2026-01-01',
+    ]);
+    $this->actingAs($admin)->post(route('admin.employees.salaries.store', $employee), [
+        'monthly_salary' => 40000, 'effective_from' => '2026-07-01',
+    ]);
+
+    $this->actingAs($admin)->get(route('admin.employees.salaries.index', $employee))
+        ->assertOk()
+        ->assertSee('40,000.00') // current
+        ->assertSee('30,000.00'); // history
+});
+
+test('salary page markup does not force a wide fixed-width table on mobile', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $employee = User::factory()->create();
+
+    $response = $this->actingAs($admin)->get(route('admin.employees.salaries.index', $employee));
+    $response->assertOk();
+
+    $html = $response->getContent();
+    // Mobile stacked-card list must be present, and the table wrapper must
+    // be hidden below the 576px breakpoint (display:none via CSS class),
+    // not a table forced to overflow the viewport.
+    expect($html)->toContain('sal-hist-cards');
+    expect($html)->toContain('sal-hist-table-wrap');
+});
+
+test('non-admin cannot open the salary page UI', function () {
+    $manager = User::factory()->create(['role' => 'manager']);
+    $employee = User::factory()->create();
+
+    $this->actingAs($manager)->get(route('admin.employees.salaries.index', $employee))->assertForbidden();
+});

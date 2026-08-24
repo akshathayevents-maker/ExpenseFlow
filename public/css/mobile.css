@@ -498,10 +498,14 @@ nav[role="navigation"] {
     min-height: 44px !important;
 }
 
-/* ── 23. Sidebar overlay: ensure proper stacking ──────────────── */
-
-#sidebar { z-index: 1055; }
-#sidebar-overlay { z-index: 1050; }
+/* ── 23. Sidebar/backdrop z-index: single source of truth ────────
+   #sidebar and #sidebar-overlay z-index is set ONLY in
+   admin-layout.blade.php (--ef-z-sidebar / --ef-z-sidebar-backdrop).
+   This file must never re-declare it — a second, independently-edited
+   value here is exactly what silently drifted out of sync with the
+   layout file and coincided with Bootstrap's own default .modal
+   z-index (1055) by accident. Page-level sticky bars below (all
+   capped at 1040) stay safely under the drawer's scale. ─────────── */
 
 /* ── 24. Bottom nav overlap: lift sticky CTAs above nav ─────────── */
 

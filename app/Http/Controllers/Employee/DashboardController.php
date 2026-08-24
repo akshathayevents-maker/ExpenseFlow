@@ -4,18 +4,25 @@ namespace App\Http\Controllers\Employee;
 
 use App\Http\Controllers\Controller;
 use App\Models\ExpenseRequest;
+use App\Services\EmployeeAttendanceService;
 use App\Services\WalletService;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function __construct(private WalletService $walletService) {}
+    public function __construct(
+        private WalletService $walletService,
+        private EmployeeAttendanceService $attendanceService,
+    ) {}
 
     public function index(): View
     {
         $user   = auth()->user();
         $userId = $user->id;
         $wallet = $this->walletService->getOrCreate($user);
+        $todayAttendance = $this->attendanceService->getToday($user);
+        $todayIsNonWorking = $this->attendanceService->isTodayNonWorking();
+        $todayCategory = $this->attendanceService->todayCategory();
 
         $stats = [
             'my_requests'            => ExpenseRequest::where('requested_by', $userId)->count(),
@@ -40,6 +47,6 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
-        return view('employee.dashboard', compact('stats', 'recentRequests'));
+        return view('employee.dashboard', compact('stats', 'recentRequests', 'todayAttendance', 'todayIsNonWorking', 'todayCategory'));
     }
 }

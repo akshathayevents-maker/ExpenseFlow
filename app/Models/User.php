@@ -24,6 +24,8 @@ class User extends Authenticatable
         'phone',
         'email',
         'password',
+        'employment_start_date',
+        'employment_end_date',
     ];
 
     protected $hidden = [
@@ -34,9 +36,11 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
-            'is_active'         => 'boolean',
+            'email_verified_at'     => 'datetime',
+            'password'              => 'hashed',
+            'is_active'             => 'boolean',
+            'employment_start_date' => 'date',
+            'employment_end_date'   => 'date',
         ];
     }
 
@@ -73,5 +77,65 @@ class User extends Authenticatable
     public function unreadNotificationsCount(): int
     {
         return $this->hasMany(AppNotification::class)->whereNull('read_at')->count();
+    }
+
+    // ── Employee Self-Service ────────────────────────────────────────────
+
+    public function salaries(): HasMany
+    {
+        return $this->hasMany(EmployeeSalary::class);
+    }
+
+    // $date required deliberately — "today" is a business-timezone decision
+    // made by BusinessClock in the service layer, never assumed here.
+    public function currentSalaryAsOf(\Carbon\Carbon $date): ?EmployeeSalary
+    {
+        // whereDate (not where) — some drivers (SQLite) store a DATE-cast
+        // column with a "00:00:00" time suffix, which breaks plain string
+        // <=/>= comparison against a bare Y-m-d value. whereDate wraps both
+        // sides in SQL date() and is correct on every supported driver.
+        return $this->salaries()
+            ->whereDate('effective_from', '<=', $date->toDateString())
+            ->where(function ($q) use ($date) {
+                $q->whereNull('effective_to')
+                  ->orWhereDate('effective_to', '>=', $date->toDateString());
+            })
+            ->orderByDesc('effective_from')
+            ->first();
+    }
+
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(EmployeeAttendance::class);
+    }
+
+    public function leaveAllocations(): HasMany
+    {
+        return $this->hasMany(EmployeeLeaveAllocation::class);
+    }
+
+    public function leaveLedgerEntries(): HasMany
+    {
+        return $this->hasMany(EmployeeLeaveLedger::class);
+    }
+
+    public function leaveRequests(): HasMany
+    {
+        return $this->hasMany(LeaveRequest::class);
+    }
+
+    public function advances(): HasMany
+    {
+        return $this->hasMany(EmployeeAdvance::class);
+    }
+
+    public function overtimeRecords(): HasMany
+    {
+        return $this->hasMany(EmployeeOvertime::class);
+    }
+
+    public function attendanceRegularizations(): HasMany
+    {
+        return $this->hasMany(EmployeeAttendanceRegularization::class);
     }
 }

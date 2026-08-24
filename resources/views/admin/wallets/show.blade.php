@@ -7,14 +7,12 @@
    Design language: executive fintech operations (matches dashboard)
    ═══════════════════════════════════════════════════════════════════ */
 
+/* No page-local design tokens here — this page reuses the application's
+   existing global tokens (--ef-emerald/gold/danger/warning/radius/ease,
+   defined once in resources/css/app.css) rather than declaring a second,
+   independently-editable set of the same values under a different name. */
 :root {
-    --wfin-grad:     linear-gradient(135deg, #041b14 0%, #052e21 45%, #02110c 100%);
-    --wfin-emerald:  #0F7B5F;
-    --wfin-gold:     #B8893E;
-    --wfin-danger:   #C84B44;
-    --wfin-amber:    #D89A3D;
-    --wfin-radius:   16px;
-    --wfin-ease:     cubic-bezier(.2,.7,.2,1);
+    --wfin-grad: linear-gradient(135deg, #041b14 0%, #052e21 45%, #02110c 100%);
 }
 
 /* ── Hero ──────────────────────────────────────────────────────────── */
@@ -129,7 +127,7 @@
     gap: 7px;
     padding: 8px 15px;
     text-decoration: none;
-    transition: background .18s var(--wfin-ease), color .18s var(--wfin-ease), transform .14s var(--wfin-ease);
+    transition: background .18s var(--ef-ease), color .18s var(--ef-ease), transform .14s var(--ef-ease);
     white-space: nowrap;
 }
 .ef-wfin-btn:hover {
@@ -140,8 +138,8 @@
 .ef-wfin-btn:active { transform: scale(.97); }
 
 .ef-wfin-btn.--credit {
-    background: var(--wfin-emerald);
-    border-color: var(--wfin-emerald);
+    background: var(--ef-emerald);
+    border-color: var(--ef-emerald);
     color: #fff;
 }
 .ef-wfin-btn.--credit:hover {
@@ -222,7 +220,7 @@
 .ef-wfin-health-bar-fill {
     border-radius: 4px;
     height: 100%;
-    transition: width .6s var(--wfin-ease);
+    transition: width .6s var(--ef-ease);
     width: var(--bar-w, 100%);
 }
 .ef-wfin-health-bar-fill.--healthy { background: linear-gradient(90deg, #0D9E78, #4ade80); }
@@ -288,7 +286,7 @@
 .ef-wfin-profile {
     background: var(--ef-surface);
     border: 1px solid var(--ef-border);
-    border-radius: var(--wfin-radius);
+    border-radius: var(--ef-radius);
     box-shadow: var(--ef-shadow);
     overflow: hidden;
 }
@@ -403,7 +401,7 @@
 .ef-wfin-filters {
     background: var(--ef-surface);
     border: 1px solid var(--ef-border);
-    border-radius: var(--wfin-radius);
+    border-radius: var(--ef-radius);
     box-shadow: var(--ef-shadow);
     overflow: hidden;
 }
@@ -594,7 +592,7 @@
 .ef-wfin-ledger {
     background: var(--ef-surface);
     border: 1px solid var(--ef-border);
-    border-radius: var(--wfin-radius);
+    border-radius: var(--ef-radius);
     box-shadow: var(--ef-shadow);
     overflow: hidden;
 }
@@ -631,7 +629,7 @@
     gap: 12px;
     grid-template-columns: 40px 1fr auto;
     padding: 14px 18px;
-    transition: background .12s var(--wfin-ease);
+    transition: background .12s var(--ef-ease);
 }
 .ef-wfin-entry:last-child { border-bottom: none; }
 .ef-wfin-entry:hover { background: rgba(15,123,95,.015); }

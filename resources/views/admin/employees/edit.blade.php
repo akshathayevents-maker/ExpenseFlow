@@ -62,6 +62,22 @@
                     @error('role') <div class="ef-field-error">{{ $message }}</div> @enderror
                 </div>
 
+                <div>
+                    <label class="ef-label" for="employment_start_date">Employment Start Date</label>
+                    <input type="date" id="employment_start_date" name="employment_start_date"
+                           class="ef-input @error('employment_start_date') --error @enderror"
+                           value="{{ old('employment_start_date', optional($employee->employment_start_date)->toDateString()) }}">
+                    @error('employment_start_date') <div class="ef-field-error">{{ $message }}</div> @enderror
+                </div>
+
+                <div>
+                    <label class="ef-label" for="employment_end_date">Employment End Date</label>
+                    <input type="date" id="employment_end_date" name="employment_end_date"
+                           class="ef-input @error('employment_end_date') --error @enderror"
+                           value="{{ old('employment_end_date', optional($employee->employment_end_date)->toDateString()) }}">
+                    @error('employment_end_date') <div class="ef-field-error">{{ $message }}</div> @enderror
+                </div>
+
                 <div style="grid-column:1/span 2">
                     <label class="ef-switch">
                         <input type="checkbox" id="is_active" name="is_active" value="1"

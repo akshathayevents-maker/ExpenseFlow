@@ -6,7 +6,11 @@ use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\DailyClosingController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EmployeeController;
+use App\Http\Controllers\Admin\EmployeeSalaryController;
 use App\Http\Controllers\Admin\ExpenseRequestController as AdminExpenseRequestController;
+use App\Http\Controllers\Admin\AdvanceController as AdminAdvanceController;
+use App\Http\Controllers\Admin\AttendanceRegularizationController as AdminAttendanceRegularizationController;
+use App\Http\Controllers\Admin\OvertimeController as AdminOvertimeController;
 use App\Http\Controllers\Admin\Inventory\InventoryBillController;
 use App\Http\Controllers\Admin\Inventory\InventoryCategoryController;
 use App\Http\Controllers\Admin\Inventory\InventoryItemController;
@@ -17,11 +21,19 @@ use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\VendorController;
 use App\Http\Controllers\Admin\WalletController;
+use App\Http\Controllers\Employee\AdvanceController as EmployeeAdvanceController;
+use App\Http\Controllers\Employee\AttendanceController as EmployeeAttendanceController;
+use App\Http\Controllers\Employee\AttendanceRegularizationController as EmployeeAttendanceRegularizationController;
 use App\Http\Controllers\Employee\DashboardController as EmployeeDashboardController;
 use App\Http\Controllers\Employee\ExpenseRequestController as EmployeeExpenseRequestController;
+use App\Http\Controllers\Employee\LeaveController as EmployeeLeaveController;
+use App\Http\Controllers\Employee\OvertimeController as EmployeeOvertimeController;
 use App\Http\Controllers\Employee\WalletController as EmployeeWalletController;
 use App\Http\Controllers\Manager\DashboardController as ManagerDashboardController;
 use App\Http\Controllers\Manager\ExpenseRequestController as ManagerExpenseRequestController;
+use App\Http\Controllers\Manager\AdvanceController as ManagerAdvanceController;
+use App\Http\Controllers\Manager\AttendanceRegularizationController as ManagerAttendanceRegularizationController;
+use App\Http\Controllers\Manager\OvertimeController as ManagerOvertimeController;
 use App\Http\Controllers\Hall\HallBookingController;
 use App\Http\Controllers\Hall\HallDashboardController;
 use App\Http\Controllers\Hall\HallReportController;
@@ -59,6 +71,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'role.ad
     Route::resource('employees', EmployeeController::class);
     Route::patch('employees/{employee}/toggle-status', [EmployeeController::class, 'toggleStatus'])
         ->name('employees.toggle-status');
+    Route::get('salaries', [EmployeeSalaryController::class, 'listAll'])
+        ->name('salaries.index');
+    Route::get('employees/{employee}/salaries', [EmployeeSalaryController::class, 'index'])
+        ->name('employees.salaries.index');
+    Route::post('employees/{employee}/salaries', [EmployeeSalaryController::class, 'store'])
+        ->name('employees.salaries.store');
 
     // Categories
     Route::resource('categories', CategoryController::class)->except(['show']);
@@ -84,6 +102,24 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'role.ad
     Route::patch('expense-requests/{expenseRequest}/reimburse', [AdminExpenseRequestController::class, 'reimburse'])->name('expense-requests.reimburse');
     Route::patch('expense-requests/{expenseRequest}/mark-completed', [AdminExpenseRequestController::class, 'markCompleted'])->name('expense-requests.mark-completed');
     Route::delete('expense-requests/{expenseRequest}', [AdminExpenseRequestController::class, 'destroy'])->name('expense-requests.destroy');
+
+    Route::get('overtime', [AdminOvertimeController::class, 'index'])->name('overtime.index');
+    Route::get('overtime/create', [AdminOvertimeController::class, 'create'])->name('overtime.create');
+    Route::post('overtime', [AdminOvertimeController::class, 'store'])->name('overtime.store');
+    Route::get('overtime/{overtime}', [AdminOvertimeController::class, 'show'])->name('overtime.show');
+    Route::patch('overtime/{overtime}/approve', [AdminOvertimeController::class, 'approve'])->name('overtime.approve');
+    Route::patch('overtime/{overtime}/reject', [AdminOvertimeController::class, 'reject'])->name('overtime.reject');
+
+    Route::get('attendance-regularizations', [AdminAttendanceRegularizationController::class, 'index'])->name('attendance-regularizations.index');
+    Route::patch('attendance-regularizations/{regularization}/approve', [AdminAttendanceRegularizationController::class, 'approve'])->name('attendance-regularizations.approve');
+    Route::patch('attendance-regularizations/{regularization}/reject', [AdminAttendanceRegularizationController::class, 'reject'])->name('attendance-regularizations.reject');
+
+    Route::get('advances', [AdminAdvanceController::class, 'index'])->name('advances.index');
+    Route::get('advances/{advance}', [AdminAdvanceController::class, 'show'])->name('advances.show');
+    Route::patch('advances/{advance}/approve', [AdminAdvanceController::class, 'approve'])->name('advances.approve');
+    Route::patch('advances/{advance}/reject', [AdminAdvanceController::class, 'reject'])->name('advances.reject');
+    Route::patch('advances/{advance}/disburse', [AdminAdvanceController::class, 'disburse'])->name('advances.disburse');
+    Route::post('advances/{advance}/repayment', [AdminAdvanceController::class, 'recordRepayment'])->name('advances.repayment.store');
 
     // Wallets
     Route::get('wallets', [WalletController::class, 'index'])->name('wallets.index');
@@ -188,10 +224,26 @@ Route::prefix('manager')->name('manager.')->middleware(['auth', 'verified', 'rol
     Route::get('expense-requests/{expenseRequest}', [ManagerExpenseRequestController::class, 'show'])->name('expense-requests.show');
     Route::patch('expense-requests/{expenseRequest}/approve', [ManagerExpenseRequestController::class, 'approve'])->name('expense-requests.approve');
     Route::patch('expense-requests/{expenseRequest}/reject', [ManagerExpenseRequestController::class, 'reject'])->name('expense-requests.reject');
+
+    Route::get('overtime', [ManagerOvertimeController::class, 'index'])->name('overtime.index');
+    Route::get('overtime/{overtime}', [ManagerOvertimeController::class, 'show'])->name('overtime.show');
+    Route::patch('overtime/{overtime}/approve', [ManagerOvertimeController::class, 'approve'])->name('overtime.approve');
+    Route::patch('overtime/{overtime}/reject', [ManagerOvertimeController::class, 'reject'])->name('overtime.reject');
+
+    Route::get('attendance-regularizations', [ManagerAttendanceRegularizationController::class, 'index'])->name('attendance-regularizations.index');
+    Route::patch('attendance-regularizations/{regularization}/approve', [ManagerAttendanceRegularizationController::class, 'approve'])->name('attendance-regularizations.approve');
+    Route::patch('attendance-regularizations/{regularization}/reject', [ManagerAttendanceRegularizationController::class, 'reject'])->name('attendance-regularizations.reject');
+
+    Route::get('advances', [ManagerAdvanceController::class, 'index'])->name('advances.index');
+    Route::get('advances/{advance}', [ManagerAdvanceController::class, 'show'])->name('advances.show');
+    Route::patch('advances/{advance}/approve', [ManagerAdvanceController::class, 'approve'])->name('advances.approve');
+    Route::patch('advances/{advance}/reject', [ManagerAdvanceController::class, 'reject'])->name('advances.reject');
+    Route::patch('advances/{advance}/disburse', [ManagerAdvanceController::class, 'disburse'])->name('advances.disburse');
+    Route::post('advances/{advance}/repayment', [ManagerAdvanceController::class, 'recordRepayment'])->name('advances.repayment.store');
 });
 
 // ── Employee ──────────────────────────────────────────────────────────────────
-Route::prefix('employee')->name('employee.')->middleware(['auth', 'verified'])->group(function () {
+Route::prefix('employee')->name('employee.')->middleware(['auth', 'verified', 'attendance.marked'])->group(function () {
     Route::get('/dashboard', [EmployeeDashboardController::class, 'index'])->name('dashboard');
 
     Route::get('expense-requests', [EmployeeExpenseRequestController::class, 'index'])->name('expense-requests.index');
@@ -199,6 +251,33 @@ Route::prefix('employee')->name('employee.')->middleware(['auth', 'verified'])->
     Route::post('expense-requests', [EmployeeExpenseRequestController::class, 'store'])->name('expense-requests.store');
     Route::get('expense-requests/{expenseRequest}/success', [EmployeeExpenseRequestController::class, 'success'])->name('expense-requests.success');
     Route::get('expense-requests/{expenseRequest}', [EmployeeExpenseRequestController::class, 'show'])->name('expense-requests.show');
+
+    Route::get('attendance', [EmployeeAttendanceController::class, 'index'])->name('attendance.index');
+    Route::post('attendance/mark-present', [EmployeeAttendanceController::class, 'markPresent'])->name('attendance.mark-present');
+    Route::post('attendance/mark-half-day', [EmployeeAttendanceController::class, 'markHalfDay'])->name('attendance.mark-half-day');
+
+    Route::get('attendance-regularizations/create', [EmployeeAttendanceRegularizationController::class, 'create'])->name('attendance-regularizations.create');
+    Route::post('attendance-regularizations', [EmployeeAttendanceRegularizationController::class, 'store'])->name('attendance-regularizations.store');
+    Route::get('attendance-regularizations/{regularization}', [EmployeeAttendanceRegularizationController::class, 'show'])->name('attendance-regularizations.show');
+    Route::patch('attendance-regularizations/{regularization}/cancel', [EmployeeAttendanceRegularizationController::class, 'cancel'])->name('attendance-regularizations.cancel');
+
+    Route::get('advances', [EmployeeAdvanceController::class, 'index'])->name('advances.index');
+    Route::get('advances/create', [EmployeeAdvanceController::class, 'create'])->name('advances.create');
+    Route::post('advances', [EmployeeAdvanceController::class, 'store'])->name('advances.store');
+    Route::get('advances/{advance}', [EmployeeAdvanceController::class, 'show'])->name('advances.show');
+    Route::patch('advances/{advance}/cancel', [EmployeeAdvanceController::class, 'cancel'])->name('advances.cancel');
+
+    Route::get('leave', [EmployeeLeaveController::class, 'index'])->name('leave.index');
+    Route::get('leave/create', [EmployeeLeaveController::class, 'create'])->name('leave.create');
+    Route::post('leave', [EmployeeLeaveController::class, 'store'])->name('leave.store');
+    Route::get('leave/{leaveRequest}', [EmployeeLeaveController::class, 'show'])->name('leave.show');
+    Route::patch('leave/{leaveRequest}/cancel', [EmployeeLeaveController::class, 'cancel'])->name('leave.cancel');
+
+    Route::get('overtime', [EmployeeOvertimeController::class, 'index'])->name('overtime.index');
+    Route::get('overtime/create', [EmployeeOvertimeController::class, 'create'])->name('overtime.create');
+    Route::post('overtime', [EmployeeOvertimeController::class, 'store'])->name('overtime.store');
+    Route::get('overtime/{overtime}', [EmployeeOvertimeController::class, 'show'])->name('overtime.show');
+    Route::patch('overtime/{overtime}/cancel', [EmployeeOvertimeController::class, 'cancel'])->name('overtime.cancel');
 
     Route::get('wallet', [EmployeeWalletController::class, 'show'])->name('wallet.show');
 

@@ -315,6 +315,14 @@ test('reports can filter by booking_type', function () {
 
 test('employee calendar events endpoint strips financial fields', function () {
     $employee = makeUser('employee');
+    // The attendance-first gate (EnsureAttendanceMarked) applies to every
+    // employee.* route except attendance/regularization itself — mark
+    // today's attendance so this test can act as a normal logged-in
+    // employee, matching real post-login flow.
+    \App\Models\EmployeeAttendance::create([
+        'user_id' => $employee->id, 'attendance_date' => \Carbon\Carbon::now('Asia/Kolkata')->toDateString(),
+        'status' => 'present', 'marked_by' => $employee->id, 'marked_at' => now(), 'source' => 'self',
+    ]);
     $hall = makeHall();
 
     HallBooking::create(baseBookingData([

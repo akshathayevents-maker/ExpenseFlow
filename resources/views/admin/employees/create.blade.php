@@ -606,6 +606,27 @@
                             @enderror
                         </div>
                     </div>
+
+                    <div class="ef-emp-row">
+                        <div class="ef-emp-field">
+                            <label class="ef-emp-label" for="employment_start_date">Employment Start Date</label>
+                            <input type="date" id="employment_start_date" name="employment_start_date"
+                                   class="ef-emp-input @error('employment_start_date') --invalid @enderror"
+                                   value="{{ old('employment_start_date') }}">
+                            @error('employment_start_date')
+                                <div class="ef-emp-error">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="ef-emp-field">
+                            <label class="ef-emp-label" for="employment_end_date">Employment End Date</label>
+                            <input type="date" id="employment_end_date" name="employment_end_date"
+                                   class="ef-emp-input @error('employment_end_date') --invalid @enderror"
+                                   value="{{ old('employment_end_date') }}">
+                            @error('employment_end_date')
+                                <div class="ef-emp-error">{{ $message }}</div>
+                            @enderror
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

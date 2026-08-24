@@ -48,3 +48,19 @@ function something()
 {
     // ..
 }
+
+// LeaveRequest::status/reviewed_by/reviewed_at/review_note are server-only
+// and excluded from $fillable — fixtures across multiple test files need to
+// set them directly (e.g. a pre-approved leave request), so this shared
+// helper does the fill()+forceFill()+save() split once instead of repeating
+// it at every call site.
+function hardenedLeaveRequest(array $attrs): \App\Models\LeaveRequest
+{
+    $fillableKeys = ['user_id', 'leave_type_id', 'start_date', 'end_date', 'is_half_day', 'half_day_period', 'days_requested', 'reason'];
+    $leaveRequest = new \App\Models\LeaveRequest();
+    $leaveRequest->fill(array_intersect_key($attrs, array_flip($fillableKeys)));
+    $leaveRequest->forceFill(array_diff_key($attrs, array_flip($fillableKeys)));
+    $leaveRequest->save();
+
+    return $leaveRequest;
+}

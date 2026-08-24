@@ -51,7 +51,10 @@ class EmployeeController extends Controller
 
     public function show(User $employee): View
     {
-        return view('admin.employees.show', compact('employee'));
+        $currentSalary = $employee->currentSalaryAsOf(now());
+        $salaryHistory = $employee->salaries()->orderByDesc('effective_from')->limit(5)->get();
+
+        return view('admin.employees.show', compact('employee', 'currentSalary', 'salaryHistory'));
     }
 
     public function store(StoreEmployeeRequest $request): RedirectResponse
@@ -61,10 +64,12 @@ class EmployeeController extends Controller
         // role/is_active are not in User::$fillable (prevents mass-assignment via
         // other endpoints). Explicit assignment is required here for authorized admin action.
         $user = User::create([
-            'name'     => $data['name'],
-            'email'    => $data['email'],
-            'phone'    => $data['phone'] ?? null,
-            'password' => $data['password'],
+            'name'                   => $data['name'],
+            'email'                  => $data['email'],
+            'phone'                  => $data['phone'] ?? null,
+            'password'               => $data['password'],
+            'employment_start_date'  => $data['employment_start_date'] ?? null,
+            'employment_end_date'    => $data['employment_end_date'] ?? null,
         ]);
         $user->role      = $data['role'];
         $user->is_active = $data['is_active'] ?? true;
@@ -84,9 +89,11 @@ class EmployeeController extends Controller
         $data = $request->validated();
 
         // Explicitly assign fillable fields only
-        $employee->name  = $data['name'];
-        $employee->email = $data['email'];
-        $employee->phone = $data['phone'] ?? null;
+        $employee->name                  = $data['name'];
+        $employee->email                 = $data['email'];
+        $employee->phone                 = $data['phone'] ?? null;
+        $employee->employment_start_date = $data['employment_start_date'] ?? null;
+        $employee->employment_end_date   = $data['employment_end_date'] ?? null;
 
         if (! empty($data['password'])) {
             $employee->password = $data['password'];

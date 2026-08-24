@@ -14,6 +14,31 @@ class EmployeeSalaryController extends Controller
 {
     public function __construct(private EmployeeSalaryService $service) {}
 
+    // Global "Employee Salaries" list — the actual discoverable entry point
+    // for Compensation / Payroll. role.admin middleware (applied to the
+    // whole admin route group) is the only guard needed here, same as
+    // EmployeeController::index; manageSalary is checked per-employee below,
+    // on the per-employee index()/store() actions.
+    public function listAll(\Illuminate\Http\Request $request): View
+    {
+        $search = $request->get('search', '');
+
+        $employees = User::whereIn('role', ['employee', 'manager'])
+            ->when($search, fn ($q) => $q->where(fn ($q) => $q
+                ->where('name', 'ilike', "%{$search}%")
+                ->orWhere('email', 'ilike', "%{$search}%")
+            ))
+            ->orderBy('name')
+            ->paginate(20)
+            ->withQueryString();
+
+        $now = now();
+        $currentSalaries = $employees->getCollection()
+            ->mapWithKeys(fn (User $employee) => [$employee->id => $employee->currentSalaryAsOf($now)]);
+
+        return view('admin.salaries.index', compact('employees', 'currentSalaries', 'search'));
+    }
+
     public function index(User $employee): View
     {
         $this->authorize('manageSalary', $employee);

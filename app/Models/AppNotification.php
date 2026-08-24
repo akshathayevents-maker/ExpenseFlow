@@ -44,6 +44,8 @@ class AppNotification extends Model
             'payment_recorded'  => ['icon' => 'bi-credit-card-fill',   'color' => 'info'],
             'pending_reminder'  => ['icon' => 'bi-clock-fill',         'color' => 'warning'],
             'daily_summary'     => ['icon' => 'bi-bar-chart-fill',     'color' => 'secondary'],
+            'overtime_approved' => ['icon' => 'bi-check-circle-fill', 'color' => 'success'],
+            'overtime_rejected' => ['icon' => 'bi-x-circle-fill',     'color' => 'danger'],
         ];
     }
 }

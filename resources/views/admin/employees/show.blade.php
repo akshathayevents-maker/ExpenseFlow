@@ -42,6 +42,12 @@
 
                         <dt class="col-sm-3">Joined</dt>
                         <dd class="col-sm-9">{{ $employee->created_at->format('M d, Y') }}</dd>
+
+                        <dt class="col-sm-3">Employment Start</dt>
+                        <dd class="col-sm-9">{{ optional($employee->employment_start_date)->format('M d, Y') ?? 'N/A' }}</dd>
+
+                        <dt class="col-sm-3">Employment End</dt>
+                        <dd class="col-sm-9">{{ optional($employee->employment_end_date)->format('M d, Y') ?? 'N/A' }}</dd>
                     </dl>
                 </div>
             </div>
@@ -79,6 +85,54 @@
                         </button>
                     </form>
                 </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm" style="border-radius:14px;overflow:hidden">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center" style="border:none">
+                    <h5 class="mb-0"><i class="bi bi-cash-coin me-1"></i> Compensation</h5>
+                </div>
+                <div class="card-body">
+                    @if($currentSalary)
+                        <div class="text-uppercase text-muted small fw-bold" style="letter-spacing:.04em">Current Monthly Salary</div>
+                        <div class="fw-bold" style="font-size:1.7rem">₹{{ number_format((float) $currentSalary->monthly_salary, 2) }}</div>
+
+                        <div class="text-uppercase text-muted small fw-bold mt-3" style="letter-spacing:.04em">Effective From</div>
+                        <div class="fw-semibold">{{ $currentSalary->effective_from->format('d M Y') }}</div>
+
+                        <a href="{{ route('admin.employees.salaries.index', $employee) }}" class="btn btn-primary w-100 mt-3">
+                            <i class="bi bi-pencil"></i> Change Salary
+                        </a>
+                    @else
+                        <div class="text-center py-3">
+                            <i class="bi bi-cash-stack text-muted" style="font-size:1.8rem"></i>
+                            <p class="text-muted mt-2 mb-3">No salary configured</p>
+                            <a href="{{ route('admin.employees.salaries.index', $employee) }}" class="btn btn-primary w-100">
+                                <i class="bi bi-plus-lg"></i> Set Employee Salary
+                            </a>
+                        </div>
+                    @endif
+                </div>
+
+                @if($salaryHistory->isNotEmpty())
+                <div class="card-footer bg-white">
+                    <div class="text-uppercase text-muted small fw-bold mb-2" style="letter-spacing:.04em">Salary History</div>
+                    <table class="table table-sm mb-0">
+                        <tbody>
+                            @foreach($salaryHistory as $salary)
+                            <tr>
+                                <td class="text-muted" style="white-space:nowrap">{{ $salary->effective_from->format('d M Y') }}</td>
+                                <td class="text-end fw-semibold">₹{{ number_format((float) $salary->monthly_salary, 2) }}</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                    @if($employee->salaries()->count() > $salaryHistory->count())
+                    <a href="{{ route('admin.employees.salaries.index', $employee) }}" class="small">View full history &rarr;</a>
+                    @endif
+                </div>
+                @endif
             </div>
         </div>
     </div>
