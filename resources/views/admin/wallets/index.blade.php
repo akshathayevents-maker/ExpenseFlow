@@ -158,11 +158,14 @@
     justify-content: space-between; gap: .6rem;
 }
 .ef-wlt-avatar-wrap { display: flex; gap: .7rem; align-items: center; min-width: 0; }
+/* Avatar — identical treatment to Employees' .ef-emp-avatar (single
+   emerald gradient, 12px radius). Reused as-is, not a wallet-specific
+   multi-color scheme. */
 .ef-wlt-avatar {
-    width: 40px; height: 40px; border-radius: 10px;
+    width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+    background: linear-gradient(135deg, #1a6645, #22845a);
+    color: #fff; font-size: .78rem; font-weight: 780; letter-spacing: .02em;
     display: flex; align-items: center; justify-content: center;
-    font-size: .88rem; font-weight: 700; color: #fff;
-    flex-shrink: 0; letter-spacing: .02em;
 }
 .ef-wlt-emp-name {
     font-size: .9rem; font-weight: 700; color: var(--ef-ink);
@@ -174,14 +177,9 @@
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     max-width: 140px;
 }
-.ef-wlt-role-badge {
-    font-size: .65rem; font-weight: 700; letter-spacing: .04em;
-    text-transform: uppercase; border-radius: 5px;
-    padding: .15rem .5rem; white-space: nowrap; flex-shrink: 0;
-}
-.ef-wlt-role-badge.--employee { background: rgba(47,111,237,.09); color: var(--ef-info); border: 1px solid rgba(47,111,237,.2); }
-.ef-wlt-role-badge.--manager  { background: rgba(184,137,62,.1);  color: var(--ef-gold); border: 1px solid rgba(184,137,62,.2); }
-.ef-wlt-role-badge.--admin    { background: rgba(119,115,106,.1); color: var(--ef-ink-2); border: 1px solid rgba(119,115,106,.18); }
+/* Role badge — no page-local styling. Reuses the shared x-premium.chip
+   component (.ef-chip / [data-tone]) exactly as Employees does, so a
+   Manager/Employee badge looks identical on both pages. */
 
 /* Card body — balance */
 .ef-wlt-card-body { padding: .2rem 1.1rem .8rem; flex: 1; }
@@ -308,9 +306,8 @@
 @endpush
 
 @php
-    // Avatar tones drawn only from the application's existing design
-    // tokens — no wallet-specific/purple hues.
-    $avatarTones = ['#B8893E','#0F7B5F','#2F6FED','#0d9488','#607080','#0D5C43','#D89A3D'];
+    // Role badge tones — same mapping Employees uses for x-premium.chip.
+    $roleTones = ['manager' => 'gold', 'employee' => 'neutral'];
 
     $fmt = fn(float $v): string =>
         $v >= 100000 ? '₹' . number_format($v/100000, 1) . 'L'
@@ -486,9 +483,10 @@
     @php
         $user    = $wallet->user;
         $state   = $healthState($wallet);
-        $initials = collect(explode(' ', $user->name))->map(fn($w) => strtoupper($w[0] ?? ''))->take(2)->implode('');
-        $avatarColor = $avatarTones[ord(strtoupper($user->name[0] ?? 'A')) % count($avatarTones)];
+        $nameParts = explode(' ', trim($user->name));
+        $initials  = strtoupper(substr($nameParts[0], 0, 1) . (isset($nameParts[1]) ? substr($nameParts[1], 0, 1) : ''));
         $role    = $user->role ?? 'employee';
+        $roleTone = $roleTones[$role] ?? 'neutral';
         $barPct  = $wallet->isNegative() ? 0 : min(100, round(max(0, (float)$wallet->balance) / $maxBar * 100));
         $barMod  = match($state) { 'negative' => '--negative', 'critical' => '--critical', 'low' => '--low', default => '' };
         $balMod  = match($state) { 'negative', 'critical' => '--' . $state, 'low' => '--low', default => '' };
@@ -498,13 +496,13 @@
 
         <div class="ef-wlt-card-head">
             <div class="ef-wlt-avatar-wrap">
-                <div class="ef-wlt-avatar" style="background:{{ $avatarColor }}">{{ $initials }}</div>
+                <div class="ef-wlt-avatar">{{ $initials }}</div>
                 <div style="min-width:0">
                     <div class="ef-wlt-emp-name" title="{{ $user->name }}">{{ $user->name }}</div>
                     <div class="ef-wlt-emp-email" title="{{ $user->email }}">{{ $user->email }}</div>
                 </div>
             </div>
-            <span class="ef-wlt-role-badge --{{ $role }}">{{ ucfirst($role) }}</span>
+            <x-premium.chip :tone="$roleTone">{{ ucfirst($role) }}</x-premium.chip>
         </div>
 
         <div class="ef-wlt-card-body">

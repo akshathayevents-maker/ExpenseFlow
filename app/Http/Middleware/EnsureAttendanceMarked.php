@@ -49,7 +49,22 @@ class EnsureAttendanceMarked
                 ], 409);
             }
 
-            return redirect()->route('employee.attendance.index');
+            // Remembered durably (NOT flash) so it survives the redirect to
+            // Attendance AND however long the employee takes to actually
+            // mark it — AttendanceController::markPresent()/markHalfDay()
+            // consume and clear it once used. Deliberately a distinct
+            // session key from Laravel's own 'url.intended' (used by the
+            // auth guard for pre-login redirects) — the two must never be
+            // confused, and this one is scoped purely to the attendance gate.
+            session(['attendance_gate_return_to' => $request->fullUrl()]);
+
+            // Flash (one-shot: readable only on the very next request) —
+            // this is what lets the Attendance page distinguish "I'm here
+            // because the gate just redirected me" from an ordinary visit,
+            // per the requirement to show the explanation ONLY on that
+            // specific instance, not on every later visit to this page.
+            return redirect()->route('employee.attendance.index')
+                ->with('attendance_gate_triggered', true);
         }
 
         return $next($request);

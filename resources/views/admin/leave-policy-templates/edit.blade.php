@@ -11,10 +11,11 @@
         </div>
     </div>
 
-    <x-ds.card>
-        <form method="POST" action="{{ route('admin.leave-policy-templates.update', $template) }}">
-            @csrf
-            @method('PUT')
+    <form method="POST" action="{{ route('admin.leave-policy-templates.update', $template) }}">
+        @csrf
+        @method('PUT')
+
+        <x-ds.card title="Policy Information">
             <div class="ef-form-grid ef-form-grid-1">
                 <div>
                     <label class="ef-label" for="name">Name <span style="color:var(--ef-danger)">*</span></label>
@@ -31,11 +32,17 @@
                         <input type="checkbox" name="is_active" value="1" {{ old('is_active', $template->is_active) ? 'checked' : '' }}>
                         Active (available for new assignments)
                     </label>
+                    @if($template->is_default)
+                        <div style="color:var(--ef-faint);font-size:.78rem;margin-top:4px;margin-left:24px">
+                            This is currently the default template for new employees. Manage default status from the templates list.
+                        </div>
+                    @endif
                 </div>
             </div>
+        </x-ds.card>
 
-            <hr class="ef-form-divider">
-            <h3 style="font-size:.95rem;font-weight:700;margin-bottom:8px">Leave Type Items</h3>
+        <div style="margin-top:14px">
+        <x-ds.card title="Leave Types">
             <div id="items-container">
                 @php
                     $oldItems = old('items');
@@ -53,16 +60,16 @@
             <button type="button" class="ef-btn" id="add-item-btn">
                 <i class="bi bi-plus-lg"></i> Add Leave Type
             </button>
+        </x-ds.card>
+        </div>
 
-            <hr class="ef-form-divider">
-            <div class="ef-form-actions">
-                <a href="{{ route('admin.leave-policy-templates.index') }}" class="ef-btn">Cancel</a>
-                <button type="submit" class="ef-btn ef-btn-dark">
-                    <i class="bi bi-check-lg"></i> Save Template
-                </button>
-            </div>
-        </form>
-    </x-ds.card>
+        <div class="ef-form-actions" style="margin-top:16px">
+            <a href="{{ route('admin.leave-policy-templates.index') }}" class="ef-btn">Cancel</a>
+            <button type="submit" class="ef-btn ef-btn-dark">
+                <i class="bi bi-check-lg"></i> Save Template
+            </button>
+        </div>
+    </form>
 </div>
 
 @push('scripts')

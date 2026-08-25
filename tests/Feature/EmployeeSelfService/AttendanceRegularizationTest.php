@@ -21,6 +21,22 @@ function regTestDate(): \Carbon\Carbon
     return regService()->today()->copy()->subDays(3);
 }
 
+// The `settings` table seeds a DB default of weekly_off_days = [0] (Sunday)
+// via migration (see database/migrations/2026_08_24_090003_create_holidays_table.php).
+// regTestDate() (and the ad-hoc subDay()/subDays() offsets built from it
+// further down this file) is a relative date computed from the real
+// wall-clock "today" — on any real calendar day where that offset lands on a
+// Sunday, assertRegularizable() would (correctly) reject it as a weekly-off
+// day, silently failing the regularization creation and cascading into
+// unrelated assertions. Neutralize weekly-off globally, matching the
+// established convention in AttendanceLeaveConflictTest.php's
+// alcNoWeeklyOff() helper — individual tests that need to exercise
+// weekly-off behavior explicitly call Setting::set('weekly_off_days', ...)
+// again afterward, which overrides this.
+beforeEach(function () {
+    Setting::set('weekly_off_days', '[]');
+});
+
 // ── Employee: create ─────────────────────────────────────────────────────
 
 test('employee can open regularization form', function () {

@@ -17,7 +17,12 @@ test('users can authenticate using the login screen', function () {
     ]);
 
     $this->assertAuthenticated();
-    $response->assertRedirect(route('dashboard', absolute: false));
+    // Post-login landing is role-based (see AuthenticatedSessionController::store),
+    // not the generic /dashboard route: admins/managers land on the hall booking
+    // calendar, everyone else (default role: employee) lands on their own
+    // calendar. This has been the deliberate behavior since the "added new
+    // flow" commit (143a55f, 2026-06-16) and predates this session's work.
+    $response->assertRedirect(route('employee.hall.bookings.calendar', absolute: false));
 });
 
 test('users can not authenticate with invalid password', function () {

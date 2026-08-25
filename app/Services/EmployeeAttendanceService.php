@@ -32,7 +32,8 @@ use Illuminate\Validation\ValidationException;
  *
  * 2. DISPLAY PRIORITY FOR A GIVEN DAY (highest wins):
  *      Holiday  >  Weekly Off  >  actual EmployeeAttendance row  >
- *      approved Leave (no attendance row yet)  >  Not Marked.
+ *      approved Leave (no attendance row yet)  >  pending Leave  >
+ *      Not Marked.
  *    Holiday/weekly-off outrank everything, including an existing
  *    attendance row, because the calendar fact is fixed and any
  *    conflicting historical row is itself the anomaly worth surfacing as
@@ -40,7 +41,13 @@ use Illuminate\Validation\ValidationException;
  *    row outranks approved leave because it reflects what really happened
  *    (e.g. the employee came in despite approved leave, or a correction
  *    was recorded) — approved leave is only a fallback prediction for days
- *    that have no attendance row at all.
+ *    that have no attendance row at all. A PENDING leave request outranks
+ *    "Not Marked" too, but sits below approved leave: the employee has
+ *    already asked not to be expected at work that day, so the day must
+ *    not be silently offered up as "forgot to mark, regularize?" while the
+ *    request is still awaiting a decision. Rejected/cancelled leave
+ *    requests carry no weight at all — the day falls straight through to
+ *    whatever it would have been with no leave request at all.
  *
  * 3. HALF-DAY LEAVE. LeaveRequest.is_half_day distinguishes a half-day
  *    leave request from a full-day one. When no attendance row exists for
@@ -54,8 +61,14 @@ use Illuminate\Validation\ValidationException;
  *    weekly_off are system-derived, absent has no legitimate self-request
  *    use case). A request is rejected outright, at submission AND again at
  *    approval time (a holiday could be added in between), if the date is a
- *    holiday/weekly-off or already covered by approved leave — a
- *    regularization must never silently overwrite an approved leave day.
+ *    holiday/weekly-off or already covered by an approved OR PENDING leave
+ *    request — a regularization must never silently overwrite an approved
+ *    leave day, and must never race a pending leave decision either
+ *    (approve the leave after the regularization already claimed the day,
+ *    and the day would show two conflicting truths). This is enforced in
+ *    assertRegularizable() itself, not just hidden in Blade — the browser
+ *    is never the security boundary, so a direct POST to the
+ *    regularization endpoint for such a date is rejected the same way.
  *    Approval atomically flips the regularization to 'approved' AND
  *    creates/updates the employee_attendance row in one DB transaction; if
  *    the attendance write fails, the whole approval rolls back.
@@ -162,6 +175,7 @@ class EmployeeAttendanceService
         $attendanceByDate = EmployeeAttendance::where('user_id', $user->id)
             ->whereDate('attendance_date', '>=', $monthStart->toDateString())
             ->whereDate('attendance_date', '<=', $end->toDateString())
+            ->with('leaveRequest.leaveType')
             ->get()
             ->keyBy(fn ($row) => $row->attendance_date->toDateString());
 
@@ -169,7 +183,18 @@ class EmployeeAttendanceService
             ->where('status', 'approved')
             ->whereDate('start_date', '<=', $end->toDateString())
             ->whereDate('end_date', '>=', $monthStart->toDateString())
-            ->get(['start_date', 'end_date', 'is_half_day']);
+            ->with('leaveType')
+            ->get(['id', 'leave_type_id', 'start_date', 'end_date', 'is_half_day']);
+
+        // Rejected/cancelled requests are deliberately NOT queried here —
+        // they carry no weight at all, per the class docblock's precedence
+        // rule; only pending/approved ever affect a day's status.
+        $pendingLeaveRanges = LeaveRequest::where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->whereDate('start_date', '<=', $end->toDateString())
+            ->whereDate('end_date', '>=', $monthStart->toDateString())
+            ->with('leaveType')
+            ->get(['id', 'leave_type_id', 'start_date', 'end_date', 'is_half_day']);
 
         $pendingRegularizationDates = EmployeeAttendanceRegularization::where('user_id', $user->id)
             ->where('request_status', 'pending')
@@ -184,7 +209,9 @@ class EmployeeAttendanceService
             $dateStr  = $date->toDateString();
             $category = $this->payableDaysCalculator->categoryForDate($date);
             $hasAttendance = isset($attendanceByDate[$dateStr]);
-            $leaveMatch = $this->matchingApprovedLeave($date, $approvedLeaveRanges);
+            $approvedMatch = $this->matchingLeave($date, $approvedLeaveRanges);
+            $pendingMatch  = $approvedMatch === null ? $this->matchingLeave($date, $pendingLeaveRanges) : null;
+            $leaveTypeName = null;
 
             if ($category === 'holiday') {
                 $status = 'holiday';
@@ -192,18 +219,33 @@ class EmployeeAttendanceService
                 $status = 'weekly_off';
             } elseif ($hasAttendance) {
                 $status = $attendanceByDate[$dateStr]->status;
-            } elseif ($leaveMatch !== null) {
-                $status = $leaveMatch->is_half_day ? 'half_day_leave' : 'leave';
+                // A real row written by leave approval (source='leave_approval')
+                // carries its own leave_request_id — surface that leave
+                // type name too, so "On Leave / Casual Leave" still shows
+                // once the virtual fallback below is no longer reached.
+                $leaveTypeName = $attendanceByDate[$dateStr]->leaveRequest?->leaveType?->name;
+            } elseif ($approvedMatch !== null) {
+                $status = $approvedMatch->is_half_day ? 'half_day_leave' : 'leave';
+                $leaveTypeName = $approvedMatch->leaveType?->name;
+            } elseif ($pendingMatch !== null) {
+                $status = 'leave_pending';
+                $leaveTypeName = $pendingMatch->leaveType?->name;
             } else {
                 $status = 'not_marked';
             }
 
             $canRegularize = $category === 'weekday'
                 && ! $hasAttendance
-                && $leaveMatch === null
+                && $approvedMatch === null
+                && $pendingMatch === null
                 && ! isset($pendingRegularizationDates[$dateStr]);
 
-            $days->push(['date' => $date->copy(), 'status' => $status, 'can_regularize' => $canRegularize]);
+            $days->push([
+                'date' => $date->copy(),
+                'status' => $status,
+                'leave_type_name' => $leaveTypeName,
+                'can_regularize' => $canRegularize,
+            ]);
         }
 
         return $days->reverse()->values();
@@ -232,7 +274,13 @@ class EmployeeAttendanceService
         ];
     }
 
-    private function matchingApprovedLeave(Carbon $date, Collection $ranges): ?LeaveRequest
+    /**
+     * Finds the leave request in $ranges (a pre-filtered, single-status
+     * collection — approved OR pending, never mixed) whose date range
+     * covers $date. Generic over status so the same date-matching logic
+     * serves both the approved and pending lookups above without drift.
+     */
+    private function matchingLeave(Carbon $date, Collection $ranges): ?LeaveRequest
     {
         // Compare by calendar date string, not Carbon instant — start_date/
         // end_date are cast dates at UTC midnight, while $date is midnight in
@@ -420,18 +468,22 @@ class EmployeeAttendanceService
      * apart. Returns:
      *   date, is_future, category (weekday|weekend|holiday),
      *   attendance (?EmployeeAttendance), has_approved_leave (bool),
+     *   approved_leave (?LeaveRequest), has_pending_leave (bool),
+     *   pending_leave (?LeaveRequest),
      *   pending_regularization (?EmployeeAttendanceRegularization),
      *   eligible (bool), block_reason (?string).
      */
     public function getAttendanceDayState(User $user, Carbon $date): array
     {
-        $isFuture         = $date->gt($this->today());
-        $category         = $this->payableDaysCalculator->categoryForDate($date);
-        $attendance       = EmployeeAttendance::where('user_id', $user->id)
+        $isFuture      = $date->gt($this->today());
+        $category      = $this->payableDaysCalculator->categoryForDate($date);
+        $attendance    = EmployeeAttendance::where('user_id', $user->id)
             ->whereDate('attendance_date', $date->toDateString())
+            ->with('leaveRequest.leaveType')
             ->first();
-        $hasApprovedLeave = $this->hasApprovedLeave($user, $date);
-        $pending          = EmployeeAttendanceRegularization::where('user_id', $user->id)
+        $approvedLeave = $this->matchingLeaveOnDate($user, $date, 'approved');
+        $pendingLeave  = $approvedLeave === null ? $this->matchingLeaveOnDate($user, $date, 'pending') : null;
+        $pending       = EmployeeAttendanceRegularization::where('user_id', $user->id)
             ->whereDate('attendance_date', $date->toDateString())
             ->where('request_status', 'pending')
             ->latest('id')
@@ -444,8 +496,10 @@ class EmployeeAttendanceService
             $blockReason = 'Holiday — regularization is not available.';
         } elseif ($category === 'weekend') {
             $blockReason = 'Weekly Off — regularization is not available.';
-        } elseif ($hasApprovedLeave) {
+        } elseif ($approvedLeave) {
             $blockReason = 'Approved Leave — regularization is not available.';
+        } elseif ($pendingLeave) {
+            $blockReason = 'This date has a pending leave request awaiting a decision — regularization is not available until it is resolved.';
         } elseif ($pending) {
             $blockReason = 'Regularization request already submitted.';
         }
@@ -455,7 +509,10 @@ class EmployeeAttendanceService
             'is_future'              => $isFuture,
             'category'               => $category,
             'attendance'             => $attendance,
-            'has_approved_leave'     => $hasApprovedLeave,
+            'has_approved_leave'     => $approvedLeave !== null,
+            'approved_leave'         => $approvedLeave,
+            'has_pending_leave'      => $pendingLeave !== null,
+            'pending_leave'          => $pendingLeave,
             'pending_regularization' => $pending,
             'eligible'               => $blockReason === null,
             'block_reason'           => $blockReason,
@@ -464,17 +521,31 @@ class EmployeeAttendanceService
 
     private function hasApprovedLeave(User $user, Carbon $date): bool
     {
+        return $this->matchingLeaveOnDate($user, $date, 'approved') !== null;
+    }
+
+    private function hasPendingLeave(User $user, Carbon $date): bool
+    {
+        return $this->matchingLeaveOnDate($user, $date, 'pending') !== null;
+    }
+
+    private function matchingLeaveOnDate(User $user, Carbon $date, string $status): ?LeaveRequest
+    {
         return LeaveRequest::where('user_id', $user->id)
-            ->where('status', 'approved')
+            ->where('status', $status)
             ->whereDate('start_date', '<=', $date->toDateString())
             ->whereDate('end_date', '>=', $date->toDateString())
-            ->exists();
+            ->with('leaveType')
+            ->first();
     }
 
     /**
      * Shared guard for both createRegularization() and approveRegularization():
      * a regularization must never target a future date, a holiday/weekly-off,
-     * or a date already covered by approved leave (case D/E/F from the spec).
+     * or a date already covered by an approved OR pending leave request
+     * (case D/E/F from the spec, plus the pending-race case) — enforced
+     * here so a direct call to the regularization endpoint is rejected
+     * server-side, never relying on the button simply being hidden.
      */
     private function assertRegularizable(User $user, Carbon $date): void
     {
@@ -493,6 +564,12 @@ class EmployeeAttendanceService
         if ($this->hasApprovedLeave($user, $date)) {
             throw ValidationException::withMessages([
                 'attendance_date' => 'This date is already covered by approved leave and cannot be regularized.',
+            ]);
+        }
+
+        if ($this->hasPendingLeave($user, $date)) {
+            throw ValidationException::withMessages([
+                'attendance_date' => 'This date has a pending leave request awaiting a decision and cannot be regularized.',
             ]);
         }
     }

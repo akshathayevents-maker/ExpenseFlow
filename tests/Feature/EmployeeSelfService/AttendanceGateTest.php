@@ -13,6 +13,20 @@ function gateToday(): \Carbon\Carbon
     return app(EmployeeAttendanceService::class)->today();
 }
 
+// The `settings` table seeds a DB default of weekly_off_days = [0] (Sunday)
+// via migration (see database/migrations/2026_08_24_090003_create_holidays_table.php).
+// Tests here compute relative dates like gateToday()->subDays(3) — on any
+// real calendar day where that lands on a Sunday, assertRegularizable()
+// would (correctly) reject it as a weekly-off day, silently failing the
+// regularization creation and cascading into unrelated assertions. Neutralize
+// weekly-off globally, matching the established convention in
+// AttendanceLeaveConflictTest.php's alcNoWeeklyOff() helper — individual
+// tests that need to exercise weekly-off behavior explicitly call
+// Setting::set('weekly_off_days', ...) again afterward, which overrides this.
+beforeEach(function () {
+    Setting::set('weekly_off_days', '[]');
+});
+
 function markGateAttendance(User $user, string $status = 'present'): void
 {
     EmployeeAttendance::create([
@@ -216,4 +230,92 @@ test('regularization store/show/cancel routes remain accessible before attendanc
 
     $this->actingAs($user)->get(route('employee.attendance-regularizations.show', $regularization))->assertOk();
     $this->actingAs($user)->patch(route('employee.attendance-regularizations.cancel', $regularization))->assertRedirect();
+});
+
+// ── UX: explanation + return-to-intended-page after marking ─────────────
+
+test('a gated page redirects to attendance and the response carries the gate-triggered flash', function () {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user->fresh())->get(route('employee.overtime.create'));
+
+    $response->assertRedirect(route('employee.attendance.index'));
+    $response->assertSessionHas('attendance_gate_triggered', true);
+    $response->assertSessionHas('attendance_gate_return_to', route('employee.overtime.create'));
+});
+
+test('the Attendance Required banner shows only on the request immediately after a gate redirect', function () {
+    $user = User::factory()->create();
+
+    // Follow the actual redirect (not a fresh request) — this is the one
+    // instance the banner must appear on.
+    $this->actingAs($user->fresh())->get(route('employee.overtime.create'));
+    $this->actingAs($user)->get(route('employee.attendance.index'))
+        ->assertOk()
+        ->assertSee('Attendance Required');
+});
+
+test('a direct, ordinary visit to Attendance never shows the gate banner', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user->fresh())->get(route('employee.attendance.index'))
+        ->assertOk()
+        ->assertDontSee('Attendance Required');
+});
+
+test('the gate banner does not reappear on a second visit to Attendance after the flash has aged', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user->fresh())->get(route('employee.overtime.create'));
+    $this->actingAs($user)->get(route('employee.attendance.index')); // consumes the one-shot flash
+    $this->actingAs($user)->get(route('employee.attendance.index'))
+        ->assertOk()
+        ->assertDontSee('Attendance Required');
+});
+
+test('marking attendance after a gate redirect sends the employee back to the originally requested page', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user->fresh())->get(route('employee.overtime.create'))
+        ->assertRedirect(route('employee.attendance.index'));
+
+    $this->actingAs($user)->post(route('employee.attendance.mark-present'))
+        ->assertRedirect(route('employee.overtime.create'));
+
+    // The stored return-to is consumed exactly once — a second mark attempt
+    // (not realistic since attendance is already marked, but proves pull())
+    // would no longer have anywhere special to send the employee.
+    expect(session('attendance_gate_return_to'))->toBeNull();
+});
+
+test('marking attendance with no prior gate redirect falls back to the current page, not a stale destination', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user->fresh())->get(route('employee.attendance.index'));
+
+    $response = $this->actingAs($user)->post(route('employee.attendance.mark-present'));
+
+    $response->assertRedirect(); // back() — no gate destination was ever stored
+    expect($response->headers->get('Location'))->not->toBe(route('employee.overtime.create'));
+});
+
+test('already-marked attendance allows overtime access normally with no banner and no sidebar hint', function () {
+    $user = User::factory()->create();
+    markGateAttendance($user, 'present');
+
+    $this->actingAs($user->fresh())->get(route('employee.overtime.create'))->assertOk();
+
+    $response = $this->actingAs($user->fresh())->get(route('employee.attendance.index'));
+    $response->assertOk();
+    $response->assertDontSee('Attendance Required');
+    $response->assertDontSee("Mark today's attendance first", false);
+});
+
+test('the sidebar surfaces a hint on Overtime links when attendance is unmarked', function () {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)->get(route('employee.attendance.index'));
+
+    $response->assertOk();
+    $response->assertSee("Mark today's attendance first", false);
 });

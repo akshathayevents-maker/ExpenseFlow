@@ -21,22 +21,59 @@ class EmployeeSalaryController extends Controller
     // on the per-employee index()/store() actions.
     public function listAll(\Illuminate\Http\Request $request): View
     {
-        $search = $request->get('search', '');
+        $search       = $request->get('search', '');
+        $role         = $request->get('role', '');
+        $salaryStatus = $request->get('salary_status', ''); // '', 'set', 'not_set'
 
-        $employees = User::whereIn('role', ['employee', 'manager'])
+        $now   = now();
+        $today = $now->toDateString();
+
+        // The "currently effective" condition mirrors EmployeeSalary's own
+        // isCurrentAsOf()/User::currentSalaryAsOf() rule exactly (effective_from
+        // <= today AND (effective_to is null OR effective_to >= today)) — this
+        // is not a new business rule, just that same existing rule expressed
+        // as a query condition so it can be used for filtering/counting.
+        $isCurrent = function ($q) use ($today) {
+            $q->whereDate('effective_from', '<=', $today)
+              ->where(fn ($q) => $q->whereNull('effective_to')->orWhereDate('effective_to', '>=', $today));
+        };
+
+        $workforce = User::whereIn('role', ['employee', 'manager']);
+
+        $employees = (clone $workforce)
             ->when($search, fn ($q) => $q->where(fn ($q) => $q
                 ->where('name', 'ilike', "%{$search}%")
                 ->orWhere('email', 'ilike', "%{$search}%")
             ))
+            ->when($role, fn ($q, $v) => $q->where('role', $v))
+            ->when($salaryStatus === 'set',     fn ($q) => $q->whereHas('salaries', $isCurrent))
+            ->when($salaryStatus === 'not_set', fn ($q) => $q->whereDoesntHave('salaries', $isCurrent))
             ->orderBy('name')
             ->paginate(20)
             ->withQueryString();
 
-        $now = now();
         $currentSalaries = $employees->getCollection()
             ->mapWithKeys(fn (User $employee) => [$employee->id => $employee->currentSalaryAsOf($now)]);
 
-        return view('admin.salaries.index', compact('employees', 'currentSalaries', 'search'));
+        // Payroll summary — computed once across the WHOLE workforce (not
+        // just the current page/filter), from the same "current" condition
+        // above. At most one row per user can satisfy it, since
+        // EmployeeSalaryService never allows overlapping effective periods
+        // — so summing/counting this row set needs no per-user grouping.
+        $workforceIds = (clone $workforce)->pluck('id');
+        $currentSalaryRows = \App\Models\EmployeeSalary::whereIn('user_id', $workforceIds)
+            ->where($isCurrent)
+            ->get(['user_id', 'monthly_salary']);
+
+        $totalEmployees     = $workforceIds->count();
+        $configuredCount    = $currentSalaryRows->count();
+        $notConfiguredCount = $totalEmployees - $configuredCount;
+        $totalMonthlyPayroll = (float) $currentSalaryRows->sum('monthly_salary');
+
+        return view('admin.salaries.index', compact(
+            'employees', 'currentSalaries', 'search', 'role', 'salaryStatus',
+            'totalEmployees', 'configuredCount', 'notConfiguredCount', 'totalMonthlyPayroll',
+        ));
     }
 
     public function index(User $employee): View

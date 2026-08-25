@@ -21,12 +21,12 @@
                    class="ef-input" value="{{ $item['annual_entitlement'] ?? '' }}" required>
         </div>
         <div>
-            <label class="ef-label">Allocation Mode <span style="color:var(--ef-danger)">*</span></label>
+            <label class="ef-label">Accrual Frequency <span style="color:var(--ef-danger)">*</span></label>
             <select name="items[{{ $index }}][allocation_mode]" class="ef-select"
                     onchange="this.closest('[data-item-row]').querySelector('[data-accrual-field]').style.display = this.value === 'yearly' ? 'none' : ''">
-                <option value="yearly" {{ ($item['allocation_mode'] ?? 'yearly') === 'yearly' ? 'selected' : '' }}>Yearly (Jan 1 grant)</option>
-                <option value="monthly_accrual" {{ ($item['allocation_mode'] ?? '') === 'monthly_accrual' ? 'selected' : '' }}>Monthly Accrual</option>
-                <option value="quarterly_accrual" {{ ($item['allocation_mode'] ?? '') === 'quarterly_accrual' ? 'selected' : '' }}>Quarterly Accrual</option>
+                <option value="yearly" {{ ($item['allocation_mode'] ?? 'yearly') === 'yearly' ? 'selected' : '' }}>Yearly — full entitlement credited annually</option>
+                <option value="monthly_accrual" {{ ($item['allocation_mode'] ?? '') === 'monthly_accrual' ? 'selected' : '' }}>Monthly — credited every month</option>
+                <option value="quarterly_accrual" {{ ($item['allocation_mode'] ?? '') === 'quarterly_accrual' ? 'selected' : '' }}>Quarterly — credited every quarter</option>
             </select>
         </div>
         <div data-accrual-field style="{{ ($item['allocation_mode'] ?? 'yearly') === 'yearly' ? 'display:none' : '' }}">

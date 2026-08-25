@@ -26,7 +26,7 @@ test('admin can open the global employee salaries list', function () {
     $this->actingAs($admin)->get(route('admin.salaries.index'))
         ->assertOk()
         ->assertSee($employee->name)
-        ->assertSee('30,000.00');
+        ->assertSee('30,000'); // whole-number monthly amount on the redesigned salary card
 });
 
 test('global salaries list shows a no-salary-set indicator for employees without one', function () {
@@ -36,7 +36,7 @@ test('global salaries list shows a no-salary-set indicator for employees without
     $this->actingAs($admin)->get(route('admin.salaries.index'))
         ->assertOk()
         ->assertSee($employee->name)
-        ->assertSee('No salary set');
+        ->assertSee('Salary not configured');
 });
 
 test('clicking an employee in the salaries list opens their compensation page', function () {

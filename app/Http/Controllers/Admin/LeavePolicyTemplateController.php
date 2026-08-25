@@ -36,6 +36,7 @@ class LeavePolicyTemplateController extends Controller
 
         $allEmployees = User::whereIn('role', ['employee', 'manager'])
             ->where('is_active', true)
+            ->with('leavePolicyTemplate')
             ->orderBy('name')
             ->get();
 

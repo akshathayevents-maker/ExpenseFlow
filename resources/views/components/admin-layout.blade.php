@@ -163,7 +163,7 @@
              * ── Global z-index scale (single source of truth) ──────────────
              * Previously #sidebar/#sidebar-overlay had TWO separate, drifting
              * declarations: 1020/1015 here, silently overridden to 1055/1050
-             * by public/css/mobile.css at <=767.98px — a second file able to
+             * by public/css/mobile.css at up to 767.98px — a second file able to
              * change the drawer's stacking order independently of this one,
              * and one that happened to land exactly on Bootstrap's own
              * default .modal/.modal-backdrop z-index (1055/1050), an
@@ -171,9 +171,9 @@
              * mobile.css no longer overrides these — this is the only place
              * #topbar/#sidebar/#sidebar-overlay z-index is set, at any width.
              *
-             * Ordering (low to high): topbar < any page-level fixed/sticky
-             * bar (create/edit forms, FABs — those stay <=1040, see
-             * mobile.css) < sidebar backdrop < sidebar drawer < Bootstrap's
+             * Ordering (low to high): topbar, then any page-level fixed/sticky
+             * bar (create/edit forms, FABs — those stay up to 1040, see
+             * mobile.css), then sidebar backdrop, then sidebar drawer, then Bootstrap's
              * own modal/modal-backdrop (1050/1055, untouched, so an open
              * Bootstrap modal always wins over the drawer — the drawer is
              * not expected to be open at the same time as a modal).
@@ -1171,6 +1171,14 @@
             $grpEmpMyWork  = request()->routeIs('employee.attendance.*','employee.attendance-regularizations.*','employee.overtime.*','employee.leave.*');
             $grpEmpFinance = request()->routeIs('employee.advances.*');
             $grpEmpExpense = request()->routeIs('employee.expense-requests.*','employee.wallet.*');
+            // Cheap, employee-only, per-request check — reuses the exact
+            // same rule the attendance gate itself enforces (never a
+            // second, independently-drifting calculation). Purely a
+            // low-key discoverability hint (requirement: don't make the
+            // employee find this out only by clicking) — the sidebar link
+            // still navigates normally; the server-side gate is what
+            // actually enforces the rule regardless of this hint.
+            $needsAttendanceToday = app(\App\Services\EmployeeAttendanceService::class)->needsAttendanceToday(auth()->user());
         @endphp
 
         <div class="sidebar-standalone pt-2">
@@ -1198,12 +1206,20 @@
                 <i class="bi bi-calendar-minus"></i> Leave
             </a>
             <a href="{{ route('employee.overtime.create') }}"
-               class="nav-link {{ request()->routeIs('employee.overtime.create') ? 'active' : '' }}">
+               class="nav-link {{ request()->routeIs('employee.overtime.create') ? 'active' : '' }}"
+               @if($needsAttendanceToday) title="Mark today's attendance first" @endif>
                 <i class="bi bi-plus-circle"></i> Request Overtime
+                @if($needsAttendanceToday)
+                    <i class="bi bi-exclamation-circle" style="margin-left:auto;font-size:.8rem;opacity:.65" aria-hidden="true"></i>
+                @endif
             </a>
             <a href="{{ route('employee.overtime.index') }}"
-               class="nav-link {{ request()->routeIs('employee.overtime.*') && !request()->routeIs('employee.overtime.create') ? 'active' : '' }}">
+               class="nav-link {{ request()->routeIs('employee.overtime.*') && !request()->routeIs('employee.overtime.create') ? 'active' : '' }}"
+               @if($needsAttendanceToday) title="Mark today's attendance first" @endif>
                 <i class="bi bi-clock-history"></i> My Overtime
+                @if($needsAttendanceToday)
+                    <i class="bi bi-exclamation-circle" style="margin-left:auto;font-size:.8rem;opacity:.65" aria-hidden="true"></i>
+                @endif
             </a>
         </div>
 

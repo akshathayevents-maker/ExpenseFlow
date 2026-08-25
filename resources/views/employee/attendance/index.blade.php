@@ -9,6 +9,25 @@
     </x-slot:actions>
 </x-ds.hero>
 
+{{-- Attendance-gate explanation — shown ONLY on the request immediately
+     following a redirect from EnsureAttendanceMarked (session-flashed by
+     the middleware), never on an ordinary visit to this page. Colors match
+     the existing .ef-ew-alert-warning pattern used on the employee
+     dashboard, inlined here since this Blade file styles everything inline
+     rather than via a shared utility class. --}}
+@if($attendanceGateTriggered && !$today)
+<div style="display:flex;align-items:flex-start;gap:10px;padding:14px 16px;border-radius:12px;margin-bottom:16px;font-size:.86rem;background:#fffbeb;border:1px solid #fde68a;color:#92400e" role="alert">
+    <i class="bi bi-exclamation-triangle-fill" style="flex-shrink:0;margin-top:2px;font-size:1rem"></i>
+    <div style="flex:1">
+        <div style="font-weight:700;margin-bottom:2px">Attendance Required</div>
+        <div>Please mark today's attendance before you can access Leave, Overtime and other employee self-service features.</div>
+        <a href="#mark-attendance-card" class="ef-btn" style="margin-top:10px;display:inline-flex;min-height:38px">
+            <i class="bi bi-arrow-down-circle"></i> Go to Attendance
+        </a>
+    </div>
+</div>
+@endif
+
 {{-- Leave entry point — Apply Leave is the primary action, My Leave secondary --}}
 <div class="at-leave-cta-row">
     <a href="{{ route('employee.leave.create') }}" class="ef-btn ef-btn-dark">
@@ -23,8 +42,9 @@
 $statusChips = [
     'present'    => ['label' => 'Present',    'bg' => 'rgba(15,123,95,.11)',  'color' => '#0A5240'],
     'half_day'   => ['label' => 'Half Day',    'bg' => 'rgba(216,154,61,.13)', 'color' => '#7D5218'],
-    'leave'      => ['label' => 'Leave',       'bg' => 'rgba(47,111,237,.10)', 'color' => '#1E4DB7'],
-    'half_day_leave' => ['label' => 'Half Day (Leave)', 'bg' => 'rgba(47,111,237,.10)', 'color' => '#1E4DB7'],
+    'leave'      => ['label' => 'On Leave',    'bg' => 'rgba(47,111,237,.10)', 'color' => '#1E4DB7'],
+    'half_day_leave' => ['label' => 'Half-day Leave', 'bg' => 'rgba(47,111,237,.10)', 'color' => '#1E4DB7'],
+    'leave_pending' => ['label' => 'Leave Pending', 'bg' => 'rgba(184,137,62,.12)', 'color' => '#6B4A12'],
     'absent'     => ['label' => 'Absent',      'bg' => 'rgba(200,75,68,.11)',  'color' => '#9B2C2C'],
     'weekly_off' => ['label' => 'Weekly Off',  'bg' => 'rgba(100,116,139,.11)','color' => '#334155'],
     'holiday'    => ['label' => 'Holiday',     'bg' => 'rgba(184,137,62,.12)', 'color' => '#6B4A12'],
@@ -40,7 +60,72 @@ $todayChip = $statusChips[$today->status ?? 'not_marked'] ?? $statusChips['not_m
     .at-today-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
     .at-today-date { font-weight: 700; font-size: 1.05rem; }
     .at-today-sub { color: var(--ef-faint, #6b7280); font-size: .84rem; margin-top: 2px; }
-    .at-today-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    /* Attention state for "not yet marked, still time to act today" —
+       distinct from the neutral gray used for past unmarked history rows
+       (those are just a record; this one needs action right now). Color
+       is paired with the record-circle icon and the word "Not marked" —
+       never color alone, per accessibility requirement. */
+    .at-today-sub-alert { color: #92400e; font-weight: 600; display: flex; align-items: center; gap: 5px; }
+    .at-today-sub-alert i { font-size: .6rem; color: #d89a3d; }
+
+    /* Primary attendance CTA — deliberately much heavier than every other
+       button on this page: full width, large tap target, strong emerald
+       fill, white text, so the action reads correctly even without
+       relying on the English label alone. */
+    .at-mark-actions { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .at-mark-present-btn {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        background: var(--ef-emerald, #0F7B5F);
+        color: #fff;
+        border: none;
+        border-radius: 12px;
+        padding: 16px 20px;
+        min-height: 64px;
+        font-weight: 800;
+        cursor: pointer;
+        box-shadow: 0 4px 14px rgba(15,123,95,.28);
+        transition: background .15s ease, transform .1s ease;
+    }
+    .at-mark-present-btn:hover, .at-mark-present-btn:focus-visible { background: #0c6750; }
+    .at-mark-present-btn:active { transform: scale(.99); }
+    .at-mark-present-btn:focus-visible { outline: 3px solid #0c6750; outline-offset: 2px; }
+    .at-mark-present-btn i { font-size: 1.7rem; flex-shrink: 0; }
+    .at-mark-present-text { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.25; }
+    .at-mark-present-title { font-size: 1.02rem; letter-spacing: .02em; }
+    .at-mark-present-sub { font-size: .76rem; font-weight: 500; opacity: .9; }
+
+    /* Secondary action — clearly present and fully functional, but visibly
+       lighter weight than Present so it never competes for attention. */
+    .at-mark-halfday-btn {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        background: transparent;
+        color: var(--ef-faint, #6b7280);
+        border: 1px solid var(--ef-border, #e5e7eb);
+        border-radius: 10px;
+        padding: 10px 16px;
+        min-height: 44px;
+        font-weight: 600;
+        font-size: .86rem;
+        cursor: pointer;
+    }
+    .at-mark-halfday-btn:hover, .at-mark-halfday-btn:focus-visible { background: var(--ef-surface-2, #f8f9fa); color: #374151; }
+    .at-mark-halfday-btn:focus-visible { outline: 2px solid #9ca3af; outline-offset: 2px; }
+    @media (min-width: 576px) {
+        /* Enough room to sit side by side once the primary button no
+           longer needs the full row to itself — Present still visually
+           dominates via width ratio, color, and size. */
+        .at-mark-actions { flex-direction: row; align-items: stretch; }
+        .at-mark-present-btn { flex: 2 1 0; }
+        .at-mark-halfday-btn { flex: 1 1 0; }
+    }
     .at-stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
     @media (min-width: 576px) { .at-stat-grid { grid-template-columns: repeat(3, 1fr); } }
     @media (min-width: 992px) { .at-stat-grid { grid-template-columns: repeat(6, 1fr); } }
@@ -85,6 +170,7 @@ $todayChip = $statusChips[$today->status ?? 'not_marked'] ?? $statusChips['not_m
 @endpush
 
 {{-- Today ─────────────────────────────────────────────────── --}}
+<div id="mark-attendance-card">
 <x-ds.card title="Today">
     <div class="at-today-row">
         <div>
@@ -94,7 +180,9 @@ $todayChip = $statusChips[$today->status ?? 'not_marked'] ?? $statusChips['not_m
             @elseif($todayIsNonWorking)
                 <div class="at-today-sub">{{ $todayCategory === 'holiday' ? 'Holiday — attendance is not applicable today.' : 'Weekly off — attendance is not applicable today.' }}</div>
             @else
-                <div class="at-today-sub">Attendance not marked yet</div>
+                <div class="at-today-sub at-today-sub-alert">
+                    <i class="bi bi-record-circle-fill" aria-hidden="true"></i> Not marked for today
+                </div>
             @endif
         </div>
 
@@ -107,24 +195,31 @@ $todayChip = $statusChips[$today->status ?? 'not_marked'] ?? $statusChips['not_m
             <span style="display:inline-flex;align-items:center;border-radius:6px;font-size:.78rem;font-weight:700;padding:4px 12px;background:{{ $nonWorkingChip['bg'] }};color:{{ $nonWorkingChip['color'] }}">
                 {{ $nonWorkingChip['label'] }}
             </span>
-        @else
-            <div class="at-today-actions">
-                <form method="POST" action="{{ route('employee.attendance.mark-present') }}">
-                    @csrf
-                    <button type="submit" class="ef-btn ef-btn-dark">
-                        <i class="bi bi-check-lg"></i> Mark Present
-                    </button>
-                </form>
-                <form method="POST" action="{{ route('employee.attendance.mark-half-day') }}">
-                    @csrf
-                    <button type="submit" class="ef-btn">
-                        <i class="bi bi-clock-history"></i> Mark Half Day
-                    </button>
-                </form>
-            </div>
         @endif
     </div>
+
+    @if(! $today && ! $todayIsNonWorking)
+        <div class="at-mark-actions">
+            <form method="POST" action="{{ route('employee.attendance.mark-present') }}">
+                @csrf
+                <button type="submit" class="at-mark-present-btn" aria-label="Mark today's attendance as Present">
+                    <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+                    <span class="at-mark-present-text">
+                        <span class="at-mark-present-title">MARK PRESENT</span>
+                        <span class="at-mark-present-sub">Tap if you are working today</span>
+                    </span>
+                </button>
+            </form>
+            <form method="POST" action="{{ route('employee.attendance.mark-half-day') }}">
+                @csrf
+                <button type="submit" class="at-mark-halfday-btn" aria-label="Mark today's attendance as Half Day">
+                    <i class="bi bi-clock-history" aria-hidden="true"></i> Mark Half Day
+                </button>
+            </form>
+        </div>
+    @endif
 </x-ds.card>
+</div>
 
 {{-- Monthly summary ───────────────────────────────────────── --}}
 <div class="mt-3">
@@ -189,8 +284,13 @@ $todayChip = $statusChips[$today->status ?? 'not_marked'] ?? $statusChips['not_m
                     <div class="at-list-day">{{ $day['date']->format('l') }}</div>
                 </div>
                 <div class="at-list-row-aside">
-                    <span style="display:inline-flex;align-items:center;border-radius:6px;font-size:.74rem;font-weight:700;padding:3px 10px;background:{{ $chip['bg'] }};color:{{ $chip['color'] }};white-space:nowrap">
-                        {{ $chip['label'] }}
+                    <span style="display:inline-flex;flex-direction:column;align-items:flex-end;line-height:1.3">
+                        <span style="display:inline-flex;align-items:center;border-radius:6px;font-size:.74rem;font-weight:700;padding:3px 10px;background:{{ $chip['bg'] }};color:{{ $chip['color'] }};white-space:nowrap">
+                            {{ $chip['label'] }}
+                        </span>
+                        @if(!empty($day['leave_type_name']))
+                            <span style="font-size:.72rem;color:var(--ef-faint, #6b7280);margin-top:2px">{{ $day['leave_type_name'] }}</span>
+                        @endif
                     </span>
                     @if($day['can_regularize'])
                         <a href="{{ route('employee.attendance.index', ['date' => $dayDateStr]) }}#regularize-date-card"
@@ -240,6 +340,9 @@ $todayChip = $statusChips[$today->status ?? 'not_marked'] ?? $statusChips['not_m
                 <span style="display:inline-flex;align-items:center;border-radius:6px;font-size:.74rem;font-weight:700;padding:3px 10px;background:{{ $regChipForDate['bg'] }};color:{{ $regChipForDate['color'] }}">
                     {{ $regChipForDate['label'] }}
                 </span>
+                @if($regAttendance->leaveRequest?->leaveType?->name)
+                    <span style="margin-left:6px;font-size:.82rem;color:var(--ef-faint, #6b7280)">{{ $regAttendance->leaveRequest->leaveType->name }}</span>
+                @endif
             </div>
         @elseif($dayState['category'] !== 'weekday')
             <div style="margin-bottom:8px">
@@ -250,8 +353,20 @@ $todayChip = $statusChips[$today->status ?? 'not_marked'] ?? $statusChips['not_m
         @elseif($dayState['has_approved_leave'])
             <div style="margin-bottom:8px">
                 <span style="display:inline-flex;align-items:center;border-radius:6px;font-size:.74rem;font-weight:700;padding:3px 10px;background:{{ $statusChips['leave']['bg'] }};color:{{ $statusChips['leave']['color'] }}">
-                    Approved Leave
+                    On Leave
                 </span>
+                @if($dayState['approved_leave']?->leaveType?->name)
+                    <span style="margin-left:6px;font-size:.82rem;color:var(--ef-faint, #6b7280)">{{ $dayState['approved_leave']->leaveType->name }}</span>
+                @endif
+            </div>
+        @elseif($dayState['has_pending_leave'])
+            <div style="margin-bottom:8px">
+                <span style="display:inline-flex;align-items:center;border-radius:6px;font-size:.74rem;font-weight:700;padding:3px 10px;background:{{ $statusChips['leave_pending']['bg'] }};color:{{ $statusChips['leave_pending']['color'] }}">
+                    Leave Pending
+                </span>
+                @if($dayState['pending_leave']?->leaveType?->name)
+                    <span style="margin-left:6px;font-size:.82rem;color:var(--ef-faint, #6b7280)">{{ $dayState['pending_leave']->leaveType->name }}</span>
+                @endif
             </div>
         @else
             <div style="margin-bottom:8px">

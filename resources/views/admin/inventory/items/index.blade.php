@@ -1,129 +1,19 @@
 <x-admin-layout title="Inventory Items">
 @push('styles')
 <style>
-/* ── Hero ──────────────────────────────────────────────── */
-.ef-inv-hero {
-    background: linear-gradient(135deg, #1a1612 0%, #2d2420 60%, #3a2e22 100%);
-    border-radius: var(--ef-radius);
-    padding: 2rem 2.2rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1.5rem;
-    flex-wrap: wrap;
-    margin-bottom: 1.5rem;
-}
-.ef-inv-hero-title {
-    font-size: clamp(1.7rem, 3.5vw, 2.6rem);
-    font-weight: 700;
-    color: #fff;
-    line-height: 1.1;
-    letter-spacing: -.02em;
-}
-.ef-inv-hero-sub {
-    color: rgba(255,255,255,.55);
-    font-size: .92rem;
-    margin-top: .3rem;
-}
-.ef-inv-hero-actions { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; }
-.ef-inv-btn-gold {
-    background: var(--ef-gold);
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    padding: .55rem 1.2rem;
-    font-size: .875rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background .2s var(--ef-ease), transform .15s;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: .4rem;
-    white-space: nowrap;
-}
-.ef-inv-btn-gold:hover { background: var(--ef-gold-hi); color: #fff; transform: translateY(-1px); }
-.ef-inv-btn-ghost {
-    background: rgba(255,255,255,.10);
-    color: rgba(255,255,255,.85);
-    border: 1px solid rgba(255,255,255,.18);
-    border-radius: 8px;
-    padding: .5rem 1rem;
-    font-size: .875rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background .2s var(--ef-ease);
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: .4rem;
-    white-space: nowrap;
-}
-.ef-inv-btn-ghost:hover { background: rgba(255,255,255,.18); color: #fff; }
-.ef-inv-alert-pill {
-    background: rgba(192,57,43,.18);
-    border: 1px solid rgba(192,57,43,.35);
-    color: #e07060;
-    border-radius: 20px;
-    padding: .38rem .9rem;
-    font-size: .8rem;
-    font-weight: 600;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: .4rem;
-    transition: background .2s;
-}
-.ef-inv-alert-pill:hover { background: rgba(192,57,43,.28); color: #e07060; }
+/* ══════════════════════════════════════════════════════════════════
+   INVENTORY — reuses the application's existing design tokens/
+   components (x-ds.hero, x-ds.kpi-card, ef-ds-filter-bar, ef-input,
+   ef-select, ef-btn — resources/css/app.css) rather than the old
+   page-specific brown/gold palette. Only the item-card grid (a layout
+   with no existing shared component) needs page-scoped CSS below, and
+   its colors are the same semantic tokens used everywhere else
+   (--ef-emerald / --ef-amber / --ef-danger, and the exact
+   rgba(15,123,95,.11)/#0A5240, rgba(216,154,61,.13)/#7D5218,
+   rgba(200,75,68,.11)/#9B2C2C triple used by status-badge.blade.php,
+   employee/attendance, leave & advance status chips app-wide).
+   ══════════════════════════════════════════════════════════════════ */
 
-/* ── Insight strip ─────────────────────────────────────── */
-.ef-inv-strip {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: .85rem;
-    margin-bottom: 1.5rem;
-}
-@media (max-width: 1399px) { .ef-inv-strip { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 767px)  { .ef-inv-strip { grid-template-columns: repeat(2, 1fr); } }
-.ef-inv-kpi {
-    background: var(--ef-surface);
-    border: 1px solid var(--ef-border);
-    border-radius: var(--ef-radius);
-    padding: 1.15rem 1.2rem;
-    box-shadow: var(--ef-shadow);
-    text-decoration: none;
-    transition: box-shadow .2s var(--ef-ease), transform .15s;
-    display: block;
-    color: inherit;
-}
-a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-2px); }
-.ef-inv-kpi-icon {
-    width: 34px; height: 34px;
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: .9rem;
-    margin-bottom: .7rem;
-}
-.ef-inv-kpi-icon.--gold   { background: rgba(184,137,62,.12); color: var(--ef-gold); }
-.ef-inv-kpi-icon.--warn   { background: rgba(202,138,4,.12);  color: #b45309; }
-.ef-inv-kpi-icon.--danger { background: rgba(192,57,43,.10);  color: var(--ef-danger); }
-.ef-inv-kpi-icon.--orange { background: rgba(234,88,12,.10);  color: #c2410c; }
-.ef-inv-kpi-icon.--green  { background: rgba(22,163,74,.10);  color: #15803d; }
-.ef-inv-kpi-icon.--blue   { background: rgba(37,99,235,.10);  color: #1d4ed8; }
-.ef-inv-kpi-val { font-size: 1.45rem; font-weight: 700; color: var(--ef-ink); line-height: 1.1; }
-.ef-inv-kpi-val.--danger  { color: var(--ef-danger); }
-.ef-inv-kpi-val.--warn    { color: #b45309; }
-.ef-inv-kpi-label { font-size: .78rem; color: var(--ef-muted); margin-top: .2rem; }
-
-/* ── Filter bar ────────────────────────────────────────── */
-.ef-inv-filter-bar {
-    background: var(--ef-surface);
-    border: 1px solid var(--ef-border);
-    border-radius: var(--ef-radius);
-    padding: 1rem 1.2rem;
-    box-shadow: var(--ef-shadow);
-    margin-bottom: 1.5rem;
-}
 .ef-inv-chips {
     display: flex;
     gap: .5rem;
@@ -141,10 +31,10 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     padding: .38rem .9rem;
     border-radius: 20px;
     font-size: .8rem;
-    font-weight: 500;
+    font-weight: 600;
     border: 1px solid var(--ef-border);
     color: var(--ef-muted);
-    background: var(--ef-faint);
+    background: var(--ef-surface-2);
     cursor: pointer;
     transition: all .18s var(--ef-ease);
     text-decoration: none;
@@ -153,112 +43,32 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     align-items: center;
     gap: .3rem;
 }
-.ef-inv-chip:hover { border-color: var(--ef-gold); color: var(--ef-gold); background: rgba(184,137,62,.06); }
-.ef-inv-chip.--active         { background: var(--ef-gold); border-color: var(--ef-gold); color: #fff; }
-.ef-inv-chip.--warn           { background: #fef3c7; border-color: #fbbf24; color: #92400e; }
-.ef-inv-chip.--warn.--active  { background: #b45309; border-color: #b45309; color: #fff; }
-.ef-inv-chip.--danger         { background: rgba(192,57,43,.07); border-color: rgba(192,57,43,.3); color: var(--ef-danger); }
-.ef-inv-chip.--danger.--active{ background: var(--ef-danger); border-color: var(--ef-danger); color: #fff; }
-.ef-inv-chip.--orange         { background: rgba(234,88,12,.07); border-color: rgba(234,88,12,.3); color: #c2410c; }
-.ef-inv-chip.--orange.--active{ background: #c2410c; border-color: #c2410c; color: #fff; }
-.ef-inv-filter-row {
-    display: flex;
-    gap: .6rem;
-    align-items: center;
-    flex-wrap: wrap;
+.ef-inv-chip:hover { border-color: var(--ef-border-strong); color: var(--ef-ink); }
+.ef-inv-chip.--active          { background: var(--ef-emerald); border-color: var(--ef-emerald); color: #fff; }
+.ef-inv-chip.--warn            { background: rgba(216,154,61,.10); border-color: rgba(216,154,61,.32); color: #7D5218; }
+.ef-inv-chip.--warn.--active   { background: #7D5218; border-color: #7D5218; color: #fff; }
+.ef-inv-chip.--danger          { background: rgba(200,75,68,.08); border-color: rgba(200,75,68,.3); color: var(--ef-danger); }
+.ef-inv-chip.--danger.--active { background: var(--ef-danger); border-color: var(--ef-danger); color: #fff; }
+
+.ef-inv-filter-row { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
+.ef-inv-search-wrap { position: relative; flex: 1; min-width: 200px; }
+.ef-inv-search-icon {
+    position: absolute; left: .8rem; top: 50%; transform: translateY(-50%);
+    color: var(--ef-muted); font-size: .85rem; pointer-events: none;
 }
-.ef-inv-search {
-    flex: 1;
-    min-width: 180px;
-    border: 1px solid var(--ef-border);
-    border-radius: 8px;
-    padding: .5rem .85rem;
-    font-size: .875rem;
-    color: var(--ef-ink);
-    background: var(--ef-faint);
-    outline: none;
-    transition: border-color .18s, background .18s;
-}
-.ef-inv-search:focus { border-color: var(--ef-gold); background: #fff; box-shadow: 0 0 0 3px rgba(184,137,62,.12); }
-.ef-inv-select {
-    border: 1px solid var(--ef-border);
-    border-radius: 8px;
-    padding: .5rem .85rem;
-    font-size: .875rem;
-    color: var(--ef-ink);
-    background: var(--ef-faint);
-    outline: none;
-    transition: border-color .18s;
-    cursor: pointer;
-    min-width: 140px;
-}
-.ef-inv-select:focus { border-color: var(--ef-gold); background: #fff; box-shadow: 0 0 0 3px rgba(184,137,62,.12); }
-.ef-inv-adv-toggle {
-    border: 1px solid var(--ef-border);
-    border-radius: 8px;
-    padding: .5rem .85rem;
-    font-size: .8rem;
-    font-weight: 500;
-    color: var(--ef-muted);
-    background: var(--ef-faint);
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: .3rem;
-    transition: all .18s;
-    white-space: nowrap;
-    position: relative;
-}
-.ef-inv-adv-toggle:hover { border-color: var(--ef-gold); color: var(--ef-gold); background: rgba(184,137,62,.06); }
-.ef-inv-adv-dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: var(--ef-gold);
-    display: none;
-    position: absolute;
-    top: 6px; right: 6px;
-}
-.ef-inv-adv-toggle.--has-filter .ef-inv-adv-dot { display: block; }
-.ef-inv-adv-panel {
-    overflow: hidden;
-    max-height: 0;
-    transition: max-height .35s var(--ef-ease);
-}
+.ef-inv-search-wrap .ef-input { padding-left: 2.2rem; }
+.ef-inv-adv-panel { overflow: hidden; max-height: 0; transition: max-height .35s var(--ef-ease); }
 .ef-inv-adv-panel.--open { max-height: 120px; }
 .ef-inv-adv-inner {
-    padding-top: .75rem;
-    border-top: 1px solid var(--ef-border);
-    margin-top: .75rem;
-    display: flex;
-    gap: .6rem;
-    flex-wrap: wrap;
-    align-items: center;
+    padding-top: .75rem; border-top: 1px solid var(--ef-border); margin-top: .75rem;
+    display: flex; gap: .6rem; flex-wrap: wrap; align-items: center;
 }
-.ef-inv-btn-apply {
-    background: var(--ef-gold);
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    padding: .5rem 1.1rem;
-    font-size: .875rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background .18s;
+.ef-inv-adv-toggle { position: relative; }
+.ef-inv-adv-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--ef-emerald);
+    display: none; position: absolute; top: 6px; right: 6px;
 }
-.ef-inv-btn-apply:hover { background: var(--ef-gold-hi); }
-.ef-inv-btn-clear {
-    background: transparent;
-    color: var(--ef-muted);
-    border: 1px solid var(--ef-border);
-    border-radius: 8px;
-    padding: .5rem .9rem;
-    font-size: .875rem;
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    transition: all .18s;
-}
-.ef-inv-btn-clear:hover { border-color: var(--ef-danger); color: var(--ef-danger); }
+.ef-inv-adv-toggle.--has-filter .ef-inv-adv-dot { display: block; }
 
 /* ── Items grid ────────────────────────────────────────── */
 .ef-inv-grid {
@@ -284,8 +94,8 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
 .ef-inv-card.--inactive { opacity: .65; }
 .ef-inv-card.--inactive:hover { opacity: .88; }
 .ef-inv-card-accent { height: 3px; background: var(--ef-border); }
-.ef-inv-card.--healthy .ef-inv-card-accent  { background: #16a34a; }
-.ef-inv-card.--low .ef-inv-card-accent      { background: #d97706; }
+.ef-inv-card.--healthy .ef-inv-card-accent  { background: var(--ef-emerald); }
+.ef-inv-card.--low .ef-inv-card-accent      { background: var(--ef-amber); }
 .ef-inv-card.--out .ef-inv-card-accent      { background: var(--ef-danger); }
 .ef-inv-card.--inactive .ef-inv-card-accent { background: #9ca3af; }
 
@@ -301,9 +111,9 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     font-weight: 600;
     letter-spacing: .03em;
     text-transform: uppercase;
-    color: var(--ef-gold);
-    background: rgba(184,137,62,.09);
-    border: 1px solid rgba(184,137,62,.18);
+    color: var(--ef-emerald-dk);
+    background: rgba(15,123,95,.09);
+    border: 1px solid rgba(15,123,95,.18);
     border-radius: 5px;
     padding: .18rem .55rem;
     white-space: nowrap;
@@ -320,9 +130,9 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     white-space: nowrap;
     flex-shrink: 0;
 }
-.ef-inv-health-chip.--healthy  { background: rgba(22,163,74,.12);  color: #15803d; }
-.ef-inv-health-chip.--low      { background: rgba(217,119,6,.12);  color: #92400e; }
-.ef-inv-health-chip.--out      { background: rgba(192,57,43,.12);  color: var(--ef-danger); }
+.ef-inv-health-chip.--healthy  { background: rgba(15,123,95,.11);  color: #0A5240; }
+.ef-inv-health-chip.--low      { background: rgba(216,154,61,.13); color: #7D5218; }
+.ef-inv-health-chip.--out      { background: rgba(200,75,68,.11);  color: #9B2C2C; }
 .ef-inv-health-chip.--inactive { background: rgba(107,101,96,.1);  color: var(--ef-muted); }
 
 .ef-inv-card-identity { padding: 0 1rem .7rem; }
@@ -347,7 +157,7 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     margin-bottom: .75rem;
 }
 .ef-inv-stat {
-    background: var(--ef-faint);
+    background: var(--ef-surface-2);
     border-radius: 8px;
     padding: .55rem .5rem;
     text-align: center;
@@ -358,8 +168,8 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     color: var(--ef-ink);
     line-height: 1;
 }
-.ef-inv-stat-val.--danger { color: var(--ef-danger); }
-.ef-inv-stat-val.--warn   { color: #b45309; }
+.ef-inv-stat-val.--danger { color: #9B2C2C; }
+.ef-inv-stat-val.--warn   { color: #7D5218; }
 .ef-inv-stat-label {
     font-size: .65rem;
     color: var(--ef-muted);
@@ -370,7 +180,7 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
 }
 .ef-inv-bar-wrap {
     height: 5px;
-    background: var(--ef-faint);
+    background: var(--ef-surface-2);
     border-radius: 10px;
     overflow: hidden;
     margin-bottom: .3rem;
@@ -378,10 +188,10 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
 .ef-inv-bar-fill {
     height: 100%;
     border-radius: 10px;
-    background: #16a34a;
+    background: var(--ef-emerald);
     transition: width .4s var(--ef-ease);
 }
-.ef-inv-bar-fill.--low { background: #d97706; }
+.ef-inv-bar-fill.--low { background: var(--ef-amber); }
 .ef-inv-bar-fill.--out { background: var(--ef-danger); }
 .ef-inv-bar-caption {
     font-size: .68rem;
@@ -414,14 +224,14 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     gap: .3rem;
     border: none;
 }
-.ef-inv-foot-btn.--primary { background: var(--ef-gold); color: #fff; }
-.ef-inv-foot-btn.--primary:hover { background: var(--ef-gold-hi); color: #fff; }
+.ef-inv-foot-btn.--primary { background: var(--ef-emerald); color: #fff; }
+.ef-inv-foot-btn.--primary:hover { background: var(--ef-emerald-hi); color: #fff; }
 .ef-inv-foot-btn.--outline { background: transparent; color: var(--ef-muted); border: 1px solid var(--ef-border); }
-.ef-inv-foot-btn.--outline:hover { border-color: var(--ef-gold); color: var(--ef-gold); background: rgba(184,137,62,.05); }
+.ef-inv-foot-btn.--outline:hover { border-color: var(--ef-border-strong); color: var(--ef-ink); background: var(--ef-surface-2); }
 .ef-inv-foot-menu {
     width: 34px; height: 34px;
     border-radius: 7px;
-    background: var(--ef-faint);
+    background: var(--ef-surface-2);
     border: 1px solid var(--ef-border);
     color: var(--ef-muted);
     display: flex; align-items: center; justify-content: center;
@@ -429,7 +239,7 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     transition: all .18s;
     flex-shrink: 0;
 }
-.ef-inv-foot-menu:hover { border-color: var(--ef-gold); color: var(--ef-gold); background: rgba(184,137,62,.05); }
+.ef-inv-foot-menu:hover { border-color: var(--ef-border-strong); color: var(--ef-ink); background: var(--ef-surface-2); }
 
 /* ── Empty state ─────────────────────────────────────────── */
 .ef-inv-empty {
@@ -456,40 +266,9 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     justify-content: space-between;
     flex-wrap: wrap;
     gap: .5rem;
-    margin-bottom: 5rem;
+    margin-bottom: 1.5rem;
 }
 .ef-inv-pagination-info { font-size: .8rem; color: var(--ef-muted); }
-
-/* ── Mobile sticky bar ───────────────────────────────────── */
-.ef-inv-sticky {
-    display: none;
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    background: rgba(26,22,18,.96);
-    backdrop-filter: blur(10px);
-    padding: .8rem 1rem;
-    z-index: 1000;
-    gap: .5rem;
-}
-@media (max-width: 767px) { .ef-inv-sticky { display: flex; } }
-.ef-inv-sticky-btn {
-    flex: 1;
-    padding: .65rem .5rem;
-    border-radius: 8px;
-    font-size: .82rem;
-    font-weight: 600;
-    text-align: center;
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: .35rem;
-    cursor: pointer;
-    border: none;
-    transition: opacity .18s;
-}
-.ef-inv-sticky-btn.--gold  { background: var(--ef-gold); color: #fff; }
-.ef-inv-sticky-btn.--ghost { background: rgba(255,255,255,.1); color: rgba(255,255,255,.85); }
 </style>
 @endpush
 
@@ -499,85 +278,69 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     $stockSt   = $filters['stock_status'] ?? '';
     $statusFil = $filters['status'] ?? '';
     $hasAdv    = $catId || $statusFil;
+    $alertCount = $stats['low_stock'] + $stats['out_of_stock'];
 @endphp
 
 {{-- ── Hero ──────────────────────────────────────────────────── --}}
-<div class="ef-inv-hero">
-    <div>
-        <div class="ef-inv-hero-title">Inventory</div>
-        <div class="ef-inv-hero-sub">Stock levels · item management · purchase tracking</div>
-    </div>
-    <div class="ef-inv-hero-actions">
-        @if($stats['low_stock'] + $stats['out_of_stock'] > 0)
-            <a href="{{ route('admin.inventory.alerts.index') }}" class="ef-inv-alert-pill">
+<x-ds.hero eyebrow="Stock Operations" title="Inventory"
+    :meta="[['icon' => 'bi-boxes', 'text' => 'Stock levels · item management · purchase tracking']]">
+    <x-slot:actions>
+        @if($alertCount > 0)
+            <a href="{{ route('admin.inventory.alerts.index') }}" class="ef-ds-btn">
                 <i class="bi bi-exclamation-triangle-fill"></i>
-                {{ $stats['low_stock'] + $stats['out_of_stock'] }} Alert{{ ($stats['low_stock'] + $stats['out_of_stock']) !== 1 ? 's' : '' }}
+                <span>{{ $alertCount }} Alert{{ $alertCount !== 1 ? 's' : '' }}</span>
             </a>
         @endif
-        <a href="{{ route('admin.inventory.bills.index') }}" class="ef-inv-btn-ghost">
-            <i class="bi bi-clock-history"></i> Bill History
+        <a href="{{ route('admin.inventory.bills.index') }}" class="ef-ds-btn">
+            <i class="bi bi-clock-history"></i> <span>Bill History</span>
         </a>
-        <button type="button" class="ef-inv-btn-ghost" data-bs-toggle="modal" data-bs-target="#uploadModal">
-            <i class="bi bi-cloud-upload"></i> Upload Bill
+        <button type="button" class="ef-ds-btn" data-bs-toggle="modal" data-bs-target="#uploadModal">
+            <i class="bi bi-cloud-upload"></i> <span>Upload Bill</span>
         </button>
-        <a href="{{ route('admin.inventory.items.create') }}" class="ef-inv-btn-gold">
-            <i class="bi bi-plus-lg"></i> Add Item
+        <a href="{{ route('admin.inventory.items.create') }}" class="ef-ds-btn --primary">
+            <i class="bi bi-plus-lg"></i> <span>Add Item</span>
         </a>
-    </div>
-</div>
+    </x-slot:actions>
+    <x-slot:mobile_stat>
+        <span class="ef-ds-hero-mstat-val">{{ number_format($stats['total_active']) }}</span>
+        <span class="ef-ds-hero-mstat-note">active items &middot; {{ $alertCount }} alert{{ $alertCount !== 1 ? 's' : '' }}</span>
+    </x-slot:mobile_stat>
+</x-ds.hero>
 
 {{-- ── Upload modal (preserved) ────────────────────────────────── --}}
 @include('admin.inventory.bills._upload-modal')
 
 {{-- ── Insight strip ───────────────────────────────────────────── --}}
-<div class="ef-inv-strip">
-    <div class="ef-inv-kpi">
-        <div class="ef-inv-kpi-icon --gold"><i class="bi bi-boxes"></i></div>
-        <div class="ef-inv-kpi-val">{{ number_format($stats['total_active']) }}</div>
-        <div class="ef-inv-kpi-label">Active Items</div>
-    </div>
-    <a href="{{ route('admin.inventory.items.index', array_merge(request()->except('stock_status', 'page'), ['stock_status' => 'low'])) }}" class="ef-inv-kpi">
-        <div class="ef-inv-kpi-icon --warn"><i class="bi bi-arrow-down-circle"></i></div>
-        <div class="ef-inv-kpi-val {{ $stats['low_stock'] > 0 ? '--warn' : '' }}">{{ $stats['low_stock'] }}</div>
-        <div class="ef-inv-kpi-label">Low Stock</div>
-    </a>
-    <a href="{{ route('admin.inventory.items.index', array_merge(request()->except('stock_status', 'page'), ['stock_status' => 'out'])) }}" class="ef-inv-kpi">
-        <div class="ef-inv-kpi-icon --danger"><i class="bi bi-x-circle"></i></div>
-        <div class="ef-inv-kpi-val {{ $stats['out_of_stock'] > 0 ? '--danger' : '' }}">{{ $stats['out_of_stock'] }}</div>
-        <div class="ef-inv-kpi-label">Out of Stock</div>
-    </a>
-    <a href="{{ route('admin.purchase-plans.suggestions') }}" class="ef-inv-kpi">
-        <div class="ef-inv-kpi-icon --blue"><i class="bi bi-cart3"></i></div>
-        <div class="ef-inv-kpi-val">{{ $stats['critical'] }}</div>
-        <div class="ef-inv-kpi-label">Need Reorder</div>
-    </a>
-    <div class="ef-inv-kpi">
-        <div class="ef-inv-kpi-icon --green"><i class="bi bi-currency-rupee"></i></div>
-        <div class="ef-inv-kpi-val" style="font-size:1.1rem">
-            @php
-                $val = $stats['inventory_value'];
-                echo $val >= 100000 ? '₹' . number_format($val / 100000, 1) . 'L'
-                                   : '₹' . number_format($val);
-            @endphp
-        </div>
-        <div class="ef-inv-kpi-label">Inventory Value</div>
-    </div>
-    <div class="ef-inv-kpi">
-        <div class="ef-inv-kpi-icon --orange"><i class="bi bi-bag-check"></i></div>
-        <div class="ef-inv-kpi-val" style="font-size:1.1rem">
-            @php
-                $ms = $stats['monthly_spend'];
-                echo $ms >= 100000 ? '₹' . number_format($ms / 100000, 1) . 'L'
-                                  : '₹' . number_format($ms);
-            @endphp
-        </div>
-        <div class="ef-inv-kpi-label">This Month's Spend</div>
+<div class="ef-ds-kpi-wrap">
+    <div class="ef-ds-kpi-grid" style="--kpi-cols:6">
+        <x-ds.kpi-card icon="bi-boxes" label="Active Items" :value="number_format($stats['total_active'])" accent="emerald" value-color="c-emerald" />
+        <x-ds.kpi-card icon="bi-arrow-down-circle" label="Low Stock"
+            :value="$stats['low_stock']"
+            :accent="$stats['low_stock'] > 0 ? 'amber' : 'muted'"
+            :value-color="$stats['low_stock'] > 0 ? 'c-amber' : ''"
+            :href="route('admin.inventory.items.index', array_merge(request()->except('stock_status', 'page'), ['stock_status' => 'low']))" />
+        <x-ds.kpi-card icon="bi-x-circle" label="Out of Stock"
+            :value="$stats['out_of_stock']"
+            :accent="$stats['out_of_stock'] > 0 ? 'danger' : 'muted'"
+            :value-color="$stats['out_of_stock'] > 0 ? 'c-danger' : ''"
+            :href="route('admin.inventory.items.index', array_merge(request()->except('stock_status', 'page'), ['stock_status' => 'out']))" />
+        <x-ds.kpi-card icon="bi-cart3" label="Need Reorder"
+            :value="$stats['critical']"
+            :accent="$stats['critical'] > 0 ? 'bluegray' : 'muted'"
+            :value-color="$stats['critical'] > 0 ? 'c-bluegray' : ''"
+            :href="route('admin.purchase-plans.suggestions')" />
+        <x-ds.kpi-card icon="bi-currency-rupee" label="Inventory Value"
+            value="{{ $stats['inventory_value'] >= 100000 ? '₹' . number_format($stats['inventory_value'] / 100000, 1) . 'L' : '₹' . number_format($stats['inventory_value']) }}"
+            accent="gold" value-color="c-gold" />
+        <x-ds.kpi-card icon="bi-bag-check" label="This Month's Spend"
+            value="{{ $stats['monthly_spend'] >= 100000 ? '₹' . number_format($stats['monthly_spend'] / 100000, 1) . 'L' : '₹' . number_format($stats['monthly_spend']) }}"
+            accent="teal" value-color="c-teal" />
     </div>
 </div>
 
 {{-- ── Filter bar ──────────────────────────────────────────────── --}}
 <form method="GET" id="invFilterForm" action="{{ route('admin.inventory.items.index') }}">
-<div class="ef-inv-filter-bar">
+<div class="ef-ds-filter-bar">
     <div class="ef-inv-chips">
         <a href="{{ route('admin.inventory.items.index') }}"
            class="ef-inv-chip {{ !$stockSt ? '--active' : '' }}">
@@ -598,24 +361,27 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
             @endif
         </a>
         <a href="{{ route('admin.inventory.items.index', array_merge(request()->except('stock_status', 'page'), ['stock_status' => 'critical'])) }}"
-           class="ef-inv-chip --orange {{ $stockSt === 'critical' ? '--active' : '' }}">
+           class="ef-inv-chip --warn {{ $stockSt === 'critical' ? '--active' : '' }}">
             <i class="bi bi-exclamation-triangle"></i> Critical
         </a>
     </div>
 
     <div class="ef-inv-filter-row">
-        <input type="text" name="search" class="ef-inv-search"
-               placeholder="Search name or SKU…" value="{{ $search }}">
-        <button type="button" class="ef-inv-adv-toggle {{ $hasAdv ? '--has-filter' : '' }}" onclick="invToggleAdv(this)">
+        <div class="ef-inv-search-wrap">
+            <i class="bi bi-search ef-inv-search-icon"></i>
+            <input type="text" name="search" class="ef-input"
+                   placeholder="Search name or SKU…" value="{{ $search }}">
+        </div>
+        <button type="button" class="ef-btn ef-inv-adv-toggle {{ $hasAdv ? '--has-filter' : '' }}" onclick="invToggleAdv(this)">
             <i class="bi bi-sliders2"></i> Filters
             <span class="ef-inv-adv-dot"></span>
         </button>
-        <button type="submit" class="ef-inv-btn-apply">Search</button>
+        <button type="submit" class="ef-btn ef-btn-dark">Search</button>
     </div>
 
     <div class="ef-inv-adv-panel {{ $hasAdv ? '--open' : '' }}" id="invAdvPanel">
         <div class="ef-inv-adv-inner">
-            <select name="category_id" class="ef-inv-select">
+            <select name="category_id" class="ef-select">
                 <option value="">All Categories</option>
                 @foreach($categories as $cat)
                     <option value="{{ $cat->id }}" {{ $catId == $cat->id ? 'selected' : '' }}>
@@ -623,7 +389,7 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
                     </option>
                 @endforeach
             </select>
-            <select name="status" class="ef-inv-select">
+            <select name="status" class="ef-select">
                 <option value="">All Status</option>
                 <option value="active"   {{ $statusFil === 'active'   ? 'selected' : '' }}>Active</option>
                 <option value="inactive" {{ $statusFil === 'inactive' ? 'selected' : '' }}>Inactive</option>
@@ -631,8 +397,8 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
             @if($stockSt)
                 <input type="hidden" name="stock_status" value="{{ $stockSt }}">
             @endif
-            <a href="{{ route('admin.inventory.items.index') }}" class="ef-inv-btn-clear">
-                <i class="bi bi-x-lg me-1"></i> Clear
+            <a href="{{ route('admin.inventory.items.index') }}" class="ef-btn">
+                <i class="bi bi-x-lg"></i> Clear
             </a>
         </div>
     </div>
@@ -646,7 +412,7 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
     <div class="ef-inv-empty-title">No items found</div>
     <div class="ef-inv-empty-sub">
         @if($search || $stockSt || $catId || $statusFil)
-            Try different filters or <a href="{{ route('admin.inventory.items.index') }}" style="color:var(--ef-gold)">clear all filters</a>.
+            Try different filters or <a href="{{ route('admin.inventory.items.index') }}" style="color:var(--ef-emerald)">clear all filters</a>.
         @else
             Add your first inventory item to get started.
         @endif
@@ -763,17 +529,6 @@ a.ef-inv-kpi:hover { box-shadow: var(--ef-shadow-hover); transform: translateY(-
 </div>
 @endif
 @endif
-
-{{-- ── Mobile sticky bar ──────────────────────────────────────── --}}
-<div class="ef-inv-sticky">
-    <a href="{{ route('admin.inventory.items.create') }}" class="ef-inv-sticky-btn --gold">
-        <i class="bi bi-plus-lg"></i> Add Item
-    </a>
-    <button type="button" class="ef-inv-sticky-btn --ghost"
-            data-bs-toggle="modal" data-bs-target="#uploadModal">
-        <i class="bi bi-cloud-upload"></i> Upload Bill
-    </button>
-</div>
 
 @push('scripts')
 <script>

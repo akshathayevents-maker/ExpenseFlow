@@ -56,6 +56,12 @@ class AttendanceController extends Controller
         $dayState = $this->service->getAttendanceDayState($user, $selectedDate);
 
         return view('employee.attendance.index', [
+            // Session-flashed by EnsureAttendanceMarked ONLY on the request
+            // that immediately follows a gate redirect — true here means
+            // "the employee just got sent here because they tried to reach
+            // a gated page." A plain, direct visit to Attendance never sets
+            // this, so the banner never shows on an ordinary visit.
+            'attendanceGateTriggered' => (bool) session('attendance_gate_triggered', false),
             'regularizations' => $regularizations,
             'selectedDate' => $selectedDate,
             'dayState'     => $dayState,
@@ -77,13 +83,44 @@ class AttendanceController extends Controller
     {
         $this->service->markPresent(auth()->user());
 
-        return back()->with('success', 'Attendance marked as Present.');
+        return $this->redirectAfterMarking('Attendance marked as Present.');
     }
 
     public function markHalfDay(): RedirectResponse
     {
         $this->service->markHalfDay(auth()->user());
 
-        return back()->with('success', 'Attendance marked as Half Day.');
+        return $this->redirectAfterMarking('Attendance marked as Half Day.');
+    }
+
+    /**
+     * After successfully marking today's attendance, send the employee back
+     * to whatever gated page they originally tried to reach (stored by
+     * EnsureAttendanceMarked in 'attendance_gate_return_to'), not just
+     * back() to this same page — that's what makes "Request Overtime" ->
+     * (mark attendance) -> land back on the overtime form actually work.
+     * pull() reads AND clears in one step, so the redirect only ever fires
+     * once per gate trip.
+     *
+     * The stored value is never trusted blindly: it was written by our own
+     * middleware from $request->fullUrl() on THIS app, but the value only
+     * ever gets used if it still resolves to a URL on this same host and
+     * under /employee — belt-and-braces against ever open-redirecting even
+     * though the write path is not user-controlled.
+     */
+    private function redirectAfterMarking(string $message): RedirectResponse
+    {
+        $intended = session()->pull('attendance_gate_return_to');
+
+        if (is_string($intended)) {
+            $path = parse_url($intended, PHP_URL_PATH) ?? '';
+            $sameHost = parse_url($intended, PHP_URL_HOST) === parse_url(url('/'), PHP_URL_HOST);
+
+            if ($sameHost && str_starts_with($path, '/employee/') && ! str_starts_with($path, '/employee/attendance')) {
+                return redirect()->to($intended)->with('success', $message);
+            }
+        }
+
+        return back()->with('success', $message);
     }
 }
