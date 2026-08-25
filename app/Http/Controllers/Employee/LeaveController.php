@@ -6,13 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Leave\StoreLeaveRequestRequest;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
+use App\Services\LeaveBalanceService;
 use App\Services\LeaveService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
 class LeaveController extends Controller
 {
-    public function __construct(private LeaveService $service) {}
+    public function __construct(
+        private LeaveService $service,
+        private LeaveBalanceService $balanceService,
+    ) {}
 
     public function index(): View
     {
@@ -24,7 +28,9 @@ class LeaveController extends Controller
             'rejected' => $requests->where('status', 'rejected')->count(),
         ];
 
-        return view('employee.leave.index', ['requests' => $requests, 'summary' => $summary]);
+        $balances = $this->balanceService->balancesForAllTypes(auth()->user());
+
+        return view('employee.leave.index', ['requests' => $requests, 'summary' => $summary, 'balances' => $balances]);
     }
 
     public function create(): View
@@ -33,9 +39,24 @@ class LeaveController extends Controller
 
         $leaveTypes = LeaveType::active()->orderBy('name')->get();
 
-        return view('employee.leave.create', ['leaveTypes' => $leaveTypes]);
+        // Available balance per leave type, shown on the form BEFORE
+        // submission so the employee can see what they have left — never
+        // computed here beyond what LeaveBalanceService already returns.
+        $balances = $this->balanceService->balancesForAllTypes(auth()->user());
+
+        return view('employee.leave.create', ['leaveTypes' => $leaveTypes, 'balances' => $balances]);
     }
 
+    // The first submit attempt never silently retries with lop_confirmed=1
+    // — createRequest() throws a 'lop_confirmation' ValidationException
+    // whenever the request would exceed the paid balance and the caller
+    // hasn't already confirmed. That exception's message IS the exact
+    // split text the employee must see; letting it flow through Laravel's
+    // normal validation-exception handling re-renders the create form with
+    // the submitted input preserved (old()) and that message available via
+    // $errors->first('lop_confirmation') — the view then shows an explicit
+    // "Apply remaining N days as LOP" confirmation control that resubmits
+    // the same form with lop_confirmed=1.
     public function store(StoreLeaveRequestRequest $request): RedirectResponse
     {
         $leaveRequest = $this->service->createRequest(auth()->user(), $request->validated());

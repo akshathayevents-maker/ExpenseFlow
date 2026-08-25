@@ -695,6 +695,7 @@
     // computed independently and could both be true for the same route).
     $adminGroupMatchers = [
         'people-hr'  => fn () => request()->routeIs('admin.attendance-regularizations.*')
+            || request()->routeIs('admin.leave-types.*', 'admin.leave.*', 'admin.leave-policy-templates.*')
             || (request()->routeIs('admin.employees.*') && ! request()->routeIs('admin.employees.salaries.*')),
         'payroll'    => fn () => request()->routeIs('admin.overtime.*', 'admin.employees.salaries.*', 'admin.salaries.*', 'admin.advances.*'),
         'expenses'   => fn () => request()->routeIs('admin.expense-requests.*', 'admin.wallets.*', 'admin.payments.*'),
@@ -800,6 +801,18 @@
             <a href="{{ route('admin.attendance-regularizations.index') }}"
                class="nav-link {{ request()->routeIs('admin.attendance-regularizations.*') ? 'active' : '' }}">
                 <i class="bi bi-calendar-check"></i> Attendance Regularization
+            </a>
+            <a href="{{ route('admin.leave.requests.index') }}"
+               class="nav-link {{ request()->routeIs('admin.leave.requests.*', 'admin.leave.balances.*', 'admin.employees.leave-policies.*') ? 'active' : '' }}">
+                <i class="bi bi-calendar-minus"></i> Leave Management
+            </a>
+            <a href="{{ route('admin.leave-types.index') }}"
+               class="nav-link {{ request()->routeIs('admin.leave-types.*') ? 'active' : '' }}">
+                <i class="bi bi-sliders"></i> Leave Types
+            </a>
+            <a href="{{ route('admin.leave-policy-templates.index') }}"
+               class="nav-link {{ request()->routeIs('admin.leave-policy-templates.*') ? 'active' : '' }}">
+                <i class="bi bi-collection"></i> Leave Policy Templates
             </a>
         </div>
 
@@ -1052,6 +1065,10 @@
             <a href="{{ route('manager.advances.index') }}"
                class="nav-link {{ request()->routeIs('manager.advances.*') ? 'active' : '' }}">
                 <i class="bi bi-cash-stack"></i> Advances
+            </a>
+            <a href="{{ route('manager.leave.requests.index') }}"
+               class="nav-link {{ request()->routeIs('manager.leave.*') ? 'active' : '' }}">
+                <i class="bi bi-calendar-minus"></i> Leave
             </a>
         </div>
 

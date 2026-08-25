@@ -37,39 +37,57 @@ class PayableDaysCalculator
      */
     public function applicableWorkingDays(User $user, Carbon $from, Carbon $to): int
     {
+        return count($this->applicableWorkingDates($user, $from, $to));
+    }
+
+    /**
+     * The actual calendar dates within [from, to] that are applicable
+     * working days (employment period, not weekly-off, not a holiday) —
+     * the same rule applicableWorkingDays() counts, exposed as a date list
+     * for callers that need to assign something per-date (e.g. LeaveService
+     * splitting a multi-day request's paid vs LOP days chronologically).
+     *
+     * @return Carbon[]
+     */
+    public function applicableWorkingDates(User $user, Carbon $from, Carbon $to): array
+    {
         [$start, $end] = $this->clampToEmploymentPeriod($user, $from, $to);
         if ($start === null) {
-            return 0; // no overlap between the requested range and employment period
+            return [];
         }
 
         $weeklyOffDays = $this->weeklyOffDays();
         $holidayDates  = $this->holidayDateSet($start, $end);
 
-        $count = 0;
+        $dates = [];
         for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
             if (! $this->isNonWorkingDay($date, $weeklyOffDays, $holidayDates)) {
-                $count++;
+                $dates[] = $date->copy();
             }
         }
 
-        return $count;
+        return $dates;
     }
 
     /**
      * Payable days within [from, to], clamped to employment period:
      *   present            = 1.0
      *   half_day           = 0.5
-     *   leave              = 1.0   (all approved leave is payable — see note below)
+     *   leave              = 1.0   (approved PAID leave — see note below)
      *   half_day_leave     = 0.5
+     *   lop                = 0.0   (Loss of Pay — unpaid by definition)
+     *   half_day_lop       = 0.5   (the worked half is payable, the LOP half isn't)
      *   absent / unmarked  = 0.0
      *   weekly-off/holiday = 0.0   (excluded entirely, never contribute)
      *
-     * NOTE on paid/unpaid leave: leave_types/employee_leave_policies carry
-     * no paid/unpaid distinction in the current schema (verified — no such
-     * column exists). This is not a gap being papered over: it matches the
-     * already-locked business decision that ALL approved leave (full or
-     * half) is payable. If a paid/unpaid split is introduced later, this is
-     * the one method that needs to change — nowhere else.
+     * NOTE on paid/unpaid leave: 'leave'/'half_day_leave' attendance rows
+     * are only ever written for the PAID portion of an approved leave
+     * request (LeaveService splits paid_leave_days/lop_days at request
+     * time); the unpaid portion is written as 'lop'/'half_day_lop' instead.
+     * This method does not know anything about leave types, policies, or
+     * balances — it only reacts to the attendance status string, exactly
+     * as it always has. LOP is deliberately NOT a leave type (see
+     * LeaveService) — it is a property of how a request was fulfilled.
      *
      * Uses half-unit integer arithmetic internally (values doubled, summed
      * as integers, halved once at the end) rather than accumulating floats
@@ -96,8 +114,13 @@ class PayableDaysCalculator
             $status = $attendanceByDate[$date->toDateString()] ?? null;
             $halfUnits += match ($status) {
                 'present', 'leave' => 2,
-                'half_day', 'half_day_leave' => 1,
-                default => 0, // absent, or no row at all (unmarked)
+                // half_day_lop: the worked half of the day is payable, the
+                // LOP half is not — same 0.5-day contribution as
+                // half_day/half_day_leave, for the same reason.
+                'half_day', 'half_day_leave', 'half_day_lop' => 1,
+                // 'lop' (full-day LOP) is, by definition, unpaid — 0,
+                // same bucket as absent/unmarked.
+                default => 0, // absent, lop, or no row at all (unmarked)
             };
         }
 

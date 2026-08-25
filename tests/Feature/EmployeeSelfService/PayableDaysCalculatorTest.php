@@ -136,12 +136,25 @@ test('approved full-day leave contributes 1.0 payable day (all approved leave is
     expect($payable)->toBe(1.0);
 });
 
-// 12. Approved unpaid leave — SCHEMA GAP, documented rather than invented
-test('the schema has no paid/unpaid leave distinction — this test documents that gap rather than assuming a behaviour', function () {
-    expect(Schema::hasColumn('leave_types', 'is_paid'))->toBeFalse();
-    expect(Schema::hasColumn('employee_leave_policies', 'is_paid'))->toBeFalse();
-    // If this distinction is introduced later, payableDaysSoFar() is the
-    // one method that must change — see its docblock.
+// 12. LOP (Loss of Pay) — the unpaid portion of an approved leave request.
+// LOP is not a leave type; it is an attendance status written by
+// LeaveService for the unpaid days of a request's paid/LOP split.
+test('a full-day LOP status contributes 0 payable days', function () {
+    $user = User::factory()->create();
+    markAttendance($user, '2026-08-03', 'lop');
+
+    $payable = $this->calc->payableDaysSoFar($user, Carbon::parse('2026-08-01'), Carbon::parse('2026-08-03'));
+
+    expect($payable)->toBe(0.0);
+});
+
+test('a half_day_lop status contributes 0.5 payable days — the worked half is payable, the LOP half is not', function () {
+    $user = User::factory()->create();
+    markAttendance($user, '2026-08-03', 'half_day_lop');
+
+    $payable = $this->calc->payableDaysSoFar($user, Carbon::parse('2026-08-01'), Carbon::parse('2026-08-03'));
+
+    expect($payable)->toBe(0.5);
 });
 
 // 13. Leave + attendance interaction (half_day_leave)

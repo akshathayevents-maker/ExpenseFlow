@@ -9,6 +9,10 @@ use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\EmployeeSalaryController;
 use App\Http\Controllers\Admin\ExpenseRequestController as AdminExpenseRequestController;
 use App\Http\Controllers\Admin\AdvanceController as AdminAdvanceController;
+use App\Http\Controllers\Admin\LeaveController as AdminLeaveController;
+use App\Http\Controllers\Admin\LeavePolicyController as AdminLeavePolicyController;
+use App\Http\Controllers\Admin\LeavePolicyTemplateController as AdminLeavePolicyTemplateController;
+use App\Http\Controllers\Admin\LeaveTypeController as AdminLeaveTypeController;
 use App\Http\Controllers\Admin\AttendanceRegularizationController as AdminAttendanceRegularizationController;
 use App\Http\Controllers\Admin\OvertimeController as AdminOvertimeController;
 use App\Http\Controllers\Admin\Inventory\InventoryBillController;
@@ -32,6 +36,7 @@ use App\Http\Controllers\Employee\WalletController as EmployeeWalletController;
 use App\Http\Controllers\Manager\DashboardController as ManagerDashboardController;
 use App\Http\Controllers\Manager\ExpenseRequestController as ManagerExpenseRequestController;
 use App\Http\Controllers\Manager\AdvanceController as ManagerAdvanceController;
+use App\Http\Controllers\Manager\LeaveController as ManagerLeaveController;
 use App\Http\Controllers\Manager\AttendanceRegularizationController as ManagerAttendanceRegularizationController;
 use App\Http\Controllers\Manager\OvertimeController as ManagerOvertimeController;
 use App\Http\Controllers\Hall\HallBookingController;
@@ -120,6 +125,33 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'role.ad
     Route::patch('advances/{advance}/reject', [AdminAdvanceController::class, 'reject'])->name('advances.reject');
     Route::patch('advances/{advance}/disburse', [AdminAdvanceController::class, 'disburse'])->name('advances.disburse');
     Route::post('advances/{advance}/repayment', [AdminAdvanceController::class, 'recordRepayment'])->name('advances.repayment.store');
+
+    Route::get('leave-types', [AdminLeaveTypeController::class, 'index'])->name('leave-types.index');
+    Route::get('leave-types/create', [AdminLeaveTypeController::class, 'create'])->name('leave-types.create');
+    Route::post('leave-types', [AdminLeaveTypeController::class, 'store'])->name('leave-types.store');
+    Route::get('leave-types/{leaveType}/edit', [AdminLeaveTypeController::class, 'edit'])->name('leave-types.edit');
+    Route::put('leave-types/{leaveType}', [AdminLeaveTypeController::class, 'update'])->name('leave-types.update');
+
+    Route::get('employees/{employee}/leave-policies', [AdminLeavePolicyController::class, 'index'])->name('employees.leave-policies.index');
+    Route::post('employees/{employee}/leave-policies', [AdminLeavePolicyController::class, 'store'])->name('employees.leave-policies.store');
+    Route::post('employees/{employee}/leave-policy-template', [AdminLeavePolicyTemplateController::class, 'assign'])->name('employees.leave-policy-template.assign');
+
+    Route::get('leave-policy-templates', [AdminLeavePolicyTemplateController::class, 'index'])->name('leave-policy-templates.index');
+    Route::get('leave-policy-templates/create', [AdminLeavePolicyTemplateController::class, 'create'])->name('leave-policy-templates.create');
+    Route::post('leave-policy-templates', [AdminLeavePolicyTemplateController::class, 'store'])->name('leave-policy-templates.store');
+    Route::get('leave-policy-templates/{leavePolicyTemplate}/edit', [AdminLeavePolicyTemplateController::class, 'edit'])->name('leave-policy-templates.edit');
+    Route::put('leave-policy-templates/{leavePolicyTemplate}', [AdminLeavePolicyTemplateController::class, 'update'])->name('leave-policy-templates.update');
+    Route::patch('leave-policy-templates/{leavePolicyTemplate}/set-default', [AdminLeavePolicyTemplateController::class, 'setDefault'])->name('leave-policy-templates.set-default');
+    Route::patch('leave-policy-templates/{leavePolicyTemplate}/clear-default', [AdminLeavePolicyTemplateController::class, 'clearDefault'])->name('leave-policy-templates.clear-default');
+    Route::post('leave-policy-templates/bulk-assign', [AdminLeavePolicyTemplateController::class, 'bulkAssign'])->name('leave-policy-templates.bulk-assign');
+
+    Route::get('leave/requests', [AdminLeaveController::class, 'index'])->name('leave.requests.index');
+    Route::get('leave/requests/{leaveRequest}', [AdminLeaveController::class, 'show'])->name('leave.requests.show');
+    Route::patch('leave/requests/{leaveRequest}/approve', [AdminLeaveController::class, 'approve'])->name('leave.requests.approve');
+    Route::patch('leave/requests/{leaveRequest}/reject', [AdminLeaveController::class, 'reject'])->name('leave.requests.reject');
+
+    Route::get('leave/balances/{employee}', [AdminLeaveController::class, 'balances'])->name('leave.balances.show');
+    Route::post('leave/balances/{employee}/adjustments', [AdminLeaveController::class, 'storeAdjustment'])->name('leave.adjustments.store');
 
     // Wallets
     Route::get('wallets', [WalletController::class, 'index'])->name('wallets.index');
@@ -240,6 +272,11 @@ Route::prefix('manager')->name('manager.')->middleware(['auth', 'verified', 'rol
     Route::patch('advances/{advance}/reject', [ManagerAdvanceController::class, 'reject'])->name('advances.reject');
     Route::patch('advances/{advance}/disburse', [ManagerAdvanceController::class, 'disburse'])->name('advances.disburse');
     Route::post('advances/{advance}/repayment', [ManagerAdvanceController::class, 'recordRepayment'])->name('advances.repayment.store');
+
+    Route::get('leave/requests', [ManagerLeaveController::class, 'index'])->name('leave.requests.index');
+    Route::get('leave/requests/{leaveRequest}', [ManagerLeaveController::class, 'show'])->name('leave.requests.show');
+    Route::patch('leave/requests/{leaveRequest}/approve', [ManagerLeaveController::class, 'approve'])->name('leave.requests.approve');
+    Route::patch('leave/requests/{leaveRequest}/reject', [ManagerLeaveController::class, 'reject'])->name('leave.requests.reject');
 });
 
 // ── Employee ──────────────────────────────────────────────────────────────────

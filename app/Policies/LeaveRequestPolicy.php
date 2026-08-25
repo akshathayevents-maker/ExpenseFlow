@@ -23,6 +23,25 @@ class LeaveRequestPolicy
 
     public function cancel(User $user, LeaveRequest $leaveRequest): bool
     {
-        return $user->id === $leaveRequest->user_id && $leaveRequest->isPending();
+        return $user->id === $leaveRequest->user_id
+            && ($leaveRequest->isPending() || $leaveRequest->isApproved());
+    }
+
+    // Admin-or-manager, no reporting hierarchy — same convention already
+    // used by EmployeeAdvancePolicy/EmployeeOvertimePolicy/
+    // EmployeeAttendanceRegularizationPolicy. Self-approval blocked for the
+    // same reason: no manager/employee hierarchy exists to make it safe.
+    public function approve(User $user, LeaveRequest $leaveRequest): bool
+    {
+        return ($user->isAdmin() || $user->isManager())
+            && $leaveRequest->isPending()
+            && $user->id !== $leaveRequest->user_id;
+    }
+
+    public function reject(User $user, LeaveRequest $leaveRequest): bool
+    {
+        return ($user->isAdmin() || $user->isManager())
+            && $leaveRequest->isPending()
+            && $user->id !== $leaveRequest->user_id;
     }
 }

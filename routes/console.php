@@ -21,6 +21,12 @@ Schedule::command('app:remind-pending')->twiceDaily(10, 16);
 // Delete temp QR files older than 24 hours — runs every hour
 Schedule::command('app:cleanup-temp-qr')->hourly();
 
+// Generate any newly-eligible leave allocations (yearly/monthly/quarterly).
+// Safe to run daily even though most periods only become eligible after
+// completion — the unique constraint on employee_leave_allocations makes
+// re-running a no-op for periods already allocated.
+Schedule::command('leave:generate-allocations')->dailyAt('01:00');
+
 // Purge sessions older than SESSION_LIFETIME.
 // With lifetime=43200 (30 days), expired rows accumulate without this.
 // Runs at 3 AM daily — low-traffic window.

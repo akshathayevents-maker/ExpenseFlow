@@ -8,9 +8,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class LeaveRequest extends Model
 {
-    // SECURITY: workflow fields (status, reviewed_by/at, review_note) are
-    // server-controlled only and excluded from $fillable — written via
-    // forceFill() in LeaveService, mirroring EmployeeAdvance/EmployeeOvertime.
+    // SECURITY: workflow fields (status, reviewed_by/at, review_note) AND
+    // the paid/LOP split (paid_leave_days, lop_days, lop_confirmed) are
+    // server-controlled only and excluded from $fillable — the split is
+    // computed by LeaveService from the employee's real balance, never
+    // trusted from request input, and written via forceFill(), mirroring
+    // EmployeeAdvance/EmployeeOvertime.
     protected $fillable = [
         'user_id', 'leave_type_id', 'start_date', 'end_date', 'is_half_day',
         'half_day_period', 'days_requested', 'reason',
@@ -23,6 +26,9 @@ class LeaveRequest extends Model
             'end_date'       => 'date',
             'is_half_day'    => 'boolean',
             'days_requested' => 'decimal:1',
+            'paid_leave_days'=> 'decimal:1',
+            'lop_days'       => 'decimal:1',
+            'lop_confirmed'  => 'boolean',
             'reviewed_at'    => 'datetime',
         ];
     }
@@ -46,6 +52,8 @@ class LeaveRequest extends Model
     {
         return $this->hasMany(EmployeeAttendance::class);
     }
+
+    public function hasLop(): bool { return (float) $this->lop_days > 0.0; }
 
     public function isPending(): bool { return $this->status === 'pending'; }
     public function isApproved(): bool { return $this->status === 'approved'; }

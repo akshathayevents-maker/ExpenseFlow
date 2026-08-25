@@ -5,13 +5,19 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreEmployeeRequest;
 use App\Http\Requests\Admin\UpdateEmployeeRequest;
+use App\Models\LeavePolicyTemplate;
 use App\Models\User;
+use App\Services\LeavePolicyAssignmentService;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class EmployeeController extends Controller
 {
+    public function __construct(private LeavePolicyAssignmentService $assignmentService) {}
+
     public function index(Request $request): View
     {
         $search = $request->get('search', '');
@@ -46,7 +52,10 @@ class EmployeeController extends Controller
 
     public function create(): View
     {
-        return view('admin.employees.create');
+        $leavePolicyTemplates = LeavePolicyTemplate::active()->orderBy('name')->get();
+        $defaultLeavePolicyTemplate = $leavePolicyTemplates->firstWhere('is_default', true);
+
+        return view('admin.employees.create', compact('leavePolicyTemplates', 'defaultLeavePolicyTemplate'));
     }
 
     public function show(User $employee): View
@@ -61,19 +70,57 @@ class EmployeeController extends Controller
     {
         $data = $request->validated();
 
-        // role/is_active are not in User::$fillable (prevents mass-assignment via
-        // other endpoints). Explicit assignment is required here for authorized admin action.
-        $user = User::create([
-            'name'                   => $data['name'],
-            'email'                  => $data['email'],
-            'phone'                  => $data['phone'] ?? null,
-            'password'               => $data['password'],
-            'employment_start_date'  => $data['employment_start_date'] ?? null,
-            'employment_end_date'    => $data['employment_end_date'] ?? null,
-        ]);
-        $user->role      = $data['role'];
-        $user->is_active = $data['is_active'] ?? true;
-        $user->save();
+        // Employee creation + leave-policy template assignment must
+        // succeed or fail together — one transaction boundary. If the
+        // assignment step throws (e.g. a bad template item causes a DB
+        // error), the User row created in the same transaction is rolled
+        // back too, so no orphaned account is left without its intended
+        // policy.
+        $user = DB::transaction(function () use ($data) {
+            // role/is_active are not in User::$fillable (prevents mass-assignment via
+            // other endpoints). Explicit assignment is required here for authorized admin action.
+            $user = User::create([
+                'name'                   => $data['name'],
+                'email'                  => $data['email'],
+                'phone'                  => $data['phone'] ?? null,
+                'password'               => $data['password'],
+                'employment_start_date'  => $data['employment_start_date'] ?? null,
+                'employment_end_date'    => $data['employment_end_date'] ?? null,
+            ]);
+            $user->role      = $data['role'];
+            $user->is_active = $data['is_active'] ?? true;
+            $user->save();
+
+            // Resolve which template to assign: an explicit selection wins;
+            // otherwise fall back to the configured default (if any); if
+            // neither exists, the employee is created with no leave policy
+            // at all — a silently valid state (e.g. LOP-only employees).
+            $template = null;
+            if (! empty($data['leave_policy_template_id'])) {
+                $template = LeavePolicyTemplate::find($data['leave_policy_template_id']);
+            } else {
+                $template = LeavePolicyTemplate::where('is_default', true)->first();
+            }
+
+            // StoreEmployeeRequest rejects the submission before this point
+            // if a template would be assigned (explicit or default) but no
+            // employment_start_date was given — effective_from must never
+            // be silently invented (e.g. defaulted to today()), since that
+            // would corrupt this employee's first-year pro-rata the moment
+            // a real start date is added later. So by the time we get
+            // here, $user->employment_start_date is guaranteed present
+            // whenever $template is non-null.
+            if ($template) {
+                $this->assignmentService->assignTemplate(
+                    $user,
+                    $template,
+                    auth()->user(),
+                    Carbon::parse($user->employment_start_date),
+                );
+            }
+
+            return $user;
+        });
 
         return redirect()->route('admin.employees.index')
             ->with('success', 'Employee created successfully.');
@@ -127,7 +174,11 @@ class EmployeeController extends Controller
             return back()->with('error', 'Cannot deactivate your own account.');
         }
 
-        $employee->update(['is_active' => ! $employee->is_active]);
+        // is_active is intentionally excluded from $fillable (see User model)
+        // to prevent mass-assignment from request input — update() would
+        // silently discard it here, so it's written via forceFill(), the
+        // same pattern already used for every other hardened field in the app.
+        $employee->forceFill(['is_active' => ! $employee->is_active])->save();
 
         $status = $employee->is_active ? 'activated' : 'deactivated';
 

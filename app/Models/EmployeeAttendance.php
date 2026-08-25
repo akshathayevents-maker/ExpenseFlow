@@ -47,10 +47,11 @@ class EmployeeAttendance extends Model
     public function isPresent(): bool { return $this->status === 'present'; }
     public function isHalfDay(): bool { return $this->status === 'half_day'; }
     public function isLeave(): bool { return in_array($this->status, ['leave', 'half_day_leave'], true); }
+    public function isLop(): bool { return in_array($this->status, ['lop', 'half_day_lop'], true); }
     public function isAbsent(): bool { return $this->status === 'absent'; }
 
     public static function statuses(): array
     {
-        return ['present', 'half_day', 'leave', 'half_day_leave', 'absent'];
+        return ['present', 'half_day', 'leave', 'half_day_leave', 'lop', 'half_day_lop', 'absent'];
     }
 }

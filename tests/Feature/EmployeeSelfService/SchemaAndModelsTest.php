@@ -206,21 +206,31 @@ test('leave ledger balance is derivable from SUM(amount), never a stored running
 
 // ── Leave policy effective-dating ─────────────────────────────────────────
 
-test('leave type resolves the correct policy as of a given date across a policy change', function () {
+test('leave policy is employee-specific and resolves the correct effective row as of a given date', function () {
     $admin = User::factory()->create(['role' => 'admin']);
+    $user  = User::factory()->create();
+    $otherUser = User::factory()->create();
     $type  = LeaveType::create(['name' => 'Casual Leave', 'code' => 'CL', 'allow_half_day' => true, 'is_active' => true]);
 
     $old = EmployeeLeavePolicy::create([
-        'leave_type_id' => $type->id, 'annual_entitlement' => 12, 'allocation_mode' => 'yearly',
+        'user_id' => $user->id, 'leave_type_id' => $type->id, 'annual_entitlement' => 12, 'allocation_mode' => 'yearly',
         'effective_from' => '2025-01-01', 'is_active' => true, 'created_by' => $admin->id,
     ]);
     $new = EmployeeLeavePolicy::create([
-        'leave_type_id' => $type->id, 'annual_entitlement' => 15, 'allocation_mode' => 'yearly',
+        'user_id' => $user->id, 'leave_type_id' => $type->id, 'annual_entitlement' => 15, 'allocation_mode' => 'yearly',
         'effective_from' => '2026-07-01', 'is_active' => true, 'created_by' => $admin->id,
     ]);
+    // Different employee, different entitlement entirely — proves policies
+    // are per-user, not global per leave type.
+    $otherPolicy = EmployeeLeavePolicy::create([
+        'user_id' => $otherUser->id, 'leave_type_id' => $type->id, 'annual_entitlement' => 20, 'allocation_mode' => 'yearly',
+        'effective_from' => '2025-01-01', 'is_active' => true, 'created_by' => $admin->id,
+    ]);
 
-    expect($type->currentPolicyAsOf(\Carbon\Carbon::parse('2026-03-01'))->id)->toBe($old->id);
-    expect($type->currentPolicyAsOf(\Carbon\Carbon::parse('2026-08-01'))->id)->toBe($new->id);
+    expect(EmployeeLeavePolicy::currentFor($user, $type, \Carbon\Carbon::parse('2026-03-01'))->id)->toBe($old->id);
+    expect(EmployeeLeavePolicy::currentFor($user, $type, \Carbon\Carbon::parse('2026-08-01'))->id)->toBe($new->id);
+    expect(EmployeeLeavePolicy::currentFor($otherUser, $type, \Carbon\Carbon::parse('2026-08-01'))->id)->toBe($otherPolicy->id);
+    expect((float) EmployeeLeavePolicy::currentFor($otherUser, $type, \Carbon\Carbon::parse('2026-08-01'))->annual_entitlement)->toBe(20.0);
 });
 
 // ── Advance ledger integrity ───────────────────────────────────────────────

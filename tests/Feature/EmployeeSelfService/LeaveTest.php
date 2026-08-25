@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\AuditLog;
+use App\Models\EmployeeLeaveLedger;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Models\User;
@@ -22,6 +23,7 @@ test('employee can open and apply for leave without marking attendance first', f
     $this->actingAs($user->fresh())->get(route('employee.leave.create'))->assertOk();
 
     $this->actingAs($user->fresh())->post(route('employee.leave.store'), [
+        'lop_confirmed' => 1,
         'leave_type_id' => $type->id,
         'start_date'    => '2026-09-01', // Tuesday
         'end_date'      => '2026-09-02', // Wednesday
@@ -45,6 +47,7 @@ test('employee can apply for leave', function () {
     $type = makeLeaveType();
 
     $response = $this->actingAs($user->fresh())->post(route('employee.leave.store'), [
+        'lop_confirmed' => 1,
         'leave_type_id' => $type->id,
         'start_date'    => '2026-09-01', // Tuesday
         'end_date'      => '2026-09-02', // Wednesday
@@ -64,6 +67,7 @@ test('days_requested excludes weekly-off days within the range', function () {
 
     // Sat 5 Sep, Sun 6 Sep, Mon 7 Sep — Sunday is the configured weekly off.
     $this->actingAs($user->fresh())->post(route('employee.leave.store'), [
+        'lop_confirmed' => 1,
         'leave_type_id' => $type->id,
         'start_date'    => '2026-09-05',
         'end_date'      => '2026-09-07',
@@ -78,6 +82,7 @@ test('half day leave request forces single day and 0.5 days', function () {
     $type = makeLeaveType();
 
     $this->actingAs($user->fresh())->post(route('employee.leave.store'), [
+        'lop_confirmed' => 1,
         'leave_type_id'   => $type->id,
         'start_date'      => '2026-09-01',
         'end_date'        => '2026-09-01',
@@ -96,6 +101,7 @@ test('half day request is rejected when the leave type does not allow half days'
     $type = makeLeaveType(['allow_half_day' => false]);
 
     $this->actingAs($user->fresh())->post(route('employee.leave.store'), [
+        'lop_confirmed' => 1,
         'leave_type_id'   => $type->id,
         'start_date'      => '2026-09-01',
         'end_date'        => '2026-09-01',
@@ -112,6 +118,7 @@ test('reason is required when applying for leave', function () {
     $type = makeLeaveType();
 
     $this->actingAs($user->fresh())->post(route('employee.leave.store'), [
+        'lop_confirmed' => 1,
         'leave_type_id' => $type->id,
         'start_date'    => '2026-09-01',
         'end_date'      => '2026-09-02',
@@ -125,6 +132,7 @@ test('end date before start date is rejected', function () {
     $type = makeLeaveType();
 
     $this->actingAs($user->fresh())->post(route('employee.leave.store'), [
+        'lop_confirmed' => 1,
         'leave_type_id' => $type->id,
         'start_date'    => '2026-09-05',
         'end_date'      => '2026-09-01',
@@ -139,6 +147,7 @@ test('past-dated leave requests are allowed', function () {
     $type = makeLeaveType();
 
     $this->actingAs($user->fresh())->post(route('employee.leave.store'), [
+        'lop_confirmed' => 1,
         'leave_type_id' => $type->id,
         'start_date'    => '2020-01-06', // Monday, well in the past
         'end_date'      => '2020-01-06',
@@ -160,6 +169,7 @@ test('overlapping pending leave request is rejected', function () {
     ]);
 
     $this->actingAs($user->fresh())->post(route('employee.leave.store'), [
+        'lop_confirmed' => 1,
         'leave_type_id' => $type->id,
         'start_date'    => '2026-09-14',
         'end_date'      => '2026-09-18',
@@ -179,6 +189,7 @@ test('overlapping approved leave request is rejected', function () {
     ]);
 
     $this->actingAs($user->fresh())->post(route('employee.leave.store'), [
+        'lop_confirmed' => 1,
         'leave_type_id' => $type->id,
         'start_date'    => '2026-09-08',
         'end_date'      => '2026-09-11',
@@ -203,6 +214,7 @@ test('a rejected or cancelled leave request does not block an overlapping new re
     ]);
 
     $this->actingAs($user->fresh())->post(route('employee.leave.store'), [
+        'lop_confirmed' => 1,
         'leave_type_id' => $type->id,
         'start_date'    => '2026-09-12',
         'end_date'      => '2026-09-13',
@@ -222,6 +234,7 @@ test('non-overlapping leave request is allowed', function () {
     ]);
 
     $this->actingAs($user->fresh())->post(route('employee.leave.store'), [
+        'lop_confirmed' => 1,
         'leave_type_id' => $type->id,
         'start_date'    => '2026-09-20',
         'end_date'      => '2026-09-21',
@@ -243,6 +256,7 @@ test('adjacent (back-to-back) leave dates are allowed', function () {
     // Starts the day right after the existing request ends — must not
     // be treated as an overlap.
     $this->actingAs($user->fresh())->post(route('employee.leave.store'), [
+        'lop_confirmed' => 1,
         'leave_type_id' => $type->id,
         'start_date'    => '2026-09-12',
         'end_date'      => '2026-09-13',
@@ -303,12 +317,28 @@ test('employee cannot cancel another employees leave request', function () {
     $this->actingAs($a->fresh())->patch(route('employee.leave.cancel', $leaveRequest))->assertForbidden();
 });
 
-test('cannot cancel an already approved leave request', function () {
+test('an approved leave request can be cancelled — balance is restored via a reversal ledger entry', function () {
     $user = User::factory()->create();
     $type = makeLeaveType();
     $leaveRequest = hardenedLeaveRequest([
         'user_id' => $user->id, 'leave_type_id' => $type->id, 'start_date' => '2026-09-01', 'end_date' => '2026-09-01',
-        'days_requested' => 1, 'reason' => 'x', 'status' => 'approved',
+        'days_requested' => 1, 'paid_leave_days' => 1, 'lop_days' => 0, 'reason' => 'x', 'status' => 'approved',
+    ]);
+
+    $this->actingAs($user->fresh())->patch(route('employee.leave.cancel', $leaveRequest))->assertRedirect();
+
+    expect($leaveRequest->fresh()->status)->toBe('cancelled');
+    $reversal = App\Models\EmployeeLeaveLedger::where('user_id', $user->id)->where('type', 'reversal')->first();
+    expect($reversal)->not->toBeNull();
+    expect((float) $reversal->amount)->toBe(1.0);
+});
+
+test('cannot cancel a rejected leave request', function () {
+    $user = User::factory()->create();
+    $type = makeLeaveType();
+    $leaveRequest = hardenedLeaveRequest([
+        'user_id' => $user->id, 'leave_type_id' => $type->id, 'start_date' => '2026-09-01', 'end_date' => '2026-09-01',
+        'days_requested' => 1, 'reason' => 'x', 'status' => 'rejected',
     ]);
 
     $this->actingAs($user->fresh())->patch(route('employee.leave.cancel', $leaveRequest))->assertForbidden();
@@ -321,6 +351,7 @@ test('leave request and cancellation are audited', function () {
     $type = makeLeaveType();
 
     $this->actingAs($user->fresh())->post(route('employee.leave.store'), [
+        'lop_confirmed' => 1,
         'leave_type_id' => $type->id, 'start_date' => '2026-09-01', 'end_date' => '2026-09-01', 'reason' => 'x',
     ]);
     $leaveRequest = LeaveRequest::first();
@@ -360,6 +391,93 @@ test('attendance page shows Apply Leave and My Leave entry points', function () 
         ->assertSee('My Leave')
         ->assertSee(route('employee.leave.create'), false)
         ->assertSee(route('employee.leave.index'), false);
+});
+
+// ── Balance panel on leave index ─────────────────────────────────────────
+
+test('employee sees correct allocated/used/pending/available balances on the leave index page', function () {
+    $user = User::factory()->create();
+    $type = makeLeaveType(['is_paid' => true]);
+
+    EmployeeLeaveLedger::create([
+        'user_id' => $user->id, 'leave_type_id' => $type->id, 'entry_date' => '2026-01-01',
+        'type' => 'allocation', 'amount' => 12, 'created_by' => $user->id,
+    ]);
+    EmployeeLeaveLedger::create([
+        'user_id' => $user->id, 'leave_type_id' => $type->id, 'entry_date' => '2026-02-01',
+        'type' => 'usage', 'amount' => -2, 'created_by' => $user->id,
+    ]);
+    hardenedLeaveRequest([
+        'user_id' => $user->id, 'leave_type_id' => $type->id,
+        'start_date' => '2026-09-01', 'end_date' => '2026-09-01',
+        'days_requested' => 1, 'paid_leave_days' => 1, 'lop_days' => 0,
+        'reason' => 'x', 'status' => 'pending',
+    ]);
+
+    $response = $this->actingAs($user->fresh())->get(route('employee.leave.index'))->assertOk();
+
+    // allocated 12, used 2, pending 1, available = (12 - 2) - 1 = 9
+    $response->assertSee('12');
+    $response->assertSee('9');
+});
+
+// ── LOP confirmation round-trip ──────────────────────────────────────────
+
+test('a leave request exceeding paid balance is not created until the employee explicitly confirms LOP', function () {
+    $user = User::factory()->create();
+    $type = makeLeaveType(['is_paid' => true]);
+
+    EmployeeLeaveLedger::create([
+        'user_id' => $user->id, 'leave_type_id' => $type->id, 'entry_date' => '2026-01-01',
+        'type' => 'allocation', 'amount' => 1, 'created_by' => $user->id,
+    ]);
+
+    // 1 day available, requesting 2 working days (Tue-Wed) — 1 day will be LOP.
+    $response = $this->actingAs($user->fresh())->post(route('employee.leave.store'), [
+        'leave_type_id' => $type->id,
+        'start_date'    => '2026-09-01',
+        'end_date'      => '2026-09-02',
+        'reason'        => 'Personal work',
+    ]);
+
+    $response->assertSessionHasErrors('lop_confirmation');
+    expect(LeaveRequest::count())->toBe(0);
+
+    // The exact split message from LeaveService::createRequest() must be
+    // available in the redisplayed form.
+    $errors = session('errors');
+    expect($errors->first('lop_confirmation'))->toContain('Requested: 2 day(s)');
+    expect($errors->first('lop_confirmation'))->toContain('Paid leave available: 1 day(s)');
+    expect($errors->first('lop_confirmation'))->toContain('1 day(s) will be treated as Loss of Pay');
+
+    // Resubmitting with the explicit confirmation checkbox now creates it,
+    // with the correct paid/LOP split.
+    $this->actingAs($user->fresh())->post(route('employee.leave.store'), [
+        'leave_type_id' => $type->id,
+        'start_date'    => '2026-09-01',
+        'end_date'      => '2026-09-02',
+        'reason'        => 'Personal work',
+        'lop_confirmed' => 1,
+    ])->assertRedirect();
+
+    expect(LeaveRequest::count())->toBe(1);
+    $leaveRequest = LeaveRequest::first();
+    expect((float) $leaveRequest->paid_leave_days)->toBe(1.0);
+    expect((float) $leaveRequest->lop_days)->toBe(1.0);
+});
+
+test('apply leave form shows the available balance for the selected leave type', function () {
+    $user = User::factory()->create();
+    $type = makeLeaveType(['is_paid' => true]);
+
+    EmployeeLeaveLedger::create([
+        'user_id' => $user->id, 'leave_type_id' => $type->id, 'entry_date' => '2026-01-01',
+        'type' => 'allocation', 'amount' => 12, 'created_by' => $user->id,
+    ]);
+
+    $this->actingAs($user->fresh())->get(route('employee.leave.create'))
+        ->assertOk()
+        ->assertSee($type->name);
 });
 
 // ── Mass-assignment hardening ─────────────────────────────────────────────

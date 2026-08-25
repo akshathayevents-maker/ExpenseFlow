@@ -16,4 +16,13 @@ class UserPolicy
             && in_array($employee->role, ['employee', 'manager'], true)
             && (bool) $employee->is_active;
     }
+
+    // Leave policy assignment is admin-only, mirroring manageSalary exactly
+    // — only for real, active workforce accounts, never an admin account.
+    public function manageLeavePolicy(User $admin, User $employee): bool
+    {
+        return $admin->isAdmin()
+            && in_array($employee->role, ['employee', 'manager'], true)
+            && (bool) $employee->is_active;
+    }
 }

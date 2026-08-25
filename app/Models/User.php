@@ -109,6 +109,11 @@ class User extends Authenticatable
         return $this->hasMany(EmployeeAttendance::class);
     }
 
+    public function leavePolicies(): HasMany
+    {
+        return $this->hasMany(EmployeeLeavePolicy::class);
+    }
+
     public function leaveAllocations(): HasMany
     {
         return $this->hasMany(EmployeeLeaveAllocation::class);
@@ -122,6 +127,15 @@ class User extends Authenticatable
     public function leaveRequests(): HasMany
     {
         return $this->hasMany(LeaveRequest::class);
+    }
+
+    // Pure display/bookkeeping pointer to "which template this employee is
+    // currently on" — never read by LeaveAllocationService/
+    // LeaveBalanceService/LeaveService, which only ever read
+    // EmployeeLeavePolicy rows regardless of how they were created.
+    public function leavePolicyTemplate(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(LeavePolicyTemplate::class, 'leave_policy_template_id');
     }
 
     public function advances(): HasMany

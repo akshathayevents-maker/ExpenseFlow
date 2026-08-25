@@ -37,6 +37,14 @@ $statusChips = [
         .lv-row { flex-direction: row; align-items: center; }
         .lv-row-top { flex: 1; }
     }
+    .lv-bal-list { display: flex; flex-direction: column; }
+    .lv-bal-row { padding: 10px 0; border-top: 1px solid var(--ef-border, #e5e7eb); }
+    .lv-bal-row:first-child { border-top: none; }
+    .lv-bal-name { font-weight: 700; margin-bottom: 6px; }
+    .lv-bal-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .lv-bal-tile { background: var(--ef-surface-2, #f8f9fa); border-radius: 8px; padding: 8px; text-align: center; }
+    .lv-bal-tile-val { font-size: 1.0rem; font-weight: 800; }
+    .lv-bal-tile-lbl { font-size: .64rem; color: var(--ef-faint, #6b7280); text-transform: uppercase; letter-spacing: .03em; margin-top: 1px; }
 </style>
 @endpush
 
@@ -56,6 +64,42 @@ $statusChips = [
         </div>
     </div>
 </x-ds.card>
+
+<div class="mt-3">
+<x-ds.card title="My Leave Balances">
+    @if(empty($balances))
+        <div style="text-align:center;padding:20px 12px;color:var(--ef-faint,#6b7280)">
+            No active leave types configured yet.
+        </div>
+    @else
+        <div class="lv-bal-list">
+            @foreach($balances as $row)
+                <div class="lv-bal-row">
+                    <div class="lv-bal-name">{{ $row['leave_type']->name }}</div>
+                    <div class="lv-bal-tiles">
+                        <div class="lv-bal-tile">
+                            <div class="lv-bal-tile-val">{{ rtrim(rtrim(number_format($row['allocated'], 1), '0'), '.') }}</div>
+                            <div class="lv-bal-tile-lbl">Allocated</div>
+                        </div>
+                        <div class="lv-bal-tile">
+                            <div class="lv-bal-tile-val">{{ rtrim(rtrim(number_format($row['used'], 1), '0'), '.') }}</div>
+                            <div class="lv-bal-tile-lbl">Used</div>
+                        </div>
+                        <div class="lv-bal-tile">
+                            <div class="lv-bal-tile-val">{{ rtrim(rtrim(number_format($row['pending'], 1), '0'), '.') }}</div>
+                            <div class="lv-bal-tile-lbl">Pending</div>
+                        </div>
+                        <div class="lv-bal-tile">
+                            <div class="lv-bal-tile-val" style="color:var(--ef-emerald,#0F7B5F)">{{ rtrim(rtrim(number_format($row['available'], 1), '0'), '.') }}</div>
+                            <div class="lv-bal-tile-lbl">Available</div>
+                        </div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    @endif
+</x-ds.card>
+</div>
 
 <div class="mt-3">
 <x-ds.card title="My Leave Requests">

@@ -7,31 +7,25 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class LeaveType extends Model
 {
-    protected $fillable = ['name', 'code', 'allow_half_day', 'is_active'];
+    protected $fillable = [
+        'name', 'code', 'allow_half_day', 'is_active',
+        'is_paid', 'allow_carry_forward', 'max_carry_forward',
+    ];
 
     protected function casts(): array
     {
         return [
-            'allow_half_day' => 'boolean',
-            'is_active'      => 'boolean',
+            'allow_half_day'      => 'boolean',
+            'is_active'           => 'boolean',
+            'is_paid'             => 'boolean',
+            'allow_carry_forward' => 'boolean',
+            'max_carry_forward'   => 'decimal:1',
         ];
     }
 
     public function policies(): HasMany
     {
         return $this->hasMany(EmployeeLeavePolicy::class);
-    }
-
-    // $date is required (not defaulted to now()) — the business-timezone
-    // "today" is decided by BusinessClock in the service layer (Phase 3+),
-    // not assumed here at the model layer.
-    public function currentPolicyAsOf(\Carbon\Carbon $date): ?EmployeeLeavePolicy
-    {
-        return $this->policies()
-            ->where('is_active', true)
-            ->whereDate('effective_from', '<=', $date->toDateString())
-            ->orderByDesc('effective_from')
-            ->first();
     }
 
     public function allocations(): HasMany
