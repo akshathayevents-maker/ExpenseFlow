@@ -3,14 +3,18 @@
 namespace App\Http\Controllers\Employee;
 
 use App\Http\Controllers\Controller;
+use App\Models\EmployeeAttendance;
 use App\Models\EmployeeAttendanceRegularization;
+use App\Models\EmployeeAttendanceSegment;
 use App\Models\EmployeeOvertime;
 use App\Models\ExpenseRequest;
 use App\Models\LeaveRequest;
+use App\Models\User;
 use App\Services\AdvanceEligibilityService;
 use App\Services\EmployeeAttendanceService;
 use App\Services\LeaveBalanceService;
 use App\Services\WalletService;
+use Carbon\Carbon;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -35,6 +39,7 @@ class DashboardController extends Controller
         $todayIsNonWorking = $this->attendanceService->isTodayNonWorking();
         $todayCategory     = $this->attendanceService->todayCategory();
         $markableOtherHalf = $this->attendanceService->markableOtherHalfToday($user);
+        $todayCard         = $this->resolveTodayCardState($dayState['attendance'] ?? null, $markableOtherHalf, $todayIsNonWorking, $user, $today);
 
         $stats = [
             'my_requests'            => ExpenseRequest::where('requested_by', $userId)->count(),
@@ -131,6 +136,7 @@ class DashboardController extends Controller
             'todayIsNonWorking',
             'todayCategory',
             'markableOtherHalf',
+            'todayCard',
             'leaveBalances',
             'pendingLeave',
             'pendingRegularizations',
@@ -141,5 +147,124 @@ class DashboardController extends Controller
             'advanceEligibility',
             'recentActivity',
         ));
+    }
+
+    /**
+     * Presentation-only mapping of today's attendance state (as already
+     * computed by EmployeeAttendanceService::getAttendanceDayState()/
+     * markableOtherHalfToday()) into one of 7 simplified card states for
+     * the dashboard "Today" hero. This adds NO new attendance/leave rules —
+     * it only decides which of the already-known facts to show and how to
+     * word them. The one extra query below (today's complementary-half
+     * EmployeeAttendanceSegment, if any) mirrors the identical lookup
+     * already made inline by getMonthlyHistory() for past days; today just
+     * doesn't have an equivalent value precomputed for it.
+     *
+     * Returns: ['headline' => string, 'lines' => string[],
+     *           'completion' => ?string, 'action' => ?['label' => string]]
+     */
+    private function resolveTodayCardState(
+        ?EmployeeAttendance $attendance,
+        ?string $markableOtherHalf,
+        bool $todayIsNonWorking,
+        User $user,
+        Carbon $today,
+    ): array {
+        $halfDayFamily = ['half_day', 'half_day_leave', 'half_day_lop'];
+        $periodLabel   = fn (string $period) => $period === 'first_half' ? 'First Half' : 'Second Half';
+
+        // State 1 — nothing marked at all.
+        if ($attendance === null) {
+            return [
+                'headline'   => 'Attendance',
+                'lines'      => ['Not marked'],
+                'completion' => null,
+                'action'     => $todayIsNonWorking ? null : ['label' => 'Mark Attendance'],
+            ];
+        }
+
+        // State 4 — a plain full-day present mark.
+        if ($attendance->status === 'present') {
+            return [
+                'headline'   => 'Attendance',
+                'lines'      => ['✓ Full Day'],
+                'completion' => null,
+                'action'     => null,
+            ];
+        }
+
+        if (in_array($attendance->status, $halfDayFamily, true) && $attendance->half_day_period !== null) {
+            $period      = $attendance->half_day_period;
+            $otherPeriod = $period === 'first_half' ? 'second_half' : 'first_half';
+            $ownIsLeave  = in_array($attendance->status, ['half_day_leave', 'half_day_lop'], true);
+            $ownLabel    = $ownIsLeave
+                ? ($attendance->leaveRequest?->leaveType?->name ?? ($attendance->status === 'half_day_lop' ? 'Loss of Pay' : 'Leave'))
+                : 'Attendance';
+
+            $segment = EmployeeAttendanceSegment::where('user_id', $user->id)
+                ->whereDate('attendance_date', $today->toDateString())
+                ->where('period', $otherPeriod)
+                ->with('leaveRequest.leaveType')
+                ->first();
+
+            if ($segment === null) {
+                if ($ownIsLeave) {
+                    // State 7 — half-day leave only, opposite half genuinely
+                    // unmarked. Only ever offer the action when the service
+                    // itself says the other half is still markable.
+                    return [
+                        'headline'   => 'Attendance & Leave',
+                        'lines'      => ["✓ {$periodLabel($period)} · {$ownLabel}"],
+                        'completion' => null,
+                        'action'     => $markableOtherHalf ? ['label' => 'Mark '.$periodLabel($otherPeriod)] : null,
+                    ];
+                }
+
+                // States 2/3 — one half marked present, other half free.
+                return [
+                    'headline'   => 'Attendance',
+                    'lines'      => ["✓ {$periodLabel($period)} marked"],
+                    'completion' => null,
+                    'action'     => $markableOtherHalf ? ['label' => 'Mark '.$periodLabel($otherPeriod)] : null,
+                ];
+            }
+
+            $otherIsLeave = in_array($segment->status, ['leave', 'lop'], true);
+            $otherLabel   = $otherIsLeave
+                ? ($segment->leaveRequest?->leaveType?->name ?? ($segment->status === 'lop' ? 'Loss of Pay' : 'Leave'))
+                : 'Attendance';
+
+            if ($ownIsLeave || $otherIsLeave) {
+                // States 5/6 — one half attendance, one half leave.
+                return [
+                    'headline'   => 'Attendance & Leave',
+                    'lines'      => [
+                        "✓ {$periodLabel($period)} · {$ownLabel}",
+                        "✓ {$periodLabel($otherPeriod)} · {$otherLabel}",
+                    ],
+                    'completion' => 'Day completed',
+                    'action'     => null,
+                ];
+            }
+
+            // Both halves independently marked present -> a completed full day.
+            return [
+                'headline'   => 'Attendance',
+                'lines'      => ['✓ Full Day'],
+                'completion' => null,
+                'action'     => null,
+            ];
+        }
+
+        // Full-day leave/LOP/absent — outside the 7 enumerated states, but
+        // still needs a sane, non-crashing rendering.
+        $label = $attendance->leaveRequest?->leaveType?->name ?? ucfirst(str_replace('_', ' ', $attendance->status));
+
+        return [
+            'headline'   => 'Attendance',
+            'lines'      => ["✓ {$label}"],
+            'completion' => null,
+            'action'     => null,
+        ];
     }
 }

@@ -90,30 +90,38 @@
 }
 .ef-ew-today-chip i { color: #4ade80; }
 
-/* Split-day two-slot visual */
+/* Today card — simplified status + next-action summary (7-state design) */
 .ef-ew-split-row {
     display: flex;
     gap: 10px;
     margin-top: 14px;
 }
-.ef-ew-split-slot {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+.ef-ew-today-card {
+    flex-direction: column;
+    gap: 2px;
     background: rgba(255,255,255,.06);
     border: 1px solid rgba(255,255,255,.1);
     border-radius: 12px;
-    padding: 10px 14px;
-    font-size: .78rem;
-    color: rgba(255,253,250,.75);
-    flex: 1 1 0;
-    min-width: 140px;
+    padding: 12px 16px;
 }
-.ef-ew-split-slot .slot-icon { font-size: 1rem; flex-shrink: 0; }
-.ef-ew-split-slot.slot-done .slot-icon { color: #4ade80; }
-.ef-ew-split-slot.slot-open .slot-icon { color: rgba(255,253,250,.35); }
-.ef-ew-split-slot .slot-lbl { font-weight: 700; display: block; }
-.ef-ew-split-slot .slot-sub { display: block; color: rgba(255,253,250,.5); font-size: .72rem; margin-top: 1px; }
+.ef-ew-today-card-headline {
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: rgba(255,253,250,.5);
+    margin-bottom: 4px;
+}
+.ef-ew-today-card-line {
+    font-size: .88rem;
+    font-weight: 600;
+    color: #f0fdf4;
+}
+.ef-ew-today-card-completion {
+    font-size: .76rem;
+    color: rgba(255,253,250,.55);
+    margin-top: 4px;
+}
 
 .ef-ew-hero-cta {
     display: flex;
@@ -416,10 +424,6 @@
     $todayChip = $statusChips[$todayStatus] ?? $statusChips['not_marked'];
     $todayChipText = $todayStatus === 'not_marked' ? $todayChip['label'] : $todayChip['label'].' today';
 
-    $isHalfDayFamily = $attendance && in_array($attendance->status, ['half_day', 'half_day_leave', 'half_day_lop'], true);
-    $firstHalfDone  = $attendance && ($attendance->status === 'present' || ($isHalfDayFamily && $attendance->half_day_period === 'first_half'));
-    $secondHalfDone = $attendance && ($attendance->status === 'present' || ($isHalfDayFamily && $attendance->half_day_period === 'second_half'));
-
     $hasPendingItems = ($leaveCounts['pending'] ?? 0) > 0
         || $pendingRegularizations->isNotEmpty()
         || $pendingOvertime->isNotEmpty();
@@ -475,33 +479,22 @@
                 {{ $todayChipText }}
             </div>
 
-            {{-- Split-day two-slot visual --}}
-            <div class="ef-ew-split-row">
-                <div class="ef-ew-split-slot {{ $firstHalfDone ? 'slot-done' : 'slot-open' }}">
-                    <i class="bi {{ $firstHalfDone ? 'bi-check-circle-fill' : 'bi-circle' }} slot-icon"></i>
-                    <span>
-                        <span class="slot-lbl">First Half</span>
-                        <span class="slot-sub">{{ $firstHalfDone ? $todayChip['label'] : 'Not marked' }}</span>
-                    </span>
-                </div>
-                <div class="ef-ew-split-slot {{ $secondHalfDone ? 'slot-done' : 'slot-open' }}">
-                    <i class="bi {{ $secondHalfDone ? 'bi-check-circle-fill' : 'bi-circle' }} slot-icon"></i>
-                    <span>
-                        <span class="slot-lbl">Second Half</span>
-                        <span class="slot-sub">{{ $secondHalfDone ? $todayChip['label'] : 'Not marked' }}</span>
-                    </span>
-                </div>
+            {{-- Simplified today card: headline + status line(s) only, per the 7-state design --}}
+            <div class="ef-ew-split-row ef-ew-today-card">
+                <div class="ef-ew-today-card-headline">{{ $todayCard['headline'] }}</div>
+                @foreach($todayCard['lines'] as $line)
+                    <div class="ef-ew-today-card-line">{{ $line }}</div>
+                @endforeach
+                @if($todayCard['completion'])
+                    <div class="ef-ew-today-card-completion">{{ $todayCard['completion'] }}</div>
+                @endif
             </div>
         </div>
 
         <div class="ef-ew-hero-cta">
-            @if(!$attendance && !$todayIsNonWorking)
+            @if($todayCard['action'])
                 <a href="{{ route('employee.attendance.index') }}" class="ef-ew-btn-primary">
-                    <i class="bi bi-calendar-plus"></i> Mark Attendance
-                </a>
-            @elseif($markableOtherHalf)
-                <a href="{{ route('employee.attendance.index') }}" class="ef-ew-btn-primary">
-                    <i class="bi bi-calendar-plus"></i> Mark {{ $markableOtherHalf === 'first_half' ? 'Morning' : 'Afternoon' }}
+                    <i class="bi bi-calendar-plus"></i> {{ $todayCard['action']['label'] }}
                 </a>
             @elseif($attendance)
                 <span class="ef-ew-btn-confirmed">
