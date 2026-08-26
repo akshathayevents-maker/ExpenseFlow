@@ -144,6 +144,7 @@ test('monthly payable adds approved overtime for the period without re-deriving 
     $ot->forceFill([
         'origin' => 'admin_recorded', 'created_by' => $admin->id,
         'request_status' => 'approved', 'hourly_rate_snapshot' => 100, 'rate_multiplier' => 1.5, 'calculated_amount' => 300,
+        'approved_amount' => 300, 'used_manual_override' => false,
     ]);
     $ot->save();
 

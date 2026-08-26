@@ -428,3 +428,123 @@ test('request_status and approved_by cannot be set via direct mass assignment', 
 
     expect(EmployeeAdvance::count())->toBe(0);
 });
+
+// ── WhatsApp deep-link (stateless, no server-side sending) ────────────────
+
+test('whatsapp button does not appear on the blank create form', function () {
+    $user = User::factory()->create();
+    markAdvanceGateAttendance($user);
+    giveAdvanceEligibleSalary($user);
+
+    $response = $this->actingAs($user->fresh())->get(route('employee.advances.create'));
+
+    $response->assertOk();
+    $response->assertDontSee('Submit via WhatsApp');
+});
+
+test('whatsapp button appears on the show page right after creation', function () {
+    $user = User::factory()->create();
+    markAdvanceGateAttendance($user);
+    giveAdvanceEligibleSalary($user);
+
+    $this->actingAs($user->fresh())->post(route('employee.advances.store'), ['requested_amount' => 10000]);
+    $advance = EmployeeAdvance::first();
+
+    $response = $this->actingAs($user->fresh())->get(route('employee.advances.show', $advance));
+
+    $response->assertOk();
+    $response->assertSee('Submit via WhatsApp');
+    $response->assertSee('https://wa.me/919894594074?', false);
+});
+
+test('whatsapp url starts with the correct https wa.me recipient', function () {
+    $user = User::factory()->create(['name' => "O'Brien"]);
+    $advance = makeAdvance([
+        'user_id' => $user->id, 'origin' => 'employee_request', 'requested_amount' => 2000.50,
+        'created_by' => $user->id,
+    ]);
+
+    $url = $advance->whatsAppShareUrl();
+
+    expect($url)->toStartWith('https://wa.me/919894594074?');
+});
+
+test('whatsapp message contains the correct employee name, amount, date, status and reference', function () {
+    $user = User::factory()->create(['name' => "O'Brien"]);
+    $advance = makeAdvance([
+        'user_id' => $user->id, 'origin' => 'employee_request', 'requested_amount' => 2000.50,
+        'created_by' => $user->id,
+    ])->fresh();
+
+    $url = $advance->whatsAppShareUrl();
+    parse_str(parse_url($url, PHP_URL_QUERY), $params);
+    $message = $params['text'];
+
+    expect($message)->toContain('Advance Request #' . $advance->id);
+    expect($message)->toContain("O'Brien");
+    expect($message)->toContain('2,000.50');
+    expect($message)->toContain($advance->created_at->format('d M Y'));
+    expect($message)->toContain('Pending');
+});
+
+test('special characters in employee name round-trip correctly through url encoding', function () {
+    $user = User::factory()->create(['name' => "D'Souza & Sons"]);
+    $advance = makeAdvance([
+        'user_id' => $user->id, 'origin' => 'employee_request', 'requested_amount' => 1500,
+        'created_by' => $user->id,
+    ]);
+
+    $url = $advance->whatsAppShareUrl();
+    parse_str(parse_url($url, PHP_URL_QUERY), $params);
+
+    expect($params['text'])->toContain("D'Souza & Sons");
+    expect(urldecode(urlencode($params['text'])))->toBe($params['text']);
+});
+
+test('whatsapp button is hidden once the advance is no longer pending', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $user = User::factory()->create();
+    markAdvanceGateAttendance($user);
+    giveAdvanceEligibleSalary($user);
+
+    $this->actingAs($user->fresh())->post(route('employee.advances.store'), ['requested_amount' => 5000]);
+    $advance = EmployeeAdvance::first();
+
+    $this->actingAs($admin)->patch(route('admin.advances.approve', $advance), ['approved_amount' => 5000]);
+
+    $response = $this->actingAs($user->fresh())->get(route('employee.advances.show', $advance));
+
+    $response->assertOk();
+    $response->assertDontSee('Submit via WhatsApp');
+});
+
+test('viewing the show page repeatedly never creates or mutates advance rows', function () {
+    $user = User::factory()->create();
+    markAdvanceGateAttendance($user);
+    giveAdvanceEligibleSalary($user);
+
+    $this->actingAs($user->fresh())->post(route('employee.advances.store'), ['requested_amount' => 5000]);
+    $advance = EmployeeAdvance::first();
+    $originalUpdatedAt = $advance->updated_at;
+
+    $this->actingAs($user->fresh())->get(route('employee.advances.show', $advance));
+    $this->actingAs($user->fresh())->get(route('employee.advances.show', $advance));
+
+    expect(EmployeeAdvance::count())->toBe(1);
+    expect($advance->fresh()->updated_at->eq($originalUpdatedAt))->toBeTrue();
+});
+
+test('admin sees the whatsapp button on a pending advance detail page', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $user = User::factory()->create();
+    markAdvanceGateAttendance($user);
+    giveAdvanceEligibleSalary($user);
+
+    $this->actingAs($user->fresh())->post(route('employee.advances.store'), ['requested_amount' => 5000]);
+    $advance = EmployeeAdvance::first();
+
+    $response = $this->actingAs($admin)->get(route('admin.advances.show', $advance));
+
+    $response->assertOk();
+    $response->assertSee('Submit via WhatsApp');
+});

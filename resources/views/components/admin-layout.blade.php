@@ -697,7 +697,7 @@
         'people-hr'  => fn () => request()->routeIs('admin.attendance-regularizations.*')
             || request()->routeIs('admin.leave-types.*', 'admin.leave.*', 'admin.leave-policy-templates.*')
             || (request()->routeIs('admin.employees.*') && ! request()->routeIs('admin.employees.salaries.*')),
-        'payroll'    => fn () => request()->routeIs('admin.overtime.*', 'admin.employees.salaries.*', 'admin.salaries.*', 'admin.advances.*'),
+        'payroll'    => fn () => request()->routeIs('admin.overtime.*', 'admin.employees.salaries.*', 'admin.salaries.*', 'admin.advances.*', 'admin.payroll.*'),
         'expenses'   => fn () => request()->routeIs('admin.expense-requests.*', 'admin.wallets.*', 'admin.payments.*'),
         'inventory'  => fn () => request()->routeIs('admin.inventory.*', 'admin.purchase-plans.*'),
         'setup'      => fn () => request()->routeIs('admin.categories.*', 'admin.vendors.*'),
@@ -841,6 +841,10 @@
             <a href="{{ route('admin.advances.index') }}"
                class="nav-link {{ request()->routeIs('admin.advances.*') ? 'active' : '' }}">
                 <i class="bi bi-cash-stack"></i> Advances
+            </a>
+            <a href="{{ route('admin.payroll.index') }}"
+               class="nav-link {{ request()->routeIs('admin.payroll.*') ? 'active' : '' }}">
+                <i class="bi bi-calculator"></i> Payroll & Eligibility
             </a>
         </div>
 

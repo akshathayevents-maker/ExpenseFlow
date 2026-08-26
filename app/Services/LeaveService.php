@@ -108,7 +108,11 @@ class LeaveService
             'is_half_day'     => $isHalfDay,
             'half_day_period' => $isHalfDay ? ($data['half_day_period'] ?? null) : null,
             'days_requested'  => $daysRequested,
-            'reason'          => $data['reason'],
+            // reason is optional — leave_requests.reason is NOT NULL text
+            // (unchanged schema), so an omitted reason is stored as an empty
+            // string, never NULL. Mirrors
+            // EmployeeAttendanceService::createRegularization().
+            'reason'          => $data['reason'] ?? '',
         ]);
         $leaveRequest->forceFill([
             'status'          => 'pending',

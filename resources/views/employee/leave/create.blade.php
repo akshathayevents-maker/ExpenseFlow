@@ -93,8 +93,8 @@
                 </div>
 
                 <div style="grid-column: 1 / -1">
-                    <label class="ef-label" for="reason">Reason <span style="color:var(--ef-danger)">*</span></label>
-                    <textarea id="reason" name="reason" rows="3" class="ef-textarea @error('reason') --error @enderror" required>{{ old('reason') }}</textarea>
+                    <label class="ef-label" for="reason">Reason <span style="color:var(--ef-faint,#6b7280);font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+                    <textarea id="reason" name="reason" rows="3" class="ef-textarea @error('reason') --error @enderror">{{ old('reason') }}</textarea>
                     @error('reason') <div class="ef-field-error">{{ $message }}</div> @enderror
                 </div>
             </div>

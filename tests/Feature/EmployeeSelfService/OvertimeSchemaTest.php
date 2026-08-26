@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\EmployeeOvertime;
+use App\Models\EmployeeOvertimeConfig;
 use App\Models\EmployeeSalary;
 use App\Models\Holiday;
 use App\Models\Setting;
@@ -211,3 +212,67 @@ test('paid OT financial fields cannot be changed', function () {
     $ot->hours = 5;
     $ot->save();
 })->throws(RuntimeException::class);
+
+test('approved OT approved_amount and used_manual_override cannot be changed once approved', function () {
+    $user = User::factory()->create();
+
+    $ot = EmployeeOvertime::create([
+        'user_id' => $user->id, 'ot_date' => '2026-08-24', 'hours' => 2,
+        'category' => 'weekday', 'reason' => 'x', 'origin' => 'employee_request', 'created_by' => $user->id,
+    ]);
+    $ot->forceFill([
+        'request_status' => 'approved', 'calculated_amount' => 375, 'approved_amount' => 375,
+        'used_manual_override' => false,
+    ])->save();
+
+    $ot->approved_amount = 999;
+    $ot->save();
+})->throws(RuntimeException::class);
+
+// ── Overtime redesign: per-employee OT multiplier configuration ───────────
+// (new table, replacing an automatic date-category multiplier lookup at
+// creation time with an explicit, per-employee-configurable choice made at
+// approval time)
+
+test('employee_overtime_configs table stores one row per employee with allowed and default multipliers', function () {
+    $user = User::factory()->create();
+
+    $config = EmployeeOvertimeConfig::create([
+        'user_id' => $user->id,
+        'allowed_multipliers' => [1.0, 1.5, 2.0],
+        'default_multiplier' => 1.5,
+    ]);
+
+    expect(array_map('floatval', $config->fresh()->allowed_multipliers))->toBe([1.0, 1.5, 2.0]);
+    expect((float) $config->fresh()->default_multiplier)->toBe(1.5);
+});
+
+test('a second config row for the same user is rejected by the unique constraint', function () {
+    $user = User::factory()->create();
+    EmployeeOvertimeConfig::create(['user_id' => $user->id, 'allowed_multipliers' => [1.5], 'default_multiplier' => 1.5]);
+
+    EmployeeOvertimeConfig::create(['user_id' => $user->id, 'allowed_multipliers' => [2.0], 'default_multiplier' => 2.0]);
+})->throws(QueryException::class);
+
+test('an employee with no config row gets the implicit default of [1.5] / 1.5', function () {
+    $user = User::factory()->create();
+
+    expect(EmployeeOvertimeConfig::allowedMultipliersFor($user))->toBe([1.5]);
+    expect(EmployeeOvertimeConfig::defaultMultiplierFor($user))->toBe(1.5);
+});
+
+test('an employee WITH a config row uses their configured values, not the implicit default', function () {
+    $user = User::factory()->create();
+    EmployeeOvertimeConfig::create([
+        'user_id' => $user->id, 'allowed_multipliers' => [1.0, 2.0], 'default_multiplier' => 2.0,
+    ]);
+
+    expect(array_map('floatval', EmployeeOvertimeConfig::allowedMultipliersFor($user)))->toBe([1.0, 2.0]);
+    expect(EmployeeOvertimeConfig::defaultMultiplierFor($user))->toBe(2.0);
+});
+
+test('no row is backfilled for existing employees — absence is a valid state, not a data-integrity gap', function () {
+    User::factory()->count(5)->create();
+
+    expect(EmployeeOvertimeConfig::count())->toBe(0);
+});

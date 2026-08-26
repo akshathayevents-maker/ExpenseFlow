@@ -29,6 +29,8 @@ class EmployeeOvertime extends Model
             'hourly_rate_snapshot' => 'decimal:2',
             'rate_multiplier'      => 'decimal:2',
             'calculated_amount'    => 'decimal:2',
+            'approved_amount'      => 'decimal:2',
+            'used_manual_override' => 'boolean',
             'reviewed_at'          => 'datetime',
             'paid_at'              => 'datetime',
         ];
@@ -106,7 +108,10 @@ class EmployeeOvertime extends Model
                 return;
             }
 
-            $lockedFields = ['hours', 'category', 'hourly_rate_snapshot', 'rate_multiplier', 'calculated_amount'];
+            $lockedFields = [
+                'hours', 'category', 'hourly_rate_snapshot', 'rate_multiplier',
+                'calculated_amount', 'approved_amount', 'used_manual_override',
+            ];
             foreach ($lockedFields as $field) {
                 if ($ot->isDirty($field)) {
                     throw new \RuntimeException("Cannot modify '{$field}' on an OT record that is already approved or paid.");

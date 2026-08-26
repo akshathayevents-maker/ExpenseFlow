@@ -152,6 +152,52 @@
                 </form>
             </x-ds.card>
             @endunless
+
+            <x-ds.card title="Overtime Configuration">
+                <p class="sal-sub" style="margin:-4px 0 12px">
+                    Choose which multipliers this employee's OT approvals may use, and which one is pre-selected.
+                </p>
+                <form method="POST" action="{{ route('admin.employees.overtime-config.store', $employee) }}">
+                    @csrf
+
+                    <div class="ef-form-grid ef-form-grid-1">
+                        <div>
+                            <label class="ef-label">Allowed Multipliers <span style="color:var(--ef-danger)">*</span></label>
+                            <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+                                @foreach($overtimeMultiplierOptions as $option)
+                                    @php $checked = in_array((float) $option, $allowedMultipliers, true); @endphp
+                                    <label style="display:flex;align-items:center;gap:8px;font-weight:600">
+                                        <input type="checkbox" name="allowed_multipliers[]" value="{{ $option }}"
+                                               {{ $checked ? 'checked' : '' }}>
+                                        {{ number_format($option, 2) }}x
+                                    </label>
+                                @endforeach
+                            </div>
+                            @error('allowed_multipliers') <div class="ef-field-error">{{ $message }}</div> @enderror
+                            @error('allowed_multipliers.*') <div class="ef-field-error">{{ $message }}</div> @enderror
+                        </div>
+
+                        <div>
+                            <label class="ef-label" for="default_multiplier">Default Multiplier <span style="color:var(--ef-danger)">*</span></label>
+                            <select id="default_multiplier" name="default_multiplier"
+                                    class="ef-input @error('default_multiplier') --error @enderror">
+                                @foreach($overtimeMultiplierOptions as $option)
+                                    <option value="{{ $option }}" {{ (float) $defaultMultiplier === (float) $option ? 'selected' : '' }}>
+                                        {{ number_format($option, 2) }}x
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('default_multiplier') <div class="ef-field-error">{{ $message }}</div> @enderror
+                        </div>
+                    </div>
+
+                    <div class="sal-form-actions">
+                        <button type="submit" class="ef-btn ef-btn-dark" style="width:100%;justify-content:center">
+                            <i class="bi bi-check-lg"></i> Save Overtime Configuration
+                        </button>
+                    </div>
+                </form>
+            </x-ds.card>
         </div>
 
         <div class="sal-grid-side">

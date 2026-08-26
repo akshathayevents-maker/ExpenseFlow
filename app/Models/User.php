@@ -148,6 +148,11 @@ class User extends Authenticatable
         return $this->hasMany(EmployeeOvertime::class);
     }
 
+    public function overtimeConfig(): HasOne
+    {
+        return $this->hasOne(EmployeeOvertimeConfig::class);
+    }
+
     public function attendanceRegularizations(): HasMany
     {
         return $this->hasMany(EmployeeAttendanceRegularization::class);

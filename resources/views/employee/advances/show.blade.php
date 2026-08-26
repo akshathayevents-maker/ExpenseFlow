@@ -259,6 +259,15 @@
                 @endif
             </x-ds.card>
 
+            @if($advance->isPending())
+            <div class="advd-cancel-wrap">
+                <a href="{{ $advance->whatsAppShareUrl() }}" target="_blank" rel="noopener" class="ef-btn" style="width:100%;justify-content:center;background:#25D366;border-color:#25D366;color:#fff">
+                    <i class="bi bi-whatsapp" aria-hidden="true"></i>
+                    <span>Submit via WhatsApp</span>
+                </a>
+            </div>
+            @endif
+
             @if($canCancel)
             <div class="advd-cancel-wrap">
                 <button type="button" class="advd-cancel-btn" data-bs-toggle="modal" data-bs-target="#cancelAdvModal">

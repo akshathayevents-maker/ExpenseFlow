@@ -35,7 +35,7 @@ class StoreLeaveRequestRequest extends FormRequest
             'end_date'        => ['required_if:is_half_day,0', 'nullable', 'date', 'after_or_equal:start_date'],
             'is_half_day'     => ['nullable', 'boolean'],
             'half_day_period' => ['required_if:is_half_day,1', 'nullable', 'in:first_half,second_half'],
-            'reason'          => ['required', 'string', 'max:1000'],
+            'reason'          => ['nullable', 'string', 'max:1000'],
             // Set only after the employee has seen the exact paid/LOP split
             // and explicitly confirmed it — see LeaveService::createRequest().
             'lop_confirmed'   => ['nullable', 'boolean'],

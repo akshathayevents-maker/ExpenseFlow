@@ -15,11 +15,14 @@ use InvalidArgumentException;
  * Working-day denominator comes exclusively from PayableDaysCalculator —
  * this class must never re-derive weekly-off/holiday logic itself.
  *
- * Financial values are computed against the salary/settings state AS OF
- * $otDate (or, for settings, as of "now" at calculation time — settings are
- * not effective-dated, so the value used is whatever is live when calculate()
- * runs, which must only ever be called at OT-request-creation time, never at
- * approval time — see the frozen-snapshot rule below).
+ * REDESIGN NOTE: OT compensation is no longer calculated automatically at
+ * request-creation time using a company-wide date-category multiplier.
+ * Instead, the hourly-rate derivation below is computed at APPROVAL time,
+ * combined with a multiplier the Admin/Manager explicitly selects (from the
+ * employee's configured allowed multipliers — see EmployeeOvertimeConfig)
+ * or an optional manual override amount. The underlying hourly-rate formula
+ * is UNCHANGED from the old design; only the timing and the multiplier
+ * source have changed.
  */
 class OvertimeCalculationService
 {
@@ -28,37 +31,21 @@ class OvertimeCalculationService
     }
 
     /**
-     * Computes the OT financial snapshot for a single claim. Returns
-     * everything needed to persist, but persists nothing itself:
-     *   ['category' => string, 'hourly_rate_snapshot' => float,
-     *    'rate_multiplier' => float, 'calculated_amount' => float]
+     * Derives the employee's salary-per-hour AS OF $otDate.
      *
-     * Formula:
-     *   daily_salary   = salary / applicable_working_days (month of $otDate)
-     *   hourly_salary  = daily_salary / standard_working_hours_per_day
-     *   amount         = hourly_salary * hours * category_multiplier
+     * Formula (unchanged from the pre-redesign implementation):
+     *   daily_salary  = salary / applicable_working_days (month of $otDate)
+     *   hourly_salary = daily_salary / standard_working_hours_per_day
      *
-     * Throws InvalidArgumentException for hours <= 0.
-     * Throws DomainException if the user has no salary effective on $otDate.
+     * Throws DomainException if the user has no salary effective on $otDate,
+     * or if the OT date's month has no applicable working days.
      */
-    public function calculate(User $user, Carbon $otDate, float $hours): array
+    public function hourlyRateFor(User $user, Carbon $otDate): float
     {
-        if ($hours <= 0) {
-            throw new InvalidArgumentException('OT hours must be greater than zero.');
-        }
-
         $salary = $user->currentSalaryAsOf($otDate);
         if ($salary === null) {
             throw new DomainException('Employee does not have an active salary for the selected OT date.');
         }
-
-        $category = $this->payableDaysCalculator->categoryForDate($otDate);
-
-        $multipliers = Setting::get('ot_multipliers', []);
-        if (! isset($multipliers[$category])) {
-            throw new DomainException("No OT multiplier configured for category '{$category}'.");
-        }
-        $multiplier = (float) $multipliers[$category];
 
         $standardHours = (float) Setting::get('standard_working_hours_per_day');
 
@@ -74,13 +61,41 @@ class OvertimeCalculationService
 
         $dailySalary  = $monthlySalary / $applicableWorkingDays;
         $hourlySalary = $dailySalary / $standardHours;
+
+        return round($hourlySalary, 2);
+    }
+
+    /**
+     * Computes the OT financial snapshot AT APPROVAL TIME, using a
+     * multiplier the approver explicitly chose (never an automatic
+     * date-category lookup). Returns everything needed to persist, but
+     * persists nothing itself:
+     *   ['hourly_rate_snapshot' => float, 'rate_multiplier' => float,
+     *    'calculated_amount' => float]
+     *
+     * Formula: amount = hourly_salary * hours * multiplier
+     *
+     * Throws InvalidArgumentException for hours <= 0 or a non-positive
+     * multiplier. Throws DomainException if the user has no salary
+     * effective on $otDate.
+     */
+    public function calculateForApproval(User $user, Carbon $otDate, float $hours, float $multiplier): array
+    {
+        if ($hours <= 0) {
+            throw new InvalidArgumentException('OT hours must be greater than zero.');
+        }
+
+        if ($multiplier <= 0) {
+            throw new InvalidArgumentException('OT multiplier must be greater than zero.');
+        }
+
+        $hourlySalary = $this->hourlyRateFor($user, $otDate);
         $amount       = $hourlySalary * $hours * $multiplier;
 
         return [
-            'category'              => $category,
-            'hourly_rate_snapshot'  => round($hourlySalary, 2),
-            'rate_multiplier'       => round($multiplier, 2),
-            'calculated_amount'     => round($amount, 2),
+            'hourly_rate_snapshot' => $hourlySalary,
+            'rate_multiplier'      => round($multiplier, 2),
+            'calculated_amount'    => round($amount, 2),
         ];
     }
 }

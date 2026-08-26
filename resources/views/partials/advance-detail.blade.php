@@ -161,6 +161,15 @@
             @endunless
         </div>
 
+        @if($advance->isPending())
+        <hr class="ef-form-divider">
+        <div style="display:flex;flex-direction:column;gap:8px">
+            <a href="{{ $advance->whatsAppShareUrl() }}" target="_blank" rel="noopener" class="ef-btn" style="width:100%;justify-content:center;background:#25D366;border-color:#25D366;color:#fff">
+                <i class="bi bi-whatsapp"></i> Submit via WhatsApp
+            </a>
+        </div>
+        @endif
+
         @if($canCancel || $canApprove || $canReject || $canDisburse || $canRepay)
         <hr class="ef-form-divider">
         <div style="display:flex;flex-direction:column;gap:8px">

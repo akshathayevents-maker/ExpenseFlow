@@ -2,6 +2,7 @@
 
 use App\Models\EmployeeAttendance;
 use App\Models\EmployeeOvertime;
+use App\Models\EmployeeOvertimeConfig;
 use App\Models\EmployeeSalary;
 use App\Models\User;
 
@@ -174,4 +175,144 @@ test('pending OT show page exposes approve/reject actions to a manager', functio
         ->assertOk()
         ->assertSee('id="approveOtModal"', false)
         ->assertSee('id="rejectOtModal"', false);
+});
+
+// ── Overtime redesign: no compensation visible before approval ────────────
+
+test('employee never sees any compensation figure on a pending OT they created', function () {
+    $user = User::factory()->create();
+    giveOtSalaryUi($user);
+    $ot = EmployeeOvertime::create([
+        'user_id' => $user->id, 'ot_date' => '2026-08-20', 'hours' => 2,
+        'category' => 'weekday', 'reason' => 'x', 'origin' => 'employee_request', 'created_by' => $user->id,
+    ]);
+    markAttendanceTodayForUi($user);
+
+    $this->actingAs($user->fresh())->get(route('employee.overtime.show', $ot))
+        ->assertOk()
+        ->assertDontSee('Hourly Rate')
+        ->assertDontSee('Multiplier')
+        ->assertDontSee('Calculated Amount')
+        ->assertDontSee('Final Approved Amount');
+});
+
+test('employee OT create page never shows a multiplier or amount field', function () {
+    $user = User::factory()->create();
+    markAttendanceTodayForUi($user);
+
+    $this->actingAs($user->fresh())->get(route('employee.overtime.create'))
+        ->assertOk()
+        ->assertDontSee('name="multiplier"', false)
+        ->assertDontSee('name="calculated_amount"', false);
+});
+
+test('pending OT show page exposes a multiplier selector to an approving manager', function () {
+    $manager = User::factory()->create(['role' => 'manager']);
+    $user = User::factory()->create();
+    giveOtSalaryUi($user);
+    $ot = EmployeeOvertime::create([
+        'user_id' => $user->id, 'ot_date' => '2026-08-20', 'hours' => 2,
+        'category' => 'weekday', 'reason' => 'x', 'origin' => 'employee_request', 'created_by' => $user->id,
+    ]);
+
+    $this->actingAs($manager)->get(route('manager.overtime.show', $ot))
+        ->assertOk()
+        ->assertSee('name="multiplier"', false)
+        ->assertSee('Salary / Hour')
+        ->assertSee('Manual Override Amount', false);
+});
+
+test('pending OT approval UI shows the employee configured allowed multipliers, not a hardcoded list', function () {
+    $manager = User::factory()->create(['role' => 'manager']);
+    $user = User::factory()->create();
+    giveOtSalaryUi($user);
+    EmployeeOvertimeConfig::create([
+        'user_id' => $user->id, 'allowed_multipliers' => [1.0], 'default_multiplier' => 1.0,
+    ]);
+    $ot = EmployeeOvertime::create([
+        'user_id' => $user->id, 'ot_date' => '2026-08-20', 'hours' => 2,
+        'category' => 'weekday', 'reason' => 'x', 'origin' => 'employee_request', 'created_by' => $user->id,
+    ]);
+
+    $response = $this->actingAs($manager)->get(route('manager.overtime.show', $ot))->assertOk();
+
+    $response->assertSee('value="1"', false);
+    $response->assertDontSee('value="1.5"', false);
+    $response->assertDontSee('value="2"', false);
+});
+
+test('approved OT show page displays the frozen hourly rate, multiplier and final approved amount', function () {
+    $manager = User::factory()->create(['role' => 'manager']);
+    $user = User::factory()->create();
+    $ot = EmployeeOvertime::create([
+        'user_id' => $user->id, 'ot_date' => '2026-08-20', 'hours' => 2,
+        'category' => 'weekday', 'reason' => 'x', 'origin' => 'employee_request', 'created_by' => $user->id,
+    ]);
+    $ot->forceFill([
+        'request_status' => 'approved',
+        'hourly_rate_snapshot' => 125.00, 'rate_multiplier' => 1.50, 'calculated_amount' => 375.00,
+        'approved_amount' => 375.00, 'used_manual_override' => false,
+    ])->save();
+
+    $this->actingAs($manager)->get(route('manager.overtime.show', $ot))
+        ->assertOk()
+        ->assertSee('Hourly Rate')
+        ->assertSee('Final Approved Amount');
+});
+
+test('approved OT with a manual override visibly distinguishes it in the UI', function () {
+    $manager = User::factory()->create(['role' => 'manager']);
+    $user = User::factory()->create();
+    $ot = EmployeeOvertime::create([
+        'user_id' => $user->id, 'ot_date' => '2026-08-20', 'hours' => 2,
+        'category' => 'weekday', 'reason' => 'x', 'origin' => 'employee_request', 'created_by' => $user->id,
+    ]);
+    $ot->forceFill([
+        'request_status' => 'approved',
+        'hourly_rate_snapshot' => 125.00, 'rate_multiplier' => 1.50, 'calculated_amount' => 375.00,
+        'approved_amount' => 500.00, 'used_manual_override' => true,
+    ])->save();
+
+    $this->actingAs($manager)->get(route('manager.overtime.show', $ot))
+        ->assertOk()
+        ->assertSee('Manual Override');
+});
+
+// ── Overtime redesign: admin per-employee configuration UI ────────────────
+
+test('admin employee compensation page shows an overtime configuration section', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $user = User::factory()->create();
+
+    $this->actingAs($admin)->get(route('admin.employees.salaries.index', $user))
+        ->assertOk()
+        ->assertSee('Overtime Configuration')
+        ->assertSee('Allowed Multipliers');
+});
+
+test('admin can save per-employee overtime configuration', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $user = User::factory()->create();
+
+    $this->actingAs($admin)->post(route('admin.employees.overtime-config.store', $user), [
+        'allowed_multipliers' => [1.0, 2.0],
+        'default_multiplier' => 2.0,
+    ])->assertRedirect();
+
+    $config = EmployeeOvertimeConfig::where('user_id', $user->id)->first();
+    expect($config)->not->toBeNull();
+    expect(array_map('floatval', $config->allowed_multipliers))->toBe([1.0, 2.0]);
+    expect((float) $config->default_multiplier)->toBe(2.0);
+});
+
+test('admin cannot save a default multiplier that is not in the checked allowed list', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $user = User::factory()->create();
+
+    $this->actingAs($admin)->post(route('admin.employees.overtime-config.store', $user), [
+        'allowed_multipliers' => [1.0],
+        'default_multiplier' => 2.0,
+    ])->assertSessionHasErrors('default_multiplier');
+
+    expect(EmployeeOvertimeConfig::where('user_id', $user->id)->exists())->toBeFalse();
 });

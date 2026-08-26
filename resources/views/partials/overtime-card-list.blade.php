@@ -69,7 +69,18 @@
             </div>
             <div class="ot-list-bottom">
                 <div class="ot-list-amount">
-                    {{ $record->calculated_amount !== null ? '₹' . number_format((float) $record->calculated_amount, 2) : '—' }}
+                    @php
+                        // Approved records are payable at approved_amount (the
+                        // final authorized figure, which may differ from
+                        // calculated_amount when a manual override was used at
+                        // approval time). Pending/non-approved records have no
+                        // approved_amount yet, so calculated_amount — where
+                        // present — is only ever shown as a pre-approval preview.
+                        $displayAmount = $record->request_status === 'approved'
+                            ? $record->approved_amount
+                            : $record->calculated_amount;
+                    @endphp
+                    {{ $displayAmount !== null ? '₹' . number_format((float) $displayAmount, 2) : '—' }}
                 </div>
                 <a href="{{ route($showRoutePrefix . '.overtime.show', $record) }}" class="ef-btn ef-btn-icon" title="View">
                     <i class="bi bi-eye"></i> <span class="d-none d-sm-inline">View</span>

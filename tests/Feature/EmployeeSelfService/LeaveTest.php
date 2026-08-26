@@ -139,7 +139,23 @@ test('half day request is rejected when the leave type does not allow half days'
     expect(LeaveRequest::count())->toBe(0);
 });
 
-test('reason is required when applying for leave', function () {
+test('reason is optional when applying for leave and submission succeeds without it', function () {
+    $user = User::factory()->create();
+    $type = makeLeaveType();
+
+    $response = $this->actingAs($user->fresh())->post(route('employee.leave.store'), [
+        'lop_confirmed' => 1,
+        'leave_type_id' => $type->id,
+        'start_date'    => '2026-09-01',
+        'end_date'      => '2026-09-02',
+    ]);
+
+    $response->assertSessionDoesntHaveErrors('reason');
+    expect(LeaveRequest::count())->toBe(1);
+    expect(LeaveRequest::first()->reason)->toBe('');
+});
+
+test('reason is stored exactly as given when applying for leave', function () {
     $user = User::factory()->create();
     $type = makeLeaveType();
 
@@ -148,7 +164,20 @@ test('reason is required when applying for leave', function () {
         'leave_type_id' => $type->id,
         'start_date'    => '2026-09-01',
         'end_date'      => '2026-09-02',
-    ])->assertSessionHasErrors('reason');
+        'reason'        => 'Family function',
+    ]);
+
+    expect(LeaveRequest::first()->reason)->toBe('Family function');
+});
+
+test('other leave validation rules remain enforced when reason is omitted', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user->fresh())->post(route('employee.leave.store'), [
+        'lop_confirmed' => 1,
+        'start_date'    => '2026-09-01',
+        'end_date'      => '2026-09-02',
+    ])->assertSessionHasErrors('leave_type_id');
 
     expect(LeaveRequest::count())->toBe(0);
 });

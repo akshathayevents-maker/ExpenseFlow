@@ -64,4 +64,41 @@ class EmployeeAdvance extends Model
     public function isPaid(): bool { return $this->payment_status === 'paid'; }
     public function isUnpaid(): bool { return $this->payment_status === 'unpaid'; }
     public function isFullyRecovered(): bool { return $this->isPaid() && (float) $this->outstanding_amount <= 0.0; }
+
+    /**
+     * Build a `wa.me` deep link that pre-fills a WhatsApp message summarising
+     * this advance request. Purely client-side/stateless: no message is ever
+     * sent server-side, nothing is persisted, and this is safe to call
+     * repeatedly (e.g. on every page render) with no side effects.
+     *
+     * The fixed recipient is the finance/admin WhatsApp number
+     * +91 98945 94074, normalised to the digits-only form `wa.me` expects.
+     *
+     * Uses the advance's own auto-increment id as its reference number
+     * ("Advance #<id>") — there is no separate business reference column
+     * populated on this model (the `reference` column exists on
+     * AdvanceTransaction, not on a submitted request), so the id already
+     * shown in the UI heading ("Advance #{{ $advance->id }}") is reused here
+     * rather than inventing a new identifier.
+     */
+    public function whatsAppShareUrl(): string
+    {
+        $statusLabels = [
+            'pending'   => 'Pending',
+            'approved'  => 'Approved',
+            'rejected'  => 'Rejected',
+            'cancelled' => 'Cancelled',
+        ];
+
+        $message = sprintf(
+            "Advance Request #%d\nEmployee: %s\nAmount: ₹%s\nDate: %s\nStatus: %s",
+            $this->id,
+            $this->user->name,
+            number_format((float) $this->requested_amount, 2),
+            $this->created_at->format('d M Y'),
+            $statusLabels[$this->request_status] ?? ucfirst((string) $this->request_status),
+        );
+
+        return 'https://wa.me/919894594074?' . http_build_query(['text' => $message]);
+    }
 }

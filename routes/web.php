@@ -82,6 +82,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'role.ad
         ->name('employees.salaries.index');
     Route::post('employees/{employee}/salaries', [EmployeeSalaryController::class, 'store'])
         ->name('employees.salaries.store');
+    Route::post('employees/{employee}/overtime-config', [EmployeeSalaryController::class, 'storeOvertimeConfig'])
+        ->name('employees.overtime-config.store');
+    Route::get('payroll', [EmployeeSalaryController::class, 'payrollIndex'])->name('payroll.index');
+    Route::get('payroll/{employee}', [EmployeeSalaryController::class, 'payrollShow'])->name('payroll.show');
 
     // Categories
     Route::resource('categories', CategoryController::class)->except(['show']);
