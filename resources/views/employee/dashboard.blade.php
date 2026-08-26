@@ -3,7 +3,7 @@
 <style>
 /* ════════════════════════════════════════════════════════════
    EMPLOYEE WORKSPACE — ef-ew-* namespace
-   Premium productivity workspace, distinct from admin UI
+   Attendance/HR-first workspace, expenses de-emphasized
    ════════════════════════════════════════════════════════════ */
 :root {
     --ew-emerald:    #0F7B5F;
@@ -24,7 +24,7 @@
     background: linear-gradient(135deg, #0f1c14 0%, #152a1e 45%, #0d1f16 100%);
     border: 1px solid rgba(255,255,255,.06);
     border-radius: 24px;
-    padding: 36px 40px;
+    padding: 32px 36px;
     position: relative;
     overflow: hidden;
     margin-bottom: 20px;
@@ -37,38 +37,6 @@
     right: -60px; top: -180px;
     pointer-events: none;
 }
-.ef-ew-hero::after {
-    content: '';
-    position: absolute;
-    background: radial-gradient(circle, rgba(160,114,56,.12) 0%, transparent 65%);
-    height: 300px; width: 300px;
-    bottom: -80px; left: 20%;
-    pointer-events: none;
-}
-
-/* Floating dot accent */
-.ef-ew-hero-dot {
-    position: absolute;
-    border-radius: 50%;
-    pointer-events: none;
-}
-.ef-ew-hero-dot-1 {
-    width: 6px; height: 6px;
-    background: rgba(26,180,96,.5);
-    top: 40px; right: 220px;
-    animation: ew-float 4s ease-in-out infinite;
-}
-.ef-ew-hero-dot-2 {
-    width: 4px; height: 4px;
-    background: rgba(160,114,56,.6);
-    top: 80px; right: 180px;
-    animation: ew-float 5s ease-in-out infinite reverse;
-}
-@keyframes ew-float {
-    0%, 100% { transform: translateY(0); }
-    50%       { transform: translateY(-6px); }
-}
-
 .ef-ew-hero-inner {
     display: flex;
     align-items: flex-start;
@@ -76,6 +44,7 @@
     gap: 24px;
     position: relative;
     z-index: 1;
+    flex-wrap: wrap;
 }
 .ef-ew-greeting {
     font-size: .72rem;
@@ -86,95 +55,80 @@
     margin-bottom: 6px;
 }
 .ef-ew-hero-name {
-    font-size: 1.75rem;
+    font-size: 1.6rem;
     font-weight: 800;
     color: #f0fdf4;
     line-height: 1.1;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
 .ef-ew-hero-role {
     font-size: .8rem;
     font-weight: 600;
     color: rgba(255,253,250,.4);
     text-transform: capitalize;
-    margin-bottom: 20px;
+    margin-bottom: 4px;
     letter-spacing: .03em;
 }
+.ef-ew-hero-date {
+    font-size: .78rem;
+    color: rgba(255,253,250,.55);
+    margin-bottom: 18px;
+}
 
-/* Wallet pod in hero */
-.ef-ew-wallet-pod {
+/* Today attendance chip in hero */
+.ef-ew-today-chip {
     display: inline-flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 14px;
+    padding: 10px 16px;
+    font-size: .82rem;
+    font-weight: 700;
+    color: #f0fdf4;
+}
+.ef-ew-today-chip i { color: #4ade80; }
+
+/* Split-day two-slot visual */
+.ef-ew-split-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+}
+.ef-ew-split-slot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     background: rgba(255,255,255,.06);
     border: 1px solid rgba(255,255,255,.1);
-    border-radius: 16px;
-    padding: 14px 20px;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: .78rem;
+    color: rgba(255,253,250,.75);
+    flex: 1 1 0;
+    min-width: 140px;
 }
-.ef-ew-wallet-icon {
-    width: 40px; height: 40px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.1rem;
-    flex-shrink: 0;
-}
-.wallet-healthy { background: rgba(26,102,69,.4); color: #4ade80; }
-.wallet-low     { background: rgba(217,119,6,.3);  color: #fbbf24; }
-.wallet-neg     { background: rgba(185,28,28,.3);  color: #f87171; }
-.ef-ew-wallet-lbl {
-    font-size: .68rem;
-    font-weight: 700;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    color: rgba(255,253,250,.45);
-    margin-bottom: 2px;
-}
-.ef-ew-wallet-amt {
-    font-size: 1.4rem;
-    font-weight: 800;
-    line-height: 1;
-}
-.wallet-healthy .ef-ew-wallet-amt, .wallet-text-ok   { color: #4ade80; }
-.wallet-low     .ef-ew-wallet-amt, .wallet-text-low  { color: #fbbf24; }
-.wallet-neg     .ef-ew-wallet-amt, .wallet-text-neg  { color: #f87171; }
+.ef-ew-split-slot .slot-icon { font-size: 1rem; flex-shrink: 0; }
+.ef-ew-split-slot.slot-done .slot-icon { color: #4ade80; }
+.ef-ew-split-slot.slot-open .slot-icon { color: rgba(255,253,250,.35); }
+.ef-ew-split-slot .slot-lbl { font-weight: 700; display: block; }
+.ef-ew-split-slot .slot-sub { display: block; color: rgba(255,253,250,.5); font-size: .72rem; margin-top: 1px; }
 
-/* Hero status pills */
-.ef-ew-hero-pills {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-top: 16px;
-}
-.ef-ew-hero-pill {
-    font-size: .72rem;
-    font-weight: 600;
-    padding: 4px 12px;
-    border-radius: 20px;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-}
-.pill-pending  { background: rgba(217,119,6,.18);  color: #fbbf24; border: 1px solid rgba(217,119,6,.25); }
-.pill-approved { background: rgba(26,180,96,.15);  color: #4ade80; border: 1px solid rgba(26,180,96,.2); }
-.pill-reimb    { background: rgba(99,102,241,.18); color: #a5b4fc; border: 1px solid rgba(99,102,241,.25); }
-
-/* Hero CTA */
 .ef-ew-hero-cta {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 12px;
+    gap: 10px;
     flex-shrink: 0;
 }
 .ef-ew-btn-primary {
     background: var(--ew-emerald);
     border: 1px solid var(--ew-emerald-hi);
     color: #fff;
-    font-size: .9rem;
+    font-size: .88rem;
     font-weight: 700;
-    padding: 14px 24px;
+    padding: 13px 22px;
     border-radius: 14px;
     text-decoration: none;
     display: inline-flex;
@@ -184,12 +138,26 @@
     letter-spacing: .02em;
     box-shadow: 0 4px 16px rgba(26,102,69,.35);
     transition: background .15s, transform .12s, box-shadow .15s;
+    min-height: 44px;
+    justify-content: center;
 }
 .ef-ew-btn-primary:hover {
     background: var(--ew-emerald-hi);
     color: #fff;
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(26,102,69,.45);
+}
+.ef-ew-btn-confirmed {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #4ade80;
+    font-weight: 700;
+    font-size: .85rem;
+    background: rgba(74,222,128,.1);
+    border: 1px solid rgba(74,222,128,.25);
+    padding: 12px 20px;
+    border-radius: 14px;
 }
 .ef-ew-btn-ghost {
     background: rgba(255,255,255,.07);
@@ -206,92 +174,9 @@
     white-space: nowrap;
     transition: background .15s, color .15s;
 }
-.ef-ew-btn-ghost:hover {
-    background: rgba(255,255,255,.12);
-    color: #fff;
-}
+.ef-ew-btn-ghost:hover { background: rgba(255,255,255,.12); color: #fff; }
 
-/* ── KPI Strip ─────────────────────────────────────────────── */
-.ef-ew-kpi {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 12px;
-    margin-bottom: 20px;
-}
-.ef-ew-kpi-card {
-    background: var(--ew-surface);
-    border: 1px solid var(--ew-border);
-    border-radius: 16px;
-    padding: 18px 16px;
-    position: relative;
-    overflow: hidden;
-    cursor: pointer;
-    text-decoration: none;
-    display: block;
-    transition: box-shadow .15s, transform .15s;
-}
-a.ef-ew-kpi-card:hover, .ef-ew-kpi-card:hover {
-    box-shadow: 0 4px 20px rgba(26,102,69,.1);
-    transform: translateY(-2px);
-    text-decoration: none;
-}
-.ef-ew-kpi-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    border-radius: 16px 16px 0 0;
-}
-.kpi-total::before   { background: #94a3b8; }
-.kpi-pending::before { background: var(--ew-amber); }
-.kpi-approved::before{ background: var(--ew-emerald); }
-.kpi-wallet::before  { background: #0891b2; }
-.kpi-month::before   { background: var(--ew-indigo); }
-.kpi-reimb::before   { background: #7c3aed; }
-
-.ef-ew-kpi-icon {
-    width: 34px; height: 34px;
-    border-radius: 9px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: .9rem;
-    margin-bottom: 12px;
-}
-.icon-total   { background: #f1f5f9; color: #64748b; }
-.icon-pending { background: #fef3c7; color: var(--ew-amber); }
-.icon-approved{ background: #dcfce7; color: var(--ew-emerald); }
-.icon-wallet  { background: #cffafe; color: #0891b2; }
-.icon-month   { background: #ede9fe; color: var(--ew-indigo); }
-.icon-reimb   { background: #f3e8ff; color: #7c3aed; }
-
-.ef-ew-kpi-val {
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: var(--ew-text);
-    line-height: 1;
-    margin-bottom: 4px;
-}
-.ef-ew-kpi-val.is-alert { color: var(--ew-danger); }
-.ef-ew-kpi-val.is-warn  { color: var(--ew-amber); }
-.ef-ew-kpi-lbl {
-    font-size: .68rem;
-    font-weight: 700;
-    letter-spacing: .07em;
-    text-transform: uppercase;
-    color: var(--ew-muted);
-    margin-bottom: 0;
-}
-
-/* ── Main layout ──────────────────────────────────────────── */
-.ef-ew-main {
-    display: grid;
-    grid-template-columns: 1fr 320px;
-    gap: 20px;
-    align-items: start;
-}
-
-/* ── Activity feed ─────────────────────────────────────────── */
+/* ── Panels ────────────────────────────────────────── */
 .ef-ew-panel {
     background: var(--ew-surface);
     border: 1px solid var(--ew-border);
@@ -299,252 +184,148 @@ a.ef-ew-kpi-card:hover, .ef-ew-kpi-card:hover {
     overflow: hidden;
 }
 .ef-ew-panel-head {
-    padding: 18px 22px 14px;
+    padding: 16px 20px 12px;
     border-bottom: 1px solid #f5f1eb;
     display: flex;
     align-items: center;
     justify-content: space-between;
 }
 .ef-ew-panel-title {
-    font-size: .8rem;
+    font-size: .78rem;
     font-weight: 700;
     letter-spacing: .08em;
     text-transform: uppercase;
     color: var(--ew-muted);
 }
 .ef-ew-panel-link {
-    font-size: .78rem;
+    font-size: .76rem;
     font-weight: 600;
     color: var(--ew-emerald);
     text-decoration: none;
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    transition: color .12s;
 }
 .ef-ew-panel-link:hover { color: var(--ew-emerald-hi); }
+.ef-ew-panel-body { padding: 16px 20px; }
 
-/* Activity cards */
-.ef-ew-activity-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 14px;
-    padding: 16px 22px;
-    border-bottom: 1px solid #faf7f4;
-    text-decoration: none;
-    transition: background .12s;
-}
-.ef-ew-activity-item:last-child { border-bottom: none; }
-.ef-ew-activity-item:hover { background: #faf7f4; text-decoration: none; }
-
-.ef-ew-activity-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    margin-top: 6px;
-    flex-shrink: 0;
-}
-.dot-pending  { background: var(--ew-amber); box-shadow: 0 0 0 3px rgba(217,119,6,.15); }
-.dot-approved { background: #22c55e;         box-shadow: 0 0 0 3px rgba(34,197,94,.15); }
-.dot-rejected { background: var(--ew-danger);box-shadow: 0 0 0 3px rgba(185,28,28,.12); }
-.dot-paid     { background: #0891b2;         box-shadow: 0 0 0 3px rgba(8,145,178,.15); }
-.dot-reimb    { background: #7c3aed;         box-shadow: 0 0 0 3px rgba(124,58,237,.15); }
-.dot-other    { background: #94a3b8; }
-
-.ef-ew-activity-title {
-    font-size: .88rem;
-    font-weight: 700;
-    color: var(--ew-text);
-    margin-bottom: 3px;
-    line-height: 1.3;
-}
-.ef-ew-activity-meta {
-    font-size: .73rem;
-    color: var(--ew-muted);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-.ef-ew-activity-meta .sep { opacity: .4; }
-.ef-ew-activity-amount {
-    font-size: .92rem;
-    font-weight: 800;
-    color: var(--ew-text);
-    white-space: nowrap;
-    margin-left: auto;
-    flex-shrink: 0;
-}
-.ef-ew-activity-status {
-    font-size: .65rem;
-    font-weight: 700;
-    letter-spacing: .05em;
-    text-transform: uppercase;
-    padding: 2px 8px;
-    border-radius: 12px;
-    border: 1px solid;
-}
-.stat-pending   { background: #fef3c7; color: #b45309; border-color: #fde68a; }
-.stat-approved  { background: #dcfce7; color: #15803d; border-color: #bbf7d0; }
-.stat-rejected  { background: #fee2e2; color: #b91c1c; border-color: #fecaca; }
-.stat-paid      { background: #cffafe; color: #0e7490; border-color: #a5f3fc; }
-.stat-reimbursement_pending { background: #ede9fe; color: #5b21b6; border-color: #ddd6fe; }
-.stat-reimbursed{ background: #dcfce7; color: #15803d; border-color: #bbf7d0; }
-.stat-completed { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
-.stat-pending_payment { background: #e0f2fe; color: #0369a1; border-color: #bae6fd; }
-
-/* Empty state */
-.ef-ew-empty {
-    text-align: center;
-    padding: 56px 24px;
-    color: var(--ew-muted);
-}
-.ef-ew-empty-icon {
-    width: 60px; height: 60px;
-    border-radius: 50%;
-    background: #f5f1eb;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 14px;
-    font-size: 1.4rem;
-    color: var(--ew-emerald);
-}
-
-/* ── Right sidebar ─────────────────────────────────────────── */
-.ef-ew-sidebar { display: flex; flex-direction: column; gap: 16px; }
-
-/* Action workspace */
-.ef-ew-actions-grid {
+/* ── Dashboard grid layout ──────────────────────────── */
+.ef-ew-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+.ef-ew-grid .span-2 { grid-column: 1 / -1; }
+
+/* Quick actions */
+.ef-ew-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: 10px;
-    padding: 18px;
 }
 .ef-ew-action-card {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 18px 12px;
-    border-radius: 14px;
+    gap: 6px;
+    padding: 14px 8px;
+    min-height: 44px;
+    border-radius: 12px;
     border: 1px solid var(--ew-border);
     background: #faf8f5;
     text-decoration: none;
     text-align: center;
     transition: all .15s;
-    cursor: pointer;
-    position: relative;
-    overflow: hidden;
 }
 .ef-ew-action-card:hover {
     box-shadow: 0 4px 16px rgba(26,102,69,.1);
     border-color: rgba(26,102,69,.2);
-    transform: translateY(-1px);
     text-decoration: none;
 }
-.ef-ew-action-card.primary-action {
-    grid-column: 1 / -1;
-    flex-direction: row;
-    justify-content: center;
-    gap: 10px;
-    padding: 16px;
-    background: var(--ew-emerald);
-    border-color: var(--ew-emerald);
-}
-.ef-ew-action-card.primary-action:hover {
-    background: var(--ew-emerald-hi);
-    border-color: var(--ew-emerald-hi);
-    box-shadow: 0 4px 16px rgba(26,102,69,.3);
-}
-.ef-ew-action-card.primary-action .ef-ew-action-lbl,
-.ef-ew-action-card.primary-action .ef-ew-action-icon { color: #fff; }
+.ef-ew-action-card i { font-size: 1.05rem; color: var(--ew-emerald); }
+.ef-ew-action-lbl { font-size: .74rem; font-weight: 700; color: var(--ew-text); line-height: 1.2; }
 
-.ef-ew-action-icon {
-    width: 36px; height: 36px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-}
-.action-submit  .ef-ew-action-icon { background: transparent; font-size: 1.2rem; }
-.action-pending .ef-ew-action-icon { background: #fef3c7; color: var(--ew-amber); }
-.action-approved.ef-ew-action-card .ef-ew-action-icon { background: #dcfce7; color: var(--ew-emerald); }
-.action-wallet  .ef-ew-action-icon { background: #cffafe; color: #0891b2; }
-.ef-ew-action-lbl {
-    font-size: .78rem;
-    font-weight: 700;
-    color: var(--ew-text);
-    line-height: 1.2;
-}
-.ef-ew-action-count {
-    font-size: .7rem;
-    font-weight: 600;
-    color: var(--ew-muted);
-    margin-top: 1px;
-}
-.ef-ew-action-badge {
-    position: absolute;
-    top: 8px; right: 8px;
-    background: var(--ew-amber);
-    color: #fff;
-    font-size: .6rem;
-    font-weight: 700;
-    padding: 2px 6px;
-    border-radius: 10px;
-    line-height: 1.2;
-}
-
-/* Wallet card */
-.ef-ew-wallet-card {
-    padding: 22px;
-}
-.ef-ew-wallet-header {
+/* Leave balance list */
+.ef-ew-lb-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 16px;
+    padding: 10px 0;
+    border-bottom: 1px solid #faf7f4;
+    font-size: .84rem;
 }
-.ef-ew-wallet-balance {
-    font-size: 2rem;
-    font-weight: 800;
-    line-height: 1;
-    margin-bottom: 4px;
-}
-.color-ok  { color: var(--ew-emerald); }
-.color-low { color: var(--ew-amber); }
-.color-neg { color: var(--ew-danger); }
-.ef-ew-wallet-status-pill {
-    font-size: .65rem;
-    font-weight: 700;
-    letter-spacing: .06em;
-    text-transform: uppercase;
-    padding: 3px 10px;
-    border-radius: 12px;
-    border: 1px solid;
-}
-.wstatus-ok  { background: #dcfce7; color: #15803d; border-color: #bbf7d0; }
-.wstatus-low { background: #fef3c7; color: #b45309; border-color: #fde68a; }
-.wstatus-neg { background: #fee2e2; color: #b91c1c; border-color: #fecaca; }
-.ef-ew-wallet-sub { font-size: .75rem; color: var(--ew-muted); margin-bottom: 16px; }
-.ef-ew-wallet-cta {
-    display: block;
-    text-align: center;
-    font-size: .8rem;
-    font-weight: 600;
-    color: #0891b2;
+.ef-ew-lb-row:last-child { border-bottom: none; }
+.ef-ew-lb-name { font-weight: 600; color: var(--ew-text); }
+.ef-ew-lb-sub { font-size: .72rem; color: var(--ew-muted); }
+.ef-ew-lb-avail { font-weight: 800; color: var(--ew-emerald); font-size: .95rem; }
+
+/* Compact list items (pending requests / activity) */
+.ef-ew-mini-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid #faf7f4;
     text-decoration: none;
-    padding: 10px;
-    border: 1px solid #a5f3fc;
-    border-radius: 10px;
-    background: #f0fdfe;
-    transition: all .15s;
+    color: inherit;
 }
-.ef-ew-wallet-cta:hover {
-    background: #cffafe;
-    border-color: #67e8f9;
-    color: #0e7490;
+.ef-ew-mini-item:last-child { border-bottom: none; }
+.ef-ew-mini-item:hover { background: #faf7f4; text-decoration: none; }
+.ef-ew-mini-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dot-pending  { background: var(--ew-amber); }
+.dot-approved { background: #22c55e; }
+.dot-rejected { background: var(--ew-danger); }
+.dot-cancelled{ background: #94a3b8; }
+.ef-ew-mini-title { font-size: .84rem; font-weight: 700; color: var(--ew-text); line-height: 1.3; }
+.ef-ew-mini-meta { font-size: .72rem; color: var(--ew-muted); }
+.ef-ew-mini-status {
+    font-size: .64rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+.stat-pending   { background: #fef3c7; color: #b45309; }
+.stat-approved  { background: #dcfce7; color: #15803d; }
+.stat-rejected  { background: #fee2e2; color: #b91c1c; }
+.stat-cancelled { background: #f1f5f9; color: #475569; }
+
+/* Chips row */
+.ef-ew-chips-row { display: flex; gap: 10px; }
+.ef-ew-chip-tile {
+    flex: 1;
+    text-align: center;
+    padding: 12px 8px;
+    border-radius: 12px;
+    background: #faf8f5;
+    border: 1px solid var(--ew-border);
+}
+.ef-ew-chip-val { font-size: 1.2rem; font-weight: 800; color: var(--ew-text); }
+.ef-ew-chip-lbl { font-size: .66rem; font-weight: 700; text-transform: uppercase; color: var(--ew-muted); letter-spacing: .04em; }
+
+/* Empty state (small, inline) */
+.ef-ew-empty-line {
+    text-align: center;
+    padding: 18px 12px;
+    color: var(--ew-muted);
+    font-size: .82rem;
+}
+
+/* Advance card */
+.ef-ew-advance-amt { font-size: 1.6rem; font-weight: 800; color: var(--ew-emerald); }
+
+/* Expenses shortcut footer card */
+.ef-ew-expense-shortcut {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 20px;
+    flex-wrap: wrap;
 }
 
 /* ── Alert banner ─────────────────────────────────────────── */
@@ -558,28 +339,12 @@ a.ef-ew-kpi-card:hover, .ef-ew-kpi-card:hover {
     font-size: .84rem;
     font-weight: 500;
 }
-.ef-ew-alert-danger {
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    color: #991b1b;
-}
-.ef-ew-alert-warning {
-    background: #fffbeb;
-    border: 1px solid #fde68a;
-    color: #92400e;
-}
+.ef-ew-alert-danger  { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+.ef-ew-alert-warning { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
 .ef-ew-alert i { flex-shrink: 0; margin-top: 1px; }
 .ef-ew-alert-close {
-    margin-left: auto;
-    background: none;
-    border: none;
-    color: inherit;
-    opacity: .5;
-    cursor: pointer;
-    padding: 0;
-    flex-shrink: 0;
-    font-size: 1rem;
-    transition: opacity .12s;
+    margin-left: auto; background: none; border: none; color: inherit;
+    opacity: .5; cursor: pointer; padding: 0; flex-shrink: 0; font-size: 1rem;
 }
 .ef-ew-alert-close:hover { opacity: 1; }
 
@@ -600,39 +365,66 @@ a.ef-ew-kpi-card:hover, .ef-ew-kpi-card:hover {
     align-items: center;
     justify-content: center;
     text-decoration: none;
-    transition: background .15s, transform .15s;
 }
-.ef-ew-fab:hover { background: var(--ew-emerald-hi); color: #fff; transform: scale(1.05); }
+.ef-ew-fab:hover { background: var(--ew-emerald-hi); color: #fff; }
 
 /* ── Responsive ────────────────────────────────────────────── */
-@media (max-width: 1199.98px) {
-    .ef-ew-kpi      { grid-template-columns: repeat(3, 1fr); }
-    .ef-ew-main     { grid-template-columns: 1fr; }
-    .ef-ew-sidebar  { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .ef-ew-hero     { padding: 28px 28px; }
+@media (max-width: 991.98px) {
+    .ef-ew-grid { grid-template-columns: 1fr; }
+    .ef-ew-grid .span-2 { grid-column: auto; }
 }
 @media (max-width: 767.98px) {
-    .ef-ew-hero         { padding: 22px 20px; border-radius: 18px; }
-    .ef-ew-hero-inner   { flex-direction: column; gap: 20px; }
-    .ef-ew-hero-cta     { align-items: flex-start; flex-direction: row; flex-wrap: wrap; }
-    .ef-ew-hero-name    { font-size: 1.4rem; }
-    .ef-ew-wallet-pod   { width: 100%; }
-    .ef-ew-kpi          { grid-template-columns: repeat(2, 1fr); }
-    .ef-ew-kpi-val      { font-size: 1.25rem; }
-    .ef-ew-main         { grid-template-columns: 1fr; }
-    .ef-ew-sidebar      { grid-template-columns: 1fr; }
-    .ef-ew-fab          { display: flex; }
-    /* FAB positioned above mobile nav — see mobile.css .ef-mobile-fab */
-    .ef-ew-fab          { bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 1050; }
-    /* Last content section clears FAB (58px) + gap (16px) */
-    .ef-ew-main         { padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px)); }
-}
-@media (max-width: 479.98px) {
-    .ef-ew-kpi { grid-template-columns: repeat(2, 1fr); }
-    .ef-ew-hero-pills { gap: 6px; }
+    .ef-ew-hero        { padding: 20px 18px; border-radius: 18px; }
+    .ef-ew-hero-inner  { flex-direction: column; gap: 16px; }
+    .ef-ew-hero-cta    { align-items: stretch; width: 100%; }
+    .ef-ew-hero-cta .ef-ew-btn-primary,
+    .ef-ew-hero-cta .ef-ew-btn-confirmed { width: 100%; }
+    .ef-ew-hero-name   { font-size: 1.3rem; }
+    .ef-ew-split-row   { flex-direction: column; }
+    .ef-ew-actions-grid{ grid-template-columns: 1fr 1fr; }
+    .ef-ew-chips-row   { flex-wrap: wrap; }
+    .ef-ew-chip-tile   { min-width: 30%; }
+    .ef-ew-fab         { display: flex; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 1050; }
+    body { padding-bottom: 0; }
 }
 </style>
 @endpush
+
+@php
+    $statusChips = [
+        'present'        => ['label' => 'Present',        'bg' => 'rgba(15,123,95,.11)',  'color' => '#0A5240'],
+        'half_day'       => ['label' => 'Half Day',       'bg' => 'rgba(216,154,61,.13)', 'color' => '#7D5218'],
+        'leave'          => ['label' => 'On Leave',       'bg' => 'rgba(47,111,237,.10)', 'color' => '#1E4DB7'],
+        'half_day_leave' => ['label' => 'Half-day Leave', 'bg' => 'rgba(47,111,237,.10)', 'color' => '#1E4DB7'],
+        'leave_pending'  => ['label' => 'Leave Pending',  'bg' => 'rgba(184,137,62,.12)', 'color' => '#6B4A12'],
+        'absent'         => ['label' => 'Absent',         'bg' => 'rgba(200,75,68,.11)',  'color' => '#9B2C2C'],
+        'weekly_off'     => ['label' => 'Weekly Off',     'bg' => 'rgba(100,116,139,.11)','color' => '#334155'],
+        'holiday'        => ['label' => 'Holiday',        'bg' => 'rgba(184,137,62,.12)', 'color' => '#6B4A12'],
+        'not_marked'     => ['label' => 'Not Marked',     'bg' => 'rgba(100,116,139,.08)','color' => '#64748B'],
+    ];
+
+    $attendance = $dayState['attendance'] ?? null;
+    if ($attendance) {
+        $todayStatus = $attendance->status;
+    } elseif ($todayIsNonWorking) {
+        $todayStatus = $todayCategory === 'holiday' ? 'holiday' : 'weekly_off';
+    } elseif ($dayState['has_pending_leave'] ?? false) {
+        $todayStatus = 'leave_pending';
+    } else {
+        $todayStatus = 'not_marked';
+    }
+    $todayChip = $statusChips[$todayStatus] ?? $statusChips['not_marked'];
+    $todayChipText = $todayStatus === 'not_marked' ? $todayChip['label'] : $todayChip['label'].' today';
+
+    $isHalfDayFamily = $attendance && in_array($attendance->status, ['half_day', 'half_day_leave', 'half_day_lop'], true);
+    $firstHalfDone  = $attendance && ($attendance->status === 'present' || ($isHalfDayFamily && $attendance->half_day_period === 'first_half'));
+    $secondHalfDone = $attendance && ($attendance->status === 'present' || ($isHalfDayFamily && $attendance->half_day_period === 'second_half'));
+
+    $hasPendingItems = ($leaveCounts['pending'] ?? 0) > 0
+        || $pendingRegularizations->isNotEmpty()
+        || $pendingOvertime->isNotEmpty();
+    $hasRejected = ($leaveCounts['rejected'] ?? 0) > 0;
+@endphp
 
 {{-- ── Wallet alerts ──────────────────────────────────────────── --}}
 @if($stats['wallet_negative'])
@@ -649,11 +441,24 @@ a.ef-ew-kpi-card:hover, .ef-ew-kpi-card:hover {
 </div>
 @endif
 
+{{-- ── Pending-action alert ───────────────────────────────────── --}}
+@if($hasPendingItems || $hasRejected)
+<div class="ef-ew-alert ef-ew-alert-warning" role="alert">
+    <i class="bi bi-info-circle-fill"></i>
+    <div>
+        @if($hasPendingItems)
+            You have requests awaiting a decision — check <strong>Pending Requests</strong> below.
+        @endif
+        @if($hasRejected)
+            {{ $hasPendingItems ? 'Also, ' : '' }}one or more of your leave requests was rejected — see <strong>Recent Activity</strong>.
+        @endif
+    </div>
+    <button class="ef-ew-alert-close" onclick="this.closest('.ef-ew-alert').remove()"><i class="bi bi-x"></i></button>
+</div>
+@endif
+
 {{-- ── Personal Hero ───────────────────────────────────────────── --}}
 <div class="ef-ew-hero">
-    <div class="ef-ew-hero-dot ef-ew-hero-dot-1"></div>
-    <div class="ef-ew-hero-dot ef-ew-hero-dot-2"></div>
-
     <div class="ef-ew-hero-inner">
         <div>
             @php
@@ -663,228 +468,256 @@ a.ef-ew-kpi-card:hover, .ef-ew-kpi-card:hover {
             <p class="ef-ew-greeting">{{ $greet }}</p>
             <h1 class="ef-ew-hero-name">{{ auth()->user()->name }}</h1>
             <p class="ef-ew-hero-role">{{ ucfirst(auth()->user()->role) }}</p>
+            <p class="ef-ew-hero-date">{{ now()->format('l, d F Y') }}</p>
 
-            {{-- Wallet pod --}}
-            @php
-                $walletClass = $stats['wallet_negative'] ? 'wallet-neg' : ($stats['wallet_low'] ? 'wallet-low' : 'wallet-healthy');
-                $walletTextClass = $stats['wallet_negative'] ? 'wallet-text-neg' : ($stats['wallet_low'] ? 'wallet-text-low' : 'wallet-text-ok');
-            @endphp
-            <div class="ef-ew-wallet-pod">
-                <div class="ef-ew-wallet-icon {{ $walletClass }}">
-                    <i class="bi bi-wallet2"></i>
-                </div>
-                <div>
-                    <div class="ef-ew-wallet-lbl">Wallet Balance</div>
-                    <div class="ef-ew-wallet-amt {{ $walletClass }}">
-                        ₹{{ number_format($stats['wallet_balance'], 2) }}
-                    </div>
-                </div>
+            <div class="ef-ew-today-chip">
+                <i class="bi bi-calendar-check"></i>
+                {{ $todayChipText }}
             </div>
 
-            {{-- Status pills --}}
-            <div class="ef-ew-hero-pills">
-                @if($stats['pending_requests'] > 0)
-                <span class="ef-ew-hero-pill pill-pending">
-                    <i class="bi bi-hourglass-split" style="font-size:.65rem"></i>
-                    {{ $stats['pending_requests'] }} pending
-                </span>
-                @endif
-                @if($stats['approved_requests'] > 0)
-                <span class="ef-ew-hero-pill pill-approved">
-                    <i class="bi bi-check-circle" style="font-size:.65rem"></i>
-                    {{ $stats['approved_requests'] }} approved
-                </span>
-                @endif
-                @if($stats['reimbursement_pending'] > 0)
-                <span class="ef-ew-hero-pill pill-reimb">
-                    <i class="bi bi-arrow-return-left" style="font-size:.65rem"></i>
-                    ₹{{ number_format($stats['reimbursement_pending'], 0) }} reimbursement due
-                </span>
-                @endif
+            {{-- Split-day two-slot visual --}}
+            <div class="ef-ew-split-row">
+                <div class="ef-ew-split-slot {{ $firstHalfDone ? 'slot-done' : 'slot-open' }}">
+                    <i class="bi {{ $firstHalfDone ? 'bi-check-circle-fill' : 'bi-circle' }} slot-icon"></i>
+                    <span>
+                        <span class="slot-lbl">First Half</span>
+                        <span class="slot-sub">{{ $firstHalfDone ? $todayChip['label'] : 'Not marked' }}</span>
+                    </span>
+                </div>
+                <div class="ef-ew-split-slot {{ $secondHalfDone ? 'slot-done' : 'slot-open' }}">
+                    <i class="bi {{ $secondHalfDone ? 'bi-check-circle-fill' : 'bi-circle' }} slot-icon"></i>
+                    <span>
+                        <span class="slot-lbl">Second Half</span>
+                        <span class="slot-sub">{{ $secondHalfDone ? $todayChip['label'] : 'Not marked' }}</span>
+                    </span>
+                </div>
             </div>
         </div>
 
         <div class="ef-ew-hero-cta">
-            <a href="{{ route('employee.expense-requests.create') }}" class="ef-ew-btn-primary">
-                <i class="bi bi-plus-lg"></i> New Expense
-            </a>
-            <a href="{{ route('employee.expense-requests.index') }}" class="ef-ew-btn-ghost">
-                <i class="bi bi-list-ul"></i> All Requests
+            @if(!$attendance && !$todayIsNonWorking)
+                <a href="{{ route('employee.attendance.index') }}" class="ef-ew-btn-primary">
+                    <i class="bi bi-calendar-plus"></i> Mark Attendance
+                </a>
+            @elseif($markableOtherHalf)
+                <a href="{{ route('employee.attendance.index') }}" class="ef-ew-btn-primary">
+                    <i class="bi bi-calendar-plus"></i> Mark {{ $markableOtherHalf === 'first_half' ? 'Morning' : 'Afternoon' }}
+                </a>
+            @elseif($attendance)
+                <span class="ef-ew-btn-confirmed">
+                    <i class="bi bi-check-circle-fill"></i> Day Marked
+                </span>
+            @endif
+            <a href="{{ route('employee.attendance.index') }}" class="ef-ew-btn-ghost">
+                <i class="bi bi-clock-history"></i> Attendance History
             </a>
         </div>
     </div>
 </div>
 
-{{-- ── KPI Strip ───────────────────────────────────────────────── --}}
-<div class="ef-ew-kpi">
-    <div class="ef-ew-kpi-card kpi-total">
-        <div class="ef-ew-kpi-icon icon-total"><i class="bi bi-files"></i></div>
-        <div class="ef-ew-kpi-val">{{ $stats['my_requests'] }}</div>
-        <p class="ef-ew-kpi-lbl">Total Requests</p>
-    </div>
-    <a href="{{ route('employee.expense-requests.index', ['status' => 'pending']) }}"
-       class="ef-ew-kpi-card kpi-pending">
-        <div class="ef-ew-kpi-icon icon-pending"><i class="bi bi-hourglass-split"></i></div>
-        <div class="ef-ew-kpi-val {{ $stats['pending_requests'] > 0 ? 'is-warn' : '' }}">
-            {{ $stats['pending_requests'] }}
+{{-- ── Secondary actions row ──────────────────────────────────── --}}
+<div class="ef-ew-panel" style="margin-bottom:16px">
+    <div class="ef-ew-panel-head"><span class="ef-ew-panel-title">Quick Actions</span></div>
+    <div class="ef-ew-panel-body">
+        <div class="ef-ew-actions-grid">
+            <a href="{{ route('employee.leave.create') }}" class="ef-ew-action-card">
+                <i class="bi bi-calendar-plus"></i>
+                <span class="ef-ew-action-lbl">Apply Leave</span>
+            </a>
+            <a href="{{ route('employee.attendance-regularizations.create') }}" class="ef-ew-action-card">
+                <i class="bi bi-pencil-square"></i>
+                <span class="ef-ew-action-lbl">Regularize</span>
+            </a>
+            <a href="{{ route('employee.overtime.create') }}" class="ef-ew-action-card">
+                <i class="bi bi-clock-history"></i>
+                <span class="ef-ew-action-lbl">Request OT</span>
+            </a>
         </div>
-        <p class="ef-ew-kpi-lbl">Awaiting Approval</p>
-    </a>
-    <a href="{{ route('employee.expense-requests.index', ['status' => 'approved']) }}"
-       class="ef-ew-kpi-card kpi-approved">
-        <div class="ef-ew-kpi-icon icon-approved"><i class="bi bi-check-circle-fill"></i></div>
-        <div class="ef-ew-kpi-val">₹{{ number_format($stats['approved_amount'], 0) }}</div>
-        <p class="ef-ew-kpi-lbl">Approved Amount</p>
-    </a>
-    <a href="{{ route('employee.wallet.show') }}" class="ef-ew-kpi-card kpi-wallet">
-        <div class="ef-ew-kpi-icon icon-wallet"><i class="bi bi-wallet2"></i></div>
-        <div class="ef-ew-kpi-val
-            {{ $stats['wallet_negative'] ? 'is-alert' : ($stats['wallet_low'] ? 'is-warn' : '') }}">
-            ₹{{ number_format($stats['wallet_balance'], 0) }}
-        </div>
-        <p class="ef-ew-kpi-lbl">Wallet Balance</p>
-    </a>
-    <div class="ef-ew-kpi-card kpi-month">
-        <div class="ef-ew-kpi-icon icon-month"><i class="bi bi-calendar-month"></i></div>
-        <div class="ef-ew-kpi-val">₹{{ number_format($stats['monthly_expense'], 0) }}</div>
-        <p class="ef-ew-kpi-lbl">{{ now()->format('M') }} Spend</p>
-    </div>
-    <div class="ef-ew-kpi-card kpi-reimb">
-        <div class="ef-ew-kpi-icon icon-reimb"><i class="bi bi-arrow-return-left"></i></div>
-        <div class="ef-ew-kpi-val {{ $stats['reimbursement_pending'] > 0 ? 'is-alert' : '' }}">
-            ₹{{ number_format($stats['reimbursement_pending'], 0) }}
-        </div>
-        <p class="ef-ew-kpi-lbl">Reimb. Pending</p>
     </div>
 </div>
 
-{{-- ── Main content + sidebar ──────────────────────────────────── --}}
-<div class="ef-ew-main">
+{{-- ── Main grid ───────────────────────────────────────────────── --}}
+<div class="ef-ew-grid" style="margin-bottom:16px">
 
-    {{-- Activity feed --}}
+    {{-- Leave Balance --}}
     <div class="ef-ew-panel">
         <div class="ef-ew-panel-head">
-            <span class="ef-ew-panel-title">Recent Activity</span>
-            <a href="{{ route('employee.expense-requests.index') }}" class="ef-ew-panel-link">
-                View all <i class="bi bi-arrow-right" style="font-size:.7rem"></i>
-            </a>
+            <span class="ef-ew-panel-title">Leave Balance</span>
+            <a href="{{ route('employee.leave.index') }}" class="ef-ew-panel-link">My Leave <i class="bi bi-arrow-right" style="font-size:.68rem"></i></a>
         </div>
-
-        @if($recentRequests->isEmpty())
-        <div class="ef-ew-empty">
-            <div class="ef-ew-empty-icon"><i class="bi bi-file-earmark-plus"></i></div>
-            <p class="fw-semibold mb-1" style="color:#3d3528">No expense requests yet</p>
-            <p class="small mb-3">Submit your first expense to get started.</p>
-            <a href="{{ route('employee.expense-requests.create') }}" class="ef-ew-btn-primary" style="display:inline-flex">
-                <i class="bi bi-plus-lg"></i> Submit Request
-            </a>
-        </div>
-        @else
-        @foreach($recentRequests as $req)
-        @php
-            $dotMap = [
-                'pending'               => 'dot-pending',
-                'approved'              => 'dot-approved',
-                'rejected'              => 'dot-rejected',
-                'paid'                  => 'dot-paid',
-                'reimbursement_pending' => 'dot-reimb',
-                'reimbursed'            => 'dot-approved',
-                'completed'             => 'dot-approved',
-            ];
-            $dot = $dotMap[$req->status] ?? 'dot-other';
-        @endphp
-        <a href="{{ route('employee.expense-requests.show', $req) }}" class="ef-ew-activity-item">
-            <div class="ef-ew-activity-dot {{ $dot }}"></div>
-            <div style="flex:1;min-width:0">
-                <div class="ef-ew-activity-title">{{ $req->title }}</div>
-                <div class="ef-ew-activity-meta">
-                    @if($req->category)<span>{{ $req->category->name }}</span><span class="sep">·</span>@endif
-                    <span>{{ $req->created_at->diffForHumans(['short' => true, 'parts' => 1]) }}</span>
-                    <span class="ef-ew-activity-status stat-{{ $req->status }}">
-                        {{ str_replace('_', ' ', $req->status) }}
-                    </span>
+        <div class="ef-ew-panel-body">
+            @forelse($leaveBalances as $lb)
+                <div class="ef-ew-lb-row">
+                    <div>
+                        <div class="ef-ew-lb-name">{{ $lb['leave_type']->name }}</div>
+                        <div class="ef-ew-lb-sub">Used {{ $lb['used'] }} · Pending {{ $lb['pending'] }}</div>
+                    </div>
+                    <div class="ef-ew-lb-avail">{{ $lb['available'] }}</div>
                 </div>
-            </div>
-            <div class="ef-ew-activity-amount">₹{{ number_format($req->amount, 0) }}</div>
-        </a>
-        @endforeach
-        @endif
+            @empty
+                <div class="ef-ew-empty-line">No leave types configured.</div>
+            @endforelse
+        </div>
     </div>
 
-    {{-- Sidebar --}}
-    <div class="ef-ew-sidebar">
-
-        {{-- Action workspace --}}
-        <div class="ef-ew-panel">
-            <div class="ef-ew-panel-head">
-                <span class="ef-ew-panel-title">Quick Actions</span>
-            </div>
-            <div class="ef-ew-actions-grid">
-                <a href="{{ route('employee.expense-requests.create') }}" class="ef-ew-action-card primary-action action-submit">
-                    <div class="ef-ew-action-icon"><i class="bi bi-plus-circle-fill"></i></div>
-                    <span class="ef-ew-action-lbl">Submit New Expense</span>
-                </a>
-                <a href="{{ route('employee.expense-requests.index', ['status' => 'pending']) }}"
-                   class="ef-ew-action-card action-pending">
-                    @if($stats['pending_requests'] > 0)
-                    <span class="ef-ew-action-badge">{{ $stats['pending_requests'] }}</span>
-                    @endif
-                    <div class="ef-ew-action-icon"><i class="bi bi-hourglass-split"></i></div>
-                    <span class="ef-ew-action-lbl">Pending</span>
-                    <span class="ef-ew-action-count">{{ $stats['pending_requests'] }} requests</span>
-                </a>
-                <a href="{{ route('employee.expense-requests.index', ['status' => 'approved']) }}"
-                   class="ef-ew-action-card action-approved">
-                    <div class="ef-ew-action-icon"><i class="bi bi-check-circle-fill"></i></div>
-                    <span class="ef-ew-action-lbl">Approved</span>
-                    <span class="ef-ew-action-count">{{ $stats['approved_requests'] }} requests</span>
-                </a>
-                @php
-                    $attendanceCardClass = 'action-pending';
-                    if ($todayAttendance) {
-                        $attendanceCardClass = 'action-approved';
-                        $attendanceCardText = ucfirst(str_replace('_', ' ', $todayAttendance->status)) . ' today';
-                    } elseif ($todayIsNonWorking) {
-                        $attendanceCardClass = 'action-wallet';
-                        $attendanceCardText = $todayCategory === 'holiday' ? 'Holiday today' : 'Weekly off today';
-                    } else {
-                        $attendanceCardText = 'Not marked';
-                    }
-                @endphp
-                <a href="{{ route('employee.attendance.index') }}" class="ef-ew-action-card {{ $attendanceCardClass }}">
-                    <div class="ef-ew-action-icon"><i class="bi bi-calendar-check"></i></div>
-                    <span class="ef-ew-action-lbl">Attendance</span>
-                    <span class="ef-ew-action-count">{{ $attendanceCardText }}</span>
-                </a>
-                <a href="{{ route('employee.wallet.show') }}" class="ef-ew-action-card action-wallet">
-                    <div class="ef-ew-action-icon"><i class="bi bi-wallet2"></i></div>
-                    <span class="ef-ew-action-lbl">My Wallet</span>
-                    <span class="ef-ew-action-count">View ledger</span>
-                </a>
-            </div>
-        </div>
-
-        {{-- Wallet card --}}
-        <div class="ef-ew-panel">
-            <div class="ef-ew-wallet-card">
-                <div class="ef-ew-wallet-header">
-                    <span class="ef-ew-panel-title">Wallet</span>
-                    <span class="ef-ew-wallet-status-pill {{ $stats['wallet_negative'] ? 'wstatus-neg' : ($stats['wallet_low'] ? 'wstatus-low' : 'wstatus-ok') }}">
-                        {{ $stats['wallet_negative'] ? 'Overdrawn' : ($stats['wallet_low'] ? 'Low' : 'Healthy') }}
+    {{-- Pending Requests --}}
+    <div class="ef-ew-panel">
+        <div class="ef-ew-panel-head"><span class="ef-ew-panel-title">Pending Requests</span></div>
+        <div class="ef-ew-panel-body">
+            @php $anyPending = $pendingLeave->isNotEmpty() || $pendingRegularizations->isNotEmpty() || $pendingOvertime->isNotEmpty(); @endphp
+            @if(!$anyPending)
+                <div class="ef-ew-empty-line">You're all caught up.</div>
+            @else
+                @foreach($pendingLeave as $r)
+                <a href="{{ route('employee.leave.show', $r) }}" class="ef-ew-mini-item">
+                    <span class="ef-ew-mini-dot dot-pending"></span>
+                    <span>
+                        <span class="ef-ew-mini-title">{{ $r->leaveType->name ?? 'Leave' }}</span>
+                        <span class="ef-ew-mini-meta d-block">{{ $r->start_date->format('d M') }} – {{ $r->end_date->format('d M') }}</span>
                     </span>
-                </div>
-                <div class="ef-ew-wallet-balance {{ $stats['wallet_negative'] ? 'color-neg' : ($stats['wallet_low'] ? 'color-low' : 'color-ok') }}">
-                    ₹{{ number_format($stats['wallet_balance'], 2) }}
-                </div>
-                <p class="ef-ew-wallet-sub">Available for expenses</p>
-                <a href="{{ route('employee.wallet.show') }}" class="ef-ew-wallet-cta">
-                    <i class="bi bi-clock-history me-1"></i> View Transactions
+                    <span class="ef-ew-mini-status stat-pending">Pending</span>
                 </a>
+                @endforeach
+                @foreach($pendingRegularizations as $r)
+                <a href="{{ route('employee.attendance-regularizations.show', $r) }}" class="ef-ew-mini-item">
+                    <span class="ef-ew-mini-dot dot-pending"></span>
+                    <span>
+                        <span class="ef-ew-mini-title">Regularization</span>
+                        <span class="ef-ew-mini-meta d-block">{{ $r->attendance_date->format('d M') }} — {{ ucfirst(str_replace('_',' ',$r->requested_status)) }}</span>
+                    </span>
+                    <span class="ef-ew-mini-status stat-pending">Pending</span>
+                </a>
+                @endforeach
+                @foreach($pendingOvertime as $r)
+                <a href="{{ route('employee.overtime.show', $r) }}" class="ef-ew-mini-item">
+                    <span class="ef-ew-mini-dot dot-pending"></span>
+                    <span>
+                        <span class="ef-ew-mini-title">Overtime</span>
+                        <span class="ef-ew-mini-meta d-block">{{ $r->ot_date->format('d M') }} — {{ $r->hours }}h</span>
+                    </span>
+                    <span class="ef-ew-mini-status stat-pending">Pending</span>
+                </a>
+                @endforeach
+            @endif
+        </div>
+    </div>
+
+    {{-- Request summary chips --}}
+    <div class="ef-ew-panel span-2">
+        <div class="ef-ew-panel-head"><span class="ef-ew-panel-title">Leave Request Summary</span></div>
+        <div class="ef-ew-panel-body">
+            <div class="ef-ew-chips-row">
+                <div class="ef-ew-chip-tile">
+                    <div class="ef-ew-chip-val">{{ $leaveCounts['pending'] }}</div>
+                    <div class="ef-ew-chip-lbl">Pending</div>
+                </div>
+                <div class="ef-ew-chip-tile">
+                    <div class="ef-ew-chip-val">{{ $leaveCounts['approved'] }}</div>
+                    <div class="ef-ew-chip-lbl">Approved</div>
+                </div>
+                <div class="ef-ew-chip-tile">
+                    <div class="ef-ew-chip-val">{{ $leaveCounts['rejected'] }}</div>
+                    <div class="ef-ew-chip-lbl">Rejected</div>
+                </div>
             </div>
         </div>
+    </div>
 
-    </div>{{-- /sidebar --}}
-</div>{{-- /main --}}
+    {{-- Upcoming approved leave --}}
+    <div class="ef-ew-panel">
+        <div class="ef-ew-panel-head"><span class="ef-ew-panel-title">Upcoming Leave</span></div>
+        <div class="ef-ew-panel-body">
+            @if($upcomingLeave)
+                <div class="ef-ew-lb-row" style="border-bottom:none">
+                    <div>
+                        <div class="ef-ew-lb-name">{{ $upcomingLeave->leaveType->name ?? 'Leave' }}</div>
+                        <div class="ef-ew-lb-sub">{{ $upcomingLeave->start_date->format('d M Y') }} – {{ $upcomingLeave->end_date->format('d M Y') }}</div>
+                    </div>
+                    <a href="{{ route('employee.leave.show', $upcomingLeave) }}" class="ef-ew-panel-link">View</a>
+                </div>
+            @else
+                <div class="ef-ew-empty-line">
+                    No upcoming leave.
+                    <a href="{{ route('employee.leave.create') }}" class="ef-ew-panel-link">Apply Leave</a>
+                </div>
+            @endif
+        </div>
+    </div>
+
+    {{-- Overtime summary (hours only) --}}
+    <div class="ef-ew-panel">
+        <div class="ef-ew-panel-head">
+            <span class="ef-ew-panel-title">Overtime</span>
+            <a href="{{ route('employee.overtime.index') }}" class="ef-ew-panel-link">View all <i class="bi bi-arrow-right" style="font-size:.68rem"></i></a>
+        </div>
+        <div class="ef-ew-panel-body">
+            <div class="ef-ew-chips-row">
+                <div class="ef-ew-chip-tile">
+                    <div class="ef-ew-chip-val">{{ number_format($otSummary['approved_hours_this_month'], 1) }}</div>
+                    <div class="ef-ew-chip-lbl">Hrs Approved ({{ now()->format('M') }})</div>
+                </div>
+                <div class="ef-ew-chip-tile">
+                    <div class="ef-ew-chip-val">{{ $otSummary['pending_count'] }}</div>
+                    <div class="ef-ew-chip-lbl">Pending</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Recent Activity --}}
+    <div class="ef-ew-panel span-2">
+        <div class="ef-ew-panel-head"><span class="ef-ew-panel-title">Recent Activity</span></div>
+        <div class="ef-ew-panel-body">
+            @forelse($recentActivity as $a)
+                @php
+                    $adot = match($a['status']) {
+                        'approved' => 'dot-approved',
+                        'rejected' => 'dot-rejected',
+                        'cancelled' => 'dot-cancelled',
+                        default => 'dot-pending',
+                    };
+                    $astat = match($a['status']) {
+                        'approved' => 'stat-approved',
+                        'rejected' => 'stat-rejected',
+                        'cancelled' => 'stat-cancelled',
+                        default => 'stat-pending',
+                    };
+                @endphp
+                <a href="{{ $a['route'] }}" class="ef-ew-mini-item">
+                    <span class="ef-ew-mini-dot {{ $adot }}"></span>
+                    <span>
+                        <span class="ef-ew-mini-title">{{ $a['label'] }}</span>
+                        <span class="ef-ew-mini-meta d-block">{{ $a['date']->diffForHumans(['short' => true, 'parts' => 1]) }}</span>
+                    </span>
+                    <span class="ef-ew-mini-status {{ $astat }}">{{ ucfirst($a['status']) }}</span>
+                </a>
+            @empty
+                <div class="ef-ew-empty-line">No recent activity yet.</div>
+            @endforelse
+        </div>
+    </div>
+</div>
+
+{{-- ── Expenses shortcut (de-emphasized) ──────────────────────── --}}
+<div class="ef-ew-panel">
+    <div class="ef-ew-expense-shortcut">
+        <div>
+            <div class="ef-ew-panel-title" style="margin-bottom:4px">Expenses</div>
+            <div class="ef-ew-lb-sub">Submit and track expense claims. Wallet balance: ₹{{ number_format($stats['wallet_balance'], 2) }}</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <a href="{{ route('employee.expense-requests.create') }}" class="ef-ew-btn-ghost" style="background:#f5f1eb;color:var(--ew-text);border-color:var(--ew-border)">
+                <i class="bi bi-plus-lg"></i> New Expense
+            </a>
+            <a href="{{ route('employee.expense-requests.index') }}" class="ef-ew-btn-ghost" style="background:#f5f1eb;color:var(--ew-text);border-color:var(--ew-border)">
+                <i class="bi bi-list-ul"></i> View Expenses
+            </a>
+            <a href="{{ route('employee.wallet.show') }}" class="ef-ew-btn-ghost" style="background:#f5f1eb;color:var(--ew-text);border-color:var(--ew-border)">
+                <i class="bi bi-wallet2"></i> Wallet
+            </a>
+        </div>
+    </div>
+</div>
 
 {{-- Floating FAB (mobile only) --}}
 <a href="{{ route('employee.expense-requests.create') }}" class="ef-ew-fab ef-mobile-fab" title="New Expense Request">
