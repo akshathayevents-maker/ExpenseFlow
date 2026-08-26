@@ -35,6 +35,7 @@ class AttendanceController extends Controller
         }
 
         $today   = $this->service->getToday($user);
+        $markableOtherHalf = $this->service->markableOtherHalfToday($user);
         $summary = $this->service->getMonthlySummary($user, $monthStart);
         $history = $this->service->getMonthlyHistory($user, $monthStart);
         $regularizations = $this->service->listRegularizationsForEmployee($user);
@@ -66,6 +67,7 @@ class AttendanceController extends Controller
             'selectedDate' => $selectedDate,
             'dayState'     => $dayState,
             'today'      => $today,
+            'markableOtherHalf' => $markableOtherHalf,
             'todayDate'  => $this->service->today(),
             'todayIsNonWorking' => $this->service->isTodayNonWorking(),
             'todayCategory'     => $this->service->todayCategory(),
@@ -79,18 +81,55 @@ class AttendanceController extends Controller
         ]);
     }
 
-    public function markPresent(): RedirectResponse
+    public function markPresent(Request $request): RedirectResponse
     {
-        $this->service->markPresent(auth()->user());
+        $period = $this->validatedPeriod($request);
+
+        $this->service->markPresent(auth()->user(), $period);
 
         return $this->redirectAfterMarking('Attendance marked as Present.');
     }
 
-    public function markHalfDay(): RedirectResponse
+    public function markHalfDay(Request $request): RedirectResponse
     {
-        $this->service->markHalfDay(auth()->user());
+        // Unlike markPresent() (where half_day_period is always optional —
+        // a plain full-day "Present" never needs one, and the "mark the
+        // other half present" flow supplies it via a hidden field derived
+        // server-side from markableOtherHalfToday(), never from open user
+        // choice), a half-day mark is inherently ambiguous without a period
+        // and must be rejected here with a clear, visible validation error
+        // — mirroring the required_if pattern already used by
+        // StoreAttendanceRegularizationRequest — rather than silently
+        // falling through to the service layer's own guard.
+        $request->validate([
+            'half_day_period' => ['required', 'in:first_half,second_half'],
+        ]);
+
+        $period = $this->validatedPeriod($request);
+
+        $this->service->markHalfDay(auth()->user(), $period);
 
         return $this->redirectAfterMarking('Attendance marked as Half Day.');
+    }
+
+    /**
+     * Optional `half_day_period` form field, accepted on both mark-present
+     * and mark-half-day submissions — always optional (a plain full-day
+     * mark never sends it), validated to one of the two known period
+     * values when present. The service layer, not this validation, is
+     * what actually decides whether a period is usable for today (e.g.
+     * rejecting it outright if the day has no complementary occupancy at
+     * all) — this only guards against a malformed/unexpected value.
+     */
+    private function validatedPeriod(Request $request): ?string
+    {
+        if (! $request->filled('half_day_period')) {
+            return null;
+        }
+
+        $period = $request->string('half_day_period')->toString();
+
+        return in_array($period, ['first_half', 'second_half'], true) ? $period : null;
     }
 
     /**

@@ -2,6 +2,7 @@
 
 use App\Models\EmployeeAttendance;
 use App\Models\EmployeeAttendanceRegularization;
+use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Models\EmployeeLeaveLedger;
 use App\Models\Setting;
@@ -293,4 +294,146 @@ test('approved leave still contributes correctly to payable days, unaffected by 
         ->payableDaysSoFar($employee, Carbon::parse('2026-08-14'), Carbon::parse('2026-08-14'));
 
     expect($payableDays)->toBe(1.0); // paid leave day remains fully payable
+});
+
+// ── Half-day period conflict matrix (Part 2) ─────────────────────────────
+
+test('a first-half attendance row and a second-half approved leave coexist without conflict', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $employee = User::factory()->create(['employment_start_date' => '2020-01-01']);
+    $type = alcLeaveType();
+    alcGrantBalance($employee, $type, $admin, 10);
+
+    EmployeeAttendance::create([
+        'user_id' => $employee->id, 'attendance_date' => '2026-08-14', 'status' => 'half_day',
+        'half_day_period' => 'first_half', 'marked_by' => $employee->id, 'marked_at' => now(), 'source' => 'self',
+    ]);
+
+    Auth::login($employee);
+    $leaveRequest = app(LeaveService::class)->createRequest($employee, [
+        'leave_type_id' => $type->id, 'start_date' => '2026-08-14', 'end_date' => '2026-08-14',
+        'is_half_day' => true, 'half_day_period' => 'second_half', 'reason' => 'x',
+    ]);
+    Auth::login($admin);
+    app(LeaveService::class)->approve($leaveRequest, $admin);
+
+    // Pre-existing attendance row is left untouched (see writeOneAttendanceRow
+    // docblock) — approval must not throw, and the row still reflects the
+    // worked first half.
+    $attendance = EmployeeAttendance::where('user_id', $employee->id)->whereDate('attendance_date', '2026-08-14')->first();
+    expect($attendance->status)->toBe('half_day');
+    expect($attendance->half_day_period)->toBe('first_half');
+    expect($leaveRequest->fresh()->status)->toBe('approved');
+
+    $day = app(EmployeeAttendanceService::class)->getMonthlyHistory($employee, Carbon::parse('2026-08-01'))
+        ->firstWhere(fn ($d) => $d['date']->toDateString() === '2026-08-14');
+    expect($day['leave_type_name'])->toContain('other half');
+});
+
+test('a second-half attendance row and a first-half approved leave coexist without conflict', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $employee = User::factory()->create(['employment_start_date' => '2020-01-01']);
+    $type = alcLeaveType();
+    alcGrantBalance($employee, $type, $admin, 10);
+
+    EmployeeAttendance::create([
+        'user_id' => $employee->id, 'attendance_date' => '2026-08-14', 'status' => 'half_day',
+        'half_day_period' => 'second_half', 'marked_by' => $employee->id, 'marked_at' => now(), 'source' => 'self',
+    ]);
+
+    Auth::login($employee);
+    $leaveRequest = app(LeaveService::class)->createRequest($employee, [
+        'leave_type_id' => $type->id, 'start_date' => '2026-08-14', 'end_date' => '2026-08-14',
+        'is_half_day' => true, 'half_day_period' => 'first_half', 'reason' => 'x',
+    ]);
+    Auth::login($admin);
+    app(LeaveService::class)->approve($leaveRequest, $admin);
+
+    expect($leaveRequest->fresh()->status)->toBe('approved');
+    $attendance = EmployeeAttendance::where('user_id', $employee->id)->whereDate('attendance_date', '2026-08-14')->first();
+    expect($attendance->half_day_period)->toBe('second_half');
+});
+
+test('a first-half attendance row still conflicts with a first-half leave request on the same date', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $employee = User::factory()->create(['employment_start_date' => '2020-01-01']);
+    $type = alcLeaveType();
+    alcGrantBalance($employee, $type, $admin, 10);
+
+    EmployeeAttendance::create([
+        'user_id' => $employee->id, 'attendance_date' => '2026-08-14', 'status' => 'half_day',
+        'half_day_period' => 'first_half', 'marked_by' => $employee->id, 'marked_at' => now(), 'source' => 'self',
+    ]);
+
+    Auth::login($employee);
+    $leaveRequest = app(LeaveService::class)->createRequest($employee, [
+        'leave_type_id' => $type->id, 'start_date' => '2026-08-14', 'end_date' => '2026-08-14',
+        'is_half_day' => true, 'half_day_period' => 'first_half', 'reason' => 'x',
+    ]);
+    Auth::login($admin);
+
+    expect(fn () => app(LeaveService::class)->approve($leaveRequest, $admin))
+        ->toThrow(Illuminate\Validation\ValidationException::class);
+});
+
+test('two half-day leave requests on complementary halves of the same date are both allowed', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $employee = User::factory()->create(['employment_start_date' => '2020-01-01']);
+    $type = alcLeaveType();
+    alcGrantBalance($employee, $type, $admin, 10);
+
+    Auth::login($employee);
+    $first = app(LeaveService::class)->createRequest($employee, [
+        'leave_type_id' => $type->id, 'start_date' => '2026-08-14', 'end_date' => '2026-08-14',
+        'is_half_day' => true, 'half_day_period' => 'first_half', 'reason' => 'x',
+    ]);
+
+    $second = app(LeaveService::class)->createRequest($employee, [
+        'leave_type_id' => $type->id, 'start_date' => '2026-08-14', 'end_date' => '2026-08-14',
+        'is_half_day' => true, 'half_day_period' => 'second_half', 'reason' => 'y',
+    ]);
+
+    expect($first->id)->not->toBe($second->id);
+    expect(LeaveRequest::where('user_id', $employee->id)->whereDate('start_date', '2026-08-14')->count())->toBe(2);
+});
+
+test('a half-day regularization is allowed against an opposite-half approved leave', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $employee = User::factory()->create(['employment_start_date' => '2020-01-01']);
+    $type = alcLeaveType();
+    alcGrantBalance($employee, $type, $admin, 10);
+
+    Auth::login($employee);
+    $leaveRequest = app(LeaveService::class)->createRequest($employee, [
+        'leave_type_id' => $type->id, 'start_date' => '2026-08-14', 'end_date' => '2026-08-14',
+        'is_half_day' => true, 'half_day_period' => 'second_half', 'reason' => 'x',
+    ]);
+    Auth::login($admin);
+    app(LeaveService::class)->approve($leaveRequest, $admin);
+
+    $regularization = app(EmployeeAttendanceService::class)->createRegularization($employee, [
+        'attendance_date' => '2026-08-14', 'requested_status' => 'half_day', 'half_day_period' => 'first_half', 'reason' => 'forgot',
+    ]);
+
+    expect($regularization)->not->toBeNull();
+    expect($regularization->half_day_period)->toBe('first_half');
+});
+
+test('a half-day regularization still conflicts with a same-half approved leave', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $employee = User::factory()->create(['employment_start_date' => '2020-01-01']);
+    $type = alcLeaveType();
+    alcGrantBalance($employee, $type, $admin, 10);
+
+    Auth::login($employee);
+    $leaveRequest = app(LeaveService::class)->createRequest($employee, [
+        'leave_type_id' => $type->id, 'start_date' => '2026-08-14', 'end_date' => '2026-08-14',
+        'is_half_day' => true, 'half_day_period' => 'first_half', 'reason' => 'x',
+    ]);
+    Auth::login($admin);
+    app(LeaveService::class)->approve($leaveRequest, $admin);
+
+    expect(fn () => app(EmployeeAttendanceService::class)->createRegularization($employee, [
+        'attendance_date' => '2026-08-14', 'requested_status' => 'half_day', 'half_day_period' => 'first_half', 'reason' => 'forgot',
+    ]))->toThrow(Illuminate\Validation\ValidationException::class);
 });

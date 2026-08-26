@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\EmployeeAttendance;
+use App\Models\EmployeeAttendanceSegment;
 use App\Models\EmployeeLeaveLedger;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
@@ -36,6 +37,7 @@ class LeaveService
         private AuditLogService $auditLogService,
         private PayableDaysCalculator $payableDaysCalculator,
         private LeaveBalanceService $leaveBalanceService,
+        private AttendanceConflictChecker $conflictChecker,
     ) {}
 
     // "Active" = still consumes/could consume calendar time: pending
@@ -46,8 +48,16 @@ class LeaveService
     public function createRequest(User $employee, array $data): LeaveRequest
     {
         $start = \Carbon\Carbon::parse($data['start_date']);
-        $end   = \Carbon\Carbon::parse($data['end_date']);
         $isHalfDay = (bool) ($data['is_half_day'] ?? false);
+        // A half-day request never carries end_date — the create form hides
+        // that field entirely once Duration=Half day is selected, and
+        // StoreLeaveRequestRequest's rule is required_if:is_half_day,0, so
+        // the key genuinely may not exist here. Parsing $data['end_date']
+        // unconditionally threw an uncaught "Undefined array key" error on
+        // every real half-day submission — a 500 the create-form's error
+        // rendering could never surface, which is the actual root cause of
+        // the "nothing happens" report.
+        $end = $isHalfDay ? $start : \Carbon\Carbon::parse($data['end_date']);
         $effectiveEnd = $isHalfDay ? $start : $end;
 
         $leaveType = LeaveType::findOrFail($data['leave_type_id']);
@@ -57,7 +67,7 @@ class LeaveService
             ]);
         }
 
-        $this->assertNoOverlap($employee, $start, $effectiveEnd);
+        $this->assertNoOverlap($employee, $start, $effectiveEnd, $isHalfDay, $isHalfDay ? ($data['half_day_period'] ?? null) : null);
 
         if ($isHalfDay) {
             $daysRequested = 0.5;
@@ -256,6 +266,17 @@ class LeaveService
                 ->where('source', 'leave_approval')
                 ->delete();
 
+            // A half-day leave that landed as the "other half" segment (see
+            // writeOneAttendanceRow()) instead of a full employee_attendance
+            // row must be reverted too — deleting it makes that half
+            // available again (regularizable) and stops it contributing to
+            // payable-day counts, while leaving the complementary half's own
+            // employee_attendance row (a different source) completely
+            // untouched.
+            EmployeeAttendanceSegment::where('leave_request_id', $leaveRequest->id)
+                ->where('source', 'leave_approval')
+                ->delete();
+
             $leaveRequest->forceFill(['status' => 'cancelled'])->save();
 
             $this->auditLogService->log('cancelled', 'leave_request', $leaveRequest->id, $employee->name, [], [
@@ -289,15 +310,79 @@ class LeaveService
         }
     }
 
+    /**
+     * ── Half-day leave vs. an existing half-day attendance row on the
+     * OPPOSITE half ──────────────────────────────────────────────────
+     *
+     * employee_attendance has one row per (user_id, attendance_date) — a
+     * hard unique constraint. It cannot literally hold two independent
+     * half-day facts ("present AM" + "on leave PM") as two rows for the
+     * same date.
+     *
+     * Resolution: if a real attendance row already exists for this date,
+     * covering only the OPPOSITE half from the leave being approved (both
+     * sides half-day, non-overlapping periods per AttendanceConflictChecker),
+     * we do NOT throw and we do NOT overwrite that row — instead we write
+     * the leave's own half as an EmployeeAttendanceSegment row for this
+     * date/period. The pre-existing attendance fact (e.g. a
+     * regularized/self-marked half_day) is left completely untouched; the
+     * leave's half is now genuinely represented (not just financially
+     * accounted for via the ledger), so PayableDaysCalculator correctly
+     * counts a day with both halves filled as 1.0 payable day.
+     *
+     * Any other pre-existing row (full-day, or half-day on the SAME half)
+     * still throws exactly as before — that is a genuine conflict.
+     */
     private function writeOneAttendanceRow(User $employee, $date, string $status, LeaveRequest $leaveRequest, User $approver): void
     {
         $dateStr = \Carbon\Carbon::parse($date)->toDateString();
+        $isHalfDayLeave = in_array($status, ['half_day_leave', 'half_day_lop'], true);
+        $period = $isHalfDayLeave ? $leaveRequest->half_day_period : null;
 
         $existing = EmployeeAttendance::where('user_id', $employee->id)
             ->whereDate('attendance_date', $dateStr)
             ->first();
 
         if ($existing && ! ($existing->leave_request_id === $leaveRequest->id && $existing->source === 'leave_approval')) {
+            $existingIsFullDay = ! in_array($existing->status, ['half_day', 'half_day_leave', 'half_day_lop'], true);
+            $conflicts = $this->conflictChecker->periodsOverlap(
+                $existingIsFullDay, $existing->half_day_period,
+                ! $isHalfDayLeave, $period,
+            );
+
+            if (! $conflicts) {
+                // Complementary halves — write the leave's own half as an
+                // independent segment row rather than skipping it. The
+                // segment's own status is the simple (non-compound)
+                // present/leave/lop/absent vocabulary — 'period' already
+                // encodes "this is half a day."
+                $segmentStatus = $status === 'half_day_lop' ? 'lop' : 'leave';
+
+                $existingOwnSegment = EmployeeAttendanceSegment::where('user_id', $employee->id)
+                    ->whereDate('attendance_date', $dateStr)
+                    ->where('period', $period)
+                    ->where('leave_request_id', $leaveRequest->id)
+                    ->where('source', 'leave_approval')
+                    ->first();
+
+                $this->conflictChecker->assertHalfNotAlreadyOccupied(
+                    $employee->id, $dateStr, $period, $existingOwnSegment?->id,
+                );
+
+                EmployeeAttendanceSegment::updateOrCreate(
+                    ['user_id' => $employee->id, 'attendance_date' => $dateStr, 'period' => $period],
+                    [
+                        'status'           => $segmentStatus,
+                        'source'           => 'leave_approval',
+                        'leave_request_id' => $leaveRequest->id,
+                        'marked_by'        => $approver->id,
+                        'marked_at'        => now(),
+                    ],
+                );
+
+                return;
+            }
+
             // Never silently overwrite a Present/regularized/other-leave day
             // — the same date must never carry conflicting attendance.
             throw ValidationException::withMessages([
@@ -309,6 +394,7 @@ class LeaveService
             ['user_id' => $employee->id, 'attendance_date' => $dateStr],
             [
                 'status'           => $status,
+                'half_day_period'  => $period,
                 'source'           => 'leave_approval',
                 'leave_request_id' => $leaveRequest->id,
                 'marked_by'        => $approver->id,
@@ -317,15 +403,35 @@ class LeaveService
         );
     }
 
-    private function assertNoOverlap(User $employee, \Carbon\Carbon $start, \Carbon\Carbon $end): void
+    /**
+     * Period-aware overlap check. Two half-day requests on the SAME single
+     * date with COMPLEMENTARY halves (first_half vs. second_half) are
+     * explicitly allowed — they together represent a full day off without
+     * either request individually being full-day. Any other overlap
+     * (full-day vs. anything, multi-day ranges, or same-half half-day
+     * requests) is still rejected exactly as before.
+     */
+    private function assertNoOverlap(User $employee, \Carbon\Carbon $start, \Carbon\Carbon $end, bool $isHalfDay = false, ?string $period = null): void
     {
-        $overlaps = LeaveRequest::where('user_id', $employee->id)
+        $overlapping = LeaveRequest::where('user_id', $employee->id)
             ->whereIn('status', self::ACTIVE_STATUSES)
             ->whereDate('start_date', '<=', $end->toDateString())
             ->whereDate('end_date', '>=', $start->toDateString())
-            ->exists();
+            ->get(['id', 'is_half_day', 'half_day_period', 'start_date', 'end_date']);
 
-        if ($overlaps) {
+        foreach ($overlapping as $existing) {
+            $isSingleDate = $start->toDateString() === $end->toDateString();
+            $existingIsSingleDate = $existing->start_date->toDateString() === $existing->end_date->toDateString();
+            $sameSingleDate = $isSingleDate && $existingIsSingleDate
+                && $start->toDateString() === $existing->start_date->toDateString();
+
+            if ($sameSingleDate && $isHalfDay && $existing->is_half_day) {
+                $conflicts = $this->conflictChecker->periodsOverlap(false, $period, false, $existing->half_day_period);
+                if (! $conflicts) {
+                    continue; // complementary halves — no conflict, allow both
+                }
+            }
+
             throw ValidationException::withMessages([
                 'start_date' => 'This date range overlaps an existing pending or approved leave request.',
             ]);

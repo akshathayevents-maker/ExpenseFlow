@@ -58,19 +58,20 @@ test('employee can mark present', function () {
 test('employee can mark half day', function () {
     $user = User::factory()->create();
 
-    $this->actingAs($user)->post(route('employee.attendance.mark-half-day'))->assertRedirect();
+    $this->actingAs($user)->post(route('employee.attendance.mark-half-day'), ['half_day_period' => 'first_half'])->assertRedirect();
 
     $today = attendanceService()->today();
     $row = EmployeeAttendance::where('user_id', $user->id)->whereDate('attendance_date', $today->toDateString())->first();
 
     expect($row->status)->toBe('half_day');
+    expect($row->half_day_period)->toBe('first_half');
 });
 
 test('duplicate same-day attendance is rejected', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)->post(route('employee.attendance.mark-present'));
-    $response = $this->actingAs($user)->post(route('employee.attendance.mark-half-day'));
+    $response = $this->actingAs($user)->post(route('employee.attendance.mark-half-day'), ['half_day_period' => 'first_half']);
 
     $response->assertSessionHasErrors('attendance');
     $today = attendanceService()->today();

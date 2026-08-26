@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Leave\StoreLeaveRequestRequest;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
+use App\Services\EmployeeAttendanceService;
 use App\Services\LeaveBalanceService;
 use App\Services\LeaveService;
 use Illuminate\Http\RedirectResponse;
@@ -16,6 +17,7 @@ class LeaveController extends Controller
     public function __construct(
         private LeaveService $service,
         private LeaveBalanceService $balanceService,
+        private EmployeeAttendanceService $attendanceService,
     ) {}
 
     public function index(): View
@@ -44,7 +46,27 @@ class LeaveController extends Controller
         // computed here beyond what LeaveBalanceService already returns.
         $balances = $this->balanceService->balancesForAllTypes(auth()->user());
 
-        return view('employee.leave.create', ['leaveTypes' => $leaveTypes, 'balances' => $balances]);
+        // UI GUIDANCE ONLY — server-rendered at page load, tied to "today"
+        // (the form's typical near-term use). Tells the employee which half
+        // (if any) of TODAY already has an attendance fact recorded, so the
+        // half-day period selector can annotate/discourage picking that
+        // half. This is purely cosmetic: AttendanceConflictChecker via
+        // LeaveService::createRequest()/approve() remains the sole
+        // authority on whether a submission is actually accepted, entirely
+        // independent of what this hint shows or hides.
+        $todayAttendance = $this->attendanceService->getToday(auth()->user());
+        $todayOccupiedHalf = null;
+        if ($todayAttendance !== null) {
+            $todayOccupiedHalf = in_array($todayAttendance->status, ['half_day', 'half_day_leave', 'half_day_lop'], true)
+                ? $todayAttendance->half_day_period
+                : 'full_day';
+        }
+
+        return view('employee.leave.create', [
+            'leaveTypes' => $leaveTypes,
+            'balances' => $balances,
+            'todayOccupiedHalf' => $todayOccupiedHalf,
+        ]);
     }
 
     // The first submit attempt never silently retries with lop_confirmed=1

@@ -210,10 +210,34 @@ $todayChip = $statusChips[$today->status ?? 'not_marked'] ?? $statusChips['not_m
                     </span>
                 </button>
             </form>
-            <form method="POST" action="{{ route('employee.attendance.mark-half-day') }}">
+            <form method="POST" action="{{ route('employee.attendance.mark-half-day') }}" style="display:flex;flex-direction:column;gap:6px;flex:1 1 0">
                 @csrf
+                <label class="ef-label" for="half_day_period_select">Which half?</label>
+                <select id="half_day_period_select" name="half_day_period" class="ef-select" required>
+                    <option value="" disabled selected>Select a half</option>
+                    <option value="first_half">First Half</option>
+                    <option value="second_half">Second Half</option>
+                </select>
                 <button type="submit" class="at-mark-halfday-btn" aria-label="Mark today's attendance as Half Day">
                     <i class="bi bi-clock-history" aria-hidden="true"></i> Mark Half Day
+                </button>
+            </form>
+        </div>
+    @elseif($markableOtherHalf && ! $todayIsNonWorking)
+        {{-- Reverse self-mark: today already has one half occupied (e.g. an
+             approved half-day leave) — let the employee mark just the OTHER
+             half present, via the same real markPresent() workflow, with a
+             label naming the actual half rather than a bare "Mark Half Day". --}}
+        <div class="at-mark-actions">
+            <form method="POST" action="{{ route('employee.attendance.mark-present') }}">
+                @csrf
+                <input type="hidden" name="half_day_period" value="{{ $markableOtherHalf }}">
+                <button type="submit" class="at-mark-present-btn" aria-label="Mark {{ $markableOtherHalf === 'first_half' ? 'morning' : 'afternoon' }} present">
+                    <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+                    <span class="at-mark-present-text">
+                        <span class="at-mark-present-title">MARK {{ $markableOtherHalf === 'first_half' ? 'MORNING' : 'AFTERNOON' }} PRESENT</span>
+                        <span class="at-mark-present-sub">The other half of today is already accounted for</span>
+                    </span>
                 </button>
             </form>
         </div>
@@ -290,6 +314,9 @@ $todayChip = $statusChips[$today->status ?? 'not_marked'] ?? $statusChips['not_m
                         </span>
                         @if(!empty($day['leave_type_name']))
                             <span style="font-size:.72rem;color:var(--ef-faint, #6b7280);margin-top:2px">{{ $day['leave_type_name'] }}</span>
+                        @endif
+                        @if(!empty($day['other_half_label']))
+                            <span style="font-size:.72rem;color:var(--ef-faint, #6b7280);margin-top:2px">{{ $day['other_half_label'] }}</span>
                         @endif
                     </span>
                     @if($day['can_regularize'])

@@ -23,7 +23,16 @@ class StoreLeaveRequestRequest extends FormRequest
         return [
             'leave_type_id'   => ['required', 'integer', 'exists:leave_types,id'],
             'start_date'      => ['required', 'date'],
-            'end_date'        => ['required', 'date', 'after_or_equal:start_date'],
+            // Not required for a half-day request — the create form hides
+            // (and never populates) the To Date field once Duration=Half day
+            // is selected, since a half-day request is always confined to
+            // start_date alone (see LeaveService::createRequest(), which
+            // uses $effectiveEnd = $start when is_half_day). Requiring it
+            // unconditionally here made every half-day submission fail
+            // validation on a field the employee never saw — a genuinely
+            // silent failure, since the resulting error rendered inside the
+            // hidden end-date-field div (see create.blade.php).
+            'end_date'        => ['required_if:is_half_day,0', 'nullable', 'date', 'after_or_equal:start_date'],
             'is_half_day'     => ['nullable', 'boolean'],
             'half_day_period' => ['required_if:is_half_day,1', 'nullable', 'in:first_half,second_half'],
             'reason'          => ['required', 'string', 'max:1000'],

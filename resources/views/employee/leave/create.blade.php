@@ -19,6 +19,27 @@
         <form method="POST" action="{{ route('employee.leave.store') }}">
             @csrf
 
+            @if ($errors->any() && ! $errors->has('lop_confirmation'))
+                {{-- Belt-and-suspenders: every field-level error already
+                     renders next to its own input via @error() below, but a
+                     field whose container is conditionally hidden by JS
+                     (e.g. end-date-field/half-day-period-field, toggled by
+                     the Duration select) must never let its error go
+                     unseen — the employee must always see SOME visible
+                     indication a submit failed, never a page that silently
+                     looks unchanged. --}}
+                <div style="margin-bottom:16px;padding:14px;border:1px solid rgba(220,38,38,.35);background:rgba(220,38,38,.06);border-radius:10px">
+                    <div style="font-weight:700;color:#B91C1C;margin-bottom:6px">
+                        <i class="bi bi-exclamation-circle"></i> This request could not be submitted
+                    </div>
+                    <ul style="margin:0;padding-left:20px;color:var(--ef-ink,#1f2937);font-size:.88rem">
+                        @foreach ($errors->all() as $message)
+                            <li>{{ $message }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
             <div class="ef-form-grid ef-form-grid-2">
                 <div>
                     <label class="ef-label" for="leave_type_id">Leave Type <span style="color:var(--ef-danger)">*</span></label>
@@ -60,10 +81,15 @@
                 <div id="half-day-period-field" style="{{ old('is_half_day') ? '' : 'display:none' }}">
                     <label class="ef-label" for="half_day_period">Half Day Period</label>
                     <select id="half_day_period" name="half_day_period" class="ef-select @error('half_day_period') --error @enderror">
-                        <option value="first_half" {{ old('half_day_period') === 'first_half' ? 'selected' : '' }}>First Half</option>
-                        <option value="second_half" {{ old('half_day_period') === 'second_half' ? 'selected' : '' }}>Second Half</option>
+                        <option value="first_half" {{ old('half_day_period') === 'first_half' ? 'selected' : '' }}>First Half{{ ($todayOccupiedHalf ?? null) === 'first_half' ? ' — attendance already marked today' : '' }}</option>
+                        <option value="second_half" {{ old('half_day_period') === 'second_half' ? 'selected' : '' }}>Second Half{{ ($todayOccupiedHalf ?? null) === 'second_half' ? ' — attendance already marked today' : '' }}</option>
                     </select>
                     @error('half_day_period') <div class="ef-field-error">{{ $message }}</div> @enderror
+                    @if(($todayOccupiedHalf ?? null) === 'full_day')
+                        <div class="ef-field-hint" style="color:var(--ef-warning, #b45309); font-size:.8rem; margin-top:4px;">
+                            Note: today already has full-day attendance marked — a half-day request for today will not be approvable.
+                        </div>
+                    @endif
                 </div>
 
                 <div style="grid-column: 1 / -1">

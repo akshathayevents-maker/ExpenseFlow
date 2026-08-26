@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\AuditLog;
+use Carbon\Carbon;
 use App\Models\EmployeeAttendance;
 use App\Models\EmployeeAttendanceRegularization;
 use App\Models\Holiday;
@@ -146,7 +147,7 @@ test('duplicate pending request for the same date is blocked', function () {
         'attendance_date' => $date->toDateString(), 'requested_status' => 'present', 'reason' => 'first',
     ]);
     $response = $this->actingAs($user->fresh())->post(route('employee.attendance-regularizations.store'), [
-        'attendance_date' => $date->toDateString(), 'requested_status' => 'half_day', 'reason' => 'second',
+        'attendance_date' => $date->toDateString(), 'requested_status' => 'half_day', 'half_day_period' => 'first_half', 'reason' => 'second',
     ]);
 
     $response->assertSessionHasErrors('attendance_date');
@@ -188,7 +189,67 @@ test('employee can cancel pending request', function () {
     expect($reg->fresh()->request_status)->toBe('cancelled');
 });
 
-test('employee cannot cancel an approved request', function () {
+// Business rule change (see audit): approved regularizations are now
+// cancellable by the employee, mirroring LeaveRequest::cancel(). Cancelling
+// reverses the underlying EmployeeAttendance row to its previous_status
+// snapshot, or deletes it if no prior attendance existed.
+test('employee can cancel an approved request and the prior attendance status is restored', function () {
+    $manager = User::factory()->create(['role' => 'manager']);
+    $user = User::factory()->create();
+    $date = regTestDate();
+
+    EmployeeAttendance::create([
+        'user_id' => $user->id, 'attendance_date' => $date->toDateString(), 'status' => 'half_day',
+        'marked_by' => $user->id, 'marked_at' => now(), 'source' => 'self',
+    ]);
+
+    $reg = EmployeeAttendanceRegularization::create([
+        'user_id' => $user->id, 'attendance_date' => $date->toDateString(),
+        'requested_status' => 'present', 'reason' => 'x', 'created_by' => $user->id,
+    ]);
+    $this->actingAs($manager);
+    regService()->approveRegularization($reg, $manager);
+
+    $attendance = EmployeeAttendance::where('user_id', $user->id)->whereDate('attendance_date', $date->toDateString())->first();
+    expect($attendance->status)->toBe('present');
+    expect($attendance->previous_status)->toBe('half_day');
+
+    $this->actingAs($user)->patch(route('employee.attendance-regularizations.cancel', $reg))->assertRedirect();
+
+    expect($reg->fresh()->request_status)->toBe('cancelled');
+    $attendance->refresh();
+    expect($attendance->status)->toBe('half_day');
+    expect($attendance->previous_status)->toBeNull();
+    expect($attendance->corrected_by)->toBeNull();
+
+    $log = AuditLog::where('module', 'employee_attendance_regularization')->where('action', 'cancelled')->latest('id')->first();
+    expect($log)->not->toBeNull();
+});
+
+test('cancelling an approved regularization that had no prior attendance deletes the row entirely', function () {
+    $manager = User::factory()->create(['role' => 'manager']);
+    $user = User::factory()->create();
+    $date = regTestDate();
+
+    $reg = EmployeeAttendanceRegularization::create([
+        'user_id' => $user->id, 'attendance_date' => $date->toDateString(),
+        'requested_status' => 'present', 'reason' => 'x', 'created_by' => $user->id,
+    ]);
+    $this->actingAs($manager);
+    regService()->approveRegularization($reg, $manager);
+
+    expect(EmployeeAttendance::where('user_id', $user->id)->whereDate('attendance_date', $date->toDateString())->exists())->toBeTrue();
+
+    $this->actingAs($user)->patch(route('employee.attendance-regularizations.cancel', $reg))->assertRedirect();
+
+    expect($reg->fresh()->request_status)->toBe('cancelled');
+    expect(EmployeeAttendance::where('user_id', $user->id)->whereDate('attendance_date', $date->toDateString())->exists())->toBeFalse();
+
+    $dayState = app(EmployeeAttendanceService::class)->getAttendanceDayState($user, $date);
+    expect($dayState['eligible'])->toBeTrue();
+});
+
+test('cancelling an already-cancelled regularization is rejected (idempotency)', function () {
     $manager = User::factory()->create(['role' => 'manager']);
     $user = User::factory()->create();
     $reg = EmployeeAttendanceRegularization::create([
@@ -197,9 +258,11 @@ test('employee cannot cancel an approved request', function () {
     ]);
     $this->actingAs($manager);
     regService()->approveRegularization($reg, $manager);
+    $this->actingAs($user);
+    regService()->cancelRegularization($reg, $user);
 
-    $this->actingAs($user)->patch(route('employee.attendance-regularizations.cancel', $reg))->assertForbidden();
-    expect($reg->fresh()->request_status)->toBe('approved');
+    expect(fn () => regService()->cancelRegularization($reg->fresh(), $user))
+        ->toThrow(Illuminate\Validation\ValidationException::class);
 });
 
 // ── Manager/Admin ─────────────────────────────────────────────────────────
@@ -784,4 +847,149 @@ test('future date remains blocked server-side even if manually submitted from th
 
     $response->assertSessionHasErrors('attendance_date');
     expect(EmployeeAttendanceRegularization::count())->toBe(0);
+});
+
+// ── Timezone regression: business "today" (Asia/Kolkata) vs UTC parsing ──
+//
+// EmployeeAttendanceService::today() anchors "today" to BUSINESS_TIMEZONE
+// (Asia/Kolkata, UTC+5:30), but a plain `Carbon::parse('Y-m-d')` on a
+// submitted attendance_date string uses the app's default UTC timezone.
+// Because Kolkata is ahead of UTC, midnight IST for a given calendar date is
+// an EARLIER instant than midnight UTC for that same calendar date, so a
+// naive `->gt()` instant comparison incorrectly flagged same-day
+// regularization submissions as "in the future". assertRegularizable() (and
+// getAttendanceDayState()'s $isFuture flag) now compare ->toDateString()
+// values instead of raw Carbon instants, so this is calendar-date-only and
+// immune to which timezone either side happened to be parsed in.
+//
+// These exercise the service directly (regService()->createRegularization())
+// rather than the HTTP endpoint: the form request's own `before_or_equal:today`
+// rule is a separate, unrelated check (Laravel's built-in "today" keyword
+// resolves via the app's default UTC timezone, not BUSINESS_TIMEZONE) that
+// is out of scope for this fix — see the final report for that finding.
+
+test('regularizing business "today" succeeds regardless of time-of-day (early morning IST)', function () {
+    Carbon::setTestNow(Carbon::parse('2026-08-14 00:30:00', 'Asia/Kolkata'));
+
+    $user = User::factory()->create();
+    $this->actingAs($user);
+    $today = regService()->today();
+
+    $reg = regService()->createRegularization($user, [
+        'attendance_date' => $today->toDateString(), 'requested_status' => 'present', 'reason' => 'same-day fix',
+    ]);
+
+    expect($reg->attendance_date->toDateString())->toBe($today->toDateString());
+
+    Carbon::setTestNow();
+});
+
+test('regularizing business "today" succeeds regardless of time-of-day (late evening IST)', function () {
+    Carbon::setTestNow(Carbon::parse('2026-08-14 23:30:00', 'Asia/Kolkata'));
+
+    $user = User::factory()->create();
+    $this->actingAs($user);
+    $today = regService()->today();
+
+    $reg = regService()->createRegularization($user, [
+        'attendance_date' => $today->toDateString(), 'requested_status' => 'present', 'reason' => 'same-day fix',
+    ]);
+
+    expect($reg->attendance_date->toDateString())->toBe($today->toDateString());
+
+    Carbon::setTestNow();
+});
+
+test('regularizing "tomorrow" relative to a frozen business today is still rejected as a future date', function () {
+    Carbon::setTestNow(Carbon::parse('2026-08-14 10:00:00', 'Asia/Kolkata'));
+
+    $user = User::factory()->create();
+    $this->actingAs($user);
+    $tomorrow = regService()->today()->copy()->addDay();
+
+    expect(fn () => regService()->createRegularization($user, [
+        'attendance_date' => $tomorrow->toDateString(), 'requested_status' => 'present', 'reason' => 'x',
+    ]))->toThrow(Illuminate\Validation\ValidationException::class);
+
+    expect(EmployeeAttendanceRegularization::count())->toBe(0);
+
+    Carbon::setTestNow();
+});
+
+test('regularizing "yesterday" relative to a frozen business today still works', function () {
+    Carbon::setTestNow(Carbon::parse('2026-08-14 10:00:00', 'Asia/Kolkata'));
+
+    $user = User::factory()->create();
+    $this->actingAs($user);
+    $yesterday = regService()->today()->copy()->subDay();
+
+    $reg = regService()->createRegularization($user, [
+        'attendance_date' => $yesterday->toDateString(), 'requested_status' => 'present', 'reason' => 'x',
+    ]);
+
+    expect($reg->attendance_date->toDateString())->toBe($yesterday->toDateString());
+
+    Carbon::setTestNow();
+});
+
+// ── FormRequest-level timezone fix: StoreAttendanceRegularizationRequest ──
+//
+// The service-layer tests above exercise regService()->createRegularization()
+// directly and bypass the HTTP FormRequest entirely. These hit the real
+// route/controller/FormRequest to prove `before_or_equal:today` (which
+// resolved "today" via the app's default UTC timezone) no longer rejects a
+// legitimate business-today submission near the UTC/IST day boundary.
+
+test('HTTP: submitting business today succeeds end-to-end (early morning IST, UTC calendar date still yesterday)', function () {
+    Carbon::setTestNow(Carbon::parse('2026-08-14 02:00:00', 'Asia/Kolkata'));
+
+    $user = User::factory()->create();
+    $today = regService()->today();
+
+    $response = $this->actingAs($user->fresh())->post(route('employee.attendance-regularizations.store'), [
+        'attendance_date' => $today->toDateString(), 'requested_status' => 'present', 'reason' => 'same-day fix',
+    ]);
+
+    $response->assertSessionDoesntHaveErrors('attendance_date');
+    $reg = EmployeeAttendanceRegularization::first();
+    expect($reg)->not->toBeNull();
+    $response->assertRedirect(route('employee.attendance-regularizations.show', $reg));
+    expect($reg->attendance_date->toDateString())->toBe($today->toDateString());
+
+    Carbon::setTestNow();
+});
+
+test('HTTP: submitting business today succeeds end-to-end (late evening IST, UTC calendar date may already be tomorrow)', function () {
+    Carbon::setTestNow(Carbon::parse('2026-08-14 23:00:00', 'Asia/Kolkata'));
+
+    $user = User::factory()->create();
+    $today = regService()->today();
+
+    $response = $this->actingAs($user->fresh())->post(route('employee.attendance-regularizations.store'), [
+        'attendance_date' => $today->toDateString(), 'requested_status' => 'present', 'reason' => 'same-day fix',
+    ]);
+
+    $response->assertSessionDoesntHaveErrors('attendance_date');
+    $reg = EmployeeAttendanceRegularization::first();
+    expect($reg)->not->toBeNull();
+    $response->assertRedirect(route('employee.attendance-regularizations.show', $reg));
+    expect($reg->attendance_date->toDateString())->toBe($today->toDateString());
+
+    Carbon::setTestNow();
+});
+
+test('HTTP: submitting tomorrow relative to a frozen business today is still rejected by the FormRequest', function () {
+    Carbon::setTestNow(Carbon::parse('2026-08-14 23:00:00', 'Asia/Kolkata'));
+
+    $user = User::factory()->create();
+    $tomorrow = regService()->today()->copy()->addDay();
+
+    $response = $this->actingAs($user->fresh())->post(route('employee.attendance-regularizations.store'), [
+        'attendance_date' => $tomorrow->toDateString(), 'requested_status' => 'present', 'reason' => 'x',
+    ]);
+
+    $response->assertSessionHasErrors('attendance_date');
+    expect(EmployeeAttendanceRegularization::count())->toBe(0);
+
+    Carbon::setTestNow();
 });

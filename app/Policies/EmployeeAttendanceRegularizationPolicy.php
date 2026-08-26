@@ -21,9 +21,13 @@ class EmployeeAttendanceRegularizationPolicy
         return (bool) $user->is_active;
     }
 
+    // Mirrors LeaveRequestPolicy::cancel(): cancellation after approval is
+    // allowed (the service reverses the derived attendance effect), same as
+    // an approved leave request can be cancelled.
     public function cancel(User $user, EmployeeAttendanceRegularization $regularization): bool
     {
-        return $user->id === $regularization->user_id && $regularization->isPending();
+        return $user->id === $regularization->user_id
+            && ($regularization->isPending() || $regularization->isApproved());
     }
 
     // Self-approval blocked, same rationale as EmployeeOvertimePolicy — no

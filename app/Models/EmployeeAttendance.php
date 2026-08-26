@@ -10,7 +10,7 @@ class EmployeeAttendance extends Model
     protected $table = 'employee_attendance';
 
     protected $fillable = [
-        'user_id', 'attendance_date', 'status', 'marked_by', 'marked_at', 'source',
+        'user_id', 'attendance_date', 'status', 'half_day_period', 'marked_by', 'marked_at', 'source',
         'corrected_by', 'corrected_at', 'correction_reason', 'previous_status',
         'leave_request_id',
     ];

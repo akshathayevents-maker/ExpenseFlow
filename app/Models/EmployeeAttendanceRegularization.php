@@ -15,7 +15,7 @@ class EmployeeAttendanceRegularization extends Model
     // from employee input. Mirrors the same pattern used by
     // EmployeeOvertime for its server-only financial snapshot fields.
     protected $fillable = [
-        'user_id', 'attendance_date', 'requested_status', 'reason', 'created_by',
+        'user_id', 'attendance_date', 'requested_status', 'half_day_period', 'reason', 'created_by',
     ];
 
     protected function casts(): array

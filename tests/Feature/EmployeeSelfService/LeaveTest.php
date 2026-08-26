@@ -96,6 +96,32 @@ test('half day leave request forces single day and 0.5 days', function () {
     expect($leaveRequest->end_date->toDateString())->toBe('2026-09-01');
 });
 
+// Regression: the real create.blade.php form hides (and never populates)
+// the "To Date" input once Duration=Half day is selected — a half-day
+// submission from the actual UI never sends end_date at all. The rule was
+// previously unconditionally 'required', so every genuine half-day
+// submission failed validation on a field the employee never saw, and
+// since that field's container is CSS-hidden, the resulting error was
+// invisible — the request appeared to silently do nothing.
+test('half day leave request succeeds without end_date, matching the real form payload', function () {
+    $user = User::factory()->create();
+    $type = makeLeaveType();
+
+    $response = $this->actingAs($user->fresh())->post(route('employee.leave.store'), [
+        'lop_confirmed'   => 1,
+        'leave_type_id'   => $type->id,
+        'is_half_day'     => 1,
+        'start_date'      => '2026-09-01',
+        'half_day_period' => 'second_half',
+        'reason'          => 'half day',
+    ]);
+
+    $leaveRequest = LeaveRequest::first();
+    $response->assertRedirect(route('employee.leave.show', $leaveRequest));
+    expect((float) $leaveRequest->days_requested)->toBe(0.5);
+    expect($leaveRequest->end_date->toDateString())->toBe('2026-09-01');
+});
+
 test('half day request is rejected when the leave type does not allow half days', function () {
     $user = User::factory()->create();
     $type = makeLeaveType(['allow_half_day' => false]);

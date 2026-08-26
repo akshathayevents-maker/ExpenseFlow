@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\EmployeeAttendance;
+use App\Models\EmployeeAttendanceSegment;
 use App\Models\Holiday;
 use App\Models\Setting;
 use App\Models\User;
@@ -104,6 +105,7 @@ class PayableDaysCalculator
         $weeklyOffDays = $this->weeklyOffDays();
         $holidayDates  = $this->holidayDateSet($start, $end);
         $attendanceByDate = $this->attendanceStatusByDate($user, $start, $end);
+        $segmentUnitsByDate = $this->segmentHalfUnitsByDate($user, $start, $end);
 
         $halfUnits = 0; // running total in units of 0.5 days, as an integer
         for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
@@ -111,7 +113,8 @@ class PayableDaysCalculator
                 continue;
             }
 
-            $status = $attendanceByDate[$date->toDateString()] ?? null;
+            $dateStr = $date->toDateString();
+            $status = $attendanceByDate[$dateStr] ?? null;
             $halfUnits += match ($status) {
                 'present', 'leave' => 2,
                 // half_day_lop: the worked half of the day is payable, the
@@ -122,6 +125,13 @@ class PayableDaysCalculator
                 // same bucket as absent/unmarked.
                 default => 0, // absent, lop, or no row at all (unmarked)
             };
+
+            // A genuinely split day may ALSO have an independently-sourced
+            // "other half" segment (see EmployeeAttendanceSegment) — its
+            // contribution is purely additive on top of the primary row's
+            // own half, since the primary row's compound half_day_* status
+            // above only ever counts ITS OWN half, never the other one.
+            $halfUnits += $segmentUnitsByDate[$dateStr] ?? 0;
         }
 
         return $halfUnits / 2;
@@ -261,6 +271,27 @@ class PayableDaysCalculator
             ->whereDate('attendance_date', '<=', $end->toDateString())
             ->get(['attendance_date', 'status'])
             ->mapWithKeys(fn ($row) => [$row->attendance_date->toDateString() => $row->status])
+            ->all();
+    }
+
+    /**
+     * Half-unit (0/1) payable contribution of the "other half" segment row
+     * for each date in [start, end] that has one — see
+     * EmployeeAttendanceSegment. present/leave (paid) contribute 1 half-unit
+     * (0.5 day); lop/absent contribute 0 — the same present/leave-paid vs
+     * lop/absent split used everywhere else in this class, just scoped to
+     * one half of a day instead of a whole one.
+     *
+     * @return array<string, int>
+     */
+    private function segmentHalfUnitsByDate(User $user, Carbon $start, Carbon $end): array
+    {
+        return EmployeeAttendanceSegment::where('user_id', $user->id)
+            ->whereDate('attendance_date', '>=', $start->toDateString())
+            ->whereDate('attendance_date', '<=', $end->toDateString())
+            ->get(['attendance_date', 'status'])
+            ->groupBy(fn ($row) => $row->attendance_date->toDateString())
+            ->map(fn ($rows) => $rows->sum(fn ($row) => in_array($row->status, ['present', 'leave'], true) ? 1 : 0))
             ->all();
     }
 }
