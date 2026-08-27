@@ -76,6 +76,7 @@ class AdvanceEligibilityService
      *   outstanding_amount: float,
      *   eligible_advance_amount: float,
      *   unavailable_reason: ?string,
+     *   salary_change_during_period: bool,
      * }
      */
     public function evaluate(User $employee, Carbon $asOf): array
@@ -93,6 +94,7 @@ class AdvanceEligibilityService
                 'outstanding_amount'       => 0.0,
                 'eligible_advance_amount'  => 0.0,
                 'unavailable_reason'       => 'Advance eligibility is unavailable because your salary has not been configured.',
+                'salary_change_during_period' => false,
             ];
         }
 
@@ -101,11 +103,24 @@ class AdvanceEligibilityService
         $dailySalary  = null;
         $unavailableReason = null;
 
+        $periodStart = $asOf->copy()->startOfMonth();
+        $periodEnd   = $asOf->copy()->endOfMonth()->min($asOf);
+
+        // Informational only (see UI's create.blade.php note) — does NOT
+        // gate eligibility. MonthlyPayableService::calculate() already
+        // handles mid-period salary changes correctly by segmenting the
+        // period per EmployeeSalary row; this flag just tells the employee
+        // that happened, so the earned-salary figure isn't a surprise.
+        $salaryChangedDuringPeriod = $employee->salaries()
+            ->whereDate('effective_from', '>', $periodStart->toDateString())
+            ->whereDate('effective_from', '<=', $periodEnd->toDateString())
+            ->exists();
+
         try {
             $breakdown = $this->monthlyPayableService->calculate(
                 $employee,
-                $asOf->copy()->startOfMonth(),
-                $asOf->copy()->endOfMonth()->min($asOf),
+                $periodStart,
+                $periodEnd,
             );
             $earnedSalary = $breakdown['payable_salary'];
             $payableDays  = $breakdown['payable_days'];
@@ -130,6 +145,7 @@ class AdvanceEligibilityService
             'outstanding_amount'       => $outstandingAmount,
             'eligible_advance_amount'  => $eligibleAmount,
             'unavailable_reason'       => $unavailableReason,
+            'salary_change_during_period' => $salaryChangedDuringPeriod,
         ];
     }
 

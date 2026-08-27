@@ -270,22 +270,27 @@ test('employee with no salary configured renders in both sections without errors
     $response->assertSee('Advance eligibility is unavailable because your salary has not been configured.');
 });
 
-// ── K3: Employee with no eligibility available (mid-month salary change) ──
-test('employee with a mid-period salary change renders an unavailable reason instead of erroring', function () {
+// ── K3: Employee with a mid-period salary change — segmented, not blocked ──
+test('employee with a mid-period salary change renders a real eligibility figure, not an unavailable reason', function () {
     $admin = User::factory()->create(['role' => 'admin']);
     $user = User::factory()->create();
-    paeSetSalary($user, 25000, '2026-01-01');
-    // A second salary row effective mid-August triggers MonthlyPayableService's
-    // DomainException guard against undefined mid-period proration.
-    $salary = new EmployeeSalary();
-    $salary->fill(['user_id' => $user->id, 'monthly_salary' => 32000, 'effective_from' => '2026-08-15']);
-    $salary->forceFill(['effective_to' => null, 'created_by' => $admin->id]);
-    $salary->save();
+    $first = new EmployeeSalary();
+    $first->fill(['user_id' => $user->id, 'monthly_salary' => 25000, 'effective_from' => '2026-01-01']);
+    $first->forceFill(['effective_to' => '2026-08-14', 'created_by' => $admin->id]);
+    $first->save();
+    // Second, currently-effective segment starting mid-August — contiguous
+    // with the first (EmployeeSalaryService's real, guaranteed invariant).
+    $second = new EmployeeSalary();
+    $second->fill(['user_id' => $user->id, 'monthly_salary' => 32000, 'effective_from' => '2026-08-15']);
+    $second->forceFill(['effective_to' => null, 'created_by' => $admin->id]);
+    $second->save();
 
     $response = $this->actingAs($admin)->get(route('admin.payroll.index', ['month' => '2026-08', 'eligibility_date' => '2026-08-20']))
         ->assertOk();
 
     $eligibility = app(AdvanceEligibilityService::class)->evaluate($user, Carbon::parse('2026-08-20'));
-    expect($eligibility['unavailable_reason'])->not->toBeNull();
-    $response->assertSee($eligibility['unavailable_reason']);
+    expect($eligibility['unavailable_reason'])->toBeNull();
+    expect($eligibility['salary_change_during_period'])->toBeTrue();
+    expect($eligibility['eligible_advance_amount'])->toBeGreaterThanOrEqual(0);
+    $response->assertOk();
 });

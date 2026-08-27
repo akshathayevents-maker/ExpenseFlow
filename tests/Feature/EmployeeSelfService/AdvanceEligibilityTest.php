@@ -291,6 +291,84 @@ test('employee cannot influence another employees eligibility via extra request 
     expect($advance->user_id)->toBe($employeeA->id);
 });
 
+// ── Mid-period salary change: segmented eligibility (not blocked) ────────
+
+test('eligibility segments earned salary across a mid-period salary change (user\'s example)', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $employee = User::factory()->create();
+    elSetSalary($employee, $admin, 15000, '2026-08-01');
+    elSetSalary($employee, $admin, 20000, '2026-08-16');
+
+    // Mark every day of August up to the 31st present; no weekly-off
+    // configured in this suite, so all 31 days are applicable working days.
+    for ($d = Carbon::parse('2026-08-01'); $d->lte(Carbon::parse('2026-08-31')); $d->addDay()) {
+        elMarkPresent($employee, $d->toDateString());
+    }
+
+    $result = app(AdvanceEligibilityService::class)->evaluate($employee, Carbon::parse('2026-08-31'));
+
+    // applicable_working_days = 31 calendar days minus 5 Sundays (Aug 2, 9,
+    // 16, 23, 30 in 2026) = 26.
+    // Segment 1: Aug 1-15 (15 days, minus Sundays Aug 2 & 9 = 13 working) @ 15000/26
+    // Segment 2: Aug 16-31 (16 days, minus Sundays Aug 16, 23 & 30 = 13 working) @ 20000/26
+    $expectedEarned = round((13 * 15000 / 26) + (13 * 20000 / 26), 2);
+    expect($result['unavailable_reason'])->toBeNull();
+    expect($result['salary_configured'])->toBeTrue();
+    expect($result['salary_change_during_period'])->toBeTrue();
+    expect($result['earned_salary'])->toBe($expectedEarned);
+    expect($result['eligible_advance_amount'])->toBe($expectedEarned);
+});
+
+test('eligibility salary_change_during_period is false when salary is unchanged for the whole period', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $employee = User::factory()->create();
+    elSetSalary($employee, $admin, 30000, '2026-01-01');
+    elMarkPresent($employee, '2026-08-05');
+
+    $result = app(AdvanceEligibilityService::class)->evaluate($employee, Carbon::parse('2026-08-10'));
+
+    expect($result['unavailable_reason'])->toBeNull();
+    expect($result['salary_change_during_period'])->toBeFalse();
+});
+
+test('eligibility treats a salary change effective exactly on the last evaluated day as one day at the new rate', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $employee = User::factory()->create();
+    elSetSalary($employee, $admin, 10000, '2026-08-01');
+    elSetSalary($employee, $admin, 40000, '2026-08-10'); // last day of the evaluated (partial) period
+
+    for ($d = Carbon::parse('2026-08-01'); $d->lte(Carbon::parse('2026-08-10')); $d->addDay()) {
+        elMarkPresent($employee, $d->toDateString());
+    }
+
+    $result = app(AdvanceEligibilityService::class)->evaluate($employee, Carbon::parse('2026-08-10'));
+
+    // applicable_working_days for [Aug 1, Aug 10] = 8 (Aug 2 & 9 are
+    // Sundays, the default weekly-off day). Aug 1-9 minus those 2 Sundays
+    // = 7 working days @ 10000/8; Aug 10 (Monday, 1 working day) @ 40000/8.
+    $expected = round((7 * 10000 / 8) + (1 * 40000 / 8), 2);
+    expect($result['earned_salary'])->toBe($expected);
+});
+
+test('payroll and advance eligibility agree on the same segmented scenario', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $employee = User::factory()->create();
+    elSetSalary($employee, $admin, 15000, '2026-08-01');
+    elSetSalary($employee, $admin, 20000, '2026-08-16');
+
+    for ($d = Carbon::parse('2026-08-01'); $d->lte(Carbon::parse('2026-08-20')); $d->addDay()) {
+        elMarkPresent($employee, $d->toDateString());
+    }
+
+    $eligibility = app(AdvanceEligibilityService::class)->evaluate($employee, Carbon::parse('2026-08-20'));
+    $payable = app(\App\Services\MonthlyPayableService::class)->calculate(
+        $employee, Carbon::parse('2026-08-01'), Carbon::parse('2026-08-20'),
+    );
+
+    expect($eligibility['earned_salary'])->toBe($payable['payable_salary']);
+    expect($eligibility['payable_days'])->toBe($payable['payable_days']);
+});
+
 // ── Manager/admin unaffected ──────────────────────────────────────────────
 
 test('admin approval is not constrained by the employee eligibility formula', function () {

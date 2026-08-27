@@ -85,6 +85,13 @@
                     <span>You currently have no advance amount available.</span>
                 </div>
             @endif
+
+            @if(!$eligibility['unavailable_reason'] && ($eligibility['salary_change_during_period'] ?? false))
+                <div class="adv-elig-empty" style="margin-top:10px">
+                    <i class="bi bi-info-circle"></i>
+                    <span>Salary changed during this pay period. Eligibility is calculated using the salary effective for each period.</span>
+                </div>
+            @endif
         @endif
     </div>
 

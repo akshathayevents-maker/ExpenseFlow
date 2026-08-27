@@ -28,14 +28,32 @@ use DomainException;
  *           real, existing calculated value to add.
  *         = net_payable
  *
+ * ── MID-MONTH SALARY CHANGES ─────────────────────────────────────────────
+ *
+ * If EmployeeSalary has more than one row whose effective period intersects
+ * [monthStart, monthEnd], this is handled by segmentedPayableSalary() below:
+ * the period is split into EmployeeSalary-effective segments (reusing
+ * EmployeeSalaryService's guaranteed invariant that segments are contiguous
+ * and non-overlapping — each row's effective_to is exactly the day before
+ * the next row's effective_from), and each segment's (that segment's daily
+ * rate × that segment's payable days, via the SAME
+ * PayableDaysCalculator::payableDaysSoFar() this class always used) is
+ * summed. The denominator (applicable_working_days) stays the SAME
+ * period-wide value for every segment — only the per-segment rate changes —
+ * which is the natural, minimal generalization of the single-salary formula
+ * and reduces to it exactly (bit-for-bit) when only one salary row covers
+ * the whole period (see regression test in SalaryDiscoveryAndPayableTest).
+ *
+ * A GAP — dates within the period with NO EmployeeSalary row effective at
+ * all (e.g. before the employee's very first salary row) — is not assigned
+ * any segment, so those dates simply contribute 0 to payable_salary. This
+ * is a deliberate, conservative choice ("no configured rate = nothing
+ * earned for that day"), not a silently invented rate.
+ *
  * ── Explicitly OUT OF SCOPE, not silently invented ──────────────────────
  *
- * 1. MID-MONTH SALARY CHANGES. If EmployeeSalary has more than one row whose
- *    effective period intersects [monthStart, monthEnd], this throws a
- *    DomainException rather than guessing a proration rule (e.g. "days
- *    before the change at the old rate, days after at the new rate"). No
- *    such rule exists anywhere in the codebase today — it needs an explicit
- *    business decision before it can be implemented.
+ * 1. (reserved — mid-month salary changes, formerly listed here as
+ *    out-of-scope, are now handled; see above.)
  *
  * 2. DEDUCTIONS. There is no installment/schedule concept anywhere in the
  *    codebase for "how much of an outstanding advance should be recovered
@@ -115,8 +133,6 @@ class MonthlyPayableService
      */
     public function calculate(User $employee, Carbon $monthStart, Carbon $monthEnd): array
     {
-        $this->assertSingleSalaryPeriod($employee, $monthStart, $monthEnd);
-
         $salary = $employee->currentSalaryAsOf($monthEnd);
         if ($salary === null) {
             throw new DomainException('Employee has no salary effective during the requested period.');
@@ -131,7 +147,7 @@ class MonthlyPayableService
 
         $monthlySalary = (float) $salary->monthly_salary;
         $dailySalary   = $monthlySalary / $applicableWorkingDays;
-        $payableSalary = round($dailySalary * $payableDays, 2);
+        $payableSalary = $this->segmentedPayableSalary($employee, $monthStart, $monthEnd, $applicableWorkingDays);
 
         $approvedOvertimeAmount = (float) EmployeeOvertime::where('user_id', $employee->id)
             ->where('request_status', 'approved')
@@ -169,17 +185,73 @@ class MonthlyPayableService
         ];
     }
 
-    private function assertSingleSalaryPeriod(User $employee, Carbon $monthStart, Carbon $monthEnd): void
+    /**
+     * Splits [monthStart, monthEnd] into EmployeeSalary-effective segments
+     * and sums each segment's (that segment's daily rate × that segment's
+     * payable days). See the class docblock for the full rationale.
+     *
+     * Reuses PayableDaysCalculator::payableDaysSoFar() completely unchanged
+     * — it is simply called once per segment's clipped date range instead
+     * of once for the whole period. This is safe because
+     * EmployeeSalaryService::setSalary() guarantees salary segments are
+     * contiguous and non-overlapping (a superseded row's effective_to is
+     * always exactly the day before the next row's effective_from), so
+     * summing per-segment payable days is equivalent to the whole-period
+     * payable days whenever segments fully cover the period — and when only
+     * ONE segment covers the whole period (the pre-existing, single-salary
+     * case), this reduces to exactly one call with exactly the same
+     * arguments as before, producing a bit-identical result.
+     */
+    private function segmentedPayableSalary(User $employee, Carbon $monthStart, Carbon $monthEnd, int $applicableWorkingDays): float
     {
-        $changesWithinPeriod = $employee->salaries()
-            ->whereDate('effective_from', '>', $monthStart->toDateString())
+        $segments = $employee->salaries()
             ->whereDate('effective_from', '<=', $monthEnd->toDateString())
-            ->exists();
+            ->where(function ($q) use ($monthStart) {
+                $q->whereNull('effective_to')
+                  ->orWhereDate('effective_to', '>=', $monthStart->toDateString());
+            })
+            ->orderBy('effective_from')
+            ->get();
 
-        if ($changesWithinPeriod) {
-            throw new DomainException(
-                'Salary changed mid-period — proration across a salary change is not yet a defined business rule.'
+        $total = 0.0;
+
+        // Compared and clipped purely as 'Y-m-d' strings (never as Carbon
+        // instant comparisons) — $monthStart/$monthEnd may carry a caller
+        // timezone (e.g. Asia/Kolkata, from AdvanceEligibilityService's
+        // $asOf) while effective_from/effective_to come back from Eloquent
+        // in the app's default timezone; comparing them as Carbon instants
+        // (->gt()/->lt()) silently compares different instants for the
+        // "same" calendar date and corrupts the segment boundaries. Plain
+        // Y-m-d string comparison sidesteps that entirely, matching how
+        // every other date-boundary check in this codebase (whereDate(),
+        // toDateString() comparisons in User::currentSalaryAsOf() and
+        // PayableDaysCalculator) already avoids the same pitfall.
+        $monthStartStr = $monthStart->toDateString();
+        $monthEndStr   = $monthEnd->toDateString();
+
+        foreach ($segments as $segment) {
+            $segFromStr = Carbon::parse($segment->effective_from)->toDateString();
+            $segToStr   = $segment->effective_to !== null
+                ? Carbon::parse($segment->effective_to)->toDateString()
+                : $monthEndStr;
+
+            $clippedStartStr = $segFromStr > $monthStartStr ? $segFromStr : $monthStartStr;
+            $clippedEndStr   = $segToStr < $monthEndStr ? $segToStr : $monthEndStr;
+
+            if ($clippedStartStr > $clippedEndStr) {
+                continue;
+            }
+
+            $segmentPayableDays = $this->payableDaysCalculator->payableDaysSoFar(
+                $employee,
+                Carbon::parse($clippedStartStr)->startOfDay(),
+                Carbon::parse($clippedEndStr)->startOfDay(),
             );
+            $segmentDailyRate = (float) $segment->monthly_salary / $applicableWorkingDays;
+
+            $total += $segmentDailyRate * $segmentPayableDays;
         }
+
+        return round($total, 2);
     }
 }
