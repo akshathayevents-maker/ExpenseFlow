@@ -405,8 +405,72 @@
 }
 .ef-ew-fab:hover { background: var(--ew-emerald-hi); color: #fff; }
 
+/* ── Desktop page frame (≥1024px only) ───────────────────────
+   Keeps the dashboard from stretching edge-to-edge on wide
+   monitors and tightens vertical rhythm now that content is
+   arranged in a 2-column grid instead of one long mobile column. */
+.ef-ew-page { max-width: 100%; }
+
+/* Recent Activity — true 3-column row (dot+title / timestamp / badge)
+   instead of the stacked title-then-meta used by Pending Requests'
+   .ef-ew-mini-item. Layered on top of .ef-ew-mini-item (already
+   display:flex), just un-nests title/meta into sibling flex items. */
+.ef-ew-activity-item .ef-ew-mini-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ef-ew-activity-item .ef-ew-mini-meta {
+    flex-shrink: 0;
+    margin: 0 10px;
+}
+
+/* Quick actions — compact horizontal (icon beside label) rather than
+   icon-stacked-on-label, 2-up on desktop since only Apply Leave /
+   Regularize are normally shown to employees (the overtime action
+   stays hidden unless the relevant setting is enabled). */
+@media (min-width: 1024px) {
+    .ef-ew-actions-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ef-ew-action-card {
+        flex-direction: row;
+        justify-content: flex-start;
+        text-align: left;
+        padding: 12px 16px;
+    }
+    .ef-ew-action-card i { font-size: .95rem; }
+}
+
+/* Visible focus rings for keyboard users on interactive dashboard elements. */
+.ef-ew-panel-link:focus-visible,
+.ef-ew-action-card:focus-visible,
+.ef-ew-mini-item:focus-visible,
+.ef-ew-btn-primary:focus-visible,
+.ef-ew-btn-ghost:focus-visible,
+.ef-ew-btn-confirmed:focus-visible,
+.ef-ew-fab:focus-visible,
+.ef-ew-alert-close:focus-visible {
+    outline: 2px solid var(--ew-emerald);
+    outline-offset: 2px;
+}
+
 /* ── Responsive ────────────────────────────────────────────── */
-@media (max-width: 991.98px) {
+@media (min-width: 1024px) {
+    .ef-ew-page { max-width: 1400px; margin: 0 auto; }
+
+    /* Tighten the vertical rhythm now that content lives in a
+       2-column grid — height should track content, not stretch
+       to match a taller mobile-style single column. */
+    .ef-ew-hero { padding: 20px 28px; margin-bottom: 12px; }
+    .ef-ew-hero-date { margin-bottom: 10px; }
+    .ef-ew-split-row { margin-top: 10px; }
+    .ef-ew-today-card { padding: 8px 14px; }
+    .ef-ew-panel-head { padding: 10px 16px 6px; }
+    .ef-ew-panel-body { padding: 10px 16px; }
+    .ef-ew-grid { gap: 14px; }
+}
+@media (max-width: 1023.98px) {
     .ef-ew-grid { grid-template-columns: 1fr; }
     .ef-ew-grid .span-2 { grid-column: auto; }
 }
@@ -459,18 +523,20 @@
     $hasRejected = ($leaveCounts['rejected'] ?? 0) > 0;
 @endphp
 
+<div class="ef-ew-page">
+
 {{-- ── Wallet alerts ──────────────────────────────────────────── --}}
 @if($stats['wallet_negative'])
 <div class="ef-ew-alert ef-ew-alert-danger" role="alert">
     <i class="bi bi-exclamation-circle-fill"></i>
     <div>Wallet balance is <strong>negative (₹{{ number_format($stats['wallet_balance'], 2) }})</strong>. Contact admin to resolve.</div>
-    <button class="ef-ew-alert-close" onclick="this.closest('.ef-ew-alert').remove()"><i class="bi bi-x"></i></button>
+    <button class="ef-ew-alert-close" onclick="this.closest('.ef-ew-alert').remove()" aria-label="Dismiss"><i class="bi bi-x" aria-hidden="true"></i></button>
 </div>
 @elseif($stats['wallet_low'])
 <div class="ef-ew-alert ef-ew-alert-warning" role="alert">
     <i class="bi bi-exclamation-triangle-fill"></i>
     <div>Wallet balance is low (<strong>₹{{ number_format($stats['wallet_balance'], 2) }}</strong>). Contact admin to top up.</div>
-    <button class="ef-ew-alert-close" onclick="this.closest('.ef-ew-alert').remove()"><i class="bi bi-x"></i></button>
+    <button class="ef-ew-alert-close" onclick="this.closest('.ef-ew-alert').remove()" aria-label="Dismiss"><i class="bi bi-x" aria-hidden="true"></i></button>
 </div>
 @endif
 
@@ -486,7 +552,7 @@
             {{ $hasPendingItems ? 'Also, ' : '' }}one or more of your leave requests was rejected — see <strong>Recent Activity</strong>.
         @endif
     </div>
-    <button class="ef-ew-alert-close" onclick="this.closest('.ef-ew-alert').remove()"><i class="bi bi-x"></i></button>
+    <button class="ef-ew-alert-close" onclick="this.closest('.ef-ew-alert').remove()" aria-label="Dismiss"><i class="bi bi-x" aria-hidden="true"></i></button>
 </div>
 @endif
 
@@ -707,12 +773,10 @@
                         default => 'stat-pending',
                     };
                 @endphp
-                <a href="{{ $a['route'] }}" class="ef-ew-mini-item">
+                <a href="{{ $a['route'] }}" class="ef-ew-mini-item ef-ew-activity-item">
                     <span class="ef-ew-mini-dot {{ $adot }}"></span>
-                    <span>
-                        <span class="ef-ew-mini-title">{{ $a['label'] }}</span>
-                        <span class="ef-ew-mini-meta d-block">{{ $a['date']->diffForHumans(['short' => true, 'parts' => 1]) }}</span>
-                    </span>
+                    <span class="ef-ew-mini-title">{{ $a['label'] }}</span>
+                    <span class="ef-ew-mini-meta">{{ $a['date']->diffForHumans(['short' => true, 'parts' => 1]) }}</span>
                     <span class="ef-ew-mini-status {{ $astat }}">{{ ucfirst($a['status']) }}</span>
                 </a>
             @empty
@@ -742,8 +806,10 @@
 </div>
 
 {{-- Floating FAB (mobile only) --}}
-<a href="{{ route('employee.expense-requests.create') }}" class="ef-ew-fab ef-mobile-fab" title="New Expense Request">
-    <i class="bi bi-plus-lg"></i>
+<a href="{{ route('employee.expense-requests.create') }}" class="ef-ew-fab ef-mobile-fab" title="New Expense Request" aria-label="New Expense Request">
+    <i class="bi bi-plus-lg" aria-hidden="true"></i>
 </a>
+
+</div>
 
 </x-admin-layout>

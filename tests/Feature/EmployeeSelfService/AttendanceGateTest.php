@@ -313,6 +313,7 @@ test('already-marked attendance allows overtime access normally with no banner a
 });
 
 test('the sidebar surfaces a hint on Overtime links when attendance is unmarked', function () {
+    \App\Models\Setting::set('employee_overtime_requests_enabled', true);
     $user = User::factory()->create();
 
     $response = $this->actingAs($user)->get(route('employee.attendance.index'));
