@@ -27,21 +27,21 @@
 /* ── Hero ───────────────────────────────────────────────── */
 .ef-req-hero {
     background:
-        radial-gradient(ellipse at 110% -10%, rgba(99,102,241,.25) 0%, transparent 50%),
-        radial-gradient(ellipse at -10% 120%, rgba(29,78,216,.18) 0%, transparent 55%),
-        linear-gradient(135deg, #0d1220 0%, #101827 40%, #1d2d50 100%);
+        radial-gradient(ellipse at 110% -10%, rgba(34,132,90,.32) 0%, transparent 50%),
+        radial-gradient(ellipse at -10% 120%, rgba(26,102,69,.22) 0%, transparent 55%),
+        linear-gradient(135deg, #0f1c14 0%, #152a1e 45%, #0d1f16 100%);
     border-radius: 24px;
     padding: 26px 28px 24px;
     position: relative;
     overflow: hidden;
     margin-bottom: 14px;
-    box-shadow: 0 8px 32px rgba(13,18,32,.45), 0 2px 8px rgba(13,18,32,.2);
+    box-shadow: 0 8px 32px rgba(13,32,24,.45), 0 2px 8px rgba(13,32,24,.2);
 }
 .ef-req-hero::before {
     content: '';
     position: absolute;
     width: 220px; height: 220px;
-    background: radial-gradient(circle, rgba(99,102,241,.15) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(26,102,69,.32) 0%, transparent 70%);
     right: -40px; top: -60px;
     pointer-events: none;
 }
@@ -49,7 +49,7 @@
     content: '';
     position: absolute;
     width: 140px; height: 140px;
-    background: radial-gradient(circle, rgba(29,78,216,.12) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(34,132,90,.18) 0%, transparent 70%);
     left: 60px; bottom: -40px;
     pointer-events: none;
 }
@@ -66,7 +66,7 @@
     font-weight: 700;
     letter-spacing: .14em;
     text-transform: uppercase;
-    color: rgba(165,180,252,.7);
+    color: rgba(122,214,171,.75);
     margin-bottom: 5px;
 }
 .ef-req-title {
@@ -201,8 +201,8 @@
     transition: border-color .15s, box-shadow .15s;
 }
 .ef-req-search-input:focus {
-    border-color: var(--req-indigo);
-    box-shadow: 0 0 0 3px rgba(67,56,202,.08);
+    border-color: var(--req-green);
+    box-shadow: 0 0 0 3px rgba(26,102,69,.1);
 }
 .ef-req-search-input::placeholder { color: #9ca3af; }
 .ef-req-search-clear {
@@ -247,8 +247,8 @@
     white-space: nowrap;
     flex-shrink: 0;
 }
-.ef-req-chip:hover { text-decoration: none; color: var(--req-indigo); border-color: var(--req-indigo); }
-.ef-req-chip.active                  { background: var(--req-indigo); border-color: var(--req-indigo); color: #fff; }
+.ef-req-chip:hover { text-decoration: none; color: var(--req-green); border-color: var(--req-green); }
+.ef-req-chip.active                  { background: var(--req-green); border-color: var(--req-green); color: #fff; }
 .ef-req-chip.chip-pending.active     { background: var(--req-amber);  border-color: var(--req-amber); color: #fff; }
 .ef-req-chip.chip-approved.active    { background: var(--req-green);  border-color: var(--req-green); color: #fff; }
 .ef-req-chip.chip-paid.active        { background: var(--req-blue);   border-color: var(--req-blue); color: #fff; }
@@ -432,19 +432,19 @@
 .ef-req-view-btn {
     font-size: .74rem;
     font-weight: 700;
-    color: var(--req-indigo);
+    color: var(--req-green);
     text-decoration: none;
     display: inline-flex;
     align-items: center;
     gap: 4px;
     padding: 5px 12px;
-    border: 1.5px solid rgba(67,56,202,.25);
+    border: 1.5px solid rgba(26,102,69,.25);
     border-radius: 10px;
     transition: all .12s;
 }
 .ef-req-view-btn:hover {
-    background: var(--req-indigo);
-    border-color: var(--req-indigo);
+    background: var(--req-green);
+    border-color: var(--req-green);
     color: #fff;
     text-decoration: none;
 }
@@ -460,13 +460,13 @@
 .ef-req-empty-icon {
     width: 72px; height: 72px;
     border-radius: 50%;
-    background: #ede9fe;
+    background: #dcfce7;
     display: flex;
     align-items: center;
     justify-content: center;
     margin: 0 auto 16px;
     font-size: 1.8rem;
-    color: var(--req-indigo);
+    color: var(--req-green);
 }
 .ef-req-empty-title { font-size: 1rem; font-weight: 700; color: var(--req-text); margin-bottom: 6px; }
 .ef-req-empty-sub   { font-size: .83rem; color: var(--req-sub); margin-bottom: 20px; }
@@ -474,7 +474,7 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: var(--req-indigo);
+    background: var(--req-green);
     color: #fff;
     font-size: .85rem;
     font-weight: 700;
@@ -483,7 +483,7 @@
     text-decoration: none;
     transition: background .15s;
 }
-.ef-req-empty-cta:hover { background: #3730a3; color: #fff; }
+.ef-req-empty-cta:hover { background: var(--req-green-hi); color: #fff; }
 
 /* ── Floating FAB ───────────────────────────────────────── */
 .ef-req-fab {

@@ -24,10 +24,10 @@
     background: linear-gradient(135deg, #0f1c14 0%, #152a1e 45%, #0d1f16 100%);
     border: 1px solid rgba(255,255,255,.06);
     border-radius: 24px;
-    padding: 32px 36px;
+    padding: 28px 32px;
     position: relative;
     overflow: hidden;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
 }
 .ef-ew-hero::before {
     content: '';
@@ -192,7 +192,7 @@
     overflow: hidden;
 }
 .ef-ew-panel-head {
-    padding: 16px 20px 12px;
+    padding: 12px 16px 8px;
     border-bottom: 1px solid #f5f1eb;
     display: flex;
     align-items: center;
@@ -215,13 +215,21 @@
     gap: 4px;
 }
 .ef-ew-panel-link:hover { color: var(--ew-emerald-hi); }
-.ef-ew-panel-body { padding: 16px 20px; }
+.ef-ew-panel-body { padding: 12px 16px; }
+
+/* Tertiary panels — lightest visual weight (Overtime, Upcoming Leave,
+   Recent Activity, Expenses shortcut). Same component, subtler tint. */
+.ef-ew-panel--tertiary {
+    background: #fdfcfa;
+    border-color: #f0ece5;
+}
+.ef-ew-panel--tertiary .ef-ew-panel-head { border-bottom-color: #f5f2ec; }
 
 /* ── Dashboard grid layout ──────────────────────────── */
 .ef-ew-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 16px;
+    gap: 12px;
 }
 .ef-ew-grid .span-2 { grid-column: 1 / -1; }
 
@@ -237,7 +245,7 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 14px 8px;
+    padding: 12px 8px;
     min-height: 44px;
     border-radius: 12px;
     border: 1px solid var(--ew-border);
@@ -259,7 +267,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 0;
+    padding: 8px 0;
     border-bottom: 1px solid #faf7f4;
     font-size: .84rem;
 }
@@ -273,7 +281,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 10px 0;
+    padding: 8px 0;
     border-bottom: 1px solid #faf7f4;
     text-decoration: none;
     color: inherit;
@@ -307,7 +315,7 @@
 .ef-ew-chip-tile {
     flex: 1;
     text-align: center;
-    padding: 12px 8px;
+    padding: 10px 8px;
     border-radius: 12px;
     background: #faf8f5;
     border: 1px solid var(--ew-border);
@@ -318,10 +326,11 @@
 /* Empty state (small, inline) */
 .ef-ew-empty-line {
     text-align: center;
-    padding: 18px 12px;
+    padding: 12px;
     color: var(--ew-muted);
     font-size: .82rem;
 }
+.ef-ew-empty-line .ef-ew-panel-link { display: inline-flex; margin-left: 4px; }
 
 /* Advance card */
 .ef-ew-advance-amt { font-size: 1.6rem; font-weight: 800; color: var(--ew-emerald); }
@@ -332,8 +341,13 @@
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    padding: 16px 20px;
+    padding: 14px 16px;
     flex-wrap: wrap;
+}
+.ef-ew-expense-wallet-line {
+    font-size: .72rem;
+    color: var(--ew-muted);
+    margin-top: 2px;
 }
 
 /* ── Alert banner ─────────────────────────────────────────── */
@@ -509,7 +523,7 @@
 </div>
 
 {{-- ── Secondary actions row ──────────────────────────────────── --}}
-<div class="ef-ew-panel" style="margin-bottom:16px">
+<div class="ef-ew-panel" style="margin-bottom:12px">
     <div class="ef-ew-panel-head"><span class="ef-ew-panel-title">Quick Actions</span></div>
     <div class="ef-ew-panel-body">
         <div class="ef-ew-actions-grid">
@@ -530,7 +544,7 @@
 </div>
 
 {{-- ── Main grid ───────────────────────────────────────────────── --}}
-<div class="ef-ew-grid" style="margin-bottom:16px">
+<div class="ef-ew-grid" style="margin-bottom:12px">
 
     {{-- Leave Balance --}}
     <div class="ef-ew-panel">
@@ -617,7 +631,7 @@
     </div>
 
     {{-- Upcoming approved leave --}}
-    <div class="ef-ew-panel">
+    <div class="ef-ew-panel ef-ew-panel--tertiary">
         <div class="ef-ew-panel-head"><span class="ef-ew-panel-title">Upcoming Leave</span></div>
         <div class="ef-ew-panel-body">
             @if($upcomingLeave)
@@ -638,7 +652,7 @@
     </div>
 
     {{-- Overtime summary (hours only) --}}
-    <div class="ef-ew-panel">
+    <div class="ef-ew-panel ef-ew-panel--tertiary">
         <div class="ef-ew-panel-head">
             <span class="ef-ew-panel-title">Overtime</span>
             <a href="{{ route('employee.overtime.index') }}" class="ef-ew-panel-link">View all <i class="bi bi-arrow-right" style="font-size:.68rem"></i></a>
@@ -658,7 +672,7 @@
     </div>
 
     {{-- Recent Activity --}}
-    <div class="ef-ew-panel span-2">
+    <div class="ef-ew-panel ef-ew-panel--tertiary span-2">
         <div class="ef-ew-panel-head"><span class="ef-ew-panel-title">Recent Activity</span></div>
         <div class="ef-ew-panel-body">
             @forelse($recentActivity as $a)
@@ -692,11 +706,12 @@
 </div>
 
 {{-- ── Expenses shortcut (de-emphasized) ──────────────────────── --}}
-<div class="ef-ew-panel">
+<div class="ef-ew-panel ef-ew-panel--tertiary">
     <div class="ef-ew-expense-shortcut">
         <div>
             <div class="ef-ew-panel-title" style="margin-bottom:4px">Expenses</div>
-            <div class="ef-ew-lb-sub">Submit and track expense claims. Wallet balance: ₹{{ number_format($stats['wallet_balance'], 2) }}</div>
+            <div class="ef-ew-lb-sub">Submit and track expense claims.</div>
+            <div class="ef-ew-expense-wallet-line">Wallet balance: ₹{{ number_format($stats['wallet_balance'], 2) }}</div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
             <a href="{{ route('employee.expense-requests.create') }}" class="ef-ew-btn-ghost" style="background:#f5f1eb;color:var(--ew-text);border-color:var(--ew-border)">
@@ -704,9 +719,6 @@
             </a>
             <a href="{{ route('employee.expense-requests.index') }}" class="ef-ew-btn-ghost" style="background:#f5f1eb;color:var(--ew-text);border-color:var(--ew-border)">
                 <i class="bi bi-list-ul"></i> View Expenses
-            </a>
-            <a href="{{ route('employee.wallet.show') }}" class="ef-ew-btn-ghost" style="background:#f5f1eb;color:var(--ew-text);border-color:var(--ew-border)">
-                <i class="bi bi-wallet2"></i> Wallet
             </a>
         </div>
     </div>
