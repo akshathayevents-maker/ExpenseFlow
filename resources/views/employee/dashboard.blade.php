@@ -199,11 +199,11 @@
     justify-content: space-between;
 }
 .ef-ew-panel-title {
-    font-size: .78rem;
-    font-weight: 700;
-    letter-spacing: .08em;
+    font-size: .8rem;
+    font-weight: 800;
+    letter-spacing: .07em;
     text-transform: uppercase;
-    color: var(--ew-muted);
+    color: color-mix(in srgb, var(--ew-text) 55%, var(--ew-muted) 45%);
 }
 .ef-ew-panel-link {
     font-size: .76rem;
@@ -225,6 +225,21 @@
 }
 .ef-ew-panel--tertiary .ef-ew-panel-head { border-bottom-color: #f5f2ec; }
 
+/* Pending Requests — minimal amber attention accent (border-color only,
+   no background tint) */
+.ef-ew-panel--attn {
+    border-left: 3px solid var(--ew-amber);
+}
+.ef-ew-panel--attn .ef-ew-panel-title-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--ew-amber);
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
 /* ── Dashboard grid layout ──────────────────────────── */
 .ef-ew-grid {
     display: grid;
@@ -236,7 +251,7 @@
 /* Quick actions */
 .ef-ew-actions-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
     gap: 10px;
 }
 .ef-ew-action-card {
@@ -523,7 +538,7 @@
 </div>
 
 {{-- ── Secondary actions row ──────────────────────────────────── --}}
-<div class="ef-ew-panel" style="margin-bottom:12px">
+<div class="ef-ew-panel" style="margin-bottom:16px">
     <div class="ef-ew-panel-head"><span class="ef-ew-panel-title">Quick Actions</span></div>
     <div class="ef-ew-panel-body">
         <div class="ef-ew-actions-grid">
@@ -535,16 +550,18 @@
                 <i class="bi bi-pencil-square"></i>
                 <span class="ef-ew-action-lbl">Regularize</span>
             </a>
+            @if(\App\Models\Setting::get('employee_overtime_requests_enabled', false))
             <a href="{{ route('employee.overtime.create') }}" class="ef-ew-action-card">
                 <i class="bi bi-clock-history"></i>
                 <span class="ef-ew-action-lbl">Request OT</span>
             </a>
+            @endif
         </div>
     </div>
 </div>
 
 {{-- ── Main grid ───────────────────────────────────────────────── --}}
-<div class="ef-ew-grid" style="margin-bottom:12px">
+<div class="ef-ew-grid" style="margin-bottom:16px">
 
     {{-- Leave Balance --}}
     <div class="ef-ew-panel">
@@ -568,8 +585,8 @@
     </div>
 
     {{-- Pending Requests --}}
-    <div class="ef-ew-panel">
-        <div class="ef-ew-panel-head"><span class="ef-ew-panel-title">Pending Requests</span></div>
+    <div class="ef-ew-panel ef-ew-panel--attn">
+        <div class="ef-ew-panel-head"><span class="ef-ew-panel-title"><span class="ef-ew-panel-title-dot"></span>Pending Requests</span></div>
         <div class="ef-ew-panel-body">
             @php $anyPending = $pendingLeave->isNotEmpty() || $pendingRegularizations->isNotEmpty() || $pendingOvertime->isNotEmpty(); @endphp
             @if(!$anyPending)

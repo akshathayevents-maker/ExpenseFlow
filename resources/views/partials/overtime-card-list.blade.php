@@ -15,6 +15,7 @@
 @php
     $showEmployee = $showEmployee ?? false;
     $showOrigin   = $showOrigin ?? false;
+    $showDelete   = $showDelete ?? false;
     $stripeColors = [
         'pending' => '#D89A3D', 'approved' => '#0F7B5F',
         'rejected' => '#C84B44', 'cancelled' => '#64748B',
@@ -58,7 +59,7 @@
                         <div class="ot-list-name">{{ $record->user->name }}</div>
                     @endif
                     <div class="ot-list-meta">
-                        {{ $record->ot_date->format('d M Y') }} · {{ $record->hours }}h ·
+                        {{ $record->ot_date->format('d M Y (D)') }} · {{ $record->hours }}h ·
                         <span style="text-transform:capitalize">{{ $record->category }}</span>
                         @if($showOrigin)
                             · <span class="ot-list-origin">{{ $record->origin === 'admin_recorded' ? 'Admin' : 'Employee' }}</span>
@@ -82,9 +83,19 @@
                     @endphp
                     {{ $displayAmount !== null ? '₹' . number_format((float) $displayAmount, 2) : '—' }}
                 </div>
-                <a href="{{ route($showRoutePrefix . '.overtime.show', $record) }}" class="ef-btn ef-btn-icon" title="View">
-                    <i class="bi bi-eye"></i> <span class="d-none d-sm-inline">View</span>
+                <a href="{{ route($showRoutePrefix . '.overtime.show', $record) }}" class="ef-btn" style="padding:6px 12px; gap:6px; display:inline-flex; align-items:center;" title="View">
+                    <i class="bi bi-eye"></i> <span>View</span>
                 </a>
+                @if($showDelete && auth()->user()->can('delete', $record))
+                <form method="POST" action="{{ route('admin.overtime.destroy', $record) }}"
+                      onsubmit="return confirm('Delete this overtime entry?\n\nThis will remove it from payroll calculations for this pay period. This action cannot be undone.')">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="ef-btn" style="padding:6px 12px; gap:6px; display:inline-flex; align-items:center; color:var(--ef-danger)" title="Delete Overtime">
+                        <i class="bi bi-trash"></i> <span>Delete</span>
+                    </button>
+                </form>
+                @endif
             </div>
         </div>
     @empty

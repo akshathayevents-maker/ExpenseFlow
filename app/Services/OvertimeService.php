@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\EmployeeOvertime;
+use App\Models\Setting;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
@@ -33,6 +34,32 @@ class OvertimeService
 
     public function recordHistorical(User $admin, User $employee, array $data): EmployeeOvertime
     {
+        // Single-vs-multiple-allowance-per-pay-period gate (configurable via
+        // Setting::get('overtime_allowance_mode'), default 'multiple' —
+        // pre-existing, unrestricted behavior). "Pay period" is defined as
+        // the calendar month containing ot_date, matching
+        // MonthlyPayableService's existing month-based period convention.
+        // Only origin=admin_recorded entries count toward this check —
+        // employee-originated requests are a separate axis entirely and are
+        // never restricted by this flag.
+        if (Setting::get('overtime_allowance_mode', 'multiple') === 'single') {
+            $otDate = Carbon::parse($data['ot_date']);
+            $periodStart = $otDate->copy()->startOfMonth();
+            $periodEnd = $otDate->copy()->endOfMonth();
+
+            $existing = EmployeeOvertime::where('user_id', $employee->id)
+                ->where('origin', 'admin_recorded')
+                ->whereDate('ot_date', '>=', $periodStart->toDateString())
+                ->whereDate('ot_date', '<=', $periodEnd->toDateString())
+                ->exists();
+
+            if ($existing) {
+                throw ValidationException::withMessages([
+                    'ot_date' => 'An overtime allowance has already been recorded for this employee for this pay period. Only one allowance per pay period is permitted while single-allowance mode is enabled.',
+                ]);
+            }
+        }
+
         return $this->create($employee, $admin, $data, 'admin_recorded');
     }
 
@@ -82,6 +109,88 @@ class OvertimeService
                 'origin'   => $origin,
                 'actor_id' => $actor->id,
             ]);
+
+            return $ot;
+        });
+    }
+
+    /**
+     * Combined admin "Record & Approve" path: creates an admin_recorded
+     * EmployeeOvertime AND runs it through the exact same approval
+     * calculation as approve(), in a SINGLE transaction, ending in
+     * request_status='approved' with no separate approve() call required.
+     *
+     * Reuses recordHistorical()'s allowance-mode gate (by delegating to
+     * create()) and OvertimeCalculationService::calculateForApproval()
+     * verbatim — no duplicated calculation logic. The old two-step
+     * recordHistorical()-then-approve() path remains fully intact for any
+     * caller that still wants pending-then-approve semantics (e.g. a
+     * future re-enabled employee-request flow reviewed the old way).
+     */
+    public function recordAndApprove(User $admin, User $employee, array $data, float $multiplier, ?float $manualAmount = null, ?string $note = null): EmployeeOvertime
+    {
+        if (Setting::get('overtime_allowance_mode', 'multiple') === 'single') {
+            $otDate = Carbon::parse($data['ot_date']);
+            $periodStart = $otDate->copy()->startOfMonth();
+            $periodEnd = $otDate->copy()->endOfMonth();
+
+            $existing = EmployeeOvertime::where('user_id', $employee->id)
+                ->where('origin', 'admin_recorded')
+                ->whereDate('ot_date', '>=', $periodStart->toDateString())
+                ->whereDate('ot_date', '<=', $periodEnd->toDateString())
+                ->exists();
+
+            if ($existing) {
+                throw ValidationException::withMessages([
+                    'ot_date' => 'An overtime allowance has already been recorded for this employee for this pay period. Only one allowance per pay period is permitted while single-allowance mode is enabled.',
+                ]);
+            }
+        }
+
+        return DB::transaction(function () use ($admin, $employee, $data, $multiplier, $manualAmount, $note) {
+            $ot = $this->create($employee, $admin, $data, 'admin_recorded');
+
+            $snapshot = $this->calculationService->calculateForApproval(
+                $ot->user,
+                $ot->ot_date,
+                (float) $ot->hours,
+                $multiplier,
+            );
+
+            $approvedAmount = $manualAmount ?? $snapshot['calculated_amount'];
+
+            $ot->forceFill([
+                'hourly_rate_snapshot' => $snapshot['hourly_rate_snapshot'],
+                'rate_multiplier'      => $snapshot['rate_multiplier'],
+                'calculated_amount'    => $snapshot['calculated_amount'],
+                'approved_amount'      => round($approvedAmount, 2),
+                'used_manual_override' => $manualAmount !== null,
+            ]);
+
+            $ot->update([
+                'request_status' => 'approved',
+                'reviewed_by'    => $admin->id,
+                'reviewed_at'    => now(),
+                'review_note'    => $note,
+            ]);
+
+            $this->auditLogService->log('approved', 'employee_overtime', $ot->id, $ot->user->name, [], [
+                'status'               => 'approved',
+                'ot_date'              => $ot->ot_date->toDateString(),
+                'hours'                => (float) $ot->hours,
+                'rate_multiplier'      => (float) $ot->rate_multiplier,
+                'calculated_amount'    => (float) $ot->calculated_amount,
+                'approved_amount'      => (float) $ot->approved_amount,
+                'used_manual_override' => (bool) $ot->used_manual_override,
+                'actor_id'             => $admin->id,
+            ]);
+
+            $this->notificationService->send(
+                $ot->user,
+                'overtime_approved',
+                'Overtime Approved',
+                "Your overtime claim for {$ot->ot_date->toDateString()} ({$ot->hours}h) was approved. Amount: {$ot->approved_amount}.",
+            );
 
             return $ot;
         });

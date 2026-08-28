@@ -3814,6 +3814,17 @@ a.ef-ds-kpi:hover { border-top-color: var(--ef-emerald); }
     gap: 10px;
     justify-content: flex-end;
 }
+.ef-form-page.--wide { max-width: 960px; }
+
+.ef-form-section-label {
+    color: var(--ef-faint, #6b7280);
+    font-size: .72rem;
+    font-weight: 720;
+    letter-spacing: .05em;
+    margin: 0 0 12px;
+    text-transform: uppercase;
+}
+
 @media (max-width: 575.98px) {
     .ef-form-grid-2 { grid-template-columns: 1fr; }
     .ef-form-page-header { padding-top: 16px; }

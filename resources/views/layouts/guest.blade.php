@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Sign In • ExpenseFlow</title>
+    <title>Sign In • Akshathay</title>
 
     {{-- Favicon & PWA --}}
     <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}?v=2">
@@ -18,30 +18,79 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
-        body {
+        .akshathay-guest {
+            --ak-primary: #0F766E;
+            --ak-primary-hover: #0D5F59;
+            --ak-accent: #14B8A6;
+            --ak-bg-dark: #0F172A;
+            --ak-bg-secondary: #134E4A;
+            --ak-surface: #FFFFFF;
+            --ak-text: #111827;
+            --ak-text-muted: #64748B;
+            --ak-input-bg: #F8FAFC;
+            --ak-input-border: #CBD5E1;
+
             min-height: 100vh;
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f4c81 100%);
+            background: linear-gradient(135deg, var(--ak-bg-dark) 0%, var(--ak-bg-secondary) 100%);
             display: flex; align-items: center; justify-content: center;
             font-size: .92rem;
         }
-        .auth-card {
+        .akshathay-guest .auth-card {
             width: 100%; max-width: 420px;
-            border-radius: 16px; border: none;
-            box-shadow: 0 20px 60px rgba(0,0,0,.4);
+            border-radius: 16px; border: 1px solid rgba(17,24,39,.06);
+            box-shadow: 0 10px 30px rgba(15,23,42,.15);
+            background: var(--ak-surface);
         }
-        .brand-icon {
+        .akshathay-guest .brand-icon {
             width: 52px; height: 52px; border-radius: 14px;
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            background: linear-gradient(135deg, var(--ak-primary), var(--ak-accent));
             display: flex; align-items: center; justify-content: center;
             font-size: 1.5rem; color: #fff; margin: 0 auto 1rem;
+        }
+        .akshathay-guest h5.fw-bold { color: var(--ak-text); }
+        .akshathay-guest .text-muted { color: var(--ak-text-muted) !important; }
+        .akshathay-guest .form-control {
+            background-color: var(--ak-input-bg);
+            border-color: var(--ak-input-border);
+            color: var(--ak-text);
+        }
+        .akshathay-guest .form-control:focus {
+            border-color: var(--ak-accent);
+            box-shadow: 0 0 0 3px rgba(20,184,166,.15);
+            background-color: var(--ak-input-bg);
+        }
+        .akshathay-guest .form-check-input:checked {
+            background-color: var(--ak-primary);
+            border-color: var(--ak-primary);
+        }
+        .akshathay-guest .form-check-input:focus {
+            border-color: var(--ak-accent);
+            box-shadow: 0 0 0 3px rgba(20,184,166,.15);
+        }
+        .akshathay-guest a {
+            color: var(--ak-primary);
+        }
+        .akshathay-guest a:hover {
+            color: var(--ak-primary-hover);
+        }
+        .akshathay-guest .btn-primary {
+            background-color: var(--ak-primary);
+            border-color: var(--ak-primary);
+        }
+        .akshathay-guest .btn-primary:hover,
+        .akshathay-guest .btn-primary:focus,
+        .akshathay-guest .btn-primary:active {
+            background-color: var(--ak-primary-hover) !important;
+            border-color: var(--ak-primary-hover) !important;
         }
     </style>
 </head>
 <body>
+    <div class="akshathay-guest">
     <div class="px-3 w-100" style="max-width:420px">
         <div class="text-center mb-4">
             <div class="brand-icon"><i class="bi bi-receipt-cutoff"></i></div>
-            <h4 class="text-white fw-bold mb-0">ExpenseFlow</h4>
+            <h4 class="text-white fw-bold mb-0">Akshathay</h4>
             <p class="text-white-50 small">Operational Management System</p>
         </div>
         <div class="card auth-card">
@@ -49,7 +98,8 @@
                 {{ $slot }}
             </div>
         </div>
-        <p class="text-center text-white-50 small mt-3">&copy; {{ date('Y') }} ExpenseFlow</p>
+        <p class="text-center text-white-50 small mt-3">&copy; {{ date('Y') }} Akshathay</p>
+    </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

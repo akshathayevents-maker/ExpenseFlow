@@ -118,6 +118,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'role.ad
     Route::get('overtime/{overtime}', [AdminOvertimeController::class, 'show'])->name('overtime.show');
     Route::patch('overtime/{overtime}/approve', [AdminOvertimeController::class, 'approve'])->name('overtime.approve');
     Route::patch('overtime/{overtime}/reject', [AdminOvertimeController::class, 'reject'])->name('overtime.reject');
+    Route::delete('overtime/{overtime}', [AdminOvertimeController::class, 'destroy'])->name('overtime.destroy');
 
     Route::get('attendance-regularizations', [AdminAttendanceRegularizationController::class, 'index'])->name('attendance-regularizations.index');
     Route::patch('attendance-regularizations/{regularization}/approve', [AdminAttendanceRegularizationController::class, 'approve'])->name('attendance-regularizations.approve');

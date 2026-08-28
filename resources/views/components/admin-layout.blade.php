@@ -1209,6 +1209,7 @@
                class="nav-link {{ request()->routeIs('employee.leave.*') ? 'active' : '' }}">
                 <i class="bi bi-calendar-minus"></i> Leave
             </a>
+            @if(\App\Models\Setting::get('employee_overtime_requests_enabled', false))
             <a href="{{ route('employee.overtime.create') }}"
                class="nav-link {{ request()->routeIs('employee.overtime.create') ? 'active' : '' }}"
                @if($needsAttendanceToday) title="Mark today's attendance first" @endif>
@@ -1217,6 +1218,7 @@
                     <i class="bi bi-exclamation-circle" style="margin-left:auto;font-size:.8rem;opacity:.65" aria-hidden="true"></i>
                 @endif
             </a>
+            @endif
             <a href="{{ route('employee.overtime.index') }}"
                class="nav-link {{ request()->routeIs('employee.overtime.*') && !request()->routeIs('employee.overtime.create') ? 'active' : '' }}"
                @if($needsAttendanceToday) title="Mark today's attendance first" @endif>

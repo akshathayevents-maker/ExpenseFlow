@@ -8,6 +8,10 @@ use App\Models\User;
 
 function giveOtSalaryUi(User $user, float $amount = 26000): void
 {
+    // See OvertimeWorkflowTest.php's giveOtSalary() for why this flag is
+    // explicitly re-enabled here.
+    \App\Models\Setting::set('employee_overtime_requests_enabled', true);
+
     $admin = User::factory()->create(['role' => 'admin']);
     $salary = new EmployeeSalary();
     $salary->fill(['user_id' => $user->id, 'monthly_salary' => $amount, 'effective_from' => '2026-01-01']);
@@ -35,6 +39,7 @@ test('employee OT index page loads', function () {
 });
 
 test('employee OT create page loads', function () {
+    \App\Models\Setting::set('employee_overtime_requests_enabled', true);
     $user = User::factory()->create();
     markAttendanceTodayForUi($user);
 
@@ -197,6 +202,7 @@ test('employee never sees any compensation figure on a pending OT they created',
 });
 
 test('employee OT create page never shows a multiplier or amount field', function () {
+    \App\Models\Setting::set('employee_overtime_requests_enabled', true);
     $user = User::factory()->create();
     markAttendanceTodayForUi($user);
 

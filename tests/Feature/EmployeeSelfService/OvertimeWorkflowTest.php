@@ -18,6 +18,15 @@ use App\Models\User;
  */
 function giveOtSalary(User $user, float $amount = 26000): void
 {
+    // Employee self-request creation is gated by
+    // employee_overtime_requests_enabled (default false, per the current
+    // business requirement to temporarily pause employee OT requesting).
+    // Every existing test in this file predates that gate and exercises the
+    // request/approval/calculation flow while it was always implicitly on,
+    // so this helper explicitly re-enables it — this is the exact
+    // re-enablement mechanism the "flip the flag back" requirement proves.
+    \App\Models\Setting::set('employee_overtime_requests_enabled', true);
+
     $admin = User::factory()->create(['role' => 'admin']);
     $salary = new EmployeeSalary();
     $salary->fill(['user_id' => $user->id, 'monthly_salary' => $amount, 'effective_from' => '2026-01-01']);
@@ -658,6 +667,7 @@ test('admin can record historical OT for another employee', function () {
 
     $response = $this->actingAs($admin)->post(route('admin.overtime.store'), [
         'user_id' => $user->id, 'ot_date' => '2026-07-01', 'hours' => 3, 'reason' => 'recorded retroactively',
+        'multiplier' => 1.5,
     ]);
 
     $ot = EmployeeOvertime::first();
@@ -672,6 +682,7 @@ test('admin-created OT uses origin=admin_recorded', function () {
 
     $this->actingAs($admin)->post(route('admin.overtime.store'), [
         'user_id' => $user->id, 'ot_date' => '2026-07-01', 'hours' => 3, 'reason' => 'x',
+        'multiplier' => 1.5,
     ]);
 
     expect(EmployeeOvertime::first()->origin)->toBe('admin_recorded');

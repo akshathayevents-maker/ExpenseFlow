@@ -29,6 +29,13 @@ class OvertimeController extends Controller
 
     public function store(StoreOvertimeRequest $request): RedirectResponse
     {
+        // Server-side enforcement of the create() gate, mirroring the
+        // create() action above — a direct POST to this route (bypassing
+        // the hidden UI entry point) must be blocked exactly the same way
+        // when employee_overtime_requests_enabled is off, not merely have
+        // its button hidden.
+        $this->authorize('create', EmployeeOvertime::class);
+
         $ot = $this->service->createRequest(auth()->user(), $request->validated());
 
         return redirect()->route('employee.overtime.show', $ot)->with('success', 'Overtime request submitted.');

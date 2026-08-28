@@ -300,6 +300,7 @@ test('marking attendance with no prior gate redirect falls back to the current p
 });
 
 test('already-marked attendance allows overtime access normally with no banner and no sidebar hint', function () {
+    \App\Models\Setting::set('employee_overtime_requests_enabled', true);
     $user = User::factory()->create();
     markGateAttendance($user, 'present');
 
