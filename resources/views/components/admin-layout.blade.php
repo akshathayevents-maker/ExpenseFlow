@@ -1425,6 +1425,39 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    /*
+     * Bootstrap modals must live as direct children of <body>.
+     *
+     * On mobile (≤767.98px) #main-content is the app's sole scroll
+     * container: overflow-y:auto plus -webkit-overflow-scrolling:touch
+     * (see public/css/mobile.css "SCROLL CONTAINER ARCHITECTURE"). Every
+     * page's modal markup is rendered inside the page slot, i.e. nested
+     * inside #main-content — but Bootstrap's JS always appends the
+     * dynamically-created .modal-backdrop straight onto <body>, never
+     * inside the scroll container.
+     *
+     * On iOS Safari (and some Android WebViews), a position:fixed element
+     * nested inside an -webkit-overflow-scrolling:touch ancestor gets
+     * promoted into that ancestor's own compositing layer instead of the
+     * page's root layer. The result: the modal panel's "fixed" layer ends
+     * up UNDER the backdrop's layer, even though .modal has the higher
+     * z-index on paper — the backdrop (opaque, pointer-events:auto,
+     * correctly anchored to the real viewport) visually and functionally
+     * sits on top of the modal's own content, so nothing inside the modal
+     * (radios, inputs, Approve/Cancel) can be seen clearly or clicked.
+     *
+     * Fix: reparent every modal to <body> before Bootstrap ever shows one,
+     * so the modal shares the same un-clipped, un-composited containing
+     * block as its backdrop. This is the fix Bootstrap's own docs point to
+     * for modals rendered inside scrollable/positioned ancestors, and it
+     * resolves the bug for every modal in the app in one place — no
+     * per-page markup changes needed.
+     */
+    document.querySelectorAll('#main-content .modal').forEach(function (modal) {
+        document.body.appendChild(modal);
+    });
+</script>
+<script>
     // Global double-submission guard: disables submit button on form submit.
     // Re-enabled automatically on page reload (validation errors) or back-navigation.
     document.addEventListener('submit', function (e) {
