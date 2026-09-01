@@ -212,13 +212,24 @@ class EmployeeAttendanceService
      */
     public function getMonthlyHistory(User $user, Carbon $monthStart): Collection
     {
-        $today = $this->today();
+        // Compare by calendar date only, not Carbon instant: this->today()
+        // is anchored to BUSINESS_TIMEZONE while $monthStart may be
+        // constructed in the app's default timezone (e.g. resolveMonth()'s
+        // Carbon::create() in AttendanceController, which is UTC). Comparing
+        // instants directly (->gt()/->lt()) can make "today" in the
+        // business timezone look like an earlier instant than the UTC
+        // representation of the same calendar day (IST is ahead of UTC),
+        // wrongly clamping/emptying the whole month. Re-anchoring $today to
+        // $monthStart's timezone (by date string, never by instant) keeps
+        // every comparison and the day-by-day loop below in one consistent
+        // timezone. Same pattern as matchingLeave()'s docblock.
+        $today = Carbon::parse($this->today()->toDateString(), $monthStart->getTimezone());
         $end   = $monthStart->copy()->endOfMonth();
-        if ($end->gt($today)) {
+        if ($end->toDateString() > $today->toDateString()) {
             $end = $today->copy();
         }
 
-        if ($end->lt($monthStart)) {
+        if ($end->toDateString() < $monthStart->toDateString()) {
             return collect(); // entire requested month is in the future
         }
 
@@ -354,9 +365,14 @@ class EmployeeAttendanceService
     {
         $history = $this->getMonthlyHistory($user, $monthStart);
 
+        // Same calendar-date-only comparison as getMonthlyHistory() above —
+        // see that method's docblock. $this->today() must be re-anchored to
+        // $monthStart's timezone before comparing, or this clamp suffers
+        // the identical instant-vs-timezone bug independently.
+        $today = Carbon::parse($this->today()->toDateString(), $monthStart->getTimezone());
         $end = $monthStart->copy()->endOfMonth();
-        if ($end->gt($this->today())) {
-            $end = $this->today()->copy();
+        if ($end->toDateString() > $today->toDateString()) {
+            $end = $today->copy();
         }
 
         return [
@@ -367,7 +383,7 @@ class EmployeeAttendanceService
             'holiday'      => $history->where('status', 'holiday')->count(),
             'absent'       => $history->where('status', 'absent')->count(),
             'not_marked'   => $history->where('status', 'not_marked')->count(),
-            'payable_days' => $end->gte($monthStart)
+            'payable_days' => $end->toDateString() >= $monthStart->toDateString()
                 ? $this->payableDaysCalculator->payableDaysSoFar($user, $monthStart, $end)
                 : 0.0,
         ];

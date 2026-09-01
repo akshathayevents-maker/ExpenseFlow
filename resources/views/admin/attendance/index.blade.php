@@ -16,19 +16,39 @@
     /* ── Section labelling ────────────────────────────────────── */
     .att-section-note { font-size:.75rem; color:var(--ef-faint,#a9a39a); font-weight:600; margin-top:-4px; margin-bottom:14px; }
 
-    /* ── KPI tiles ─────────────────────────────────────────────── */
-    .att-kpi-row { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:16px; }
-    .att-kpi { background:#fff; border:1px solid var(--ef-border,#e5e7eb); border-radius:var(--ef-radius-sm,10px); padding:12px 14px; border-top:3px solid var(--ef-border,#e5e7eb); }
-    .att-kpi .n { font-size:1.4rem; font-weight:800; line-height:1; color:var(--ef-ink,#141412); }
-    .att-kpi .l { font-size:.68rem; color:var(--ef-muted,#77736a); text-transform:uppercase; letter-spacing:.04em; font-weight:700; margin-top:4px; }
+    /* ── KPI tiles (also client-side filter buttons) ─────────────── */
+    .att-kpi-row { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:12px; }
+    .att-kpi { background:#fff; border:1px solid var(--ef-border,#e5e7eb); border-radius:var(--ef-radius-sm,10px); padding:12px 14px; border-top:3px solid var(--ef-border,#e5e7eb); text-align:left; cursor:pointer; width:100%; font:inherit; transition:box-shadow .12s,background-color .12s; }
+    .att-kpi .n { font-size:1.6rem; font-weight:800; line-height:1; color:var(--ef-ink,#141412); }
+    .att-kpi .l { display:flex; align-items:center; gap:5px; font-size:.68rem; color:var(--ef-muted,#77736a); text-transform:uppercase; letter-spacing:.04em; font-weight:700; margin-top:5px; }
+    .att-kpi .l .dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
     .att-kpi[data-tone="success"] { border-top-color:var(--ef-emerald,#0F7B5F); }
     .att-kpi[data-tone="success"] .n { color:var(--ef-emerald,#0F7B5F); }
+    .att-kpi[data-tone="success"] .dot { background:var(--ef-emerald,#0F7B5F); }
     .att-kpi[data-tone="danger"] { border-top-color:var(--ef-danger,#C84B44); }
     .att-kpi[data-tone="danger"] .n { color:var(--ef-danger,#C84B44); }
+    .att-kpi[data-tone="danger"] .dot { background:var(--ef-danger,#C84B44); }
     .att-kpi[data-tone="warning"] { border-top-color:var(--ef-amber,#D89A3D); }
     .att-kpi[data-tone="warning"] .n { color:var(--ef-amber,#D89A3D); }
-    .att-kpi[data-tone="neutral"] { border-top-color:var(--ef-faint,#a9a39a); }
+    .att-kpi[data-tone="warning"] .dot { background:var(--ef-amber,#D89A3D); }
+    .att-kpi[data-tone="neutral"] { border-top-color:#2F6FED; }
+    .att-kpi[data-tone="neutral"] .n { color:#1E4DB7; }
+    .att-kpi[data-tone="neutral"] .dot { background:#2F6FED; }
+    .att-kpi:hover, .att-kpi:focus-visible { box-shadow:0 2px 8px rgba(20,20,18,.08); outline:none; }
+    .att-kpi:focus-visible { outline:2px solid var(--ef-emerald,#0F7B5F); outline-offset:2px; }
+    .att-kpi.is-active { background:#f5f3ef; box-shadow:inset 0 0 0 2px currentColor; }
+    .att-kpi[data-tone="success"].is-active { box-shadow:inset 0 0 0 2px var(--ef-emerald,#0F7B5F); }
+    .att-kpi[data-tone="danger"].is-active { box-shadow:inset 0 0 0 2px var(--ef-danger,#C84B44); }
+    .att-kpi[data-tone="warning"].is-active { box-shadow:inset 0 0 0 2px var(--ef-amber,#D89A3D); }
+    .att-kpi[data-tone="neutral"].is-active { box-shadow:inset 0 0 0 2px #2F6FED; }
+    .att-kpi:active { transform:scale(.98); }
     @media (min-width:640px) { .att-kpi-row { grid-template-columns:repeat(4,1fr); } }
+
+    /* ── Active filter indicator ─────────────────────────────────── */
+    .att-filter-bar { display:none; align-items:center; gap:8px; font-size:.78rem; color:var(--ef-muted,#77736a); margin-bottom:10px; flex-wrap:wrap; }
+    .att-filter-bar.is-visible { display:flex; }
+    .att-filter-bar b { color:var(--ef-ink,#141412); }
+    .att-filter-clear { font-size:.75rem; font-weight:700; color:var(--ef-emerald,#0F7B5F); background:none; border:none; cursor:pointer; padding:2px 6px; text-decoration:underline; }
 
     /* ── Search ───────────────────────────────────────────────── */
     .att-search-wrap { position:relative; margin-bottom:12px; }
@@ -50,14 +70,22 @@
     .att-dash { color:var(--ef-faint,#a9a39a); }
 
     /* ── Mobile compact list (default, below 768px) ───────────── */
-    .att-mobile-list { display:flex; flex-direction:column; gap:8px; }
-    .att-mrow { border:1px solid var(--ef-border,#e5e7eb); border-radius:var(--ef-radius-sm,10px); padding:10px 12px; }
+    .att-mobile-list { display:flex; flex-direction:column; gap:8px; padding-bottom:env(safe-area-inset-bottom,0px); }
+    .att-mrow { border:1px solid var(--ef-border,#e5e7eb); border-left-width:4px; border-radius:var(--ef-radius-sm,10px); padding:10px 12px; }
+    .att-mrow[data-status="present"], .att-mrow[data-status="half_day"] { border-left-color:var(--ef-emerald,#0F7B5F); }
+    .att-mrow[data-status="absent"], .att-mrow[data-status="half_day_lop"] { border-left-color:var(--ef-danger,#C84B44); }
+    .att-mrow[data-status="leave"], .att-mrow[data-status="half_day_leave"] { border-left-color:#2F6FED; }
+    .att-mrow[data-status="not_marked"] { border-left-color:var(--ef-amber,#D89A3D); }
+    .att-mrow[data-status="holiday"], .att-mrow[data-status="weekly_off"] { border-left-color:var(--ef-faint,#a9a39a); }
     .att-mrow-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
     .att-mrow-name { font-weight:700; font-size:.9rem; color:var(--ef-ink,#141412); text-decoration:none; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .att-mrow-halves { font-size:.78rem; color:var(--ef-muted,#77736a); margin-top:5px; }
+    .att-mrow-halves { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:8px; }
+    .att-mrow-half { background:#faf9f6; border-radius:7px; padding:5px 8px; font-size:.74rem; color:var(--ef-muted,#77736a); }
+    .att-mrow-half b { display:block; font-size:.78rem; color:var(--ef-ink,#141412); font-weight:700; margin-top:1px; }
+    .att-mrow-half .glyph { margin-right:3px; }
     .att-mrow-bottom { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:6px; }
     .att-mrow-view { font-size:.78rem; font-weight:700; color:var(--ef-emerald,#0F7B5F); text-decoration:none; min-height:44px; display:inline-flex; align-items:center; }
-    .att-mrow-reg { font-size:.7rem; font-weight:700; color:#7D5218; background:rgba(216,154,61,.13); border-radius:6px; padding:4px 8px; text-decoration:none; display:inline-flex; align-items:center; gap:4px; }
+    .att-mrow-reg { font-size:.74rem; font-weight:700; color:#7D5218; background:rgba(216,154,61,.13); border-radius:6px; padding:4px 8px; text-decoration:none; display:inline-flex; align-items:center; gap:4px; margin-top:6px; }
 
     .att-desktop-only { display:none; }
     .att-mobile-only { display:block; }
@@ -76,17 +104,31 @@
 </style>
 @endpush
 
+<div id="attTodayCard">
 <x-ds.card title="Today's Attendance">
     <div class="att-search-wrap">
         <i class="bi bi-search"></i>
         <input type="text" id="attSearch" class="att-search-input" placeholder="Search employee by name…" aria-label="Search today's attendance by employee name">
     </div>
 
-    <div class="att-kpi-row">
-        <div class="att-kpi" data-tone="success"><div class="n">{{ $todaySummary['present'] }}</div><div class="l">Present</div></div>
-        <div class="att-kpi" data-tone="danger"><div class="n">{{ $todaySummary['absent'] }}</div><div class="l">Absent</div></div>
-        <div class="att-kpi" data-tone="neutral"><div class="n">{{ $todaySummary['on_leave'] }}</div><div class="l">On Leave</div></div>
-        <div class="att-kpi" data-tone="warning"><div class="n">{{ $todaySummary['not_marked'] }}</div><div class="l">Not Marked</div></div>
+    <div class="att-kpi-row" role="group" aria-label="Filter today's attendance by status">
+        <button type="button" class="att-kpi" data-tone="success" data-filter="present" aria-pressed="false">
+            <div class="n">{{ $todaySummary['present'] }}</div><div class="l"><span class="dot"></span>Present</div>
+        </button>
+        <button type="button" class="att-kpi" data-tone="danger" data-filter="absent" aria-pressed="false">
+            <div class="n">{{ $todaySummary['absent'] }}</div><div class="l"><span class="dot"></span>Absent</div>
+        </button>
+        <button type="button" class="att-kpi" data-tone="neutral" data-filter="on_leave" aria-pressed="false">
+            <div class="n">{{ $todaySummary['on_leave'] }}</div><div class="l"><span class="dot"></span>On Leave</div>
+        </button>
+        <button type="button" class="att-kpi" data-tone="warning" data-filter="not_marked" aria-pressed="false">
+            <div class="n">{{ $todaySummary['not_marked'] }}</div><div class="l"><span class="dot"></span>Not Marked</div>
+        </button>
+    </div>
+
+    <div class="att-filter-bar" id="attFilterBar">
+        <span>Showing: <b id="attFilterLabel"></b></span>
+        <button type="button" class="att-filter-clear" id="attFilterClear">Clear</button>
     </div>
 
     {{-- Desktop table --}}
@@ -104,7 +146,16 @@
             </thead>
             <tbody id="attTodayDesktopBody">
                 @forelse($todayRows as $row)
-                <tr data-emp-name="{{ strtolower($row['employee']->name) }}">
+                @php
+                    $filterGroup = match(true) {
+                        in_array($row['status'], ['present', 'half_day']) => 'present',
+                        $row['status'] === 'absent' => 'absent',
+                        in_array($row['status'], ['leave', 'half_day_leave']) => 'on_leave',
+                        $row['status'] === 'not_marked' => 'not_marked',
+                        default => 'other',
+                    };
+                @endphp
+                <tr data-emp-name="{{ strtolower($row['employee']->name) }}" data-filter-group="{{ $filterGroup }}">
                     <td data-label="Employee">
                         <a href="{{ route('admin.attendance.show', $row['employee']) }}" class="att-emp-name">
                             {{ $row['employee']->name }}
@@ -136,18 +187,31 @@
     {{-- Mobile compact list --}}
     <div class="att-mobile-list att-mobile-only" id="attTodayMobileList">
         @forelse($todayRows as $row)
-        <div class="att-mrow" data-emp-name="{{ strtolower($row['employee']->name) }}">
+        @php
+            $filterGroup = match(true) {
+                in_array($row['status'], ['present', 'half_day']) => 'present',
+                $row['status'] === 'absent' => 'absent',
+                in_array($row['status'], ['leave', 'half_day_leave']) => 'on_leave',
+                $row['status'] === 'not_marked' => 'not_marked',
+                default => 'other',
+            };
+            $firstGlyph = $row['first_half'] === '—' ? '—' : '✓';
+            $secondGlyph = $row['second_half'] === '—' ? '—' : '✓';
+        @endphp
+        <div class="att-mrow" data-emp-name="{{ strtolower($row['employee']->name) }}" data-filter-group="{{ $filterGroup }}" data-status="{{ $row['status'] }}">
             <div class="att-mrow-top">
                 <a href="{{ route('admin.attendance.show', $row['employee']) }}" class="att-mrow-name">{{ $row['employee']->name }}</a>
                 <x-status-badge :status="$row['status']" />
             </div>
-            <div class="att-mrow-halves">1st: {{ $row['first_half'] }} · 2nd: {{ $row['second_half'] }}</div>
+            <div class="att-mrow-halves">
+                <div class="att-mrow-half"><span class="glyph">{{ $firstGlyph }}</span>First Half<b>{{ $row['first_half'] }}</b></div>
+                <div class="att-mrow-half"><span class="glyph">{{ $secondGlyph }}</span>Second Half<b>{{ $row['second_half'] }}</b></div>
+            </div>
+            @if($row['has_pending_regularization'])
+                <a href="{{ route('admin.attendance-regularizations.index') }}" class="att-mrow-reg"><i class="bi bi-exclamation-triangle-fill"></i> Pending regularization</a>
+            @endif
             <div class="att-mrow-bottom">
-                @if($row['has_pending_regularization'])
-                    <a href="{{ route('admin.attendance-regularizations.index') }}" class="att-mrow-reg"><i class="bi bi-hourglass-split"></i> Pending Regularization</a>
-                @else
-                    <span></span>
-                @endif
+                <span></span>
                 <a href="{{ route('admin.attendance.show', $row['employee']) }}" class="att-mrow-view">View <i class="bi bi-arrow-right"></i></a>
             </div>
         </div>
@@ -159,6 +223,7 @@
     <div class="att-empty att-mobile-only" id="attTodayMobileNoMatch" hidden>No employees match your search.</div>
     <div class="att-empty att-desktop-only" id="attTodayDesktopNoMatch" hidden>No employees match your search.</div>
 </x-ds.card>
+</div>
 
 <div style="height:20px"></div>
 
@@ -248,25 +313,100 @@
     var mobileRows  = Array.prototype.slice.call(document.querySelectorAll('#attTodayMobileList .att-mrow[data-emp-name]'));
     var desktopNoMatch = document.getElementById('attTodayDesktopNoMatch');
     var mobileNoMatch  = document.getElementById('attTodayMobileNoMatch');
+    var kpiButtons = Array.prototype.slice.call(document.querySelectorAll('.att-kpi[data-filter]'));
+    var filterBar = document.getElementById('attFilterBar');
+    var filterLabel = document.getElementById('attFilterLabel');
+    var filterClear = document.getElementById('attFilterClear');
+    var cardTitleEl = document.querySelector('#attTodayCard .ef-ds-card-title');
+    var defaultTitle = cardTitleEl ? cardTitleEl.textContent : "Today's Attendance";
 
-    input.addEventListener('input', function () {
+    var emptyMessages = {
+        present: 'No employees are marked present today.',
+        absent: 'No employees are currently absent.',
+        on_leave: 'No employees are on leave today.',
+        not_marked: 'All employees have marked their attendance today.',
+    };
+    var filterLabels = {
+        present: 'Present',
+        absent: 'Absent',
+        on_leave: 'On Leave',
+        not_marked: 'Not Marked',
+    };
+
+    var activeFilter = null;
+
+    function applyFilters() {
         var q = input.value.trim().toLowerCase();
         var desktopVisible = 0, mobileVisible = 0;
 
         desktopRows.forEach(function (row) {
-            var match = row.getAttribute('data-emp-name').indexOf(q) !== -1;
+            var nameMatch = row.getAttribute('data-emp-name').indexOf(q) !== -1;
+            var statusMatch = !activeFilter || row.getAttribute('data-filter-group') === activeFilter;
+            var match = nameMatch && statusMatch;
             row.hidden = !match;
             if (match) desktopVisible++;
         });
         mobileRows.forEach(function (row) {
-            var match = row.getAttribute('data-emp-name').indexOf(q) !== -1;
+            var nameMatch = row.getAttribute('data-emp-name').indexOf(q) !== -1;
+            var statusMatch = !activeFilter || row.getAttribute('data-filter-group') === activeFilter;
+            var match = nameMatch && statusMatch;
             row.hidden = !match;
             if (match) mobileVisible++;
         });
 
-        if (desktopNoMatch) desktopNoMatch.hidden = !(q && desktopVisible === 0 && desktopRows.length > 0);
-        if (mobileNoMatch) mobileNoMatch.hidden = !(q && mobileVisible === 0 && mobileRows.length > 0);
+        var noMatchMessage = null;
+        if (desktopVisible === 0 && desktopRows.length > 0) {
+            noMatchMessage = activeFilter && !q ? emptyMessages[activeFilter] : 'No employees match your search.';
+        }
+        if (desktopNoMatch) {
+            desktopNoMatch.hidden = noMatchMessage === null;
+            if (noMatchMessage !== null) desktopNoMatch.textContent = noMatchMessage;
+        }
+        var noMatchMessageM = null;
+        if (mobileVisible === 0 && mobileRows.length > 0) {
+            noMatchMessageM = activeFilter && !q ? emptyMessages[activeFilter] : 'No employees match your search.';
+        }
+        if (mobileNoMatch) {
+            mobileNoMatch.hidden = noMatchMessageM === null;
+            if (noMatchMessageM !== null) mobileNoMatch.textContent = noMatchMessageM;
+        }
+
+        // Section heading + active-filter indicator
+        if (activeFilter) {
+            var count = Math.max(desktopVisible, mobileVisible);
+            if (cardTitleEl) cardTitleEl.textContent = filterLabels[activeFilter] + ' — ' + count + ' employee' + (count === 1 ? '' : 's');
+            if (filterBar) filterBar.classList.add('is-visible');
+            if (filterLabel) filterLabel.textContent = filterLabels[activeFilter] + ' · ' + count + ' employee' + (count === 1 ? '' : 's');
+        } else {
+            if (cardTitleEl) cardTitleEl.textContent = defaultTitle;
+            if (filterBar) filterBar.classList.remove('is-visible');
+        }
+
+        kpiButtons.forEach(function (btn) {
+            var isActive = btn.getAttribute('data-filter') === activeFilter;
+            btn.classList.toggle('is-active', isActive);
+            btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        });
+    }
+
+    kpiButtons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var filter = btn.getAttribute('data-filter');
+            activeFilter = activeFilter === filter ? null : filter;
+            applyFilters();
+        });
     });
+
+    if (filterClear) {
+        filterClear.addEventListener('click', function () {
+            activeFilter = null;
+            applyFilters();
+        });
+    }
+
+    input.addEventListener('input', applyFilters);
+
+    applyFilters();
 })();
 </script>
 @endpush

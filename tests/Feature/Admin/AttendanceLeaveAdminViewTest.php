@@ -52,6 +52,36 @@ test('admin can view todays attendance with present, absent, and not marked empl
     $response->assertSeeText($notMarked->name);
 });
 
+test('a present record dated today is reflected in the current months summary counts', function () {
+    // Regression for the "Today's Attendance shows Present but Monthly
+    // Summary shows all zeros" bug: getMonthlyHistory()/getMonthlySummary()
+    // used to clamp their date range by comparing Carbon INSTANTS across
+    // two different timezones (EmployeeAttendanceService::today() is
+    // anchored to Asia/Kolkata, while AttendanceController::resolveMonth()
+    // builds $month via Carbon::create() in the app's default UTC
+    // timezone). That instant comparison could make "today" look earlier
+    // than the start of its own calendar month, wrongly emptying the
+    // entire month's history — even though the day itself has real data.
+    $admin = User::factory()->create(['role' => 'admin']);
+    $present = User::factory()->create(['role' => 'employee', 'is_active' => true]);
+
+    EmployeeAttendance::create([
+        'user_id' => $present->id, 'attendance_date' => alvToday()->toDateString(),
+        'status' => 'present', 'marked_by' => $present->id, 'marked_at' => now(), 'source' => 'self',
+    ]);
+
+    $service = app(EmployeeAttendanceService::class);
+    $month = today()->startOfMonth(); // mirrors AttendanceController::resolveMonth()'s default, built in the app's default timezone
+    $summary = $service->getMonthlySummary($present->fresh(), $month->copy());
+
+    expect($summary['present'])->toBe(1);
+    expect($summary['not_marked'])->toBe(0);
+    expect($summary['payable_days'])->toBeGreaterThanOrEqual(1.0);
+
+    $response = $this->actingAs($admin->fresh())->get(route('admin.attendance.index'));
+    $response->assertOk();
+});
+
 test('month navigation changes the attendance summary data shown', function () {
     $admin = User::factory()->create(['role' => 'admin']);
     $employee = User::factory()->create(['role' => 'employee', 'is_active' => true]);
