@@ -142,8 +142,26 @@ class HallBooking extends Model
             : (float) $this->additionalServices()->sum('amount');
     }
 
+    /**
+     * The single authoritative "payment due / outstanding balance" figure
+     * for a booking. Every screen (show page, dashboard, calendar, kitchen
+     * ops, calendar-events JSON) must read this instead of computing
+     * total_amount − paid independently, so the rule can never drift or be
+     * duplicated with inline `@if(status === cancelled)` checks.
+     *
+     * A cancelled booking is never an active receivable — regardless of how
+     * much was (or wasn't) paid before it was cancelled — so it always
+     * reports zero due. This does NOT touch total_amount, paid_amount, or
+     * any payment-transaction record: those remain the intact historical
+     * record of what actually happened. total_paid (below) is completely
+     * unaffected and still reports the real amount collected.
+     */
     public function getBalanceAmountAttribute(): float
     {
+        if ($this->isCancelled()) {
+            return 0.0;
+        }
+
         $paid = $this->relationLoaded('payments')
             ? $this->payments->sum('amount')
             : $this->payments()->sum('amount');

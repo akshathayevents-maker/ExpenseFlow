@@ -5,16 +5,21 @@ namespace App\Http\Controllers\Hall;
 use App\Http\Controllers\Controller;
 use App\Models\Hall;
 use App\Models\HallBooking;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class HallDashboardController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         $today = today();
         $weekEnd = $today->copy()->addDays(6);
-        $monthStart = $today->copy()->startOfMonth();
-        $monthEnd = $today->copy()->endOfMonth();
+
+        // ── Selected month (server-side validated, defaults to current month) ──
+        $month = $this->resolveMonth($request->query('month'));
+        $monthStart = $month->copy()->startOfMonth();
+        $monthEnd = $month->copy()->endOfMonth();
 
         $todayList = HallBooking::with(['hall', 'mealPlan', 'payments'])
             ->whereDate('booking_date', $today)
@@ -34,6 +39,12 @@ class HallDashboardController extends Controller
             ->whereBetween('booking_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
             ->where('status', '!=', 'cancelled')
             ->get();
+
+        $monthBookingsCount = $monthBookings->count();
+        // balance_amount reuses HallBooking::getBalanceAmountAttribute(), which already
+        // returns 0.0 for cancelled bookings; monthBookings is also pre-filtered to
+        // exclude cancelled rows, so cancelled bookings cannot inflate this figure.
+        $monthPaymentDue = $monthBookings->sum(fn (HallBooking $booking) => max(0, $booking->balance_amount));
 
         $pendingPaymentsQuery = HallBooking::where('payment_status', '!=', 'paid')
             ->where('status', '!=', 'cancelled');
@@ -230,16 +241,38 @@ class HallDashboardController extends Controller
             'upcoming_bookings' => $upcomingBookings,
             'pending_payments' => $pendingPayments,
             'month_revenue' => $monthRevenue,
+            'month_bookings_count' => $monthBookingsCount,
+            'month_payment_due' => $monthPaymentDue,
             'occupancy_rate' => $occupancyRate,
             'catering_load' => $cateringLoad,
             'pending_balance' => $pendingBalance,
         ];
 
+        $prevMonth = $month->copy()->subMonth()->format('Y-m');
+        $nextMonth = $month->copy()->addMonth()->format('Y-m');
+
         return view('hall.dashboard', compact(
             'operations', 'recentBookings', 'todayList', 'halls',
             'pendingPaymentBookings', 'busyDays', 'hallStatuses',
             'operationMoments', 'kitchenLoad', 'occupancyTimeline',
-            'attentionItems', 'nextEvents'
+            'attentionItems', 'nextEvents', 'month', 'prevMonth', 'nextMonth'
         ));
+    }
+
+    /**
+     * Resolve the dashboard's selected month from a raw "Y-m" query value.
+     * Falls back to the current month for missing/invalid input rather than erroring.
+     */
+    private function resolveMonth(?string $raw): Carbon
+    {
+        if ($raw && preg_match('/^(\d{4})-(0[1-9]|1[0-2])$/', $raw, $m)) {
+            try {
+                return Carbon::create((int) $m[1], (int) $m[2], 1)->startOfMonth();
+            } catch (\Throwable) {
+                // fall through to default
+            }
+        }
+
+        return today()->startOfMonth();
     }
 }

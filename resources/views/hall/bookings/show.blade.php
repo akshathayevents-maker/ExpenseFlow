@@ -641,7 +641,9 @@
             : ($booking->mealPlan ? "🍽️ Meal Plan: {$booking->mealPlan->name}\n" : ""))
         . "\n💰 Payment:\n"
         . "₹" . number_format($totalPaid) . " Paid\n"
-        . ($balance > 0 ? "₹" . number_format($balance) . " Pending\n" : "Fully Settled\n")
+        . ($booking->isCancelled()
+            ? "Booking Cancelled\n"
+            : ($balance > 0 ? "₹" . number_format($balance) . " Pending\n" : "Fully Settled\n"))
         . "\n━━━━━━━━━━━━━━━\n"
         . "📌 Kitchen: {$mealStr} – " . number_format($booking->number_of_people) . " Covers\n"
         . "\n📄 Invoice: " . route('hall.bookings.invoice', $booking) . "\n"
@@ -747,8 +749,13 @@
         </div>
         <div class="bs-kpi">
             <div class="bs-kpi-label">Due</div>
-            <div class="bs-kpi-val {{ $balance > 0 ? '--due' : '--paid' }}">₹{{ number_format($balance) }}</div>
-            <div class="bs-kpi-sub">{{ $balance > 0 ? 'pending' : 'settled' }}</div>
+            @if($booking->isCancelled())
+                <div class="bs-kpi-val --paid">N/A</div>
+                <div class="bs-kpi-sub">booking cancelled</div>
+            @else
+                <div class="bs-kpi-val {{ $balance > 0 ? '--due' : '--paid' }}">₹{{ number_format($balance) }}</div>
+                <div class="bs-kpi-sub">{{ $balance > 0 ? 'pending' : 'settled' }}</div>
+            @endif
         </div>
     </div>
     @if($paidPct > 0)

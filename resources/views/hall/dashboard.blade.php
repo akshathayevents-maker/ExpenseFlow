@@ -17,31 +17,85 @@
 
 @push('styles')
 <style>
-/* Hall Dashboard — Operations Center */
+/* Hall Dashboard — Operations Center
+   Local --hd-* aliases now resolve to the application's shared design tokens
+   (defined in resources/css/app.css) instead of duplicating raw hex values,
+   so this page tracks the same emerald/gold/amber/danger palette used
+   throughout the admin panel and the hall booking screens. */
 :root {
-    --hd-gold:     #B8893E;
-    --hd-gold-hi:  #D6B97A;
+    --hd-gold:     var(--ef-gold);
+    --hd-gold-hi:  var(--ef-gold-hi);
     --hd-gold-bg:  #fdf8f0;
-    --hd-green:    #0F7B5F;
+    --hd-green:    var(--ef-emerald);
     --hd-green-bg: #f0faf6;
-    --hd-orange:   #c2600a;
+    --hd-orange:   var(--ef-warning);
     --hd-orange-bg:#fff7ed;
-    --hd-blue:     #1d5fa8;
+    --hd-blue:     var(--ef-info);
     --hd-blue-bg:  #eff6ff;
-    --hd-red:      #b91c1c;
+    --hd-red:      var(--ef-danger);
     --hd-red-bg:   #fef2f2;
-    --hd-ink:      #1a1612;
-    --hd-sub:      #4a4540;
-    --hd-muted:    #6b6560;
-    --hd-faint:    #ede9e3;
-    --hd-border:   rgba(160,114,56,.12);
-    --hd-border-s: rgba(160,114,56,.28);
-    --hd-shadow:   0 1px 3px rgba(26,22,18,.07),0 4px 12px rgba(26,22,18,.05);
-    --hd-shadow-h: 0 4px 16px rgba(26,22,18,.13),0 1px 4px rgba(26,22,18,.07);
-    --hd-radius:   14px;
-    --hd-ease:     cubic-bezier(.25,.46,.45,.94);
+    --hd-ink:      var(--ef-ink);
+    --hd-sub:      var(--ef-ink-2);
+    --hd-muted:    var(--ef-muted);
+    --hd-faint:    var(--ef-faint);
+    --hd-border:   var(--ef-border);
+    --hd-border-s: var(--ef-border-strong);
+    --hd-shadow:   var(--ef-shadow);
+    --hd-shadow-h: var(--ef-shadow-hover);
+    --hd-radius:   var(--ef-radius);
+    --hd-ease:     var(--ef-ease);
 }
+.hd-month-nav {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+.hd-month-nav-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.hd-month-overview-lbl {
+    color: rgba(255,253,250,.4);
+    font-size: .6rem;
+    font-weight: 720;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+}
+.hd-month-btn {
+    align-items: center;
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.14);
+    border-radius: var(--ef-radius-sm);
+    color: #fffdfa;
+    display: flex;
+    height: 28px;
+    justify-content: center;
+    text-decoration: none;
+    width: 28px;
+}
+.hd-month-btn:hover { background: rgba(255,255,255,.14); color: var(--hd-gold); }
+.hd-month-label { color: #fffdfa; font-size: .8rem; font-weight: 760; min-width: 100px; text-align: center; }
 #main-content { background: #f5f4f0 !important; }
+.hd-group-eyebrow {
+    color: var(--hd-muted);
+    font-size: .63rem;
+    font-weight: 760;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    margin: 2px 2px 0;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+.hd-group-eyebrow .hd-group-sub { color: var(--hd-faint); font-size: .62rem; font-weight: 600; text-transform: none; letter-spacing: 0; }
+.hd-kpi.--primary { padding: 13px 15px; }
+.hd-kpi.--primary .hd-kpi-val { font-size: 1.7rem; }
+.hd-sidebar-title {
+    color: var(--hd-muted);
+    font-size: .63rem;
+    font-weight: 760;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    margin: 2px 2px 0;
+}
 
 /* ── Hero ── */
 .hd-hero {
@@ -177,14 +231,14 @@
     text-decoration: none;
     transition: background .15s;
 }
-.hd-cal-day.--today { background: var(--hd-gold); }
+.hd-cal-day.--today { background: var(--hd-gold-bg); box-shadow: inset 0 0 0 1.5px var(--hd-gold); }
 .hd-cal-wd { color: var(--hd-muted); font-size: .58rem; font-weight: 640; text-transform: uppercase; }
-.hd-cal-day.--today .hd-cal-wd { color: rgba(255,255,255,.7); }
+.hd-cal-day.--today .hd-cal-wd { color: var(--hd-gold); }
 .hd-cal-num { color: var(--hd-ink); font-size: .88rem; font-weight: 780; }
-.hd-cal-day.--today .hd-cal-num { color: #fff; }
+.hd-cal-day.--today .hd-cal-num { color: var(--hd-gold); }
 .hd-cal-dots { display: flex; gap: 2px; justify-content: center; min-height: 6px; }
 .hd-cal-dot { background: var(--hd-gold); border-radius: 50%; height: 5px; width: 5px; }
-.hd-cal-day.--today .hd-cal-dot { background: rgba(255,255,255,.7); }
+.hd-cal-day.--today .hd-cal-dot { background: var(--hd-gold); }
 .hd-cal-day:not(.--today):hover { background: var(--hd-faint); }
 
 /* ── Generic card ── */
@@ -499,9 +553,25 @@
 
     {{-- ── Hero ── --}}
     <div class="hd-hero">
+        <div class="hd-hero-main d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+                <div class="hd-greeting">Hall Operations · Dashboard</div>
+                <div class="hd-hero-title">{{ now()->format('l, d F') }}</div>
+            </div>
+            <div class="hd-month-nav-wrap">
+                <span class="hd-month-overview-lbl">Monthly overview</span>
+                <div class="hd-month-nav">
+                    <a href="{{ route('hall.dashboard', ['month' => $prevMonth]) }}" class="hd-month-btn" aria-label="Previous month">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                    <span class="hd-month-label">{{ $month->format('F Y') }}</span>
+                    <a href="{{ route('hall.dashboard', ['month' => $nextMonth]) }}" class="hd-month-btn" aria-label="Next month">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
         <div class="hd-hero-main">
-            <div class="hd-greeting">{{ $greeting }}</div>
-            <div class="hd-hero-title">{{ now()->format('l, d F') }}</div>
             <div class="hd-hero-bullets">
                 @if($operations['today_bookings'] > 0)
                 <span class="hd-hero-bullet">
@@ -545,7 +615,8 @@
         @endif
     </div>
 
-    {{-- ── KPI Strip ── --}}
+    {{-- ── KPI Strip: Today (secondary) ── --}}
+    <div class="hd-group-eyebrow">Today <span class="hd-group-sub">· live counts for {{ now()->format('d M') }}</span></div>
     <div class="hd-kpi-strip">
         <div class="hd-kpi">
             <div class="hd-kpi-head">
@@ -573,37 +644,47 @@
             <div class="hd-kpi-note">Hall available</div>
             @endif
         </div>
-        <a href="{{ route('hall.bookings.index', ['payment_status' => 'pending']) }}" class="hd-kpi">
-            <div class="hd-kpi-head">
-                <span class="hd-kpi-lbl">Pending Collect.</span>
-                <span class="hd-kpi-ico --red"><i class="bi bi-credit-card"></i></span>
-            </div>
-            @if($operations['pending_payments'] > 0)
-            <div class="hd-kpi-val --red">{{ $operations['pending_payments'] }}</div>
-            <div class="hd-kpi-note">₹{{ number_format($operations['pending_balance'], 0) }} due</div>
-            @else
-            <div class="hd-kpi-val --empty">All clear</div>
-            <div class="hd-kpi-note">No dues</div>
-            @endif
-        </a>
-        <div class="hd-kpi">
+    </div>
+
+    {{-- ── KPI Strip: {Month} (primary) ── --}}
+    <div class="hd-group-eyebrow">{{ $month->format('F Y') }} <span class="hd-group-sub">· monthly overview</span></div>
+    <div class="hd-kpi-strip">
+        <div class="hd-kpi --primary">
             <div class="hd-kpi-head">
                 <span class="hd-kpi-lbl">Month Revenue</span>
                 <span class="hd-kpi-ico --blue"><i class="bi bi-currency-rupee"></i></span>
             </div>
             @if($operations['month_revenue'] > 0)
             <div class="hd-kpi-val --blue">₹{{ number_format($operations['month_revenue'] / 1000, 1) }}K</div>
-            <div class="hd-kpi-note">{{ now()->format('M Y') }}</div>
+            <div class="hd-kpi-note">
+                {{ $operations['month_bookings_count'] }} booking{{ $operations['month_bookings_count'] !== 1 ? 's' : '' }}
+                @if($operations['month_payment_due'] > 0)
+                · ₹{{ number_format($operations['month_payment_due'], 0) }} due
+                @endif
+            </div>
             @else
             <div class="hd-kpi-val --empty">₹0</div>
-            <div class="hd-kpi-note">{{ now()->format('M Y') }}</div>
+            <div class="hd-kpi-note">No bookings this month</div>
             @endif
         </div>
+        <a href="{{ route('hall.bookings.index', ['payment_status' => 'pending']) }}" class="hd-kpi --primary">
+            <div class="hd-kpi-head">
+                <span class="hd-kpi-lbl">Pending Collect. <span style="text-transform:none;font-weight:600">(live)</span></span>
+                <span class="hd-kpi-ico --red"><i class="bi bi-credit-card"></i></span>
+            </div>
+            @if($operations['pending_payments'] > 0)
+            <div class="hd-kpi-val --red">₹{{ number_format($operations['pending_balance'], 0) }}</div>
+            <div class="hd-kpi-note">{{ $operations['pending_payments'] }} customer{{ $operations['pending_payments'] !== 1 ? 's' : '' }} due</div>
+            @else
+            <div class="hd-kpi-val --empty">All clear</div>
+            <div class="hd-kpi-note">No dues</div>
+            @endif
+        </a>
     </div>
 
     {{-- ── 5-Day Calendar Strip ── --}}
     <div class="hd-cal-wrap">
-        <div class="hd-cal-label">This Week</div>
+        <div class="hd-cal-label">This Week <span style="text-transform:none;color:var(--hd-faint);font-weight:600">· next 5 days from today</span></div>
         <div class="hd-cal-days">
             @foreach($calStrip as $i => $day)
             <a href="{{ route('hall.bookings.calendar') }}?date={{ $day['date']->toDateString() }}"
@@ -693,6 +774,7 @@
             </div>
 
             {{-- Section 2: Today's Operations --}}
+            <div class="hd-group-eyebrow" style="margin-top:4px">Today</div>
             <div class="hd-card">
                 <div class="hd-card-head">
                     <span class="hd-card-title">
@@ -880,6 +962,8 @@
 
         {{-- ── Right: sidebar (desktop only) ── --}}
         <div class="d-flex flex-column gap-3">
+
+            <div class="hd-sidebar-title">Operations</div>
 
             {{-- Kitchen Load: Tomorrow --}}
             <div class="hd-card">
