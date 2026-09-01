@@ -10,10 +10,13 @@ use App\Models\ExpenseRequest;
 use App\Models\LeaveRequest;
 use App\Models\User;
 use App\Models\Wallet;
+use App\Services\EmployeeAttendanceService;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
+    public function __construct(private EmployeeAttendanceService $attendanceService) {}
+
     public function index(): View
     {
         $approvedTotal = ExpenseRequest::whereIn('status', [
@@ -38,6 +41,37 @@ class DashboardController extends Controller
         // new figure.
         $lowBalanceCount = Wallet::where('balance', '<', 500)->count();
         $expensePending  = ExpenseRequest::pending()->count();
+
+        // Attendance-today snapshot for the compact dashboard widget — reuses
+        // EmployeeAttendanceService::getAttendanceDayState() per active
+        // employee (the same per-day classification the admin Attendance
+        // page and the employee-facing page already use), never a second,
+        // independently-drifting status derivation.
+        $today = $this->attendanceService->today();
+        $activeEmployees = User::whereIn('role', ['employee', 'manager'])->where('is_active', true)->get();
+        $attendanceToday = ['present' => 0, 'absent' => 0, 'on_leave' => 0, 'not_marked' => 0];
+        foreach ($activeEmployees as $employee) {
+            $state = $this->attendanceService->getAttendanceDayState($employee, $today->copy());
+            $attendance = $state['attendance'];
+            if ($attendance !== null) {
+                if (in_array($attendance->status, ['present', 'half_day'], true)) {
+                    $attendanceToday['present']++;
+                } elseif (in_array($attendance->status, ['leave', 'half_day_leave'], true)) {
+                    $attendanceToday['on_leave']++;
+                } elseif ($attendance->status === 'absent') {
+                    $attendanceToday['absent']++;
+                }
+            } elseif ($state['has_approved_leave']) {
+                $attendanceToday['on_leave']++;
+            } elseif ($state['category'] === 'weekday') {
+                $attendanceToday['not_marked']++;
+            }
+        }
+
+        $leaveToday = LeaveRequest::where('status', 'approved')
+            ->whereDate('start_date', '<=', $today)
+            ->whereDate('end_date', '>=', $today)
+            ->count();
 
         $stats = [
             'pending_approvals'    => $expensePending,
@@ -137,6 +171,6 @@ class DashboardController extends Controller
             ->limit(6)
             ->get();
 
-        return view('admin.dashboard', compact('stats', 'recentRequests', 'needsAttention', 'needsActionTotal'));
+        return view('admin.dashboard', compact('stats', 'recentRequests', 'needsAttention', 'needsActionTotal', 'attendanceToday', 'leaveToday'));
     }
 }

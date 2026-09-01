@@ -694,7 +694,7 @@
     // (this exact overlap was the reported bug: both booleans used to be
     // computed independently and could both be true for the same route).
     $adminGroupMatchers = [
-        'people-hr'  => fn () => request()->routeIs('admin.attendance-regularizations.*')
+        'people-hr'  => fn () => request()->routeIs('admin.attendance-regularizations.*', 'admin.attendance.*')
             || request()->routeIs('admin.leave-types.*', 'admin.leave.*', 'admin.leave-policy-templates.*')
             || (request()->routeIs('admin.employees.*') && ! request()->routeIs('admin.employees.salaries.*')),
         'payroll'    => fn () => request()->routeIs('admin.overtime.*', 'admin.employees.salaries.*', 'admin.salaries.*', 'admin.advances.*', 'admin.payroll.*'),
@@ -798,9 +798,17 @@
                class="nav-link {{ request()->routeIs('admin.employees.*') && !request()->routeIs('admin.employees.salaries.*') ? 'active' : '' }}">
                 <i class="bi bi-people"></i> Employees
             </a>
+            <a href="{{ route('admin.attendance.index') }}"
+               class="nav-link {{ request()->routeIs('admin.attendance.*') ? 'active' : '' }}">
+                <i class="bi bi-calendar3"></i> Attendance
+            </a>
             <a href="{{ route('admin.attendance-regularizations.index') }}"
                class="nav-link {{ request()->routeIs('admin.attendance-regularizations.*') ? 'active' : '' }}">
                 <i class="bi bi-calendar-check"></i> Attendance Regularization
+            </a>
+            <a href="{{ route('admin.leave.overview') }}"
+               class="nav-link {{ request()->routeIs('admin.leave.overview') ? 'active' : '' }}">
+                <i class="bi bi-calendar-range"></i> Leave Overview
             </a>
             <a href="{{ route('admin.leave.requests.index') }}"
                class="nav-link {{ request()->routeIs('admin.leave.requests.*', 'admin.leave.balances.*', 'admin.employees.leave-policies.*') ? 'active' : '' }}">

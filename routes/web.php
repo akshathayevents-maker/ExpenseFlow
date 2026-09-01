@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\LeavePolicyController as AdminLeavePolicyControll
 use App\Http\Controllers\Admin\LeavePolicyTemplateController as AdminLeavePolicyTemplateController;
 use App\Http\Controllers\Admin\LeaveTypeController as AdminLeaveTypeController;
 use App\Http\Controllers\Admin\AttendanceRegularizationController as AdminAttendanceRegularizationController;
+use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
 use App\Http\Controllers\Admin\OvertimeController as AdminOvertimeController;
 use App\Http\Controllers\Admin\Inventory\InventoryBillController;
 use App\Http\Controllers\Admin\Inventory\InventoryCategoryController;
@@ -120,6 +121,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'role.ad
     Route::patch('overtime/{overtime}/reject', [AdminOvertimeController::class, 'reject'])->name('overtime.reject');
     Route::delete('overtime/{overtime}', [AdminOvertimeController::class, 'destroy'])->name('overtime.destroy');
 
+    Route::get('attendance', [AdminAttendanceController::class, 'index'])->name('attendance.index');
+    Route::get('attendance/{employee}', [AdminAttendanceController::class, 'show'])->name('attendance.show');
+
     Route::get('attendance-regularizations', [AdminAttendanceRegularizationController::class, 'index'])->name('attendance-regularizations.index');
     Route::patch('attendance-regularizations/{regularization}/approve', [AdminAttendanceRegularizationController::class, 'approve'])->name('attendance-regularizations.approve');
     Route::patch('attendance-regularizations/{regularization}/reject', [AdminAttendanceRegularizationController::class, 'reject'])->name('attendance-regularizations.reject');
@@ -149,6 +153,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'role.ad
     Route::patch('leave-policy-templates/{leavePolicyTemplate}/set-default', [AdminLeavePolicyTemplateController::class, 'setDefault'])->name('leave-policy-templates.set-default');
     Route::patch('leave-policy-templates/{leavePolicyTemplate}/clear-default', [AdminLeavePolicyTemplateController::class, 'clearDefault'])->name('leave-policy-templates.clear-default');
     Route::post('leave-policy-templates/bulk-assign', [AdminLeavePolicyTemplateController::class, 'bulkAssign'])->name('leave-policy-templates.bulk-assign');
+
+    Route::get('leave/overview', [AdminLeaveController::class, 'overview'])->name('leave.overview');
 
     Route::get('leave/requests', [AdminLeaveController::class, 'index'])->name('leave.requests.index');
     Route::get('leave/requests/{leaveRequest}', [AdminLeaveController::class, 'show'])->name('leave.requests.show');

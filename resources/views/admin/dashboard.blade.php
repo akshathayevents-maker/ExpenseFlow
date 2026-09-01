@@ -678,6 +678,18 @@ a.ef-ad-card-aside:hover { color: var(--ad-emerald-dk); }
         <div class="ef-ad-metric-value">{{ $stats['total_employees'] }}</div>
         <div class="ef-ad-metric-note">{{ $stats['total_managers'] }} managers</div>
     </a>
+    <a href="{{ route('admin.attendance.index') }}" class="ef-ad-metric" data-accent="teal">
+        <div class="ef-ad-metric-icon"><i class="bi bi-calendar3"></i></div>
+        <div class="ef-ad-metric-label">Attendance Today</div>
+        <div class="ef-ad-metric-value c-teal" style="font-size:1.15rem">{{ $attendanceToday['present'] }} present</div>
+        <div class="ef-ad-metric-note">{{ $attendanceToday['absent'] }} absent · {{ $attendanceToday['on_leave'] }} on leave · {{ $attendanceToday['not_marked'] }} not marked</div>
+    </a>
+    <a href="{{ route('admin.leave.overview') }}" class="ef-ad-metric" data-accent="emerald">
+        <div class="ef-ad-metric-icon"><i class="bi bi-calendar-range"></i></div>
+        <div class="ef-ad-metric-label">Today's Leave</div>
+        <div class="ef-ad-metric-value c-emerald">{{ $leaveToday }}</div>
+        <div class="ef-ad-metric-note">employee(s) on approved leave</div>
+    </a>
 </div>
 
 {{-- ── 70/30: Recent Requests + Approval Pipeline ─────────────────── --}}
