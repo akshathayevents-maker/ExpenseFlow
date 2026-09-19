@@ -1,0 +1,4 @@
+#!/bin/sh
+# test double: sudo -n <cmd> just runs the command (the sandbox runs as a normal user)
+[ "$1" = "-n" ] && shift
+exec "$@"

@@ -1,0 +1,4 @@
+#!/bin/sh
+# test double: a root crontab containing secrets (the diagnostic must never print them)
+echo "0 2 * * * PGPASSWORD=hunter2 pg_dump expenseflow | gzip > /var/backups/x.gz"
+echo "5 2 * * * curl -s https://deployer:CRONTOK@backup.example.invalid/ping"

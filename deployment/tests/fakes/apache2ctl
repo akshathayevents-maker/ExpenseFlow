@@ -1,0 +1,15 @@
+#!/bin/bash
+# test double. State dir: $EF_TEST_STATE. configtest_mode: ok | fail | fail_after:<N>   (N successful calls, then fail)
+S="${EF_TEST_STATE:?}"
+case "$1" in
+  configtest)
+     echo "apache2ctl configtest" >> "$S/calls.log"
+     mode="$(cat "$S/configtest_mode" 2>/dev/null || echo ok)"
+     case "$mode" in
+       ok) echo "Syntax OK" >&2; exit 0 ;;
+       fail) echo "AH00526: Syntax error (fake)" >&2; exit 1 ;;
+       fail_after:*) n="${mode#fail_after:}"; c="$(cat "$S/configtest_count" 2>/dev/null || echo 0)"; c=$((c+1)); echo "$c" > "$S/configtest_count"
+                     if [ "$c" -gt "$n" ]; then echo "AH00526: Syntax error (fake, call $c)" >&2; exit 1; fi; echo "Syntax OK" >&2; exit 0 ;;
+     esac ;;
+  -M) echo " php_module (shared)" ;;
+esac

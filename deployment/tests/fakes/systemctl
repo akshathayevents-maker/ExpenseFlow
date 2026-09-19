@@ -1,0 +1,8 @@
+#!/bin/bash
+S="${EF_TEST_STATE:?}"
+case "$1" in
+  reload) echo "systemctl reload $2" >> "$S/calls.log"; [ -f "$S/hang_reload" ] && sleep 60; [ -f "$S/reload_fail" ] && { echo "Job for $2 failed (fake)" >&2; exit 1; }; exit 0 ;;
+  show) echo active ;;
+  list-unit-files) exit 0 ;;
+esac
+exit 0

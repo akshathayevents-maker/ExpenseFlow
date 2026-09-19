@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+# ██ LEGACY — DISABLED — DO NOT RUN ██
+# Belongs to the abandoned release-based/nginx design. Production is flat + Apache; see deployment/deploy.sh.
+# This script would reconfigure/prune a server that does not use that layout. The guard below stops it.
+echo "REFUSING: deployment/legacy-release-based/bootstrap.sh is disabled (see deployment/DEPLOYMENT_CHECKLIST.md)." >&2
+exit 99
+# ---- original content follows (unreachable) ----
 # =============================================================================
 # ExpenseFlow — Ubuntu 24.04 LTS Server Bootstrap
 # Run once as root on a fresh server.

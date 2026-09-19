@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+# ██ LEGACY — DISABLED — DO NOT RUN ██
+# Belongs to the abandoned release-based/nginx design. Production is flat + Apache; see deployment/deploy.sh.
+# This script would reconfigure/prune a server that does not use that layout. The guard below stops it.
+echo "REFUSING: deployment/legacy-release-based/cleanup.sh is disabled (see deployment/DEPLOYMENT_CHECKLIST.md)." >&2
+exit 99
+# ---- original content follows (unreachable) ----
 # =============================================================================
 # ExpenseFlow — Deployment Cleanup Script
 # Safely prunes old releases, orphan assets, stale logs, and old DB backups.

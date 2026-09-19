@@ -1,226 +1,58 @@
 #!/usr/bin/env bash
-# =============================================================================
-# ExpenseFlow — Standalone Rollback Script
-# Usage:
-#   bash rollback.sh              — roll back to the previous release
-#   bash rollback.sh --release=2  — roll back N releases (2 = one before previous)
-#   bash rollback.sh --list       — list available releases, then exit
-#   bash rollback.sh --yes        — skip confirmation prompt (CI/CD use)
-# =============================================================================
+# ExpenseFlow — code rollback for the flat deployment.
+#
+# Usage: sudo bash deployment/rollback.sh [--list] [--to <sha>] [--yes] [--skip-system-checks] [--no-http-health]
+#   (no --to)  redeploy the commit that was live BEFORE the last successful deploy (from the deploy history).
+#
+# It re-runs the exact same pipeline as deploy.sh (same lock, same checks, maintenance rules, composer, caches,
+# reload, workers, health check) for an older commit, so a rollback is as safe as a deploy.
+# LIMITS (flat layout, be aware): (1) not atomic — with composer/migration changes the app is briefly in
+# maintenance mode; (2) database migrations are NEVER reverted: if the deploy you are undoing added migrations,
+# confirm the older code is compatible with the current schema, or restore the pre-deploy DB backup.
+# Nothing is deleted. History: /var/log/expenseflow-deploy/history.tsv
 set -Eeuo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib.sh
+source "$SCRIPT_DIR/lib.sh"
 
-# ── Colour helpers ─────────────────────────────────────────────────────────────
-RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
-BLUE='\033[0;34m'; CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
-_ts()      { date '+%Y-%m-%d %H:%M:%S'; }
-log_info() { echo -e "${BLUE}$(_ts) [INFO]${NC}    $*"; }
-log_ok()   { echo -e "${GREEN}$(_ts) [SUCCESS]${NC} $*"; }
-log_warn() { echo -e "${YELLOW}$(_ts) [WARN]${NC}    $*" >&2; }
-log_err()  { echo -e "${RED}$(_ts) [ERROR]${NC}   $*" >&2; }
-die()      { log_err "$*"; exit 1; }
-step()     { echo -e "\n${CYAN}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}";
-             echo -e "${CYAN}${BOLD}  ▶  $*${NC}";
-             echo -e "${CYAN}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"; }
-
-safe_sudo() { if [[ $EUID -eq 0 ]]; then "$@"; else sudo "$@"; fi; }
-
-# ── Parse args ────────────────────────────────────────────────────────────────
-RELEASE_N=1       # 1 = previous, 2 = one before that …
-LIST_ONLY=0
-AUTO_YES=0
-for _a in "$@"; do
-    case "${_a}" in
-        --release=*) RELEASE_N="${_a#--release=}" ;;
-        --list)      LIST_ONLY=1 ;;
-        --yes|-y)    AUTO_YES=1 ;;
-        *) die "Unknown arg: ${_a}. Usage: bash rollback.sh [--release=N] [--list] [--yes]" ;;
+TO=""; LIST=0; YES=0; PASS=()
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --list) LIST=1; shift ;;
+        --to)   TO="${2:?--to needs a commit SHA}"; shift 2 ;;
+        --yes|-y) YES=1; shift ;;
+        --skip-system-checks|--no-http-health) PASS+=("$1"); shift ;;
+        -h|--help) sed -n 2,12p "${BASH_SOURCE[0]}"; exit 0 ;;
+        *) echo "Unknown argument: $1" >&2; exit 2 ;;
     esac
 done
+export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0="$EF_APP_DIR"
+ignore_job_control_signals   # inherited by the deploy.sh we exec below: no Ctrl+Z window even during the prompt
+if [[ $EUID -ne 0 && "${EF_ALLOW_NONROOT:-0}" != "1" ]]; then echo "Run as root: sudo bash deployment/rollback.sh" >&2; exit 1; fi
 
-# ── Detect paths ──────────────────────────────────────────────────────────────
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-APP_DIR="$(dirname "${SCRIPT_DIR}")"
-
-# Verify we found the app dir (has an artisan or the releases dir)
-if [[ ! -d "${APP_DIR}" ]]; then
-    # Fallback: well-known server paths
-    for d in /var/www/expenseflow /var/www/akshathayexpense; do
-        [[ -d "${d}" ]] && APP_DIR="${d}" && break
-    done
-fi
-
-RELEASES_DIR="${APP_DIR}/releases"
-SHARED_DIR="${APP_DIR}/shared"
-CURRENT_LINK="${APP_DIR}/current"
-DEPLOY_LOG_DIR="${APP_DIR}/deploy_logs"
-
-PHP_BIN=""
-for _b in php8.3 php8.2 php8.1 php; do
-    command -v "${_b}" &>/dev/null && PHP_BIN="${_b}" && break
-done
-[[ -z "${PHP_BIN}" ]] && die "PHP not found — cannot run artisan"
-
-ARTISAN="${PHP_BIN} ${CURRENT_LINK}/artisan"
-
-# ── Collect available releases ────────────────────────────────────────────────
-mapfile -t ALL_RELEASES < <(ls -1dt "${RELEASES_DIR}"/*/  2>/dev/null | sed 's|/$||')
-
-if [[ ${#ALL_RELEASES[@]} -eq 0 ]]; then
-    die "No releases found in ${RELEASES_DIR}"
-fi
-
-CURRENT_REAL=$(readlink -f "${CURRENT_LINK}" 2>/dev/null || echo "none")
-
-# ── --list ────────────────────────────────────────────────────────────────────
-if [[ ${LIST_ONLY} -eq 1 ]]; then
-    echo ""
-    echo -e "${BOLD}Available releases (newest first):${NC}"
-    echo ""
-    for i in "${!ALL_RELEASES[@]}"; do
-        rel="${ALL_RELEASES[$i]}"
-        rel_name="$(basename "${rel}")"
-        marker="  "
-        label=""
-        if [[ "${rel}" == "${CURRENT_REAL}" ]]; then
-            marker="${GREEN}→${NC}"
-            label=" ${GREEN}(current)${NC}"
-        elif [[ $i -eq 1 ]]; then
-            label=" ${YELLOW}(rollback target)${NC}"
-        fi
-        # Show commit if release.json exists
-        commit=""
-        if [[ -f "${rel}/release.json" ]]; then
-            commit=$(python3 -c "import json; d=json.load(open('${rel}/release.json')); print(d.get('commit','')[:12])" 2>/dev/null || true)
-            [[ -n "${commit}" ]] && commit=" ${CYAN}${commit}${NC}"
-        fi
-        # Show failed flag
-        failed=""
-        [[ -f "${rel}/.deploy_failed" ]] && failed=" ${RED}[FAILED]${NC}"
-        echo -e "  ${marker} [${i}] ${rel_name}${commit}${label}${failed}"
-    done
-    echo ""
+CUR="$(git -C "$EF_APP_DIR" rev-parse HEAD)"
+if [[ $LIST -eq 1 ]]; then
+    echo "Current HEAD: ${CUR:0:7}"
+    echo "Deploy history (newest last): date | from | to | branch | user | kind"
+    if [[ -r "$HISTORY_FILE" ]]; then tail -n 15 "$HISTORY_FILE" | awk -F'\t' '{printf "  %s | %.7s | %.7s | %s | %s | %s\n",$1,$2,$3,$4,$5,$6}'; else echo "  (no history yet)"; fi
+    echo "Recent commits on this tree:"; git -C "$EF_APP_DIR" log --oneline -n 8 | sed 's/^/  /'
     exit 0
 fi
 
-# ── Identify target release ───────────────────────────────────────────────────
-# ALL_RELEASES[0] is current (or newest). We want index = RELEASE_N.
-TARGET_IDX="${RELEASE_N}"
-if [[ ${TARGET_IDX} -ge ${#ALL_RELEASES[@]} ]]; then
-    die "Not enough releases to roll back ${RELEASE_N} step(s). Only ${#ALL_RELEASES[@]} release(s) exist. Run: bash rollback.sh --list"
+if [[ -z "$TO" ]]; then
+    [[ -r "$HISTORY_FILE" ]] || die "No deploy history at $HISTORY_FILE — pass --to <sha> explicitly (see --list)"
+    # last successful record whose destination is the current HEAD -> its source is the commit to restore
+    TO="$(awk -F'\t' -v cur="$CUR" '$3==cur {p=$2} END{print p}' "$HISTORY_FILE")"
+    [[ -n "$TO" ]] || die "History has no record that led to the current HEAD ${CUR:0:7} — pass --to <sha>"
 fi
+TO_FULL="$(git -C "$EF_APP_DIR" rev-parse --verify "$TO^{commit}" 2>/dev/null)" || die "Commit $TO is not in the local repository"
+[[ "$TO_FULL" != "$CUR" ]] || die "Target ${TO_FULL:0:7} is already the current HEAD"
 
-TARGET_RELEASE="${ALL_RELEASES[${TARGET_IDX}]}"
-TARGET_NAME="$(basename "${TARGET_RELEASE}")"
-
-if [[ "${TARGET_RELEASE}" == "${CURRENT_REAL}" ]]; then
-    die "Target release is already current (${TARGET_NAME}). Nothing to do."
+echo "Current : ${CUR:0:7}  $(git -C "$EF_APP_DIR" log -1 --format=%s "$CUR" | cut -c1-70)"
+echo "Rollback: ${TO_FULL:0:7}  $(git -C "$EF_APP_DIR" log -1 --format=%s "$TO_FULL" | cut -c1-70)"
+if [[ $YES -ne 1 ]]; then
+    [[ -t 0 ]] || die "Not a terminal: pass --yes to confirm non-interactively"
+    read -r -p "Roll back code to ${TO_FULL:0:7}? Database migrations are NOT reverted. [y/N] " ans
+    [[ "$ans" == "y" || "$ans" == "Y" ]] || { echo "Aborted."; exit 1; }
 fi
-
-if [[ -f "${TARGET_RELEASE}/.deploy_failed" ]]; then
-    log_warn "Target release ${TARGET_NAME} was marked as a FAILED deploy."
-    [[ ${AUTO_YES} -eq 0 ]] && read -rp "Roll back to a failed release anyway? [y/N] " _confirm
-    [[ ${AUTO_YES} -eq 0 && "${_confirm:-n}" != "y" ]] && { log_info "Rollback cancelled."; exit 0; }
-fi
-
-# ── Confirmation ──────────────────────────────────────────────────────────────
-echo ""
-echo -e "${BOLD}Rollback plan:${NC}"
-echo -e "  Current:  ${CYAN}$(basename "${CURRENT_REAL}")${NC}"
-echo -e "  Target:   ${YELLOW}${TARGET_NAME}${NC}"
-echo ""
-
-if [[ ${AUTO_YES} -eq 0 ]]; then
-    read -rp "Roll back to ${TARGET_NAME}? [y/N] " _confirm
-    [[ "${_confirm:-n}" != "y" ]] && { log_info "Rollback cancelled."; exit 0; }
-fi
-
-# ── Tee to rollback log ───────────────────────────────────────────────────────
-ROLLBACK_TIMESTAMP=$(date +%Y%m%d%H%M%S)
-mkdir -p "${DEPLOY_LOG_DIR}" 2>/dev/null || true
-ROLLBACK_LOG="${DEPLOY_LOG_DIR}/rollback_${ROLLBACK_TIMESTAMP}.log"
-exec > >(tee -a "${ROLLBACK_LOG}") 2>&1
-log_info "Rollback log: ${ROLLBACK_LOG}"
-
-# ── Put app in maintenance ────────────────────────────────────────────────────
-step "Enabling maintenance mode"
-${ARTISAN} down --render="errors.503" --retry=10 2>/dev/null \
-    || log_warn "Could not enable maintenance mode — proceeding anyway"
-
-# ── Atomic symlink switch ─────────────────────────────────────────────────────
-step "Switching symlink → ${TARGET_NAME}"
-ln -sfn "${TARGET_RELEASE}" "${CURRENT_LINK}"
-log_ok "Symlink updated: current → ${TARGET_NAME}"
-
-# ── Clear stale caches (critical — old config might reference new release paths) ──
-step "Clearing and rebuilding caches on rolled-back release"
-NEW_ARTISAN="${PHP_BIN} ${CURRENT_LINK}/artisan"
-
-${NEW_ARTISAN} optimize:clear   && log_ok "All caches cleared"
-${NEW_ARTISAN} config:cache     && log_ok "Config cached"
-${NEW_ARTISAN} route:cache      && log_ok "Routes cached"
-${NEW_ARTISAN} view:cache       && log_ok "Views cached"
-${NEW_ARTISAN} event:cache      && log_ok "Events cached"
-
-# ── Reload services ───────────────────────────────────────────────────────────
-step "Reloading services"
-# PHP-FPM
-for _svc in php8.3-fpm php8.2-fpm php8.1-fpm php-fpm; do
-    if systemctl is-active --quiet "${_svc}" 2>/dev/null; then
-        safe_sudo systemctl reload "${_svc}" && log_ok "php-fpm reloaded (${_svc})" && break
-    fi
-done
-
-# Nginx
-if nginx -t -q 2>/dev/null; then
-    safe_sudo systemctl reload nginx 2>/dev/null && log_ok "nginx reloaded" || log_warn "nginx reload failed"
-fi
-
-# Queue workers
-if command -v supervisorctl &>/dev/null; then
-    # Signal workers to pick up new artisan path
-    ${NEW_ARTISAN} queue:restart 2>/dev/null && log_ok "Queue workers signalled to restart" || true
-    safe_sudo supervisorctl restart expenseflow: 2>/dev/null \
-        || safe_sudo supervisorctl restart expenseflow-worker: 2>/dev/null \
-        || log_warn "Could not restart supervisor workers — run: sudo supervisorctl restart expenseflow:"
-fi
-
-# ── Bring app back up ─────────────────────────────────────────────────────────
-step "Bringing application online"
-${NEW_ARTISAN} up
-log_ok "Application online"
-
-# ── Quick health check ────────────────────────────────────────────────────────
-step "Quick health verification"
-APP_URL=$(grep -E '^APP_URL=' "${SHARED_DIR}/.env" 2>/dev/null | cut -d= -f2 | tr -d '"' | tr -d "'" | head -1 || true)
-if [[ -n "${APP_URL}" ]] && command -v curl &>/dev/null; then
-    HTTP_CODE=$(curl -sL -o /dev/null -w "%{http_code}" --max-time 15 "${APP_URL}" 2>/dev/null || echo "000")
-    if [[ "${HTTP_CODE}" == "200" || "${HTTP_CODE}" == "302" || "${HTTP_CODE}" == "301" ]]; then
-        log_ok "HTTP ${HTTP_CODE} — app responding at ${APP_URL}"
-    else
-        log_warn "HTTP ${HTTP_CODE} — app may not be serving correctly (${APP_URL})"
-    fi
-fi
-
-# ── Log entry ────────────────────────────────────────────────────────────────
-_HISTORY_FILE="${SHARED_DIR}/storage/logs/deployments.log"
-mkdir -p "$(dirname "${_HISTORY_FILE}")" 2>/dev/null || true
-printf '%s | %-22s | %-20s | %s | %-12s | %-12s | %4ds\n' \
-    "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "rollback" \
-    "rollback_${ROLLBACK_TIMESTAMP}" \
-    "$(basename "${TARGET_RELEASE}")" "rollback" "$(whoami 2>/dev/null)" "0" \
-    >> "${_HISTORY_FILE}" 2>/dev/null || true
-
-# ── Summary ───────────────────────────────────────────────────────────────────
-echo ""
-echo -e "${GREEN}${BOLD}╔══════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}${BOLD}║     ROLLBACK SUCCESSFUL ✓                    ║${NC}"
-echo -e "${GREEN}${BOLD}╚══════════════════════════════════════════════╝${NC}"
-echo ""
-echo -e "  ${BOLD}Was:${NC}   $(basename "${CURRENT_REAL}")"
-echo -e "  ${BOLD}Now:${NC}   ${TARGET_NAME}"
-echo -e "  ${BOLD}Log:${NC}   ${ROLLBACK_LOG}"
-echo ""
-echo -e "  ${YELLOW}NOTE: Database migrations are NOT reversed automatically.${NC}"
-echo -e "  If the rolled-back release expects an older schema, apply a"
-echo -e "  reverse migration manually before confirming the rollback is stable."
-echo ""
+exec bash "$SCRIPT_DIR/deploy.sh" --commit "$TO_FULL" --force --rollback-mode "${PASS[@]}"
