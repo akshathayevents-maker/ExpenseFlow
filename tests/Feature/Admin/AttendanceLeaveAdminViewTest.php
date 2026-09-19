@@ -62,24 +62,35 @@ test('a present record dated today is reflected in the current months summary co
     // timezone). That instant comparison could make "today" look earlier
     // than the start of its own calendar month, wrongly emptying the
     // entire month's history — even though the day itself has real data.
-    $admin = User::factory()->create(['role' => 'admin']);
-    $present = User::factory()->create(['role' => 'employee', 'is_active' => true]);
+    // Deterministic clock: this test asserts not_marked === 0, which is only
+    // true when today is the 1st of the month (no earlier working days can
+    // be unmarked). Freeze "now" to the 1st, mid-morning IST — the UTC date
+    // is the same day, so the UTC-built month below and the IST-anchored
+    // service "today" agree. Always restored, so no other test is affected.
+    \Carbon\Carbon::setTestNow(\Carbon\Carbon::parse('2026-09-01 10:00:00', 'Asia/Kolkata'));
 
-    EmployeeAttendance::create([
-        'user_id' => $present->id, 'attendance_date' => alvToday()->toDateString(),
-        'status' => 'present', 'marked_by' => $present->id, 'marked_at' => now(), 'source' => 'self',
-    ]);
+    try {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $present = User::factory()->create(['role' => 'employee', 'is_active' => true]);
 
-    $service = app(EmployeeAttendanceService::class);
-    $month = today()->startOfMonth(); // mirrors AttendanceController::resolveMonth()'s default, built in the app's default timezone
-    $summary = $service->getMonthlySummary($present->fresh(), $month->copy());
+        EmployeeAttendance::create([
+            'user_id' => $present->id, 'attendance_date' => alvToday()->toDateString(),
+            'status' => 'present', 'marked_by' => $present->id, 'marked_at' => now(), 'source' => 'self',
+        ]);
 
-    expect($summary['present'])->toBe(1);
-    expect($summary['not_marked'])->toBe(0);
-    expect($summary['payable_days'])->toBeGreaterThanOrEqual(1.0);
+        $service = app(EmployeeAttendanceService::class);
+        $month = today()->startOfMonth(); // mirrors AttendanceController::resolveMonth()'s default, built in the app's default timezone
+        $summary = $service->getMonthlySummary($present->fresh(), $month->copy());
 
-    $response = $this->actingAs($admin->fresh())->get(route('admin.attendance.index'));
-    $response->assertOk();
+        expect($summary['present'])->toBe(1);
+        expect($summary['not_marked'])->toBe(0);
+        expect($summary['payable_days'])->toBeGreaterThanOrEqual(1.0);
+
+        $response = $this->actingAs($admin->fresh())->get(route('admin.attendance.index'));
+        $response->assertOk();
+    } finally {
+        \Carbon\Carbon::setTestNow();
+    }
 });
 
 test('month navigation changes the attendance summary data shown', function () {
