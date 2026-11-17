@@ -69,6 +69,16 @@ class HallBooking extends Model
     }
 
     /** Structured veg/non-veg (or any) food split rows — only meaningful when uses_mixed_food is true. */
+    public function menuItems(): HasMany
+    {
+        return $this->hasMany(HallBookingMenuItem::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    public function materialRequests(): HasMany
+    {
+        return $this->hasMany(MaterialRequest::class)->latest('id');
+    }
+
     public function foodSplits(): HasMany
     {
         return $this->hasMany(HallBookingFoodSplit::class)->orderBy('sort_order');

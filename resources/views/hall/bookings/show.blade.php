@@ -785,6 +785,8 @@
         </a>
     </div>
 
+    @include('hall.bookings._materials')
+
     {{-- ── Event Details card (merged) ────────────────────────────── --}}
     <div class="bs-card">
         <div class="bs-card-hdr">

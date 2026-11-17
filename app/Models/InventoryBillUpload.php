@@ -13,7 +13,7 @@ class InventoryBillUpload extends Model
         'subtotal', 'tax_amount', 'total_amount',
         'original_filename', 'stored_path', 'file_type', 'file_hash',
         'extracted_json', 'ocr_provider', 'status', 'notes',
-        'uploaded_by', 'reviewed_by',
+        'uploaded_by', 'reviewed_by', 'purchase_id',
     ];
 
     protected $casts = [
@@ -31,7 +31,8 @@ class InventoryBillUpload extends Model
     public function isImage(): bool  { return $this->file_type === 'image'; }
     public function isPdf(): bool    { return $this->file_type === 'pdf'; }
     public function isImported(): bool { return $this->status === 'imported'; }
-    public function canImport(): bool  { return in_array($this->status, ['review_pending', 'extracted']); }
+    public function canImport(): bool  { return in_array($this->status, ['review_pending', 'extracted']) && ! $this->purchase_id; }
+    public function purchase(): BelongsTo { return $this->belongsTo(Purchase::class); }
     public function canDelete(): bool  { return $this->status !== 'imported'; }
 
     public static function statuses(): array
@@ -42,6 +43,7 @@ class InventoryBillUpload extends Model
             'extracted'      => 'primary',
             'review_pending' => 'warning',
             'imported'       => 'success',
+            'converted'      => 'success',
             'failed'         => 'danger',
         ];
     }
@@ -53,7 +55,8 @@ class InventoryBillUpload extends Model
             'processing'     => 'Processing',
             'extracted'      => 'Extracted',
             'review_pending' => 'Pending Review',
-            'imported'       => 'Imported',
+            'imported'       => 'Imported (legacy)',
+            'converted'      => 'Purchase created',
             'failed'         => 'Failed',
         ];
     }

@@ -135,6 +135,7 @@
                     </div>
                     @endif
                 </div>
+                @include('meal-register.entries._materials', ['mealType' => $item->meal_type, 'guests' => $item->planned_count ?? $item->actual_count])
             </div>
             @endforeach
         </div>

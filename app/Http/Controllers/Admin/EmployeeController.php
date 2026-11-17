@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\StoreEmployeeRequest;
 use App\Http\Requests\Admin\UpdateEmployeeRequest;
 use App\Models\LeavePolicyTemplate;
 use App\Models\User;
+use App\Services\AuditLogService;
 use App\Services\LeavePolicyAssignmentService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -149,8 +150,16 @@ class EmployeeController extends Controller
         // role/is_active are not in $fillable — explicit assignment for authorized admin action
         $employee->role      = $data['role'];
         $employee->is_active = (bool) ($data['is_active'] ?? $employee->is_active);
+        // Central-store handover / goods receipt capability (not mass-assignable).
+        $wasStorekeeper = (bool) $employee->is_storekeeper;
+        $employee->is_storekeeper = $request->boolean('is_storekeeper');
 
         $employee->save();
+
+        if ($wasStorekeeper !== (bool) $employee->is_storekeeper) {
+            app(AuditLogService::class)->log('storekeeper_changed', 'user', $employee->id, $employee->name,
+                ['is_storekeeper' => $wasStorekeeper], ['is_storekeeper' => (bool) $employee->is_storekeeper]);
+        }
 
         return redirect()->route('admin.employees.index')
             ->with('success', 'Employee updated successfully.');

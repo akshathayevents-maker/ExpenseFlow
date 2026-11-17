@@ -11,10 +11,12 @@ class InventoryTransactionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'type'      => 'required|in:purchase,usage,adjustment,wastage,transfer',
-            'quantity'  => 'required|numeric|min:0.001',
-            'unit_cost' => 'nullable|numeric|min:0',
-            'notes'     => 'nullable|string|max:500',
+            // Purchases enter stock only through goods receipt; issues only through
+            // material requests. This form is for counts, corrections and store wastage.
+            'type' => 'required|in:adjustment,correction,wastage',
+            'direction' => 'required_if:type,correction|nullable|in:in,out',
+            'quantity' => 'required|numeric|min:0|max:9999999',
+            'notes' => 'required|string|min:3|max:500',
         ];
     }
 }

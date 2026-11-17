@@ -8,6 +8,7 @@ use App\Models\InventoryBillUpload;
 use App\Models\InventoryCategory;
 use App\Models\InventoryItem;
 use App\Services\AuditLogService;
+use App\Services\Inventory\ItemMatchingService;
 use App\Services\InvoiceOCRService;
 use App\Services\InventoryService;
 use Illuminate\Http\RedirectResponse;
@@ -103,6 +104,7 @@ class InventoryBillController extends Controller
                 InventoryBillItem::create([
                     'bill_upload_id' => $bill->id,
                     'item_name'      => $row['item_name'],
+                    'original_item_name' => $row['item_name'],
                     'quantity'       => $row['quantity']    ?? 0,
                     'unit'           => $row['unit']        ?? null,
                     'unit_price'     => $row['unit_price']  ?? 0,
@@ -131,23 +133,24 @@ class InventoryBillController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'sku', 'unit', 'inventory_category_id']);
 
-        // Auto-match: for each bill item without a linked inventory item, find closest match by name
+        // Dictionary match (exact / alias / supplier alias / fuzzy) with confidence.
+        $matcher = app(ItemMatchingService::class);
         $matchMap = [];
+        $matchInfo = [];
         foreach ($bill->items as $item) {
             if ($item->inventory_item_id) {
                 $matchMap[$item->id] = $item->inventory_item_id;
                 continue;
             }
-            $match = InventoryItem::where('name', 'like', '%' . $item->item_name . '%')
-                ->orWhere('name', 'like', '%' . strtok($item->item_name, ' ') . '%')
-                ->first();
-            $matchMap[$item->id] = $match?->id;
+            $best = $matcher->best($item->item_name);
+            $matchInfo[$item->id] = $best;
+            $matchMap[$item->id] = $matcher->isAutoAcceptable($best) ? $best['item_id'] : null;
         }
 
         $duplicate = $bill->duplicateCheck();
 
         return view('admin.inventory.bills.review', compact(
-            'bill', 'categories', 'inventoryItems', 'matchMap', 'duplicate'
+            'bill', 'categories', 'inventoryItems', 'matchMap', 'matchInfo', 'duplicate'
         ));
     }
 
@@ -155,8 +158,8 @@ class InventoryBillController extends Controller
 
     public function update(Request $request, InventoryBillUpload $bill): RedirectResponse
     {
-        if ($bill->isImported()) {
-            return back()->with('error', 'Cannot edit an already-imported bill.');
+        if ($bill->isImported() || $bill->purchase_id) {
+            return back()->with('error', 'This bill is already linked to stock or a purchase.');
         }
 
         $request->validate([
@@ -219,76 +222,21 @@ class InventoryBillController extends Controller
 
     public function import(InventoryBillUpload $bill): RedirectResponse
     {
-        if ($bill->isImported()) {
-            return back()->with('error', 'Already imported.');
+        // Invoice uploads never add stock directly any more: the reviewed bill
+        // becomes a purchase (approval) and stock moves only on goods receipt.
+        if ($bill->isImported() || $bill->purchase_id) {
+            return back()->with('error', 'This bill is already linked to stock or a purchase.');
         }
 
-        if ($bill->items->isEmpty()) {
-            return back()->with('error', 'No items to import. Add items first.');
-        }
-
-        $imported = 0;
-        $created  = 0;
-
-        $authUser = auth()->user();
-
-        DB::transaction(function () use ($bill, $authUser, &$imported, &$created) {
-            foreach ($bill->items()->where('imported', false)->get() as $row) {
-                $inventoryItemId = $row->inventory_item_id;
-
-                // Create new inventory item if not linked
-                if (! $inventoryItemId) {
-                    $newItem = InventoryItem::create([
-                        'name'                  => $row->item_name,
-                        'sku'                   => $row->sku ?? null,
-                        'inventory_category_id' => $row->category_id ?? InventoryCategory::first()?->id,
-                        'unit'                  => $this->normaliseUnit($row->unit),
-                        'minimum_stock'         => 0,
-                        'average_cost'          => $row->unit_price ?: null,
-                        'status'                => 'active',
-                    ]);
-                    $inventoryItemId = $newItem->id;
-                    $created++;
-                }
-
-                // Add stock via InventoryService
-                $item = InventoryItem::find($inventoryItemId);
-                if ($item) {
-                    $this->inventory->addStock(
-                        item:          $item,
-                        quantity:      (float) $row->quantity,
-                        notes:         "Imported from bill #{$bill->invoice_number} — {$bill->vendor_name}",
-                        user:          $authUser,
-                        unitCost:      (float) $row->unit_price ?: null,
-                        type:          'purchase',
-                        referenceType: 'inventory_bill_upload',
-                        referenceId:   $bill->id,
-                    );
-
-                    $row->update(['imported' => true, 'inventory_item_id' => $inventoryItemId]);
-                    $imported++;
-                }
-            }
-
-            $bill->update([
-                'status'      => 'imported',
-                'reviewed_by' => auth()->id(),
-            ]);
-        });
-
-        $this->audit->log('imported', 'inventory_bill', $bill->id,
-            "{$bill->vendor_name} — {$imported} items imported, {$created} new items created");
-
-        return redirect()->route('admin.inventory.bills.show', $bill)
-            ->with('success', "{$imported} item(s) imported to inventory. {$created} new item(s) created.");
+        return redirect()->route('inventory.purchases.create', ['bill' => $bill->id]);
     }
 
     // ─── Re-run OCR ───────────────────────────────────────────────────────────
 
     public function rerunOcr(InventoryBillUpload $bill): RedirectResponse
     {
-        if ($bill->isImported()) {
-            return back()->with('error', 'Cannot re-run OCR on an already-imported bill.');
+        if ($bill->isImported() || $bill->purchase_id) {
+            return back()->with('error', 'Cannot re-run OCR on a bill that is linked to stock or a purchase.');
         }
 
         $bill->update(['status' => 'processing']);
@@ -315,6 +263,7 @@ class InventoryBillController extends Controller
                 InventoryBillItem::create([
                     'bill_upload_id' => $bill->id,
                     'item_name'      => $row['item_name'],
+                    'original_item_name' => $row['item_name'],
                     'quantity'       => $row['quantity']    ?? 0,
                     'unit'           => $row['unit']        ?? null,
                     'unit_price'     => $row['unit_price']  ?? 0,
@@ -353,7 +302,7 @@ class InventoryBillController extends Controller
 
     public function destroy(InventoryBillUpload $bill): RedirectResponse
     {
-        if (! $bill->canDelete()) {
+        if (! $bill->canDelete() || $bill->purchase_id) {
             return back()->with('error', 'Imported bills cannot be deleted.');
         }
 

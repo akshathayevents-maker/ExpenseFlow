@@ -10,7 +10,7 @@ class RecipeIngredient extends Model
     protected $fillable = [
         'recipe_id', 'inventory_item_id',
         'ingredient_name', 'quantity_per_batch', 'quantity_note',
-        'unit', 'prep_note', 'is_optional', 'sort_order',
+        'unit', 'prep_note', 'is_optional', 'sort_order', 'quantity_per_guest',
     ];
 
     protected $casts = [

@@ -64,3 +64,25 @@ function hardenedLeaveRequest(array $attrs): \App\Models\LeaveRequest
 
     return $leaveRequest;
 }
+
+// ── Kitchen inventory control fixtures ────────────────────────────────────
+function icUser(string $role = 'employee', bool $storekeeper = false): \App\Models\User
+{
+    $u = \App\Models\User::factory()->create();
+    $u->role = $role;
+    $u->is_active = true;
+    $u->is_storekeeper = $storekeeper;
+    $u->save();
+
+    return $u;
+}
+
+function icItem(string $name, string $unit = 'kg', float $stock = 0, float $min = 0): \App\Models\InventoryItem
+{
+    $cat = \App\Models\InventoryCategory::first() ?? \App\Models\InventoryCategory::create(['name' => 'Groceries', 'is_active' => true]);
+
+    return \App\Models\InventoryItem::create([
+        'name' => $name, 'inventory_category_id' => $cat->id, 'unit' => $unit,
+        'current_stock' => $stock, 'minimum_stock' => $min, 'status' => 'active',
+    ]);
+}

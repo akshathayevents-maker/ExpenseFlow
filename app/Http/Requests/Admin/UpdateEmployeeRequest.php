@@ -23,6 +23,7 @@ class UpdateEmployeeRequest extends FormRequest
             'email'                  => ['required', 'email', 'max:255', "unique:users,email,{$userId}"],
             'password'               => ['nullable', Password::defaults()],
             'role'                   => ['required', 'in:admin,manager,employee'],
+            'is_storekeeper' => ['nullable', 'boolean'],
             'is_active'              => ['boolean'],
             'employment_start_date'  => ['nullable', 'date'],
             'employment_end_date'    => ['nullable', 'date'],

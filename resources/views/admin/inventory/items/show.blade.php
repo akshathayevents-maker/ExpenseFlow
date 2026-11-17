@@ -101,28 +101,34 @@
         <x-ds.card title="Record Transaction">
             <form method="POST" action="{{ route('admin.inventory.items.transact', $item) }}">
                 @csrf
+                <p style="font-size:.8rem;color:var(--ef-faint);margin:0 0 12px">
+                    Purchases add stock through <a href="{{ route('inventory.purchases.index') }}">goods receipt</a>;
+                    kitchen issues go through <a href="{{ route('inventory.material-requests.index') }}">material requests</a>.
+                </p>
                 <div style="margin-bottom:12px">
                     <label class="ef-label">Type <span style="color:var(--ef-danger)">*</span></label>
                     <select name="type" class="ef-select" required>
                         <option value="">Select…</option>
-                        <option value="purchase">Purchase (add stock)</option>
-                        <option value="usage">Usage (deduct)</option>
-                        <option value="wastage">Wastage (deduct)</option>
-                        <option value="transfer">Transfer (deduct)</option>
-                        <option value="adjustment">Adjustment (set new qty)</option>
+                        <option value="adjustment">Physical count (set counted qty)</option>
+                        <option value="correction">Correction (+ / −)</option>
+                        <option value="wastage">Store wastage / spoilage (deduct)</option>
+                    </select>
+                </div>
+                <div style="margin-bottom:12px">
+                    <label class="ef-label">Direction (corrections only)</label>
+                    <select name="direction" class="ef-select">
+                        <option value="">—</option>
+                        <option value="in">Add (+)</option>
+                        <option value="out">Remove (−)</option>
                     </select>
                 </div>
                 <div style="margin-bottom:12px">
                     <label class="ef-label">Quantity ({{ $item->unit }}) <span style="color:var(--ef-danger)">*</span></label>
-                    <input type="number" name="quantity" class="ef-input" min="0.001" step="0.001" required>
-                </div>
-                <div style="margin-bottom:12px">
-                    <label class="ef-label">Unit Cost (₹)</label>
-                    <input type="number" name="unit_cost" class="ef-input" min="0" step="0.01" placeholder="For purchases">
+                    <input type="number" name="quantity" class="ef-input" min="0" step="0.001" required>
                 </div>
                 <div style="margin-bottom:16px">
-                    <label class="ef-label">Notes</label>
-                    <textarea name="notes" class="ef-textarea" rows="2" style="min-height:60px"></textarea>
+                    <label class="ef-label">Reason <span style="color:var(--ef-danger)">*</span></label>
+                    <textarea name="notes" class="ef-textarea" rows="2" style="min-height:60px" required minlength="3"></textarea>
                 </div>
                 <button type="submit" class="ef-btn ef-btn-dark" style="width:100%;justify-content:center">
                     Record Transaction
@@ -139,8 +145,8 @@
                 <form method="GET" style="display:flex;gap:6px;align-items:center">
                     <select name="type" class="ef-select" style="min-height:34px;padding:5px 10px;font-size:.84rem;min-width:120px">
                         <option value="">All Types</option>
-                        @foreach(['purchase','usage','adjustment','wastage','transfer'] as $t)
-                            <option value="{{ $t }}" {{ request('type') === $t ? 'selected' : '' }}>{{ ucfirst($t) }}</option>
+                        @foreach(\App\Models\InventoryTransaction::typeLabels() as $t => $tLabel)
+                            <option value="{{ $t }}" {{ request('type') === $t ? 'selected' : '' }}>{{ $tLabel }}</option>
                         @endforeach
                     </select>
                     <button class="ef-btn" style="height:34px;padding:0 12px;font-size:.84rem">Filter</button>
@@ -168,14 +174,14 @@
                             <div style="font-size:.86rem;font-weight:600">{{ $txn->created_at->format('d M Y') }}</div>
                             <div style="color:var(--ef-faint);font-size:.76rem">{{ $txn->created_at->format('h:i A') }}</div>
                         </td>
-                        <td><span class="ef-inv-txn-type --{{ $txn->type }}">{{ $txn->type }}</span></td>
-                        <td style="color:var(--ef-faint);font-size:.84rem">{{ $txn->notes ?? '—' }}</td>
+                        <td><span class="ef-inv-txn-type --{{ $txn->type }}">{{ $txn->typeLabel() }}</span></td>
+                        <td style="color:var(--ef-faint);font-size:.84rem">@if($txn->reference_label)<strong>{{ $txn->reference_label }}</strong><br>@endif{{ $txn->notes ?? '—' }}</td>
                         <td class="r" style="color:var(--ef-faint);font-size:.84rem">{{ $txn->balance_before }}</td>
                         <td class="r" style="font-weight:680">
                             @if($txn->isAddition())
-                                <span style="color:var(--ef-emerald)">+{{ $txn->quantity }}</span>
+                                <span style="color:var(--ef-emerald)">+{{ $txn->quantity + 0 }}</span>
                             @else
-                                <span style="color:var(--ef-danger)">−{{ $txn->quantity }}</span>
+                                <span style="color:var(--ef-danger)">−{{ $txn->quantity + 0 }}</span>
                             @endif
                         </td>
                         <td class="r" style="font-weight:680">{{ $txn->balance_after }}</td>

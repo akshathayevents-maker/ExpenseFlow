@@ -58,7 +58,7 @@
                     <label class="ef-label" for="unit">Unit <span style="color:var(--ef-danger)">*</span></label>
                     <select id="unit" name="unit" class="ef-select @error('unit') --error @enderror" required>
                         <option value="">Select unit…</option>
-                        @foreach(\App\Models\InventoryItem::$units as $val => $label)
+                        @foreach(\App\Models\InventoryItem::units() as $val => $label)
                             <option value="{{ $val }}" {{ old('unit') === $val ? 'selected' : '' }}>{{ $label }}</option>
                         @endforeach
                     </select>

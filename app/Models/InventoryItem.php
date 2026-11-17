@@ -21,11 +21,13 @@ class InventoryItem extends Model
         'average_cost'  => 'float',
     ];
 
-    public static array $units = [
-        'kg' => 'kg', 'gram' => 'gram', 'litre' => 'litre', 'ml' => 'ml',
-        'packet' => 'packet', 'piece' => 'piece', 'box' => 'box',
-        'bundle' => 'bundle', 'cylinder' => 'cylinder', 'dozen' => 'dozen',
-    ];
+    /** Unit code => code (config/inventory.php is the source). */
+    public static function units(): array
+    {
+        $codes = array_keys(config('inventory.units', []));
+
+        return array_combine($codes, $codes);
+    }
 
     public function category(): BelongsTo
     {
@@ -35,6 +37,16 @@ class InventoryItem extends Model
     public function transactions(): HasMany
     {
         return $this->hasMany(InventoryTransaction::class)->latest();
+    }
+
+    public function aliases(): HasMany
+    {
+        return $this->hasMany(InventoryItemAlias::class);
+    }
+
+    public function unitConversions(): HasMany
+    {
+        return $this->hasMany(InventoryUnitConversion::class);
     }
 
     public function stockAlerts(): HasMany

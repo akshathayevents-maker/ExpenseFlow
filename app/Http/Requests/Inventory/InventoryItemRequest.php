@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Inventory;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class InventoryItemRequest extends FormRequest
 {
@@ -19,7 +20,7 @@ class InventoryItemRequest extends FormRequest
             'name'                  => 'required|string|max:255',
             'sku'                   => ['nullable', 'string', 'max:100', $unique],
             'inventory_category_id' => 'required|exists:inventory_categories,id',
-            'unit'                  => 'required|in:kg,gram,litre,ml,packet,piece,box,bundle,cylinder,dozen',
+            'unit' => ['required', Rule::in(array_keys(config('inventory.units')))],
             'minimum_stock'         => 'required|numeric|min:0',
             'maximum_stock'         => 'nullable|numeric|min:0',
             'average_cost'          => 'nullable|numeric|min:0',

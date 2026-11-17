@@ -12,6 +12,7 @@ class InventoryBillItem extends Model
         'item_name', 'sku', 'quantity', 'unit',
         'unit_price', 'tax_percent', 'total',
         'raw_extracted_text', 'imported',
+        'match_confidence', 'match_method', 'original_item_name',
     ];
 
     protected $casts = [

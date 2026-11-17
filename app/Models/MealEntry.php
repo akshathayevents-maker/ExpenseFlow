@@ -22,6 +22,8 @@ class MealEntry extends Model
     public function plannedUpdater(): BelongsTo { return $this->belongsTo(User::class, 'planned_updated_by'); }
     public function actualUpdater(): BelongsTo { return $this->belongsTo(User::class, 'actual_updated_by'); }
 
+    public function materialRequests(): HasMany { return $this->hasMany(MaterialRequest::class)->latest('id'); }
+
     public function totalPlanned(): int { return $this->items->sum(fn($i) => $i->planned_count ?? 0); }
     public function totalActual(): int  { return $this->items->sum(fn($i) => $i->actual_count ?? 0); }
 }

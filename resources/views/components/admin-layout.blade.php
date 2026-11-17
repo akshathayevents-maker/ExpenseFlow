@@ -726,6 +726,7 @@
     $grpMenu      = $adminOpenGroup === 'kitchen';
     $grpMealReg   = $adminOpenGroup === 'meal-reg';
     $grpAccount   = request()->routeIs('notifications.*','profile.*');
+    $grpStore     = request()->routeIs('inventory.*');
     $nc           = $sbUser->hasMany(\App\Models\AppNotification::class)->whereNull('read_at')->count();
 @endphp
 
@@ -1308,6 +1309,45 @@
         </div>
 
     @endif
+
+    {{-- ── Central Store (all roles; actions gated by policies) ──── --}}
+    <button class="sidebar-group-btn {{ $grpStore ? 'has-active' : '' }}"
+            data-bs-toggle="collapse" data-bs-target="#grp-store"
+            aria-controls="grp-store"
+            aria-expanded="{{ $grpStore ? 'true' : 'false' }}">
+        <i class="bi bi-shop sb-grp-icon"></i>
+        <span class="sb-grp-label">Central Store</span>
+        <i class="bi bi-chevron-down sidebar-chevron"></i>
+    </button>
+    <div class="collapse sidebar-group-body {{ $grpStore ? 'show' : '' }}" id="grp-store">
+        <a href="{{ route('inventory.home') }}" class="nav-link {{ request()->routeIs('inventory.home') ? 'active' : '' }}">
+            <i class="bi bi-grid"></i> Store Home
+        </a>
+        <a href="{{ route('inventory.material-requests.create') }}" class="nav-link {{ request()->routeIs('inventory.material-requests.create') ? 'active' : '' }}">
+            <i class="bi bi-basket"></i> Request Materials
+        </a>
+        <a href="{{ route('inventory.material-requests.index') }}" class="nav-link {{ request()->routeIs('inventory.material-requests.*') && ! request()->routeIs('inventory.material-requests.create') ? 'active' : '' }}">
+            <i class="bi bi-list-check"></i> Material Requests
+        </a>
+        <a href="{{ route('inventory.purchases.index') }}" class="nav-link {{ request()->routeIs('inventory.purchases.*') ? 'active' : '' }}">
+            <i class="bi bi-bag-check"></i> Purchases
+        </a>
+        @if($sbUser->isAdmin() || $sbUser->isManager() || $sbUser->isStorekeeper())
+            <a href="{{ route('inventory.stock') }}" class="nav-link {{ request()->routeIs('inventory.stock') ? 'active' : '' }}">
+                <i class="bi bi-boxes"></i> Store Stock
+            </a>
+        @endif
+        @if($sbUser->isAdmin() || $sbUser->isManager())
+            <a href="{{ route('inventory.reports.index') }}" class="nav-link {{ request()->routeIs('inventory.reports.*') ? 'active' : '' }}">
+                <i class="bi bi-shield-check"></i> Loss Control
+            </a>
+        @endif
+        @if($sbUser->isAdmin())
+            <a href="{{ route('inventory.standards.index') }}" class="nav-link {{ request()->routeIs('inventory.standards.*') ? 'active' : '' }}">
+                <i class="bi bi-sliders2"></i> Recipe Standards
+            </a>
+        @endif
+    </div>
 
     {{-- ── Account (all roles) ─────────────────────────────────── --}}
     <div id="grp-account-wrap">

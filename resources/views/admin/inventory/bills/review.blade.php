@@ -64,9 +64,14 @@ if ($confidence !== null) {
             </form>
         @endif
         @if($bill->canImport())
-            <button type="button" class="ef-btn ef-btn-dark" data-bs-toggle="modal" data-bs-target="#importModal">
-                <i class="bi bi-box-arrow-in-down"></i> Import to Inventory
-            </button>
+            <a href="{{ route('inventory.purchases.create', ['bill' => $bill->id]) }}" class="ef-btn ef-btn-dark">
+                <i class="bi bi-grid-3x3-gap"></i> Create purchase from bill
+            </a>
+        @endif
+        @if($bill->purchase_id)
+            <a href="{{ route('inventory.purchases.show', $bill->purchase_id) }}" class="ef-btn ef-btn-dark">
+                <i class="bi bi-receipt"></i> Open purchase
+            </a>
         @endif
         @if($bill->isImported())
             <a href="{{ route('admin.inventory.items.index') }}" class="ef-btn">
@@ -250,6 +255,11 @@ if ($confidence !== null) {
                                             </option>
                                         @endforeach
                                     </select>
+                                    @if(! empty($matchInfo[$row->id]))
+                                        <div style="font-size:.72rem;margin-top:3px;color:{{ ($matchInfo[$row->id]['confidence'] ?? 0) >= 85 ? 'var(--ef-emerald)' : 'var(--ef-amber)' }}">
+                                            Suggested: {{ $matchInfo[$row->id]['name'] }} · {{ $matchInfo[$row->id]['confidence'] }}%
+                                        </div>
+                                    @endif
                                 </td>
                                 <td>
                                     <input type="number" name="items[{{ $idx }}][quantity]"
@@ -388,36 +398,6 @@ if ($confidence !== null) {
 @endif
 
 {{-- Import Confirmation Modal (keep Bootstrap modal — uses BS modal JS) --}}
-<div class="modal fade" id="importModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content" style="border-radius:var(--ef-radius);border:1px solid var(--ef-border)">
-            <div class="modal-header" style="background:var(--ef-emerald);border-radius:var(--ef-radius) var(--ef-radius) 0 0;padding:1rem 1.4rem">
-                <h5 class="modal-title" style="color:#fff;font-size:1rem;font-weight:700">
-                    <i class="bi bi-box-arrow-in-down me-2"></i>Import to Inventory
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" style="padding:1.2rem 1.4rem">
-                <p style="color:var(--ef-ink-2);font-size:.9rem">This will add all <strong>{{ $bill->items->where('imported', false)->count() }}</strong> unimported item(s) to inventory.</p>
-                <ul style="color:var(--ef-faint);font-size:.84rem;margin-bottom:12px;padding-left:1.2rem">
-                    <li>Items matched to existing inventory → stock will be increased.</li>
-                    <li>Items without a match → new inventory items will be created.</li>
-                </ul>
-                <p style="color:var(--ef-faint);font-size:.82rem;margin:0">This action cannot be undone.</p>
-            </div>
-            <div class="modal-footer" style="border-top:1px solid var(--ef-border);padding:.9rem 1.4rem;gap:.5rem">
-                <button type="button" class="ef-btn" data-bs-dismiss="modal">Cancel</button>
-                <form method="POST" action="{{ route('admin.inventory.bills.import', $bill) }}" style="display:inline">
-                    @csrf
-                    <button type="submit" class="ef-btn ef-btn-dark" data-loading-text="Importing…">
-                        <i class="bi bi-box-arrow-in-down"></i> Yes, Import
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
 @push('scripts')
 <script>
 (function () {

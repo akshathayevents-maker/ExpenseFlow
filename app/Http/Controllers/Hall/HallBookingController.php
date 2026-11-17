@@ -7,6 +7,7 @@ use App\Models\BookingPayment;
 use App\Models\Hall;
 use App\Models\HallBooking;
 use App\Models\MealPlan;
+use App\Services\Inventory\ConsumptionService;
 use App\Services\InvoiceCalculationService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
@@ -213,8 +214,11 @@ class HallBookingController extends Controller
 
     public function show(HallBooking $booking): View
     {
-        $booking->load(['hall', 'mealPlan', 'creator', 'meals', 'payments.recorder', 'additionalServices', 'foodSplits']);
-        return view('hall.bookings.show', compact('booking'));
+        $booking->load(['hall', 'mealPlan', 'creator', 'meals', 'payments.recorder', 'additionalServices', 'foodSplits',
+            'menuItems', 'materialRequests.items.item', 'materialRequests.requester']);
+        // Kitchen inventory control: materials used for this event and their cost.
+        $materials = app(ConsumptionService::class)->summarize($booking->materialRequests);
+        return view('hall.bookings.show', compact('booking', 'materials'));
     }
 
     public function invoice(HallBooking $booking): View
@@ -390,6 +394,9 @@ class HallBookingController extends Controller
 
     public function destroy(HallBooking $booking): RedirectResponse
     {
+        if ($booking->materialRequests()->exists()) {
+            return back()->with('error', 'This booking has material requests (stock history). Cancel it instead of deleting.');
+        }
         $booking->delete();
         return redirect()->route('hall.bookings.index')->with('success', 'Booking deleted.');
     }

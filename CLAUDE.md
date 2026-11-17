@@ -22,7 +22,7 @@ There is no Lumen, Livewire, Sanctum, Docker, `event-workflow-app`, JSON API, or
 
 ## Commands
 ```bash
-php artisan test                      # 825 tests as of 2026-09-19, 1 known failure (see PROJECT_KNOWLEDGE §26)
+php artisan test                      # 865 tests as of 2026-11-17, all passing (see PROJECT_KNOWLEDGE §26)
 php artisan test --filter=<Name>
 vendor/bin/pint --test --dirty
 php artisan route:list

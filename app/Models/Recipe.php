@@ -14,12 +14,15 @@ class Recipe extends Model
         'prep_time_minutes', 'cook_time_minutes',
         'yield_per_batch', 'yield_unit',
         'is_active', 'created_by',
+        'version', 'parent_recipe_id', 'superseded_at',
     ];
 
     protected $casts = [
         'yield_per_batch'    => 'float',
         'is_active'          => 'boolean',
         'prep_time_minutes'  => 'integer',
+        'version'            => 'integer',
+        'superseded_at'      => 'datetime',
         'cook_time_minutes'  => 'integer',
     ];
 

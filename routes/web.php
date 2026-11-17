@@ -370,6 +370,8 @@ Route::prefix('hall')->name('hall.')->middleware(['auth', 'verified', 'role.hall
     Route::get('bookings/{booking}/invoice',            [HallBookingController::class, 'invoice'])->name('bookings.invoice');
     Route::post('bookings/{booking}/invoice',           [HallBookingController::class, 'updateInvoiceDetails'])->name('bookings.invoice.update');
     Route::get('bookings/{booking}/invoice/pdf',        [HallBookingController::class, 'downloadPdf'])->name('bookings.invoice.pdf');
+    Route::get('bookings/{booking}/menu',               [\App\Http\Controllers\Hall\HallBookingMenuController::class, 'edit'])->name('bookings.menu.edit');
+    Route::put('bookings/{booking}/menu',               [\App\Http\Controllers\Hall\HallBookingMenuController::class, 'update'])->name('bookings.menu.update');
     Route::post('bookings/{booking}/mark-review',       [HallBookingController::class, 'markReviewRequested'])->name('bookings.mark-review');
 
     // Meal Plans
@@ -491,6 +493,51 @@ Route::get('/pay-login', function (Illuminate\Http\Request $request) {
 
     return redirect()->route('login');
 })->name('payment-request.login-redirect');
+
+// ── Kitchen inventory control (central store) ───────────────────────────────
+// Any authenticated user; object-level rules live in PurchasePolicy /
+// MaterialRequestPolicy (approve = admin, receive/handover = storekeeper).
+Route::prefix('inventory')->name('inventory.')->middleware(['auth', 'verified'])->group(function () {
+    Route::get('/',      [\App\Http\Controllers\Inventory\InventoryHomeController::class, 'index'])->name('home');
+    Route::get('stock',  [\App\Http\Controllers\Inventory\InventoryHomeController::class, 'stock'])->name('stock');
+    Route::get('reports',          [\App\Http\Controllers\Inventory\LossControlController::class, 'index'])->name('reports.index');
+    Route::get('reports/{report}', [\App\Http\Controllers\Inventory\LossControlController::class, 'show'])->where('report', '[a-z\-]+')->name('reports.show');
+    Route::get('standards',          [\App\Http\Controllers\Inventory\RecipeStandardController::class, 'index'])->name('standards.index');
+    Route::get('standards/item',     [\App\Http\Controllers\Inventory\RecipeStandardController::class, 'show'])->name('standards.show');
+    Route::post('standards',         [\App\Http\Controllers\Inventory\RecipeStandardController::class, 'store'])->name('standards.store');
+    Route::post('items/match', [\App\Http\Controllers\Inventory\ItemLookupController::class, 'match'])
+        ->middleware('throttle:60,1')->name('items.match');
+
+    Route::get('purchases',                       [\App\Http\Controllers\Inventory\PurchaseController::class, 'index'])->name('purchases.index');
+    Route::get('purchases/create',                [\App\Http\Controllers\Inventory\PurchaseController::class, 'create'])->name('purchases.create');
+    Route::post('purchases',                      [\App\Http\Controllers\Inventory\PurchaseController::class, 'store'])->name('purchases.store');
+    Route::get('purchases/{purchase}',            [\App\Http\Controllers\Inventory\PurchaseController::class, 'show'])->name('purchases.show');
+    Route::get('purchases/{purchase}/edit',       [\App\Http\Controllers\Inventory\PurchaseController::class, 'edit'])->name('purchases.edit');
+    Route::put('purchases/{purchase}',            [\App\Http\Controllers\Inventory\PurchaseController::class, 'update'])->name('purchases.update');
+    Route::post('purchases/{purchase}/submit',    [\App\Http\Controllers\Inventory\PurchaseController::class, 'submit'])->name('purchases.submit');
+    Route::post('purchases/{purchase}/approve',   [\App\Http\Controllers\Inventory\PurchaseController::class, 'approve'])->name('purchases.approve');
+    Route::post('purchases/{purchase}/reject',    [\App\Http\Controllers\Inventory\PurchaseController::class, 'reject'])->name('purchases.reject');
+    Route::post('purchases/{purchase}/cancel',    [\App\Http\Controllers\Inventory\PurchaseController::class, 'cancel'])->name('purchases.cancel');
+    Route::post('purchases/{purchase}/complete',  [\App\Http\Controllers\Inventory\PurchaseController::class, 'complete'])->name('purchases.complete');
+    Route::get('material-requests',                              [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'index'])->name('material-requests.index');
+    Route::get('material-requests/create',                       [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'create'])->name('material-requests.create');
+    Route::post('material-requests',                             [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'store'])->name('material-requests.store');
+    Route::get('material-requests/{materialRequest}',            [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'show'])->name('material-requests.show');
+    Route::get('material-requests/{materialRequest}/edit',       [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'edit'])->name('material-requests.edit');
+    Route::put('material-requests/{materialRequest}',            [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'update'])->name('material-requests.update');
+    Route::post('material-requests/{materialRequest}/submit',    [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'submit'])->name('material-requests.submit');
+    Route::post('material-requests/{materialRequest}/approve',   [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'approve'])->name('material-requests.approve');
+    Route::post('material-requests/{materialRequest}/reject',    [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'reject'])->name('material-requests.reject');
+    Route::post('material-requests/{materialRequest}/handover',  [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'handover'])->name('material-requests.handover');
+    Route::post('material-requests/{materialRequest}/cancel',    [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'cancel'])->name('material-requests.cancel');
+    Route::post('material-requests/{materialRequest}/returns',   [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'returns'])->name('material-requests.returns');
+    Route::post('material-requests/{materialRequest}/reconcile', [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'reconcile'])->name('material-requests.reconcile');
+    Route::post('material-requests/{materialRequest}/review',    [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'review'])->name('material-requests.review');
+    Route::post('material-requests/{materialRequest}/revise',    [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'revise'])->name('material-requests.revise');
+
+    Route::get('purchases/{purchase}/receive',    [\App\Http\Controllers\Inventory\PurchaseController::class, 'receiveForm'])->name('purchases.receive-form');
+    Route::post('purchases/{purchase}/receive',   [\App\Http\Controllers\Inventory\PurchaseController::class, 'receive'])->name('purchases.receive');
+});
 
 // ── Daily Meal Register (all roles) ──────────────────────────────────────────
 Route::prefix('meal-register')->name('meal-register.')->middleware(['auth', 'verified'])->group(function () {

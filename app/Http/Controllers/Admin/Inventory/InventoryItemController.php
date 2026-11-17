@@ -26,9 +26,10 @@ class InventoryItemController extends Controller
         $filters = $request->only(['search', 'category_id', 'status', 'stock_status']);
 
         $items = InventoryItem::with('category')
-            ->when($filters['search'] ?? null, fn ($q, $v) =>
-                $q->where('name', 'ilike', "%{$v}%")->orWhere('sku', 'ilike', "%{$v}%")
-            )
+            ->when($filters['search'] ?? null, fn ($q, $v) => $q->where(fn ($w) => $w
+                ->whereRaw('LOWER(name) LIKE ?', ['%' . mb_strtolower($v) . '%'])
+                ->orWhereRaw('LOWER(sku) LIKE ?', ['%' . mb_strtolower($v) . '%'])
+            ))
             ->when($filters['category_id'] ?? null, fn ($q, $v) => $q->where('inventory_category_id', $v))
             ->when($filters['status'] ?? null, fn ($q, $v) => $q->where('status', $v))
             ->when($filters['stock_status'] ?? null, function ($q, $v) {
@@ -53,7 +54,7 @@ class InventoryItemController extends Controller
             'inventory_value' => (float) InventoryItem::active()
                 ->selectRaw('COALESCE(SUM(current_stock * average_cost), 0) as val')
                 ->value('val'),
-            'monthly_spend'  => (float) InventoryTransaction::where('type', 'purchase')
+            'monthly_spend' => (float) InventoryTransaction::whereIn('type', ['purchase', 'purchase_receipt'])
                 ->whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year)
                 ->selectRaw('COALESCE(SUM(quantity * unit_cost), 0) as val')
@@ -112,24 +113,24 @@ class InventoryItemController extends Controller
         $data = $request->validated();
 
         try {
-            if (in_array($data['type'], ['purchase'])) {
-                $this->inventoryService->addStock(
-                    $item, $data['quantity'], $data['notes'], auth()->user(),
-                    $data['unit_cost'] ?? null, $data['type']
-                );
-            } elseif ($data['type'] === 'adjustment') {
-                $this->inventoryService->adjustStock($item, $data['quantity'], $data['notes'], auth()->user());
+            $qty = (float) $data['quantity'];
+            if ($data['type'] === 'adjustment') {
+                $this->inventoryService->adjustStock($item, $qty, $data['notes'], auth()->user());
             } else {
-                $this->inventoryService->deductStock(
-                    $item, $data['quantity'], $data['notes'], auth()->user(), $data['type']
-                );
+                if ($qty <= 0) {
+                    return back()->with('error', 'Quantity must be greater than zero.');
+                }
+                $signed = ($data['type'] === 'correction' && ($data['direction'] ?? 'out') === 'in') ? $qty : -$qty;
+                $this->inventoryService->post($item, $signed, $data['type'], auth()->user(), [
+                    'notes' => $data['notes'], 'reference_label' => 'Manual entry',
+                ]);
             }
 
             $this->audit->log($data['type'], 'inventory_item', $item->id, $item->name,
                 [], ['quantity' => $data['quantity'], 'type' => $data['type']]
             );
 
-            return back()->with('success', ucfirst($data['type']) . " of {$data['quantity']} {$item->unit} recorded.");
+            return back()->with('success', InventoryTransaction::typeLabels()[$data['type']] . ' recorded.');
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }

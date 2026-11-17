@@ -39,6 +39,7 @@ class User extends Authenticatable
             'email_verified_at'     => 'datetime',
             'password'              => 'hashed',
             'is_active'             => 'boolean',
+            'is_storekeeper'        => 'boolean',
             'employment_start_date' => 'date',
             'employment_end_date'   => 'date',
         ];
@@ -52,6 +53,12 @@ class User extends Authenticatable
     public function isManager(): bool
     {
         return $this->role === 'manager';
+    }
+
+    /** Central-store handover / goods receipt. Admins always; others via users.is_storekeeper. */
+    public function isStorekeeper(): bool
+    {
+        return $this->role === 'admin' || (bool) $this->is_storekeeper;
     }
 
     public function isEmployee(): bool

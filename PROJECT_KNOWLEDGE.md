@@ -255,9 +255,18 @@ Artisan `menu:install-font` downloads a font (see §16).
 `MealClientController`, `DailyMealEntryController` (`entries.save` upserts), `MealRegisterReportController` (`reports.export`). Tables `meal_clients`, `meal_entries`, `meal_entry_items` (unique per client/date and entry/meal type).
 Older twin tables/models `daily_meal_entries`/`daily_meal_entry_items` (`DailyMealEntry*`) still exist and `MealClient` references them (§29).
 
-### 7.9 Inventory (`admin.inventory.*`, `admin.purchase-*`)
-`InventoryService` (`addStock/deductStock/adjustStock` all `lockForUpdate` in a transaction; `deductStock` throws on insufficient stock; `checkAndCreateAlerts`, `resolveAlertsIfRestocked`, weighted `recalcAverageCost`).
-`PurchasePlanningService` suggests quantities ordered by `current_stock / NULLIF(minimum_stock,0)`. Bills: `InventoryBillController` uploads (jpg/jpeg/png/pdf ≤10 MB, private disk `inventory-bills`, sha256 duplicate detection) → `InvoiceOCRService` → `PaddleOCRService` (Python) + `InvoiceParserService` → items imported to stock.
+### 7.9 Inventory (`admin.inventory.*`, `admin.purchase-plans.*`, `inventory.*`)
+Admin item master/alerts/purchase plans/bill upload stay under `admin.*`. The **central store control system** (ADR-0007,
+audit in `docs/architecture/kitchen-inventory-control-audit.md`) lives under `inventory.*` (auth+verified; object rules in
+`PurchasePolicy` / `MaterialRequestPolicy`): `InventoryHomeController` (role dashboard, `/inventory`, stock page),
+`PurchaseController` (bulk grid, approve, goods receipt), `MaterialRequestController` (request → approve/deduct →
+handover → returns → usage → review → revision), `LossControlController` (14 reports + signals, CSV), `RecipeStandardController`
+(versioned per-person standards), `ItemLookupController` (paste matching JSON). Services in `app/Services/Inventory/`:
+`UnitConversionService`, `ItemMatchingService`, `PurchaseService`, `GoodsReceiptService`, `MaterialRequestService`,
+`ConsumptionService`, `HallMenuService`, `LossControlReportService`, `RecipeStandardService`. Shared Blade grid
+`resources/views/inventory/_grid.blade.php`. Bill upload (`InventoryBillController`) → OCR → review → **"Create purchase from bill"**
+(the old import route now redirects; bills never add stock). Meal entry detail and hall booking detail show materials,
+usage and cost (`meal-register/entries/_materials`, `hall/bookings/_materials`); hall final menu editor `hall.bookings.menu.*`.
 
 ### 7.10 HR self-service
 Attendance (`EmployeeAttendanceService`, 974 lines, the largest service), regularizations, leave (`LeaveService`, `LeaveAllocationService`, `LeaveBalanceService`, `LeavePolicyAssignmentService`), overtime (`OvertimeService`, `OvertimeCalculationService`),
@@ -311,7 +320,12 @@ Migrations use idempotency guards (commit `1297216`) and are mostly reversible (
 | `daily_closing_expenses` / `_adjustments` / `_audits` | Snapshot lines / credit-debit adjustments / field-level history (`created_at` only). |
 
 **Inventory**
-`inventory_categories`, `inventory_items` (`sku` unique nullable, `unit` enum, `current_stock`, `minimum_stock`, `average_cost`, `status`), `inventory_transactions` (ledger: type purchase/usage/adjustment/wastage/transfer, polymorphic-ish `reference_type/reference_id`),
+New (2026-11-17, ADR-0007): `inventory_unit_conversions`, `inventory_item_aliases`, `purchases`, `purchase_items`, `goods_receipts`,
+`goods_receipt_items`, `material_requests`, `material_request_items`, `hall_booking_menu_items`; columns
+`inventory_transactions.{reversal_of_id,entered_quantity,entered_unit,reference_label}`, `users.is_storekeeper`,
+`recipes.{version,parent_recipe_id,superseded_at}`, `recipe_ingredients.quantity_per_guest`, `inventory_bill_items.{match_*,original_item_name}`,
+`inventory_bill_uploads.purchase_id` (bill status `converted`). `inventory_items.unit` and `inventory_transactions.type` are now **varchar** (CHECK dropped).
+`inventory_categories`, `inventory_items` (`sku` unique nullable, `unit` string, `current_stock`, `minimum_stock`, `average_cost`, `status`), `inventory_transactions` (ledger: type purchase/usage/adjustment/wastage/transfer, polymorphic-ish `reference_type/reference_id`),
 `inventory_stock_alerts` (`alert_type` low_stock/out_of_stock, `is_resolved`), `purchase_plans` (status string draft/approved/ordered/completed/cancelled), `purchase_plan_items`, `inventory_bill_uploads` (OCR upload: `status`, `file_hash`, `extracted_json`), `inventory_bill_items`.
 
 **Hall / catering**
@@ -442,7 +456,16 @@ Statuses: `pending`, `pending_payment`, `approved`, `rejected`, `paid`, `reimbur
 Balance changes only via `WalletService` under row lock; every change writes a `wallet_transactions` row with before/after. `Wallet::isLow()/isNegative()` drive UI hints; `debit` also raises a low-balance notification (`WalletService` ~line 110).
 
 ### 13.3 Inventory
-Stock changes only via `InventoryService` (row lock). `deductStock` throws when `before < quantity`. Alerts created when stock ≤ minimum (`checkAndCreateAlerts`), resolved when restocked. Average cost recomputed on purchases.
+Stock changes only via `InventoryService::post()` (row lock, append-only, negative refused; `reverse()` for undo; legacy
+`addStock/deductStock/adjustStock` delegate to it). Ledger types: purchase_receipt, material_issue, material_return,
+adjustment (physical count), correction, wastage (store), reversal; legacy purchase/usage/transfer readable. Sign =
+`balance_after − balance_before`. Manual item form allows only count/correction/store-wastage with a reason.
+Purchases add stock only on goods receipt (partial receipts allowed, never above ordered). Material request **approval
+deducts immediately**; handover records issued qty + collector, no second deduction (short handover reverses the gap);
+cancel after approval reverses; returns add back; usage must reconcile `issued = returned + consumed + wasted + unexplained`
+(remarks required; wastage > `inventory.wastage_review_percent` (10) or any unexplained → admin review).
+Units convert only within a dimension or by item rule. Storekeeper = admin or `users.is_storekeeper`.
+Alerts created when stock ≤ minimum, resolved when restocked. Average cost recomputed on receipts.
 
 ### 13.4 Hall bookings & invoices
 - Conflict check applies **only** to `hall_only`/`hall_food`; `food_only` never conflicts. Overlap = `whereBetween(start)`, `whereBetween(end)`, or enclosing — **inclusive**, so back-to-back slots (end == start) conflict (`HallBookingController@store/update/checkAvailability`).
@@ -674,9 +697,10 @@ No Redis/caching layer is used by app code today.
 
 Framework: Pest 4 (`tests/Pest.php`) + PHPUnit config (`phpunit.xml`: SQLite `:memory:`, `CACHE_STORE=array`, `QUEUE_CONNECTION=sync`, `MAIL_MAILER=array`, `SESSION_DRIVER=array`). Run: `php artisan test` / `composer test`. **Executed 2026-09-19 (second-pass review, local `php artisan test`, SQLite in-memory): 825 tests, 824 passed, 1 failed** (2,077 assertions, ~18 s). Failing test: `tests/Feature/Admin/AttendanceLeaveAdminViewTest.php` "a present record dated today is reflected in the current months summary counts" (line 78, message `Failed asserting that 18 is identical to 0`). Cause not diagnosed; it is a month-summary/date-dependent assertion in a timezone-sensitive area (app UTC vs Asia/Kolkata) — `INFERRED` date/timezone-dependent. Re-run before trusting a green baseline: `php artisan test --filter=AttendanceLeaveAdminViewTest`.
 
+2026-11-17: 865 tests pass after the central-store work (`tests/Feature/Inventory/*`, 36 tests).
 Covered (feature tests, ~13.7k lines): auth (Breeze), profile; **HR-heavy** — attendance (mark, gate, segments, regularization, conflicts, reverse self-mark), leave (domain, workflow, opposite-half, policy dating/templates), overtime (workflow, calculation, feature flag, schema, UI), advances + eligibility, payable days/monthly payable/salary; several admin UI-consistency and mobile-layout tests; hall booking type/payment-due/dashboard month filter; meal register (clients, entries); menu composer/items.
 Test map per module: §7.0.
-**Not covered (no tests found):** expense lifecycle & settlement (`ExpenseSettlementService`), `PaymentRequestController` (public pay page, signed URLs, proof upload), wallets, daily closing, inventory & OCR pipeline, purchase plans, event-request portal (token, submit, approve→booking), invoice calculation/PDF, kitchen recipes, notifications, scheduler commands, settings, audit log, security headers, deployment shell scripts against the real server (sandbox suite `deployment/tests/run-tests.sh`: 27 scenarios T01–T29 with T08/T09 absent, ~15 min, fake binaries, `sigreset.py`/`pty_job_control.py` helpers; **not executed in this review**), browser/E2E, Postgres-specific migrations (SQLite skips them).
+**Not covered (no tests found):** expense lifecycle & settlement (`ExpenseSettlementService`), `PaymentRequestController` (public pay page, signed URLs, proof upload), wallets, daily closing, OCR extraction itself (python), purchase plans, event-request portal (token, submit, approve→booking), invoice calculation/PDF, kitchen recipes, notifications, scheduler commands, settings, audit log, security headers, deployment shell scripts against the real server (sandbox suite `deployment/tests/run-tests.sh`: 27 scenarios T01–T29 with T08/T09 absent, ~15 min, fake binaries, `sigreset.py`/`pty_job_control.py` helpers; **not executed in this review**), browser/E2E, Postgres-specific migrations (SQLite skips them).
 `tests/Unit` contains only the example test.
 
 ---

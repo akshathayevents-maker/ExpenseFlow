@@ -60,6 +60,11 @@
                         <option value="admin"    {{ old('role', $employee->role) === 'admin'    ? 'selected' : '' }}>Admin</option>
                     </select>
                     @error('role') <div class="ef-field-error">{{ $message }}</div> @enderror
+                    <label style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:.88rem;cursor:pointer">
+                        <input type="hidden" name="is_storekeeper" value="0">
+                        <input type="checkbox" name="is_storekeeper" value="1" {{ old('is_storekeeper', $employee->is_storekeeper) ? 'checked' : '' }}>
+                        Storekeeper (receives goods &amp; hands over materials)
+                    </label>
                 </div>
 
                 <div>

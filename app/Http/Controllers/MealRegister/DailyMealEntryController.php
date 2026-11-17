@@ -5,6 +5,7 @@ use App\Http\Controllers\Controller;
 use App\Models\MealClient;
 use App\Models\MealEntry;
 use App\Models\MealEntryItem;
+use App\Services\Inventory\ConsumptionService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -181,13 +182,29 @@ class DailyMealEntryController extends Controller
 
     public function show(MealEntry $entry): View
     {
-        $entry->load(['client', 'items', 'creator', 'updater', 'plannedUpdater', 'actualUpdater']);
+        $entry->load(['client', 'items', 'creator', 'updater', 'plannedUpdater', 'actualUpdater', 'materialRequests.items.item', 'materialRequests.requester']);
         $mealTypes = $this->mealTypes;
-        return view('meal-register.entries.show', compact('entry', 'mealTypes'));
+
+        // Materials per meal (Kitchen inventory control): requests + reconciliation summary.
+        $user = auth()->user();
+        $canSeeAll = $user->isAdmin() || $user->isManager() || $user->isStorekeeper();
+        $consumption = app(ConsumptionService::class);
+        $materials = [];
+        foreach ($entry->materialRequests->groupBy('meal_type') as $type => $reqs) {
+            $materials[$type] = [
+                'requests' => $canSeeAll ? $reqs : $reqs->where('requested_by', $user->id),
+                'summary' => $consumption->summarize($reqs),
+            ];
+        }
+        $showCost = $user->isAdmin() || $user->isManager();
+        return view('meal-register.entries.show', compact('entry', 'mealTypes', 'materials', 'showCost'));
     }
 
     public function destroy(MealEntry $entry): RedirectResponse
     {
+        if ($entry->materialRequests()->exists()) {
+            return back()->with('error', 'This entry has material requests linked to it and cannot be deleted.');
+        }
         $entry->delete();
         return redirect()->route('meal-register.entries.index')
             ->with('success', 'Entry deleted.');
