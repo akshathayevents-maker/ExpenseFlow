@@ -213,15 +213,15 @@ class PurchaseController extends Controller
             ->selectRaw('inventory_item_id, MAX(id) as id')->groupBy('inventory_item_id')->pluck('id', 'inventory_item_id');
         $rates = PurchaseItem::whereIn('id', $lastRates->values())->get(['inventory_item_id', 'rate', 'unit'])->keyBy('inventory_item_id');
 
-        return InventoryItem::with(['unitConversions', 'aliases:id,inventory_item_id,alias'])->where('status', 'active')->orderBy('name')->get()
+        return InventoryItem::with('unitConversions')->where('status', 'active')->orderBy('name')->get()
             ->map(fn ($i) => [
                 'id' => $i->id,
                 'name' => $i->name,
+                'name_ta' => $i->name_ta,
                 'unit' => $i->unit,
                 'units' => $this->units->unitsFor($i),
                 'stock' => round((float) $i->current_stock, 3),
                 'rate' => $rates[$i->id]->rate ?? null,
-                'aliases' => $i->aliases->pluck('alias')->take(8)->all(),
             ])->all();
     }
 

@@ -9,6 +9,7 @@
     $isPurchase = $mode === 'purchase';
     $gridId = 'icGrid' . ucfirst($mode);
 @endphp
+@include('inventory._item-picker')
 <div class="ic-grid" id="{{ $gridId }}" data-mode="{{ $mode }}">
     <div class="ic-row ic-row--head">
         <div>#</div><div>Item</div><div>Qty</div><div>Unit</div>
@@ -17,12 +18,6 @@
     </div>
     <div class="ic-rows"></div>
 </div>
-<datalist id="{{ $gridId }}List">
-    @foreach($catalog as $c)
-        <option value="{{ $c['name'] }}">
-        @foreach($c['aliases'] ?? [] as $a)<option value="{{ $a }}" label="→ {{ $c['name'] }}">@endforeach
-    @endforeach
-</datalist>
 <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
     <button type="button" class="ic-btn ic-btn--sm" data-add-row><i class="bi bi-plus-lg"></i> Add row</button>
     <button type="button" class="ic-btn ic-btn--sm" data-add-rows="5">+5 rows</button>
@@ -33,7 +28,7 @@
         <div class="ic-rownum"></div>
         <div class="ic-cell-item">
             <span class="ic-lbl-m">Item</span>
-            <input type="text" class="ic-input ic-item-input" list="{{ $gridId }}List" placeholder="Type to search…" autocomplete="off" aria-label="Item">
+            <input type="text" class="ic-input ic-item-input" placeholder="Search item — dal, paruppu, பருப்பு" autocomplete="off" aria-label="Item (English, Tamil or Tanglish)">
             <input type="hidden" data-f="inventory_item_id">
             <input type="hidden" data-f="description">
             <div class="ic-hint" data-hint></div>
@@ -72,11 +67,26 @@
     const tpl = document.getElementById(@json($gridId . 'Tpl'));
     const form = grid.closest('form');
     const byId = new Map(CATALOG.map(c => [String(c.id), c]));
-    const byName = new Map();
-    CATALOG.forEach(c => {
-        byName.set(c.name.toLowerCase(), c);
-        (c.aliases || []).forEach(a => { if (!byName.has(a.toLowerCase())) byName.set(a.toLowerCase(), c); });
-    });
+    const pickers = new WeakMap();
+    function attachPicker(row) {
+        const input = row.querySelector('.ic-item-input');
+        pickers.set(row, window.IcItemPicker.attach(input, {
+            onPick(r, typed) {
+                const item = byId.get(String(r.id));
+                if (!item) { pickItem(row, null, false); hint(row, {text: 'This item is not available here (inactive).', cls: 'ic-hint--bad'}); return; }
+                // typed an alias / Tamil name: keep the wording as the description (invoice text)
+                const desc = row.querySelector('[data-f=description]');
+                if (MODE === 'purchase' && typed && typed.toLowerCase() !== item.name.toLowerCase() && !desc.value) desc.value = typed;
+                pickItem(row, item, false);
+            },
+            onClear() { pickItem(row, null, false); },
+            onUnresolved(text, data) {
+                pickItem(row, null, false);
+                const n = data && data.results ? data.results.length : 0;
+                hint(row, {text: n > 1 ? n + ' items match “' + text + '” — choose one from the list.' : (n ? 'Did you mean “' + data.results[0].name + '”? Choose it from the list.' : 'No item matches “' + text + '”.'), cls: 'ic-hint--bad'});
+            },
+        }));
+    }
     const fmt = n => (Math.round(n * 100) / 100).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
 
@@ -114,6 +124,7 @@
         let cls = '';
         if (!item && row.querySelector('.ic-item-input').value.trim()) { parts.push('Not in item list — pick a suggestion.'); cls = 'ic-hint--bad'; }
         if (item && MODE === 'purchase' && item.rate) parts.push('Last rate ₹' + item.rate);
+        if (item && item.name_ta) parts.push(item.name_ta);
         if (item && MODE === 'request') parts.push('Stock unit: ' + item.unit);
         if (desc && (!item || desc.toLowerCase() !== item.name.toLowerCase())) parts.push('Invoice: “' + desc + '”');
         if (extra) { parts.push(extra.text); cls = extra.cls || cls; }
@@ -148,6 +159,8 @@
         } else {
             hint(row);
         }
+        attachPicker(row);
+        if (item) pickers.get(row)?.setPicked({id: item.id, name: item.name});
         renumber();
         if (focus) row.querySelector('.ic-item-input').focus();
         return row;
@@ -225,6 +238,7 @@
             target.querySelector('.ic-item-input').value = autoItem ? autoItem.name : typed;
             target.querySelector('[data-f=description]').value = autoItem && autoItem.name.toLowerCase() !== typed.toLowerCase() ? typed : '';
             pickItem(target, autoItem, false);
+            if (autoItem) pickers.get(target)?.setPicked({id: autoItem.id, name: autoItem.name});
             if (c[1]) target.querySelector('[data-f=quantity]').value = parseFloat(c[1].replace(/,/g, '')) || '';
             if (c[2]) {
                 const sel = target.querySelector('[data-f=unit]');
@@ -243,13 +257,10 @@
     rowsEl.addEventListener('change', e => {
         const row = e.target.closest('.ic-row');
         if (e.target.classList.contains('ic-item-input')) {
-            const item = byName.get(e.target.value.trim().toLowerCase());
-            if (item && item.name !== e.target.value.trim()) {
-                // typed/selected an alias: keep it as the description
-                row.querySelector('[data-f=description]').value = row.querySelector('[data-f=description]').value || e.target.value.trim();
-                e.target.value = item.name;
-            }
-            pickItem(row, item || null, false);
+            // typed without choosing: accept only a single exact match (same rules as the server)
+            const current = byId.get(row.querySelector('[data-f=inventory_item_id]').value);
+            if (current && current.name === e.target.value.trim()) return;
+            pickers.get(row)?.resolve();
         } else recalc();
     });
     rowsEl.addEventListener('input', e => { if (e.target.dataset.f) recalc(); });
@@ -336,6 +347,7 @@
             if (!row) return;
             row.querySelector('.ic-item-input').value = item.name;
             pickItem(row, item, false);
+            pickers.get(row)?.setPicked({id: item.id, name: item.name});
             row.querySelector('[data-f=quantity]').focus();
         },
     };

@@ -174,6 +174,8 @@ class InventoryBillController extends Controller
             'items'          => 'nullable|array',
             'items.*.id'     => 'nullable|integer',
             'items.*.item_name'       => 'required|string|max:255',
+            'items.*.original_item_name' => 'nullable|string|max:255',
+            'next'                    => 'nullable|in:purchase',
             'items.*.quantity'        => 'required|numeric|min:0.001',
             'items.*.unit'            => 'nullable|string|max:50',
             'items.*.unit_price'      => 'required|numeric|min:0',
@@ -206,6 +208,8 @@ class InventoryBillController extends Controller
                     'inventory_item_id' => $row['inventory_item_id'] ?? null,
                     'category_id'       => $row['category_id']       ?? null,
                     'item_name'         => $row['item_name'],
+                    // keep the text as printed on the bill across review saves
+                    'original_item_name' => ($row['original_item_name'] ?? null) ?: $row['item_name'],
                     'quantity'          => $row['quantity'],
                     'unit'              => $row['unit']         ?? null,
                     'unit_price'        => $row['unit_price'],
@@ -214,6 +218,13 @@ class InventoryBillController extends Controller
                 ]);
             }
         });
+
+        // "Save & create purchase": the purchase form is prefilled from the just-saved lines.
+        // Stock still moves only through purchase approval + goods receipt.
+        if ($request->input('next') === 'purchase' && $bill->fresh()->canImport()) {
+            return redirect()->route('inventory.purchases.create', ['bill' => $bill->id])
+                ->with('success', 'Review saved. Check the purchase below and submit it for approval.');
+        }
 
         return back()->with('success', 'Review saved.');
     }

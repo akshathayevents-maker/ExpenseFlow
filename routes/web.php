@@ -192,12 +192,17 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'role.ad
         // Items + stock transactions
         Route::get('items', [InventoryItemController::class, 'index'])->name('items.index');
         Route::get('items/create', [InventoryItemController::class, 'create'])->name('items.create');
+        Route::get('items/duplicates', [InventoryItemController::class, 'duplicates'])->name('items.duplicates');
         Route::post('items', [InventoryItemController::class, 'store'])->name('items.store');
         Route::get('items/{item}', [InventoryItemController::class, 'show'])->name('items.show');
         Route::get('items/{item}/edit', [InventoryItemController::class, 'edit'])->name('items.edit');
         Route::put('items/{item}', [InventoryItemController::class, 'update'])->name('items.update');
         Route::patch('items/{item}/toggle-status', [InventoryItemController::class, 'toggleStatus'])->name('items.toggle-status');
         Route::post('items/{item}/transact', [InventoryItemController::class, 'transact'])->name('items.transact');
+        Route::post('items/{item}/aliases', [InventoryItemController::class, 'storeAlias'])->name('items.aliases.store');
+        Route::delete('items/{item}/aliases/{alias}', [InventoryItemController::class, 'destroyAlias'])->name('items.aliases.destroy');
+        Route::post('items/{item}/units', [InventoryItemController::class, 'storeUnit'])->name('items.units.store');
+        Route::delete('items/{item}/units/{conversion}', [InventoryItemController::class, 'destroyUnit'])->name('items.units.destroy');
 
         // Stock alerts
         Route::get('alerts', [StockAlertController::class, 'index'])->name('alerts.index');
@@ -505,6 +510,8 @@ Route::prefix('inventory')->name('inventory.')->middleware(['auth', 'verified'])
     Route::get('standards',          [\App\Http\Controllers\Inventory\RecipeStandardController::class, 'index'])->name('standards.index');
     Route::get('standards/item',     [\App\Http\Controllers\Inventory\RecipeStandardController::class, 'show'])->name('standards.show');
     Route::post('standards',         [\App\Http\Controllers\Inventory\RecipeStandardController::class, 'store'])->name('standards.store');
+    Route::get('items/search', [\App\Http\Controllers\Inventory\ItemLookupController::class, 'search'])
+        ->middleware('throttle:180,1')->name('items.search');
     Route::post('items/match', [\App\Http\Controllers\Inventory\ItemLookupController::class, 'match'])
         ->middleware('throttle:60,1')->name('items.match');
 

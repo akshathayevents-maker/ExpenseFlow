@@ -18,21 +18,26 @@ class PurchasePlanController extends Controller
         private AuditLogService         $audit
     ) {}
 
-    public function index(): View
+    public function index(Request $request): View
     {
+        $status = in_array($request->query('status'), ['draft', 'approved', 'ordered', 'completed', 'cancelled'], true)
+            ? $request->query('status') : null;
         $plans = PurchasePlan::with(['creator', 'items'])
+            ->when($status, fn ($q) => $q->where('status', $status))
             ->latest()
-            ->paginate(15);
+            ->paginate(15)
+            ->withQueryString();
 
         $stats = [
             'draft'     => PurchasePlan::where('status', 'draft')->count(),
             'approved'  => PurchasePlan::where('status', 'approved')->count(),
             'ordered'   => PurchasePlan::where('status', 'ordered')->count(),
             'completed' => PurchasePlan::where('status', 'completed')->count(),
+            'cancelled' => PurchasePlan::where('status', 'cancelled')->count(),
             'total'     => PurchasePlan::count(),
         ];
 
-        return view('admin.purchase-plans.index', compact('plans', 'stats'));
+        return view('admin.purchase-plans.index', compact('plans', 'stats', 'status'));
     }
 
     public function suggestions(): View
@@ -74,6 +79,14 @@ class PurchasePlanController extends Controller
     public function updateStatus(Request $request, PurchasePlan $purchasePlan): RedirectResponse
     {
         $request->validate(['status' => 'required|in:ordered,completed,cancelled']);
+        $allowed = [
+            'ordered'   => ['approved'],
+            'completed' => ['ordered'],
+            'cancelled' => ['draft', 'approved', 'ordered'],
+        ][$request->status];
+        if (! in_array($purchasePlan->status, $allowed, true)) {
+            return back()->with('error', 'A '.$purchasePlan->status.' plan cannot be marked '.$request->status.'.');
+        }
         $purchasePlan->update(['status' => $request->status]);
         $this->audit->log($request->status, 'purchase_plan', $purchasePlan->id, $purchasePlan->title);
         return back()->with('success', 'Status updated to ' . $request->status . '.');

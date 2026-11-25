@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
             HallSeeder::class,
             EventRequestMenuCategorySeeder::class,
             EventRequestMenuItemSeeder::class,
+            InventoryCatalogueSeeder::class, // idempotent; reuses existing items, never touches stock
         ]);
     }
 }

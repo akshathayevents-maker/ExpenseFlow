@@ -699,7 +699,7 @@
             || (request()->routeIs('admin.employees.*') && ! request()->routeIs('admin.employees.salaries.*')),
         'payroll'    => fn () => request()->routeIs('admin.overtime.*', 'admin.employees.salaries.*', 'admin.salaries.*', 'admin.advances.*', 'admin.payroll.*'),
         'expenses'   => fn () => request()->routeIs('admin.expense-requests.*', 'admin.wallets.*', 'admin.payments.*'),
-        'inventory'  => fn () => request()->routeIs('admin.inventory.*', 'admin.purchase-plans.*'),
+        'inventory'  => fn () => request()->routeIs('admin.inventory.*', 'admin.purchase-plans.*', 'inventory.*'),
         'setup'      => fn () => request()->routeIs('admin.categories.*', 'admin.vendors.*'),
         'analytics'  => fn () => request()->routeIs('admin.analytics.*', 'admin.reports.*'),
         'ops'        => fn () => request()->routeIs('admin.daily-closings.*', 'admin.audit-logs.*', 'admin.settings.*'),
@@ -857,23 +857,56 @@
             </a>
         </div>
 
-        {{-- Inventory ────────────────────────────────────────────── --}}
+        {{-- Store & Inventory (one entry for catalogue, stock, purchasing and issues) ── --}}
+        @php
+            $isReceipts = request()->routeIs('inventory.purchases.receive-form') || (request()->routeIs('inventory.purchases.index') && request('status') === 'approved');
+            $isMovements = request()->routeIs('inventory.reports.show') && request()->route('report') === 'movements';
+        @endphp
         <button class="sidebar-group-btn {{ $grpInventory ? 'has-active' : '' }}"
                 data-bs-toggle="collapse" data-bs-target="#grp-inventory"
                 aria-controls="grp-inventory"
                 aria-expanded="{{ $grpInventory ? 'true' : 'false' }}">
             <i class="bi bi-boxes sb-grp-icon"></i>
-            <span class="sb-grp-label">Inventory</span>
+            <span class="sb-grp-label">Store &amp; Inventory</span>
             <i class="bi bi-chevron-down sidebar-chevron"></i>
         </button>
         <div class="collapse sidebar-group-body {{ $grpInventory ? 'show' : '' }}" data-bs-parent="#admin-nav-accordion" id="grp-inventory">
-            <a href="{{ route('admin.inventory.items.index') }}"
-               class="nav-link {{ request()->routeIs('admin.inventory.*') ? 'active' : '' }}">
-                <i class="bi bi-boxes"></i> Items
+            <a href="{{ route('inventory.home') }}" class="nav-link {{ request()->routeIs('inventory.home') ? 'active' : '' }}">
+                <i class="bi bi-grid"></i> Overview
             </a>
-            <a href="{{ route('admin.purchase-plans.index') }}"
-               class="nav-link {{ request()->routeIs('admin.purchase-plans.*') ? 'active' : '' }}">
+            <a href="{{ route('admin.inventory.items.index') }}"
+               class="nav-link {{ request()->routeIs('admin.inventory.items.*', 'admin.inventory.categories.*') ? 'active' : '' }}">
+                <i class="bi bi-journal-text"></i> Item Catalogue
+            </a>
+            <a href="{{ route('inventory.stock') }}" class="nav-link {{ request()->routeIs('inventory.stock') ? 'active' : '' }}">
+                <i class="bi bi-boxes"></i> Stock
+            </a>
+            <a href="{{ route('inventory.reports.show', 'movements') }}" class="nav-link {{ $isMovements ? 'active' : '' }}">
+                <i class="bi bi-arrow-left-right"></i> Stock Movements
+            </a>
+            <a href="{{ route('inventory.purchases.index') }}" class="nav-link {{ request()->routeIs('inventory.purchases.*') && ! $isReceipts ? 'active' : '' }}">
+                <i class="bi bi-bag-check"></i> Purchases
+            </a>
+            <a href="{{ route('inventory.purchases.index', ['status' => 'approved']) }}" class="nav-link {{ $isReceipts ? 'active' : '' }}">
+                <i class="bi bi-box-arrow-in-down"></i> Goods Receipts
+            </a>
+            <a href="{{ route('admin.inventory.bills.index') }}" class="nav-link {{ request()->routeIs('admin.inventory.bills.*') ? 'active' : '' }}">
+                <i class="bi bi-receipt"></i> Supplier Bills
+            </a>
+            <a href="{{ route('admin.purchase-plans.index') }}" class="nav-link {{ request()->routeIs('admin.purchase-plans.*') ? 'active' : '' }}">
                 <i class="bi bi-cart3"></i> Purchase Plans
+            </a>
+            <a href="{{ route('inventory.material-requests.index') }}" class="nav-link {{ request()->routeIs('inventory.material-requests.*') ? 'active' : '' }}">
+                <i class="bi bi-list-check"></i> Material Requests
+            </a>
+            <a href="{{ route('admin.inventory.alerts.index') }}" class="nav-link {{ request()->routeIs('admin.inventory.alerts.*') ? 'active' : '' }}">
+                <i class="bi bi-exclamation-triangle"></i> Stock Alerts
+            </a>
+            <a href="{{ route('inventory.reports.index') }}" class="nav-link {{ request()->routeIs('inventory.reports.*') && ! $isMovements ? 'active' : '' }}">
+                <i class="bi bi-shield-check"></i> Reports
+            </a>
+            <a href="{{ route('inventory.standards.index') }}" class="nav-link {{ request()->routeIs('inventory.standards.*') ? 'active' : '' }}">
+                <i class="bi bi-sliders2"></i> Recipe Standards
             </a>
         </div>
 
@@ -1310,18 +1343,19 @@
 
     @endif
 
-    {{-- ── Central Store (all roles; actions gated by policies) ──── --}}
+    {{-- ── Store & Inventory for non-admin roles (admins get the full group above) ──── --}}
+    @unless($sbUser->isAdmin())
     <button class="sidebar-group-btn {{ $grpStore ? 'has-active' : '' }}"
             data-bs-toggle="collapse" data-bs-target="#grp-store"
             aria-controls="grp-store"
             aria-expanded="{{ $grpStore ? 'true' : 'false' }}">
         <i class="bi bi-shop sb-grp-icon"></i>
-        <span class="sb-grp-label">Central Store</span>
+        <span class="sb-grp-label">Store &amp; Inventory</span>
         <i class="bi bi-chevron-down sidebar-chevron"></i>
     </button>
     <div class="collapse sidebar-group-body {{ $grpStore ? 'show' : '' }}" id="grp-store">
         <a href="{{ route('inventory.home') }}" class="nav-link {{ request()->routeIs('inventory.home') ? 'active' : '' }}">
-            <i class="bi bi-grid"></i> Store Home
+            <i class="bi bi-grid"></i> Overview
         </a>
         <a href="{{ route('inventory.material-requests.create') }}" class="nav-link {{ request()->routeIs('inventory.material-requests.create') ? 'active' : '' }}">
             <i class="bi bi-basket"></i> Request Materials
@@ -1334,20 +1368,16 @@
         </a>
         @if($sbUser->isAdmin() || $sbUser->isManager() || $sbUser->isStorekeeper())
             <a href="{{ route('inventory.stock') }}" class="nav-link {{ request()->routeIs('inventory.stock') ? 'active' : '' }}">
-                <i class="bi bi-boxes"></i> Store Stock
+                <i class="bi bi-boxes"></i> Stock
             </a>
         @endif
         @if($sbUser->isAdmin() || $sbUser->isManager())
             <a href="{{ route('inventory.reports.index') }}" class="nav-link {{ request()->routeIs('inventory.reports.*') ? 'active' : '' }}">
-                <i class="bi bi-shield-check"></i> Loss Control
-            </a>
-        @endif
-        @if($sbUser->isAdmin())
-            <a href="{{ route('inventory.standards.index') }}" class="nav-link {{ request()->routeIs('inventory.standards.*') ? 'active' : '' }}">
-                <i class="bi bi-sliders2"></i> Recipe Standards
+                <i class="bi bi-shield-check"></i> Reports
             </a>
         @endif
     </div>
+    @endunless
 
     {{-- ── Account (all roles) ─────────────────────────────────── --}}
     <div id="grp-account-wrap">

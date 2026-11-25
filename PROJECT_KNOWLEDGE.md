@@ -256,7 +256,7 @@ Artisan `menu:install-font` downloads a font (see §16).
 Older twin tables/models `daily_meal_entries`/`daily_meal_entry_items` (`DailyMealEntry*`) still exist and `MealClient` references them (§29).
 
 ### 7.9 Inventory (`admin.inventory.*`, `admin.purchase-plans.*`, `inventory.*`)
-Admin item master/alerts/purchase plans/bill upload stay under `admin.*`. The **central store control system** (ADR-0007,
+Admin item master/alerts/purchase plans/bill upload stay under `admin.*`. Sidebar: one **Store & Inventory** group (admins: catalogue, stock, movements, purchases, receipts, bills, plans, requests, alerts, reports, standards). The **central store control system** (ADR-0007,
 audit in `docs/architecture/kitchen-inventory-control-audit.md`) lives under `inventory.*` (auth+verified; object rules in
 `PurchasePolicy` / `MaterialRequestPolicy`): `InventoryHomeController` (role dashboard, `/inventory`, stock page),
 `PurchaseController` (bulk grid, approve, goods receipt), `MaterialRequestController` (request → approve/deduct →
@@ -265,7 +265,15 @@ handover → returns → usage → review → revision), `LossControlController`
 `UnitConversionService`, `ItemMatchingService`, `PurchaseService`, `GoodsReceiptService`, `MaterialRequestService`,
 `ConsumptionService`, `HallMenuService`, `LossControlReportService`, `RecipeStandardService`. Shared Blade grid
 `resources/views/inventory/_grid.blade.php`. Bill upload (`InventoryBillController`) → OCR → review → **"Create purchase from bill"**
-(the old import route now redirects; bills never add stock). Meal entry detail and hall booking detail show materials,
+(the old import route now redirects; bills never add stock). The review page (`admin/inventory/bills/review` +
+`_line` partial, 2026-11-25) is mobile-first: one markup per line (card < 820px container width, table row above), the
+`IcItemPicker` search instead of a native item `<select>`, and a sticky bar with "Save review" / "Save & create purchase".
+The latter PUTs the review with `next=purchase`; after the save the controller redirects to `inventory.purchases.create?bill=`.
+Saves keep `original_item_name` (the text printed on the bill). The PDF preview opens in a new tab, because the app CSP sets
+`frame-src 'none'`. A material request lists several preparations, each with its own head count, in
+`material_requests.preparations` (JSON, 2026-11-25). `preparation_name` / `guest_count` stay as a summary (names joined,
+largest head count), set in `MaterialRequestController::withPreparationSummary`, so labels, recipe suggestions and
+per-person cost keep working. Meal entry detail and hall booking detail show materials,
 usage and cost (`meal-register/entries/_materials`, `hall/bookings/_materials`); hall final menu editor `hall.bookings.menu.*`.
 
 ### 7.10 HR self-service
@@ -325,6 +333,9 @@ New (2026-11-17, ADR-0007): `inventory_unit_conversions`, `inventory_item_aliase
 `inventory_transactions.{reversal_of_id,entered_quantity,entered_unit,reference_label}`, `users.is_storekeeper`,
 `recipes.{version,parent_recipe_id,superseded_at}`, `recipe_ingredients.quantity_per_guest`, `inventory_bill_items.{match_*,original_item_name}`,
 `inventory_bill_uploads.purchase_id` (bill status `converted`). `inventory_items.unit` and `inventory_transactions.type` are now **varchar** (CHECK dropped).
+New (2026-11-17, ADR-0008): `inventory_items.{name_ta,search_key}`, `inventory_item_aliases.{language,alias_type,phonetic_key}`, partial unique
+index `inv_alias_generic_unique` (one generic alias → one item). **All item search goes through `ItemSearchService`** (normaliser `App\Support\ItemText`);
+UI uses `inventory/_item-picker.blade.php`. Catalogue seed: `php artisan db:seed --class=InventoryCatalogueSeeder` (idempotent, never touches stock; also runs from `db:seed`).
 `inventory_categories`, `inventory_items` (`sku` unique nullable, `unit` string, `current_stock`, `minimum_stock`, `average_cost`, `status`), `inventory_transactions` (ledger: type purchase/usage/adjustment/wastage/transfer, polymorphic-ish `reference_type/reference_id`),
 `inventory_stock_alerts` (`alert_type` low_stock/out_of_stock, `is_resolved`), `purchase_plans` (status string draft/approved/ordered/completed/cancelled), `purchase_plan_items`, `inventory_bill_uploads` (OCR upload: `status`, `file_hash`, `extracted_json`), `inventory_bill_items`.
 

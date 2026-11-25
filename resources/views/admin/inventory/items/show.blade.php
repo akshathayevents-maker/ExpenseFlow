@@ -35,7 +35,7 @@
             <i class="bi bi-arrow-left"></i>
         </a>
         <div>
-            <h1 style="font-size:1.25rem;font-weight:760;color:var(--ef-ink);margin:0;letter-spacing:-.02em">{{ $item->name }}</h1>
+            <h1 style="font-size:1.25rem;font-weight:760;color:var(--ef-ink);margin:0;letter-spacing:-.02em">{{ $item->name }}@if($item->name_ta) <span lang="ta" style="font-weight:560;color:var(--ef-muted)">— {{ $item->name_ta }}</span>@endif</h1>
             <p style="color:var(--ef-faint);font-size:.82rem;margin:2px 0 0">
                 {{ $item->category->name }} &middot; {{ $item->unit }}
                 @if($item->sku) &middot; <span style="font-family:monospace">{{ $item->sku }}</span>@endif
@@ -202,5 +202,7 @@
         @endif
     </x-ds.card>
 </div>
+
+@include('admin.inventory.items._catalogue')
 
 </x-admin-layout>

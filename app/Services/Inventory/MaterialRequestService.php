@@ -80,6 +80,7 @@ class MaterialRequestService
                 'required_time' => $data['required_time'] ?? null,
                 'preparation_name' => $data['preparation_name'] ?? null,
                 'guest_count' => $data['guest_count'] ?? null,
+                'preparations' => $data['preparations'] ?? null,
                 'purpose' => $data['purpose'] ?? null,
                 'notes' => $data['notes'] ?? null,
             ];
@@ -441,6 +442,7 @@ class MaterialRequestService
             'required_time' => $original->required_time,
             'preparation_name' => $original->preparation_name,
             'guest_count' => $original->guest_count,
+            'preparations' => $original->preparations,
             'purpose' => 'Revision of '.$original->reference(),
             'revision_of_id' => $root->id,
             'revision_no' => max($no, $root->revision_no) + 1,

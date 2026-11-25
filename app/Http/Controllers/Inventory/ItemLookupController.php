@@ -4,12 +4,24 @@ namespace App\Http\Controllers\Inventory;
 
 use App\Http\Controllers\Controller;
 use App\Services\Inventory\ItemMatchingService;
+use App\Services\Inventory\ItemSearchService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-/** JSON helper for pasted rows: free text -> ranked item suggestions. */
+/** JSON helpers for item selectors: typed search, and pasted rows -> ranked suggestions. */
 class ItemLookupController extends Controller
 {
+    /** Shared item search (English / Tamil / Tanglish). Never returns costs or stock values. */
+    public function search(Request $request, ItemSearchService $search): JsonResponse
+    {
+        $data = $request->validate([
+            'q' => ['required', 'string', 'max:100'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:25'],
+        ]);
+
+        return response()->json($search->search($data['q'], (int) ($data['limit'] ?? 10)));
+    }
+
     public function match(Request $request, ItemMatchingService $matcher): JsonResponse
     {
         $data = $request->validate([

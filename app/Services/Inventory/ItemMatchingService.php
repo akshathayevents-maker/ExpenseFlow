@@ -5,11 +5,12 @@ namespace App\Services\Inventory;
 use App\Models\InventoryItem;
 use App\Models\InventoryItemAlias;
 use App\Models\User;
+use App\Support\ItemText;
 use Illuminate\Support\Collection;
 
 /**
  * Matches free text (invoice lines, pasted rows) to inventory items.
- * Order: exact name -> supplier alias -> confirmed alias -> normalized name ->
+ * Order: exact name -> supplier alias -> catalogue search (ItemSearchService) -> confirmed alias -> normalized name ->
  * fuzzy (token containment + similarity). Returns ranked suggestions with a
  * 0-100 confidence; callers must not auto-accept below
  * config('inventory.match_auto_select_confidence').
@@ -20,21 +21,12 @@ class ItemMatchingService
 
     private ?Collection $aliases = null;
 
-    public function __construct(private UnitConversionService $units) {}
+    public function __construct(private UnitConversionService $units, private ItemSearchService $search) {}
 
+    /** Same normaliser as the catalogue search (keeps Tamil vowel signs). */
     public function normalize(string $text): string
     {
-        $t = mb_strtolower($text);
-        $unitWords = implode('|', array_map('preg_quote', array_merge(
-            array_keys(config('inventory.units')),
-            array_keys(config('inventory.unit_aliases'))
-        )));
-        // drop pack sizes such as "25kg", "1 l", "500 gm", "x 2"
-        $t = preg_replace('/\b\d+(?:[.,]\d+)?\s*(?:'.$unitWords.')\b/u', ' ', $t);
-        $t = preg_replace('/[^\p{L}\s]+/u', ' ', $t);
-        $t = preg_replace('/\s+/u', ' ', $t);
-
-        return trim($t);
+        return ItemText::normalize($text);
     }
 
     /** @return array<int, array{item_id:int, name:string, unit:string, confidence:int, method:string}> */
@@ -82,6 +74,15 @@ class ItemMatchingService
             }
         }
 
+        // Catalogue search (English / Tamil / Tanglish names and aliases, spelling-tolerant).
+        // A single exact hit is as good as an alias; several exact hits are ambiguous -> never auto.
+        $found = $this->search->search($text, 5);
+        foreach ($found['results'] as $r) {
+            if ($r['score'] >= ItemSearchService::EXACT_MIN) {
+                $put($r['id'], $found['exact_id'] === $r['id'] ? 96 : 80, $r['match'] === 'Name' ? 'exact' : 'alias');
+            }
+        }
+
         $byId = $this->items()->keyBy('id');
         $out = [];
         foreach ($scores as $id => $s) {
@@ -112,6 +113,10 @@ class ItemMatchingService
         $norm = $this->normalize($text);
         if ($norm === '' || $norm === $this->normalize($item->name) && $vendorId === null) {
             return null; // the item name itself needs no alias
+        }
+        if ($vendorId === null && InventoryItemAlias::whereNull('vendor_id')->where('normalized_alias', $norm)
+            ->where('inventory_item_id', '!=', $item->id)->exists()) {
+            return null; // a generic alias belongs to exactly one item; never re-point it silently
         }
         $alias = InventoryItemAlias::firstOrNew([
             'normalized_alias' => $norm,

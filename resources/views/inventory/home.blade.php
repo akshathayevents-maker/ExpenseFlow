@@ -1,7 +1,10 @@
-<x-admin-layout title="Store">
+<x-admin-layout title="Store & Inventory">
 @include('inventory._styles')
 <div class="ic-wrap">
-    <div class="ic-head"><h1>Central store</h1>
+    <div class="ic-head"><h1>Store &amp; Inventory</h1>
+        @if(auth()->user()->isAdmin())
+            <a class="ic-btn" href="{{ route('admin.inventory.items.index') }}"><i class="bi bi-journal-text"></i> Item catalogue</a>
+        @endif
         @if(auth()->user()->isAdmin() || auth()->user()->isManager() || auth()->user()->isStorekeeper())
             <a class="ic-btn" href="{{ route('inventory.stock') }}"><i class="bi bi-boxes"></i> Stock</a>
         @endif
@@ -9,6 +12,31 @@
             <a class="ic-btn" href="{{ route('inventory.reports.index') }}"><i class="bi bi-shield-check"></i> Loss control</a>
         @endif
     </div>
+
+    <div class="ic-card" style="padding-bottom:14px">
+        <label class="ic-label" for="icFindItem">Find an item — English, தமிழ் or Tanglish</label>
+        <div><input type="text" class="ic-input" id="icFindItem" placeholder="e.g. parupu, துவரம் பருப்பு, sakkarai" autocomplete="off"></div>
+        <div class="ic-note" id="icFindResult" aria-live="polite" style="margin-top:8px"></div>
+    </div>
+    @include('inventory._item-picker')
+    @push('scripts')
+    <script>
+    (function () {
+        const out = document.getElementById('icFindResult');
+        const admin = @json(auth()->user()->isAdmin());
+        const base = @json(url('admin/inventory/items'));
+        window.IcItemPicker.attach(document.getElementById('icFindItem'), {
+            onPick(r) {
+                out.textContent = '';
+                const strong = document.createElement('strong');
+                strong.textContent = r.name + (r.name_ta ? ' — ' + r.name_ta : '');
+                out.append(strong, ' · ' + (r.category || '') + ' · stock unit ' + r.unit + ' ');
+                if (admin) { const a = document.createElement('a'); a.href = base + '/' + r.id; a.textContent = 'Open item →'; out.append(a); }
+            },
+        });
+    })();
+    </script>
+    @endpush
 
     @if($admin)
         <h2 class="ic-label" style="font-size:.85rem">Needs your decision</h2>

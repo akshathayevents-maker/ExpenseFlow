@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class InventoryItem extends Model
 {
     protected $fillable = [
-        'name', 'sku', 'inventory_category_id', 'unit',
+        'name', 'name_ta', 'sku', 'inventory_category_id', 'unit',
         'current_stock', 'minimum_stock', 'maximum_stock',
         'average_cost', 'description', 'status',
     ];
@@ -20,6 +20,19 @@ class InventoryItem extends Model
         'maximum_stock' => 'float',
         'average_cost'  => 'float',
     ];
+
+    protected static function booted(): void
+    {
+        // search_key is derived; the item search index is cached and must be refreshed on change.
+        static::saving(fn (self $i) => $i->search_key = \App\Support\ItemText::phonetic($i->name));
+        static::saved(function (self $i) {
+            // stock postings update this row constantly; only catalogue fields affect search
+            if ($i->wasRecentlyCreated || $i->wasChanged(['name', 'name_ta', 'status', 'unit', 'inventory_category_id'])) {
+                \App\Services\Inventory\ItemSearchService::flush();
+            }
+        });
+        static::deleted(fn () => \App\Services\Inventory\ItemSearchService::flush());
+    }
 
     /** Unit code => code (config/inventory.php is the source). */
     public static function units(): array

@@ -140,7 +140,7 @@ class MaterialRequestController extends Controller
         return view('inventory.material-requests.form', $this->formData($mr, $mr->only([
             'source', 'meal_entry_id', 'meal_type', 'hall_booking_id', 'department', 'required_time',
             'preparation_name', 'guest_count', 'purpose', 'notes',
-        ]) + ['required_date' => $mr->required_date->toDateString()], request()->user()));
+        ]) + ['required_date' => $mr->required_date->toDateString(), 'preparations' => $mr->preparationList()], request()->user()));
     }
 
     public function update(Request $request, MaterialRequest $materialRequest): RedirectResponse
@@ -272,7 +272,7 @@ class MaterialRequestController extends Controller
     {
         $max = (int) config('inventory.max_lines', 100);
 
-        return $request->validate([
+        $data = $request->validate([
             'source' => ['required', 'in:meal,hall,other'],
             'meal_entry_id' => ['nullable', 'required_if:source,meal', 'integer'],
             'meal_type' => ['nullable', 'required_if:source,meal', Rule::in(array_keys(MealEntryItem::mealTypes() + ['reception' => 1, 'high_tea' => 1, 'snacks' => 1]))],
@@ -282,6 +282,9 @@ class MaterialRequestController extends Controller
             'required_time' => ['nullable', 'date_format:H:i'],
             'preparation_name' => ['nullable', 'string', 'max:150'],
             'guest_count' => ['nullable', 'integer', 'min:1', 'max:100000'],
+            'preparations' => ['nullable', 'array', 'max:30'],
+            'preparations.*.name' => ['nullable', 'string', 'max:150'],
+            'preparations.*.people' => ['nullable', 'integer', 'min:1', 'max:100000'],
             'purpose' => ['nullable', 'string', 'max:200'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'client_token' => ['nullable', 'uuid'],
@@ -291,7 +294,34 @@ class MaterialRequestController extends Controller
             'lines.*.inventory_item_id' => ['nullable', 'integer'],
             'lines.*.quantity' => ['nullable', 'numeric', 'min:0', 'max:9999999'],
             'lines.*.unit' => ['nullable', 'string', 'max:20'],
-        ], ['meal_entry_id.required_if' => 'Choose the meal.', 'hall_booking_id.required_if' => 'Choose the hall order.']);
+        ], [
+            'meal_entry_id.required_if' => 'Choose the meal.', 'hall_booking_id.required_if' => 'Choose the hall order.',
+            'preparations.*.people.min' => 'Number of people must be at least 1.',
+            'preparations.*.people.integer' => 'Number of people must be a whole number.',
+        ]);
+
+        return $this->withPreparationSummary($data);
+    }
+
+    /**
+     * Several preparations, each with its own head count. The single preparation_name / guest_count
+     * columns keep a summary (names joined, largest head count) for labels, reports and recipe suggestions.
+     */
+    private function withPreparationSummary(array $data): array
+    {
+        if (! array_key_exists('preparations', $data)) {
+            return $data; // older clients post the single fields only
+        }
+        $rows = collect($data['preparations'] ?? [])
+            ->map(fn ($r) => ['name' => trim((string) ($r['name'] ?? '')) ?: null, 'people' => isset($r['people']) && $r['people'] !== '' ? (int) $r['people'] : null])
+            ->filter(fn ($r) => $r['name'] !== null || $r['people'] !== null)
+            ->values();
+
+        $data['preparations'] = $rows->isEmpty() ? null : $rows->all();
+        $data['preparation_name'] = $rows->isEmpty() ? null : (mb_substr($rows->pluck('name')->filter()->implode(', '), 0, 150) ?: null);
+        $data['guest_count'] = $rows->pluck('people')->filter()->max();
+
+        return $data;
     }
 
     private function formData(?MaterialRequest $mr, array $prefill, User $user): array
@@ -338,10 +368,10 @@ class MaterialRequestController extends Controller
 
     private function catalog(): array
     {
-        return InventoryItem::with(['unitConversions', 'aliases:id,inventory_item_id,alias'])->where('status', 'active')->orderBy('name')->get()
+        return InventoryItem::with('unitConversions')->where('status', 'active')->orderBy('name')->get()
             ->map(fn ($i) => [
-                'id' => $i->id, 'name' => $i->name, 'unit' => $i->unit, 'units' => $this->units->unitsFor($i),
-                'stock' => round((float) $i->current_stock, 3), 'aliases' => $i->aliases->pluck('alias')->take(8)->all(),
+                'id' => $i->id, 'name' => $i->name, 'name_ta' => $i->name_ta, 'unit' => $i->unit, 'units' => $this->units->unitsFor($i),
+                'stock' => round((float) $i->current_stock, 3),
             ])->all();
     }
 

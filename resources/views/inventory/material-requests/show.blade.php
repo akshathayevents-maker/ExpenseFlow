@@ -28,7 +28,18 @@
                 @else {{ $mr->forLabel() }} @endif
             </strong></div>
             <div><small>Needed</small><strong>{{ $mr->required_date->format('D d M Y') }}{{ $mr->required_time ? ', ' . \Carbon\Carbon::parse($mr->required_time)->format('h:i A') : '' }}</strong></div>
-            <div><small>People</small><strong>{{ $mr->guest_count ?: '—' }}</strong></div>
+            @php $prepList = $mr->preparationList(); @endphp
+            @if(count($prepList) > 1)
+                <div style="grid-column:1 / -1"><small>Preparations</small>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+                        @foreach($prepList as $p)
+                            <span class="ic-chip ic-chip--neutral" style="font-size:.84rem">{{ $p['name'] ?: 'Preparation' }}@if($p['people']) · <i class="bi bi-people"></i> {{ $p['people'] }}@endif</span>
+                        @endforeach
+                    </div>
+                </div>
+            @else
+                <div><small>People</small><strong>{{ $mr->guest_count ?: '—' }}</strong></div>
+            @endif
             <div><small>Requested by</small><strong>{{ $mr->requester?->name }}</strong><span class="ic-note"> {{ $mr->submitted_at?->format('d M, h:i A') }}</span></div>
             <div><small>Approved by</small><strong>{{ $mr->approver?->name ?? '—' }}</strong><span class="ic-note"> {{ $mr->approved_at?->format('d M, h:i A') }}</span></div>
             <div><small>Handed over</small><strong>{{ $mr->handedOverBy?->name ?? '—' }}</strong>

@@ -13,7 +13,6 @@
 </x-ds.hero>
 
 {{-- Flash handled by global toast in admin-layout --}}
-@endif
 
 {{-- Filters --}}
 <x-ds.card style="margin-bottom:14px">

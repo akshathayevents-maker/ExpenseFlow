@@ -1,4 +1,5 @@
 <x-admin-layout title="Hall Operations">
+@include('hall._cal-theme')
 @php
     $eventTypes  = \App\Models\HallBooking::eventTypes();
     $statusNames = \App\Models\HallBooking::statuses();
@@ -50,7 +51,7 @@
 @media (min-width: 1200px) { .hd-layout { grid-template-columns: minmax(0, 1fr) 340px; } }
 
 .hd-page a:focus-visible, .hd-page button:focus-visible, .hd-bottom-bar a:focus-visible {
-    outline: 2px solid var(--ef-emerald); outline-offset: 2px;
+    outline: 2px solid #a07238; outline-offset: 2px;
 }
 
 /* Hero month navigation (on dark) */
@@ -77,8 +78,8 @@
 .hd-day-num { font-size: 1.15rem; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .hd-day-n { font-size: .68rem; color: var(--ef-muted); white-space: nowrap; }
 .hd-day.--has .hd-day-n { color: var(--ef-emerald-dk); font-weight: 700; }
-.hd-day.--today { background: var(--ef-emerald); border-color: var(--ef-emerald); color: #fff; }
-.hd-day.--today:hover { background: var(--ef-emerald-hi); border-color: var(--ef-emerald-hi); color: #fff; }
+.hd-day.--today { background: #a07238; border-color: #a07238; color: #fff; }
+.hd-day.--today:hover { background: #b8854a; border-color: #b8854a; color: #fff; }
 .hd-day.--today .hd-day-wd, .hd-day.--today .hd-day-n { color: rgba(255,255,255,.85); }
 
 /* Rows inside cards */
@@ -109,8 +110,8 @@ a.hd-row:hover { background: var(--ef-surface-2); color: inherit; }
 
 /* Buttons — .ef-btn geometry */
 .hd-btn { min-height: 36px; padding: 0 12px; border-radius: var(--ef-radius-sm); background: var(--ef-surface); font-size: .78rem; }
-.hd-btn.--primary { background: var(--ef-emerald); border-color: var(--ef-emerald); color: #fff; }
-.hd-btn.--primary:hover { background: var(--ef-emerald-hi); border-color: var(--ef-emerald-hi); color: #fff; }
+.hd-btn.--primary { background: var(--ef-ink); border-color: var(--ef-ink); color: #fffdfa; }
+.hd-btn.--primary:hover { background: var(--ef-ink-2); border-color: var(--ef-ink-2); color: #fffdfa; }
 .hd-btn.--wa { color: #1c9c56; }
 .hd-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 
@@ -180,7 +181,7 @@ a.hd-row:hover { background: var(--ef-surface-2); color: inherit; }
     background: var(--ef-surface); border-top: 1px solid var(--ef-border); box-shadow: 0 -8px 24px rgba(24,22,18,.06);
 }
 .hd-bottom-bar .ef-btn { flex: 1; min-height: 44px; background: var(--ef-surface); }
-.hd-bottom-bar .ef-btn.--primary { background: var(--ef-emerald); border-color: var(--ef-emerald); color: #fff; }
+.hd-bottom-bar .ef-btn.--primary { background: var(--ef-ink); border-color: var(--ef-ink); color: #fffdfa; }
 body:has(#pwa-install-banner:not([aria-hidden="true"])) .hd-bottom-bar { display: none !important; }
 
 .hd-only-lg { display: none; }
@@ -210,82 +211,65 @@ body:has(#pwa-install-banner:not([aria-hidden="true"])) .hd-bottom-bar { display
 
 <div class="hd-page">
 
-    {{-- Header — shared x-ds.hero --}}
-    <x-ds.hero eyebrow="Hall Operations" title="Dashboard" :meta="$pendingMeta">
-        <x-slot:actions>
-            <div class="hd-month">
-                <a href="{{ route('hall.dashboard', ['month' => $prevMonth]) }}" class="ef-ds-btn --icon" aria-label="Previous month">
-                    <i class="bi bi-chevron-left"></i>
-                </a>
-                <span class="hd-month-label" aria-live="polite">{{ $month->format('F Y') }}</span>
-                <a href="{{ route('hall.dashboard', ['month' => $nextMonth]) }}" class="ef-ds-btn --icon" aria-label="Next month">
-                    <i class="bi bi-chevron-right"></i>
-                </a>
+    {{-- Header — same dark operations header as the calendar --}}
+    <header class="ef-cal-header --page">
+        <div style="position:relative;z-index:1;min-width:0">
+            <div class="ef-cal-kicker">Hall Operations</div>
+            <h1 class="ef-cal-title">Dashboard</h1>
+            <div class="ef-cal-subtitle">
+                @foreach($pendingMeta as $m)<span><i class="bi {{ $m['icon'] }}"></i>{{ $m['text'] }}</span>@endforeach
             </div>
-            <a href="{{ route('hall.bookings.create') }}" class="ef-ds-btn --primary" aria-label="New booking">
-                <i class="bi bi-plus-lg"></i> <span>New Booking</span>
-            </a>
-        </x-slot:actions>
-
-        <x-slot:side>
             @if($nextEvent)
-            <div>
-                <div class="ef-ds-side-label">Next Event</div>
-                <div class="hd-side-name">{{ $nextEvent->customer_name }}</div>
-                <div class="hd-side-sub">{{ \Carbon\Carbon::parse($nextEvent->start_time)->format('h:i A') }} · {{ $nextEvent->location_label }}</div>
-            </div>
-            <a href="{{ route('hall.bookings.show', $nextEvent) }}" class="ef-ds-btn">View booking <i class="bi bi-arrow-right"></i></a>
-            @else
-            <div>
-                <div class="ef-ds-side-label">Today</div>
-                <div class="hd-side-name">No events scheduled</div>
-                <div class="hd-side-sub">Hall is open for bookings</div>
-            </div>
-            <a href="{{ route('hall.bookings.create') }}" class="ef-ds-btn">Add a booking <i class="bi bi-plus-lg"></i></a>
+                <div class="ef-cal-subtitle" style="margin-top:10px">
+                    <span><i class="bi bi-clock"></i>Next: <a href="{{ route('hall.bookings.show', $nextEvent) }}" style="color:#fffdfa;font-weight:700;text-decoration:none">{{ $nextEvent->customer_name }}</a>
+                        · {{ \Carbon\Carbon::parse($nextEvent->start_time)->format('h:i A') }} · {{ $nextEvent->location_label }}</span>
+                </div>
             @endif
-        </x-slot:side>
-
-    </x-ds.hero>
-
-    {{-- KPI strip — shared x-ds.kpi-card --}}
-    <div class="ef-ds-kpi-wrap">
-        <div class="ef-ds-kpi-grid" style="--kpi-cols:4">
-            <x-ds.kpi-card
-                icon="bi-calendar-event"
-                label="Today's Events"
-                :value="$operations['today_bookings'] > 0 ? (string) $operations['today_bookings'] : '0'"
-                :note="$operations['today_bookings'] > 0 ? $operations['upcoming_bookings'] . ' more this week' : $operations['upcoming_bookings'] . ' upcoming'"
-                accent="emerald"
-                :value-color="$operations['today_bookings'] > 0 ? 'c-emerald' : ''"
-                href="{{ route('hall.bookings.index', ['date_from' => $today->toDateString(), 'date_to' => $today->toDateString()]) }}"
-            />
-            <x-ds.kpi-card
-                icon="bi-people"
-                label="Guests Today"
-                :value="number_format($todayGuests)"
-                :note="$todayGuests > 0 ? number_format($operations['catering_load']) . ' this week' : 'Hall available'"
-                accent="bluegray"
-            />
-            <x-ds.kpi-card
-                icon="bi-currency-rupee"
-                label="Month Revenue"
-                :value="$operations['month_revenue'] > 0 ? '₹' . number_format($operations['month_revenue'] / 1000, 1) . 'K' : '₹0'"
-                :note="$operations['month_revenue'] > 0
-                    ? $operations['month_bookings_count'] . ' booking' . ($operations['month_bookings_count'] !== 1 ? 's' : '') . ($operations['month_payment_due'] > 0 ? ' · ₹' . number_format($operations['month_payment_due'], 0) . ' due' : '')
-                    : 'No bookings in ' . $month->format('M Y')"
-                accent="gold"
-                :value-color="$operations['month_revenue'] > 0 ? 'c-emerald' : ''"
-            />
-            <x-ds.kpi-card
-                icon="bi-credit-card"
-                label="Pending Collection"
-                :value="$operations['pending_payments'] > 0 ? '₹' . number_format($operations['pending_balance'], 0) : '₹0'"
-                :note="$operations['pending_payments'] > 0 ? $operations['pending_payments'] . ' customer' . ($operations['pending_payments'] !== 1 ? 's' : '') . ' due' : 'All clear · no dues'"
-                :accent="$operations['pending_payments'] > 0 ? 'danger' : 'muted'"
-                :value-color="$operations['pending_payments'] > 0 ? 'c-danger' : ''"
-                href="{{ route('hall.bookings.index', ['payment_status' => 'pending']) }}"
-            />
         </div>
+        <div class="ef-cal-controls">
+            <a href="{{ route('hall.dashboard', ['month' => $prevMonth]) }}" class="ef-btn" aria-label="Previous month"><i class="bi bi-chevron-left"></i></a>
+            <span class="ef-btn" aria-live="polite" style="pointer-events:none;min-width:130px;justify-content:center">{{ $month->format('F Y') }}</span>
+            <a href="{{ route('hall.dashboard', ['month' => $nextMonth]) }}" class="ef-btn" aria-label="Next month"><i class="bi bi-chevron-right"></i></a>
+            <a href="{{ route('hall.bookings.create') }}" class="ef-btn ef-btn-dark"><i class="bi bi-plus-lg"></i> New Booking</a>
+        </div>
+    </header>
+
+    {{-- Insight tiles — same as the calendar --}}
+    <section class="ef-cal-insights --4" aria-label="Hall operations summary">
+        <a class="ef-cal-insight" href="{{ route('hall.bookings.index', ['date_from' => $today->toDateString(), 'date_to' => $today->toDateString()]) }}">
+            <span class="ef-label"><i class="bi bi-calendar-event"></i>Today's Events</span>
+            <div class="ef-cal-insight-value {{ $operations['today_bookings'] > 0 ? '--good' : '' }}">{{ $operations['today_bookings'] }}</div>
+            <div class="ef-cal-insight-caption">{{ $operations['today_bookings'] > 0 ? $operations['upcoming_bookings'].' more this week' : $operations['upcoming_bookings'].' upcoming' }}</div>
+        </a>
+        <div class="ef-cal-insight">
+            <span class="ef-label"><i class="bi bi-people"></i>Guests Today</span>
+            <div class="ef-cal-insight-value">{{ number_format($todayGuests) }}</div>
+            <div class="ef-cal-insight-caption">{{ $todayGuests > 0 ? number_format($operations['catering_load']).' this week' : 'Hall available' }}</div>
+        </div>
+        <div class="ef-cal-insight">
+            <span class="ef-label"><i class="bi bi-currency-rupee"></i>Month Revenue</span>
+            <div class="ef-cal-insight-value {{ $operations['month_revenue'] > 0 ? '--good' : '' }}">₹{{ number_format($operations['month_revenue'], 0) }}</div>
+            <div class="ef-cal-insight-caption">
+                @if($operations['month_revenue'] > 0)
+                    {{ $operations['month_bookings_count'] }} booking{{ $operations['month_bookings_count'] !== 1 ? 's' : '' }}@if($operations['month_payment_due'] > 0) · ₹{{ number_format($operations['month_payment_due'], 0) }} due @endif
+                @else
+                    No bookings in {{ $month->format('M Y') }}
+                @endif
+            </div>
+        </div>
+        <a class="ef-cal-insight" href="{{ route('hall.bookings.index', ['payment_status' => 'pending']) }}">
+            <span class="ef-label"><i class="bi bi-credit-card"></i>Pending Collection</span>
+            <div class="ef-cal-insight-value {{ $operations['pending_payments'] > 0 ? '--bad' : '--muted' }}">₹{{ number_format($operations['pending_payments'] > 0 ? $operations['pending_balance'] : 0, 0) }}</div>
+            <div class="ef-cal-insight-caption">{{ $operations['pending_payments'] > 0 ? $operations['pending_payments'].' customer'.($operations['pending_payments'] !== 1 ? 's' : '').' due' : 'All clear · no dues' }}</div>
+        </a>
+    </section>
+
+    {{-- Quick actions — same row as the calendar --}}
+    <div class="ef-cal-qactions">
+        @foreach($quick as $i => $q)
+            <a href="{{ $q['route'] }}" class="ef-cal-qa {{ !empty($q['primary']) ? '--primary' : '' }}"><i class="bi {{ $q['icon'] }}"></i> {{ $q['label'] }}</a>
+            @if($i === 0)<div class="ef-cal-qa-sep"></div>@endif
+        @endforeach
     </div>
 
     {{-- Week strip --}}
@@ -507,16 +491,6 @@ body:has(#pwa-install-banner:not([aria-hidden="true"])) .hd-bottom-bar { display
                 @endforelse
             </x-ds.card>
 
-            {{-- Quick Actions (below desktop breakpoint) --}}
-            <div class="hd-only-sm">
-                <x-ds.card title="Quick Actions" :no-pad="true">
-                    <div class="hd-quick">
-                        @foreach($quick as $q)
-                        <a href="{{ $q['route'] }}" class="ef-btn {{ !empty($q['primary']) ? '--primary' : '' }}"><i class="bi {{ $q['icon'] }}"></i> {{ $q['label'] }}</a>
-                        @endforeach
-                    </div>
-                </x-ds.card>
-            </div>
         </div>
 
         {{-- ── Sidebar column ── --}}
@@ -557,15 +531,6 @@ body:has(#pwa-install-banner:not([aria-hidden="true"])) .hd-bottom-bar { display
                 @endforeach
             </x-ds.card>
 
-            <div class="hd-only-lg">
-                <x-ds.card title="Quick Actions" :no-pad="true">
-                    <div class="hd-quick">
-                        @foreach($quick as $q)
-                        <a href="{{ $q['route'] }}" class="ef-btn {{ !empty($q['primary']) ? '--primary' : '' }}"><i class="bi {{ $q['icon'] }}"></i> {{ $q['label'] }}</a>
-                        @endforeach
-                    </div>
-                </x-ds.card>
-            </div>
         </div>
     </div>
 

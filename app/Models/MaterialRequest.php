@@ -22,7 +22,7 @@ class MaterialRequest extends Model
 
     protected $fillable = [
         'department', 'source', 'meal_entry_id', 'meal_type', 'hall_booking_id',
-        'required_date', 'required_time', 'preparation_name', 'guest_count', 'purpose', 'notes',
+        'required_date', 'required_time', 'preparation_name', 'guest_count', 'preparations', 'purpose', 'notes',
         'menu_snapshot', 'status', 'requested_by', 'submitted_at',
         'approved_by', 'approved_at', 'approval_remarks',
         'handed_over_by', 'collected_by', 'collected_by_name', 'handed_over_at',
@@ -35,6 +35,7 @@ class MaterialRequest extends Model
     protected $casts = [
         'required_date' => 'date',
         'guest_count' => 'integer',
+        'preparations' => 'array',
         'menu_snapshot' => 'array',
         'submitted_at' => 'datetime',
         'approved_at' => 'datetime',
@@ -107,6 +108,23 @@ class MaterialRequest extends Model
     public function revisions(): HasMany
     {
         return $this->hasMany(self::class, 'revision_of_id');
+    }
+
+    /**
+     * Preparations with their own head counts: [['name' => 'Upma', 'people' => 80], ...].
+     * Older requests only have the single preparation_name / guest_count pair.
+     *
+     * @return array<int, array{name: ?string, people: ?int}>
+     */
+    public function preparationList(): array
+    {
+        if (! empty($this->preparations)) {
+            return array_values($this->preparations);
+        }
+
+        return ($this->preparation_name || $this->guest_count)
+            ? [['name' => $this->preparation_name, 'people' => $this->guest_count]]
+            : [];
     }
 
     public function reference(): string

@@ -16,13 +16,7 @@
             @csrf @method('PUT')
 
             <div class="ef-form-grid" style="grid-template-columns:1fr 1fr;gap:16px">
-                <div style="grid-column:1/span 2">
-                    <label class="ef-label" for="name">Item Name <span style="color:var(--ef-danger)">*</span></label>
-                    <input type="text" id="name" name="name"
-                           class="ef-input @error('name') --error @enderror"
-                           value="{{ old('name', $item->name) }}" required>
-                    @error('name') <div class="ef-field-error">{{ $message }}</div> @enderror
-                </div>
+                @include('admin.inventory.items._names', ['item' => $item])
 
                 <div>
                     <label class="ef-label" for="sku">SKU</label>

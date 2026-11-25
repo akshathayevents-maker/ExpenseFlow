@@ -1,4 +1,5 @@
 <x-admin-layout title="Hall Bookings">
+@include('hall._cal-theme')
 @push('styles')
 <style>
 /* ── Hall Bookings — hb-* ─────────────────────────────────────────────
@@ -15,7 +16,7 @@
 .hb-search .ef-input:focus-visible, .hb-search-btn:focus-visible,
 .hb-vt-btn:focus-visible, .hb-mobile-new a:focus-visible,
 .hb-dropdown .dropdown-item:focus-visible {
-    outline: 2px solid var(--ef-emerald);
+    outline: 2px solid #a07238;
     outline-offset: 2px;
 }
 
@@ -52,17 +53,17 @@
     min-height: 44px; padding: 0 16px; border-radius: var(--ef-radius-sm);
     background: var(--ef-surface); cursor: pointer; position: relative;
 }
-.hb-btn.--active { border-color: var(--ef-emerald); color: var(--ef-emerald-dk); background: rgba(15,123,95,.06); }
+.hb-btn.--active { border-color: #a07238; color: #7a5528; background: rgba(160,114,56,.08); }
 .hb-btn-count {
     display: inline-flex; align-items: center; justify-content: center;
     min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
-    background: var(--ef-emerald); color: #fff; font-size: .68rem; font-weight: 750; line-height: 1;
+    background: #a07238; color: #fff; font-size: .68rem; font-weight: 750; line-height: 1;
 }
 .hb-btn-new {
-    background: var(--ef-emerald); border-color: var(--ef-emerald); color: #fff;
+    background: var(--ef-ink); border-color: var(--ef-ink); color: #fffdfa;
     white-space: nowrap;
 }
-.hb-btn-new:hover { background: var(--ef-emerald-hi); border-color: var(--ef-emerald-hi); color: #fff; }
+.hb-btn-new:hover { background: var(--ef-ink-2); border-color: var(--ef-ink-2); color: #fffdfa; }
 
 .hb-view-toggle {
     display: inline-flex; padding: 3px; gap: 2px;
@@ -76,7 +77,7 @@
     cursor: pointer; transition: background .18s var(--ef-ease), color .18s var(--ef-ease);
 }
 .hb-vt-btn:hover { color: var(--ef-ink); }
-.hb-vt-btn.--active { background: var(--ef-emerald); color: #fff; }
+.hb-vt-btn.--active { background: var(--ef-ink); color: #fffdfa; }
 .hb-vt-label { font-size: .78rem; font-weight: 650; display: none; }
 
 /* ── Quick-filter chips (same as .ef-wlt-chip) ───────────────────── */
@@ -94,8 +95,8 @@
     transition: background .18s var(--ef-ease), border-color .18s var(--ef-ease), color .18s var(--ef-ease);
 }
 .hb-chip:hover { border-color: var(--ef-border-strong); color: var(--ef-ink); background: var(--ef-surface); text-decoration: none; }
-.hb-chip.--active { background: var(--ef-emerald); border-color: var(--ef-emerald); color: #fff; font-weight: 700; }
-.hb-chip.--active:hover { background: var(--ef-emerald-hi); border-color: var(--ef-emerald-hi); color: #fff; }
+.hb-chip.--active { background: var(--ef-ink); border-color: var(--ef-ink); color: #fffdfa; font-weight: 700; }
+.hb-chip.--active:hover { background: var(--ef-ink-2); border-color: var(--ef-ink-2); color: #fffdfa; }
 .hb-chip.--warn { background: rgba(216,154,61,.10); border-color: rgba(216,154,61,.32); color: #7D5218; }
 .hb-chip.--warn.--active { background: var(--ef-warning); border-color: var(--ef-warning); color: #fff; }
 
@@ -106,7 +107,7 @@
     text-transform: uppercase; color: var(--ef-muted); white-space: nowrap;
 }
 .hb-result-label strong { color: var(--ef-ink); font-weight: 700; }
-.hb-result-label a { color: var(--ef-emerald); text-decoration: none; letter-spacing: 0; text-transform: none; font-weight: 650; }
+.hb-result-label a { color: #a07238; text-decoration: none; letter-spacing: 0; text-transform: none; font-weight: 650; }
 .hb-result-line { flex: 1; height: 1px; background: var(--ef-border); }
 
 /* ── Card grid ───────────────────────────────────────────────────── */
@@ -187,9 +188,9 @@
 }
 .hb-act:hover { border-color: var(--ef-border-strong); color: var(--ef-ink); background: var(--ef-surface-2); text-decoration: none; }
 .hb-act:active { background: var(--ef-border); }
-.hb-act.--view { flex: 1; min-width: 0; padding: 0 12px; background: var(--ef-emerald); border-color: var(--ef-emerald); color: #fff; }
-.hb-act.--view:hover { background: var(--ef-emerald-hi); border-color: var(--ef-emerald-hi); color: #fff; }
-.hb-act.--view:active { background: var(--ef-emerald-dk); }
+.hb-act.--view { flex: 1; min-width: 0; padding: 0 12px; background: var(--ef-ink); border-color: var(--ef-ink); color: #fffdfa; }
+.hb-act.--view:hover { background: var(--ef-ink-2); border-color: var(--ef-ink-2); color: #fffdfa; }
+.hb-act.--view:active { background: #000; }
 .hb-act.--wa, .hb-act.--more { width: 40px; padding: 0; font-size: 1rem; }
 .hb-act.--wa { color: #1c9c56; }
 .hb-act.--wa:hover { color: #15803d; }
@@ -247,7 +248,7 @@
 .hb-loader.--show { display: block; }
 .hb-loader-spin {
     display: inline-block; width: 16px; height: 16px;
-    border: 2px solid var(--ef-border); border-top-color: var(--ef-emerald);
+    border: 2px solid var(--ef-border); border-top-color: #a07238;
     border-radius: 50%; animation: hb-spin .7s linear infinite; vertical-align: middle; margin-right: 8px;
 }
 @keyframes hb-spin { to { transform: rotate(360deg); } }
@@ -372,15 +373,21 @@ $contextLabel = $chipToday ? 'Today'
 
 <div class="hb-shell">
 
-    {{-- Hero — shared x-ds.hero --}}
-    <x-ds.hero
-        eyebrow="Hall Operations"
-        title="Hall Bookings"
-        :meta="[
-            ['icon' => 'bi-calendar3', 'text' => now()->format('l, j F Y')],
-            ['icon' => 'bi-journal-check', 'text' => number_format($bookings->total()) . ' booking' . ($bookings->total() !== 1 ? 's' : '')],
-        ]"
-    />
+    {{-- Header — same dark operations header as the calendar --}}
+    <header class="ef-cal-header --page">
+        <div style="position:relative;z-index:1;min-width:0">
+            <div class="ef-cal-kicker">Hall Operations</div>
+            <h1 class="ef-cal-title">Hall Bookings</h1>
+            <div class="ef-cal-subtitle">
+                <span><i class="bi bi-calendar3"></i>{{ now()->format('l, j F Y') }}</span>
+                <span><i class="bi bi-journal-check"></i>{{ number_format($bookings->total()) }} booking{{ $bookings->total() !== 1 ? 's' : '' }}</span>
+                @if($contextLabel)<span><i class="bi bi-funnel"></i>{{ $contextLabel }}</span>@endif
+            </div>
+        </div>
+        <div class="ef-cal-controls">
+            <a href="{{ route('hall.bookings.calendar') }}" class="ef-btn"><i class="bi bi-calendar3"></i> Calendar</a>
+        </div>
+    </header>
 
     {{-- Flash --}}
     @if(session('success'))
@@ -390,50 +397,34 @@ $contextLabel = $chipToday ? 'Today'
         <div class="hb-flash --error"><i class="bi bi-exclamation-triangle-fill"></i> {{ session('error') ?? $errors->first() }}</div>
     @endif
 
-    {{-- KPI strip — shared x-ds.kpi-card; each meaningful one links into the filtered list --}}
-    <div class="ef-ds-kpi-wrap">
-        <div class="ef-ds-kpi-grid" style="--kpi-cols:4">
-            <x-ds.kpi-card
-                icon="bi-calendar-event"
-                label="Today's Events"
-                :value="number_format($stats['today'])"
-                note="scheduled today"
-                accent="emerald"
-                value-color="c-emerald"
-                href="{{ route('hall.bookings.index', ['date_from' => $today, 'date_to' => $today]) }}"
-            />
-            <x-ds.kpi-card
-                icon="bi-people"
-                label="Upcoming Guests"
-                :value="number_format($stats['upcoming_guests'])"
-                note="from today onward"
-                accent="bluegray"
-                href="{{ route('hall.bookings.index', ['date_from' => $today]) }}"
-            />
-            @if($isEmployee)
-                <x-ds.kpi-card icon="bi-hourglass-split" label="Pending Collection" value="—" accent="muted" value-color="c-muted" />
-                <x-ds.kpi-card icon="bi-graph-up" label="Monthly Revenue" value="—" accent="muted" value-color="c-muted" />
-            @else
-                <x-ds.kpi-card
-                    icon="bi-hourglass-split"
-                    label="Pending Collection"
-                    :value="$fmtKpi($stats['pending_collect'])"
-                    note="awaiting payment"
-                    :accent="$stats['pending_collect'] > 0 ? 'amber' : 'muted'"
-                    :value-color="$stats['pending_collect'] > 0 ? 'c-amber' : ''"
-                    href="{{ route('hall.bookings.index', ['payment_status' => 'pending']) }}"
-                />
-                <x-ds.kpi-card
-                    icon="bi-graph-up"
-                    label="Monthly Revenue"
-                    :value="$fmtKpi($stats['month_revenue'])"
-                    note="this month"
-                    accent="gold"
-                    href="{{ route('hall.bookings.index', ['date_from' => $monthStart, 'date_to' => $monthEnd]) }}"
-                />
-            @endif
-        </div>
-    </div>
+    {{-- Insight tiles — same as the calendar; each links into the filtered list --}}
+    <section class="ef-cal-insights --4" aria-label="Booking summary">
+        <a class="ef-cal-insight" href="{{ route('hall.bookings.index', ['date_from' => $today, 'date_to' => $today]) }}">
+            <span class="ef-label"><i class="bi bi-calendar-event"></i>Today's Events</span>
+            <div class="ef-cal-insight-value {{ $stats['today'] > 0 ? '--good' : '' }}">{{ number_format($stats['today']) }}</div>
+            <div class="ef-cal-insight-caption">scheduled today</div>
+        </a>
+        <a class="ef-cal-insight" href="{{ route('hall.bookings.index', ['date_from' => $today]) }}">
+            <span class="ef-label"><i class="bi bi-people"></i>Upcoming Guests</span>
+            <div class="ef-cal-insight-value">{{ number_format($stats['upcoming_guests']) }}</div>
+            <div class="ef-cal-insight-caption">from today onward</div>
+        </a>
+        @if($isEmployee)
+            <div class="ef-cal-insight"><span class="ef-label"><i class="bi bi-hourglass-split"></i>Pending Collection</span><div class="ef-cal-insight-value --muted">—</div></div>
+            <div class="ef-cal-insight"><span class="ef-label"><i class="bi bi-graph-up"></i>Monthly Revenue</span><div class="ef-cal-insight-value --muted">—</div></div>
+        @else
+            <a class="ef-cal-insight" href="{{ route('hall.bookings.index', ['payment_status' => 'pending']) }}">
+                <span class="ef-label"><i class="bi bi-hourglass-split"></i>Pending Collection</span>
+                <div class="ef-cal-insight-value {{ $stats['pending_collect'] > 0 ? '--warn' : '--muted' }}">{{ $fmtKpi($stats['pending_collect']) }}</div>
+                <div class="ef-cal-insight-caption">awaiting payment</div>
+            </a>
+            <a class="ef-cal-insight" href="{{ route('hall.bookings.index', ['date_from' => $monthStart, 'date_to' => $monthEnd]) }}">
+                <span class="ef-label"><i class="bi bi-graph-up"></i>Monthly Revenue</span>
+                <div class="ef-cal-insight-value">{{ $fmtKpi($stats['month_revenue']) }}</div>
+                <div class="ef-cal-insight-caption">this month</div>
+            </a>
+        @endif
+    </section>
 
     {{-- Search + view + filters + quick chips --}}
     <div class="hb-toolbar">

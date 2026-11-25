@@ -297,6 +297,9 @@
         <button type="button" class="ef-ds-btn" data-bs-toggle="modal" data-bs-target="#uploadModal">
             <i class="bi bi-cloud-upload"></i> <span>Upload Bill</span>
         </button>
+        <a href="{{ route('admin.inventory.items.duplicates') }}" class="ef-ds-btn">
+            <i class="bi bi-intersect"></i> <span>Possible duplicates</span>
+        </a>
         <a href="{{ route('admin.inventory.items.create') }}" class="ef-ds-btn --primary">
             <i class="bi bi-plus-lg"></i> <span>Add Item</span>
         </a>
@@ -370,7 +373,7 @@
         <div class="ef-inv-search-wrap">
             <i class="bi bi-search ef-inv-search-icon"></i>
             <input type="text" name="search" class="ef-input"
-                   placeholder="Search name or SKU…" value="{{ $search }}">
+                   placeholder="Search English, தமிழ், Tanglish or SKU…" value="{{ $search }}">
         </div>
         <button type="button" class="ef-btn ef-inv-adv-toggle {{ $hasAdv ? '--has-filter' : '' }}" onclick="invToggleAdv(this)">
             <i class="bi bi-sliders2"></i> Filters
@@ -447,7 +450,7 @@
         </div>
 
         <div class="ef-inv-card-identity">
-            <div class="ef-inv-item-name">{{ $item->name }}</div>
+            <div class="ef-inv-item-name">{{ $item->name }}@if($item->name_ta) <span lang="ta" style="font-weight:500;color:var(--ef-muted)">· {{ $item->name_ta }}</span>@endif</div>
             <div class="ef-inv-item-sku">{{ $item->sku ?? 'No SKU' }}</div>
         </div>
 

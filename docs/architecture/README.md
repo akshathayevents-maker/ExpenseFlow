@@ -15,6 +15,7 @@ Index — see also [PROJECT_KNOWLEDGE.md](../../PROJECT_KNOWLEDGE.md) §37.
 | [0005](0005-single-source-domain-services.md) | Single-source domain services for HR/payroll/money | Accepted |
 | [0006](0006-in-app-notifications-only.md) | Notifications are in-app rows; no mail/queue delivery | Accepted (state, not necessarily intent) |
 | [0007](0007-central-store-material-control.md) | Central store material control (purchase → receipt → request → issue → usage) | Accepted |
+| [0008](0008-multilingual-item-catalogue.md) | Multilingual item catalogue (English/Tamil/Tanglish) and one shared item search | Accepted |
 
 Template for new ADRs: Context → Decision → Evidence (files/commits) → Consequences → Reason if unknown → Status.
 Add an ADR when a decision changes deployment, data model, security model, or a cross-cutting service.

@@ -7,8 +7,12 @@ use App\Http\Requests\Inventory\InventoryItemRequest;
 use App\Http\Requests\Inventory\InventoryTransactionRequest;
 use App\Models\InventoryCategory;
 use App\Models\InventoryItem;
+use App\Models\InventoryItemAlias;
+use App\Models\InventoryUnitConversion;
 use App\Models\InventoryTransaction;
 use App\Services\AuditLogService;
+use App\Services\Inventory\ItemCatalogueService;
+use App\Services\Inventory\ItemSearchService;
 use App\Services\InventoryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,7 +22,9 @@ class InventoryItemController extends Controller
 {
     public function __construct(
         private InventoryService $inventoryService,
-        private AuditLogService  $audit
+        private AuditLogService  $audit,
+        private ItemSearchService $search,
+        private ItemCatalogueService $catalogue,
     ) {}
 
     public function index(Request $request): View
@@ -26,8 +32,9 @@ class InventoryItemController extends Controller
         $filters = $request->only(['search', 'category_id', 'status', 'stock_status']);
 
         $items = InventoryItem::with('category')
+            // shared catalogue search (English / Tamil / aliases) + SKU
             ->when($filters['search'] ?? null, fn ($q, $v) => $q->where(fn ($w) => $w
-                ->whereRaw('LOWER(name) LIKE ?', ['%' . mb_strtolower($v) . '%'])
+                ->whereIn('id', $this->search->matchingIds($v) ?: [0])
                 ->orWhereRaw('LOWER(sku) LIKE ?', ['%' . mb_strtolower($v) . '%'])
             ))
             ->when($filters['category_id'] ?? null, fn ($q, $v) => $q->where('inventory_category_id', $v))
@@ -72,14 +79,17 @@ class InventoryItemController extends Controller
 
     public function store(InventoryItemRequest $request): RedirectResponse
     {
-        $item = InventoryItem::create($request->validated());
+        if ($warn = $this->duplicateWarning($request)) {
+            return $warn;
+        }
+        $item = InventoryItem::create(collect($request->validated())->except('confirm_duplicate')->all());
         $this->audit->log('created', 'inventory_item', $item->id, $item->name);
         return redirect()->route('admin.inventory.items.show', $item)->with('success', 'Item created.');
     }
 
     public function show(InventoryItem $item, Request $request): View
     {
-        $item->load('category');
+        $item->load(['category', 'aliases' => fn ($q) => $q->orderByRaw('vendor_id IS NOT NULL')->orderBy('alias'), 'aliases.vendor:id,name', 'unitConversions']);
 
         $transactions = $item->transactions()
             ->with('creator')
@@ -102,9 +112,12 @@ class InventoryItemController extends Controller
 
     public function update(InventoryItemRequest $request, InventoryItem $item): RedirectResponse
     {
-        $old = $item->only(['name', 'minimum_stock', 'status']);
-        $item->update($request->validated());
-        $this->audit->log('updated', 'inventory_item', $item->id, $item->name, $old, $item->fresh()->only(['name', 'minimum_stock', 'status']));
+        if ($warn = $this->duplicateWarning($request, $item)) {
+            return $warn;
+        }
+        $old = $item->only(['name', 'name_ta', 'minimum_stock', 'status']);
+        $item->update(collect($request->validated())->except('confirm_duplicate')->all());
+        $this->audit->log('updated', 'inventory_item', $item->id, $item->name, $old, $item->fresh()->only(['name', 'name_ta', 'minimum_stock', 'status']));
         return redirect()->route('admin.inventory.items.show', $item)->with('success', 'Item updated.');
     }
 
@@ -140,5 +153,87 @@ class InventoryItemController extends Controller
     {
         $item->update(['status' => $item->status === 'active' ? 'inactive' : 'active']);
         return back()->with('success', 'Status updated.');
+    }
+
+    // ─── Catalogue: names, aliases, purchase units, duplicates ──────────────
+
+    /** Similar existing items -> back to the form with a warning unless the admin confirmed. */
+    private function duplicateWarning(InventoryItemRequest $request, ?InventoryItem $item = null): ?RedirectResponse
+    {
+        if ($request->boolean('confirm_duplicate')) {
+            return null;
+        }
+        $nameChanged = ! $item || $item->name !== $request->input('name') || $item->name_ta !== $request->input('name_ta');
+        if (! $nameChanged) {
+            return null;
+        }
+        $similar = collect($this->search->similarTo((string) $request->input('name'), $item?->id))
+            ->merge($request->filled('name_ta') ? $this->search->similarTo((string) $request->input('name_ta'), $item?->id) : [])
+            ->unique('id')->values()->all();
+
+        return $similar ? back()->withInput()->with('duplicates', $similar) : null;
+    }
+
+    public function storeAlias(Request $request, InventoryItem $item): RedirectResponse
+    {
+        $data = $request->validate([
+            'alias' => ['required', 'string', 'max:200'],
+            'language' => ['required', 'in:'.implode(',', array_keys(InventoryItemAlias::LANGUAGES))],
+        ]);
+        $r = $this->catalogue->addAlias($item, $data['alias'], $data['language'], auth()->id());
+
+        return match ($r['status']) {
+            'created' => tap(back()->with('success', "“{$data['alias']}” added."), fn () => $this->audit->log('alias_added', 'inventory_item', $item->id, $item->name, [], ['alias' => $data['alias'], 'language' => $data['language']])),
+            'exists', 'redundant' => back()->with('success', "“{$data['alias']}” already finds this item."),
+            'conflict' => back()->withInput()->withErrors(['alias' => "“{$data['alias']}” already belongs to {$r['other']?->name}. Remove it there first if it is wrong."]),
+            default => back()->withInput()->withErrors(['alias' => 'Enter letters (English or Tamil).']),
+        };
+    }
+
+    public function destroyAlias(InventoryItem $item, InventoryItemAlias $alias): RedirectResponse
+    {
+        abort_unless($alias->inventory_item_id === $item->id, 404);
+        $alias->delete();
+        $this->audit->log('alias_removed', 'inventory_item', $item->id, $item->name, ['alias' => $alias->alias], []);
+
+        return back()->with('success', "“{$alias->alias}” removed.");
+    }
+
+    /** Item-specific purchase unit, e.g. 1 bag = 25 kg. Never invented: entered by an admin. */
+    public function storeUnit(Request $request, InventoryItem $item): RedirectResponse
+    {
+        $units = config('inventory.units');
+        $data = $request->validate([
+            'unit' => ['required', 'in:'.implode(',', array_keys($units))],
+            'factor' => ['required', 'numeric', 'gt:0', 'max:100000'],
+            'notes' => ['nullable', 'string', 'max:200'],
+        ]);
+        $base = $units[$item->unit] ?? null;
+        if ($data['unit'] === $item->unit || ($base && $units[$data['unit']]['dimension'] === $base['dimension'])) {
+            return back()->withErrors(['unit' => "{$data['unit']} already converts to {$item->unit} automatically."]);
+        }
+        $conv = InventoryUnitConversion::updateOrCreate(
+            ['inventory_item_id' => $item->id, 'unit' => $data['unit']],
+            ['factor' => $data['factor'], 'notes' => $data['notes'] ?? null, 'created_by' => auth()->id()],
+        );
+        $this->audit->log('unit_rule_saved', 'inventory_item', $item->id, $item->name, [], ['unit' => $conv->unit, 'factor' => (float) $conv->factor]);
+
+        return back()->with('success', "1 {$conv->unit} = ".rtrim(rtrim(number_format($conv->factor, 3, '.', ''), '0'), '.')." {$item->unit} saved.");
+    }
+
+    public function destroyUnit(InventoryItem $item, InventoryUnitConversion $conversion): RedirectResponse
+    {
+        abort_unless($conversion->inventory_item_id === $item->id, 404);
+        $conversion->delete();   // past lines keep their stored base quantities
+        $this->audit->log('unit_rule_removed', 'inventory_item', $item->id, $item->name, ['unit' => $conversion->unit, 'factor' => (float) $conversion->factor], []);
+
+        return back()->with('success', "{$conversion->unit} removed as a purchase unit.");
+    }
+
+    public function duplicates(): View
+    {
+        $groups = $this->catalogue->possibleDuplicates();
+
+        return view('admin.inventory.items.duplicates', compact('groups'));
     }
 }
