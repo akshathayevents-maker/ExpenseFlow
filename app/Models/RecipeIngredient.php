@@ -8,15 +8,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class RecipeIngredient extends Model
 {
     protected $fillable = [
-        'recipe_id', 'inventory_item_id',
+        'recipe_id', 'inventory_item_id', 'ingredient_name_ta',
         'ingredient_name', 'quantity_per_batch', 'quantity_note',
         'unit', 'prep_note', 'is_optional', 'sort_order', 'quantity_per_guest',
+        'is_approximate', 'match_confidence', 'needs_mapping',
     ];
 
     protected $casts = [
         'quantity_per_batch' => 'float',
-        'is_optional'        => 'boolean',
-        'sort_order'         => 'integer',
+        'is_optional' => 'boolean',
+        'is_approximate' => 'boolean',
+        'needs_mapping' => 'boolean',
+        'sort_order' => 'integer',
     ];
 
     // ── Relationships ──────────────────────────────────────────────────────────
@@ -87,16 +90,16 @@ class RecipeIngredient extends Model
         if ($this->isScalable()) {
             return [
                 'quantity' => $this->scaledQuantity($scaleFactor),
-                'unit'     => $this->unit ?? '',
-                'note'     => null,
+                'unit' => $this->unit ?? '',
+                'note' => null,
                 'scalable' => true,
             ];
         }
 
         return [
             'quantity' => null,
-            'unit'     => null,
-            'note'     => $this->quantity_note ?? 'As Required',
+            'unit' => null,
+            'note' => $this->quantity_note ?? 'As Required',
             'scalable' => false,
         ];
     }
@@ -107,5 +110,11 @@ class RecipeIngredient extends Model
     {
         // Format to 3 decimal places then strip trailing zeros and dot
         return rtrim(rtrim(number_format($value, 3, '.', ''), '0'), '.');
+    }
+
+    /** Tamil display name: recipe's own Tamil text, else the linked stock item's Tamil name. Never used for stock. */
+    public function displayNameTa(): ?string
+    {
+        return trim((string) $this->ingredient_name_ta) ?: ($this->inventoryItem?->name_ta ?: null);
     }
 }

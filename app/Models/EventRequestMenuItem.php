@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Services\MenuItemSync;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class EventRequestMenuItem extends Model
 {
@@ -14,12 +16,12 @@ class EventRequestMenuItem extends Model
     ];
 
     protected $casts = [
-        'is_veg'               => 'boolean',
-        'is_popular'           => 'boolean',
-        'is_chef_recommended'  => 'boolean',
-        'is_active'            => 'boolean',
-        'price_per_person'     => 'decimal:2',
-        'display_order'        => 'integer',
+        'is_veg' => 'boolean',
+        'is_popular' => 'boolean',
+        'is_chef_recommended' => 'boolean',
+        'is_active' => 'boolean',
+        'price_per_person' => 'decimal:2',
+        'display_order' => 'integer',
     ];
 
     public function category(): BelongsTo
@@ -48,9 +50,29 @@ class EventRequestMenuItem extends Model
     public function scopeForMenuType(Builder $query, ?string $menuType): Builder
     {
         return match ($menuType) {
-            'veg'     => $query->veg(),
+            'veg' => $query->veg(),
             'non_veg' => $query->nonVeg(),
-            default   => $query, // 'both' or null — no filter
+            default => $query, // 'both' or null — no filter
         };
+    }
+
+    public function menuItemMirror(): HasOne
+    {
+        return $this->hasOne(MenuItem::class, 'event_request_menu_item_id');
+    }
+
+    /** Keep the Menu Composer item master in step (names / categories / new and removed dishes). */
+    protected static function booted(): void
+    {
+        static::saved(function (self $er) {
+            if (! MenuItemSync::busy()) {
+                app(MenuItemSync::class)->fromEventRequest($er);
+            }
+        });
+        static::deleting(function (self $er) {
+            // the menu item stays (it may be used in saved menus) but is switched off and unlinked
+            MenuItemSync::quietly(fn () => MenuItem::where('event_request_menu_item_id', $er->id)
+                ->update(['is_active' => false, 'event_request_menu_item_id' => null]));
+        });
     }
 }

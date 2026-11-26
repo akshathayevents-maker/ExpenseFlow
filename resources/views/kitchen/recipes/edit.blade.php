@@ -126,6 +126,20 @@
                                       class="ef-textarea @error('description') --error @enderror"
                                       placeholder="Brief description…" rows="2">{{ old('description', $recipe->description) }}</textarea>
                         </div>
+                        <div class="ef-span-12">
+                            <label class="ef-label" for="name_ta" lang="ta">தமிழ் பெயர் (Tamil name)</label>
+                            <input id="name_ta" type="text" name="name_ta" class="ef-input" lang="ta" maxlength="200"
+                                   value="{{ old('name_ta', $recipe->name_ta) }}" placeholder="எ.கா. சிக்கன் பிரியாணி">
+                            @error('name_ta')<div class="ef-field-error">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="ef-span-6">
+                            <label class="ef-label" for="kitchen_notes">Kitchen notes <span style="color:var(--ef-muted);font-weight:400;font-size:.78rem">(scaling, tips, food safety)</span></label>
+                            <textarea id="kitchen_notes" name="kitchen_notes" class="ef-textarea" rows="2" placeholder="e.g. For 250+ cook in two vessels; keep curd rice below 8 °C">{{ old('kitchen_notes', $recipe->kitchen_notes) }}</textarea>
+                        </div>
+                        <div class="ef-span-6">
+                            <label class="ef-label" for="kitchen_notes_ta" lang="ta">சமையல் குறிப்பு (Tamil notes)</label>
+                            <textarea id="kitchen_notes_ta" name="kitchen_notes_ta" class="ef-textarea" lang="ta" rows="2" placeholder="தமிழில் குறிப்பு">{{ old('kitchen_notes_ta', $recipe->kitchen_notes_ta) }}</textarea>
+                        </div>
                     </div>
                 </x-premium.card>
 
@@ -150,6 +164,10 @@
                                     'prep_note'         => $ing->prep_note,
                                     'is_optional'       => $ing->is_optional,
                                     'inventory_item_id' => $ing->inventory_item_id,
+                                    'inventory_item_name' => $ing->inventoryItem?->name,
+                                    'needs_mapping'     => $ing->needs_mapping,
+                                    'is_approximate'    => $ing->is_approximate,
+                                    'ingredient_name_ta' => $ing->ingredient_name_ta,
                                 ]" />
                             @endforeach
                         @endforelse
@@ -168,14 +186,19 @@
                         <p class="ef-section-copy">Step-by-step kitchen instructions. Use ▲ ▼ to reorder.</p>
                     </div>
 
-                    <div class="ef-sop-builder" id="sopBuilder">
+                    @include('kitchen.recipes._edit-lang')
+                    <div class="ef-sop-builder" id="sopBuilder" data-edit-lang="both">
                         @forelse(old('sops', []) as $i => $sop)
                             <x-kitchen.sop-row :index="$i" :stepNumber="$i + 1" :data="$sop" />
                         @empty
                             @foreach($recipe->sops as $i => $sop)
                                 <x-kitchen.sop-row :index="$i" :stepNumber="$sop->step_number" :data="[
                                     'title'            => $sop->title,
+                                    'title_ta'         => $sop->title_ta,
                                     'instruction'      => $sop->instruction,
+                                    'instruction_ta'   => $sop->instruction_ta,
+                                    'note'             => $sop->note,
+                                    'note_ta'          => $sop->note_ta,
                                     'duration_minutes' => $sop->duration_minutes,
                                 ]" />
                             @endforeach
@@ -247,10 +270,11 @@
             <label class="ef-optional-label">
                 <input type="checkbox" name="ingredients[__IDX__][is_optional]" value="1"> Optional
             </label>
-            <input type="hidden" name="ingredients[__IDX__][inventory_item_id]" value="">
+            @include('kitchen.recipes._ingredient-map-field', ['idx' => '__IDX__', 'data' => []])
         </div>
     </div>
 </template>
+@include('kitchen.recipes._ingredient-map-script')
 
 <template id="sopTemplate">
     <div class="ef-sop-card" data-sop-index="__IDX__">
@@ -264,14 +288,15 @@
             </div>
         </div>
         <div class="ef-sop-card-body">
-            <div>
+            <div class="bl-en">
                 <label class="ef-label">Step Title <span style="color:var(--ef-danger)">*</span></label>
                 <input type="text" name="sops[__IDX__][title]" class="ef-input" placeholder="e.g. Heat the oil" required>
             </div>
-            <div>
+            <div class="bl-en">
                 <label class="ef-label">Instructions <span style="color:var(--ef-danger)">*</span></label>
                 <textarea name="sops[__IDX__][instruction]" class="ef-textarea" placeholder="Detailed instructions…" rows="3" required></textarea>
             </div>
+            @include('kitchen.recipes._sop-tamil-fields', ['idx' => '__IDX__', 'data' => []])
             <div style="max-width:160px">
                 <label class="ef-label">Duration <span style="color:var(--ef-muted);font-weight:400;font-size:.78rem">(optional)</span></label>
                 <div style="display:flex;align-items:center;gap:8px">

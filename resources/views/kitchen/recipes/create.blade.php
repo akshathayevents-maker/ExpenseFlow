@@ -47,7 +47,7 @@
                         <div class="ef-span-8">
                             <label class="ef-label" for="name">Recipe Name <span style="color:var(--ef-danger)">*</span></label>
                             <input id="name" name="name" class="ef-input @error('name') --error @enderror"
-                                   value="{{ old('name') }}"
+                                   value="{{ old('name', request('name')) }}"
                                    placeholder="e.g. Upma, Sambar, Lemon Rice"
                                    required autofocus>
                             @error('name')<div class="ef-field-error">{{ $message }}</div>@enderror
@@ -125,6 +125,20 @@
                                       placeholder="Brief description of this recipe…" rows="2">{{ old('description') }}</textarea>
                             @error('description')<div class="ef-field-error">{{ $message }}</div>@enderror
                         </div>
+                        <div class="ef-span-12">
+                            <label class="ef-label" for="name_ta" lang="ta">தமிழ் பெயர் (Tamil name)</label>
+                            <input id="name_ta" type="text" name="name_ta" class="ef-input" lang="ta" maxlength="200"
+                                   value="{{ old('name_ta', '') }}" placeholder="எ.கா. சிக்கன் பிரியாணி">
+                            @error('name_ta')<div class="ef-field-error">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="ef-span-6">
+                            <label class="ef-label" for="kitchen_notes">Kitchen notes <span style="color:var(--ef-muted);font-weight:400;font-size:.78rem">(scaling, tips, food safety)</span></label>
+                            <textarea id="kitchen_notes" name="kitchen_notes" class="ef-textarea" rows="2" placeholder="e.g. For 250+ cook in two vessels; keep curd rice below 8 °C">{{ old('kitchen_notes', '') }}</textarea>
+                        </div>
+                        <div class="ef-span-6">
+                            <label class="ef-label" for="kitchen_notes_ta" lang="ta">சமையல் குறிப்பு (Tamil notes)</label>
+                            <textarea id="kitchen_notes_ta" name="kitchen_notes_ta" class="ef-textarea" lang="ta" rows="2" placeholder="தமிழில் குறிப்பு">{{ old('kitchen_notes_ta', '') }}</textarea>
+                        </div>
                     </div>
                 </x-premium.card>
 
@@ -163,7 +177,8 @@
                         <p class="ef-section-copy">Write step-by-step kitchen instructions. Use the ▲ ▼ buttons to reorder steps. Each step appears numbered on the production sheet.</p>
                     </div>
 
-                    <div class="ef-sop-builder" id="sopBuilder">
+                    @include('kitchen.recipes._edit-lang')
+                    <div class="ef-sop-builder" id="sopBuilder" data-edit-lang="both">
                         @forelse(old('sops', []) as $i => $sop)
                             <x-kitchen.sop-row :index="$i" :stepNumber="$i + 1" :data="$sop" />
                         @empty
@@ -248,9 +263,11 @@
                 <input type="checkbox" name="ingredients[__IDX__][is_optional]" value="1">
                 Optional
             </label>
+            @include('kitchen.recipes._ingredient-map-field', ['idx' => '__IDX__', 'data' => []])
         </div>
     </div>
 </template>
+@include('kitchen.recipes._ingredient-map-script')
 
 {{-- ── SOP step template ────────────────────────────────────────────── --}}
 <template id="sopTemplate">
@@ -271,16 +288,17 @@
             </div>
         </div>
         <div class="ef-sop-card-body">
-            <div>
+            <div class="bl-en">
                 <label class="ef-label">Step Title <span style="color:var(--ef-danger)">*</span></label>
                 <input type="text" name="sops[__IDX__][title]"
                        class="ef-input" placeholder="e.g. Heat the oil, Temper mustard seeds" required>
             </div>
-            <div>
+            <div class="bl-en">
                 <label class="ef-label">Instructions <span style="color:var(--ef-danger)">*</span></label>
                 <textarea name="sops[__IDX__][instruction]"
                           class="ef-textarea" placeholder="Detailed instructions for this step…" rows="3" required></textarea>
             </div>
+            @include('kitchen.recipes._sop-tamil-fields', ['idx' => '__IDX__', 'data' => []])
             <div style="max-width:160px">
                 <label class="ef-label">Duration <span style="color:var(--ef-muted);font-weight:400;font-size:.78rem">(optional)</span></label>
                 <div style="display:flex;align-items:center;gap:8px">

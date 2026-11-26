@@ -18,7 +18,7 @@ test('admin navigation exposes Attendance Regularization', function () {
 
     $this->actingAs($admin)->get(route('admin.dashboard'))
         ->assertOk()
-        ->assertSee('Attendance Regularization')
+        ->assertSee('Attendance Corrections')
         ->assertSee(route('admin.attendance-regularizations.index'), false);
 });
 
@@ -27,15 +27,15 @@ test('admin navigation exposes Employee Salaries', function () {
 
     $this->actingAs($admin)->get(route('admin.dashboard'))
         ->assertOk()
-        ->assertSee('Employee Salaries');
+        ->assertSee('Salaries')->assertSee(route('admin.salaries.index'), false);
 });
 
-test('admin navigation exposes Overtime under Compensation Payroll', function () {
+test('admin navigation exposes Overtime under People & Payroll', function () {
     $admin = User::factory()->create(['role' => 'admin']);
 
     $this->actingAs($admin)->get(route('admin.dashboard'))
         ->assertOk()
-        ->assertSee('Compensation / Payroll')
+        ->assertSee('People &amp; Payroll', false)
         ->assertSee(route('admin.overtime.index'), false);
 });
 
@@ -58,20 +58,16 @@ test('admin sidebar wires every top-level group into one shared accordion parent
     $response->assertOk();
 
     $html = $response->getContent();
-    $groupIds = [
-        'grp-expenses', 'grp-people-hr', 'grp-payroll', 'grp-inventory', 'grp-setup',
-        'grp-analytics', 'grp-ops', 'grp-hall', 'grp-event-requests',
-        'grp-kitchen-admin', 'grp-corp-meals-admin',
-    ];
+    $groupIds = ['nav-events', 'nav-menu', 'nav-store', 'nav-finance', 'nav-people', 'nav-reports', 'nav-settings'];
 
     $response->assertSee('id="admin-nav-accordion"', false);
 
     foreach ($groupIds as $id) {
-        expect($html)->toContain('data-bs-parent="#admin-nav-accordion" id="' . $id . '"');
+        expect($html)->toContain('data-bs-parent="#admin-nav-accordion" id="'.$id.'"');
     }
 });
 
-test('a route that matches both an employees wildcard and the salary section only opens Compensation / Payroll', function () {
+test('a route that matches both the employees wildcard and the salary section highlights only Salaries', function () {
     $admin = User::factory()->create(['role' => 'admin']);
     $employee = User::factory()->create();
 
@@ -84,11 +80,11 @@ test('a route that matches both an employees wildcard and the salary section onl
 
     $html = $response->getContent();
 
-    $payrollBody = substr($html, strpos($html, 'id="grp-payroll"') - 200, 260);
-    $peopleHrBody = substr($html, strpos($html, 'id="grp-people-hr"') - 200, 260);
-
-    expect($payrollBody)->toContain('show');
-    expect($peopleHrBody)->not->toContain('show');
+    // exactly one active link, and it is Salaries — not Employees (whose admin.employees.* pattern also matches)
+    expect(substr_count($html, 'aria-current="page"'))->toBe(2)   // sidebar link + breadcrumb
+        ->and($html)->toMatch('/class="nav-link active"[^>]*title="Salaries"/')
+        ->and($html)->not->toMatch('/class="nav-link active"[^>]*title="Employees"/')
+        ->and(substr($html, strpos($html, 'id="nav-people"') - 120, 200))->toContain('show');
 });
 
 test('admin sidebar group buttons expose aria-controls matching their collapse target', function () {
@@ -97,20 +93,20 @@ test('admin sidebar group buttons expose aria-controls matching their collapse t
     $response = $this->actingAs($admin)->get(route('admin.dashboard'));
     $response->assertOk();
 
-    $response->assertSee('aria-controls="grp-people-hr"', false);
-    $response->assertSee('aria-controls="grp-payroll"', false);
+    foreach (['events', 'menu', 'store', 'finance', 'people', 'reports', 'settings'] as $g) {
+        $response->assertSee('data-bs-target="#nav-'.$g.'" aria-controls="nav-'.$g.'"', false);
+    }
 });
 
-test('visiting an Overtime page (Compensation / Payroll) does not also mark People / HR open', function () {
+test('visiting an Overtime page opens only People & Payroll', function () {
     $admin = User::factory()->create(['role' => 'admin']);
 
     $response = $this->actingAs($admin)->get(route('admin.overtime.index'));
     $response->assertOk();
 
     $html = $response->getContent();
-    $peopleHrBody = substr($html, strpos($html, 'id="grp-people-hr"') - 200, 260);
-
-    expect($peopleHrBody)->not->toContain('show');
+    expect(substr_count($html, 'collapse sidebar-group-body show'))->toBe(1)
+        ->and(substr($html, strpos($html, 'id="nav-people"') - 120, 200))->toContain('show');
 });
 
 // ── Employee navigation ──────────────────────────────────────────────────

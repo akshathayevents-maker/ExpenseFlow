@@ -2,15 +2,18 @@
 
 namespace App\Models;
 
+use App\Services\MenuItemSync;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class MenuItem extends Model
 {
     use HasFactory;
 
     protected $fillable = [
+        'event_request_menu_item_id',
         'category_key',
         'category_en',
         'category_ta',
@@ -21,8 +24,8 @@ class MenuItem extends Model
     ];
 
     protected $casts = [
-        'is_active'   => 'boolean',
-        'sort_order'  => 'integer',
+        'is_active' => 'boolean',
+        'sort_order' => 'integer',
     ];
 
     // ── Scopes ─────────────────────────────────────────────────────────────
@@ -59,6 +62,7 @@ class MenuItem extends Model
             $bi = array_search($b['category_key'], $categoryOrder);
             $ai = $ai === false ? 999 : $ai;
             $bi = $bi === false ? 999 : $bi;
+
             return $ai <=> $bi;
         });
 
@@ -71,5 +75,26 @@ class MenuItem extends Model
     public static function categoryKeys(): array
     {
         return array_keys(config('menu_categories.items', []));
+    }
+
+    public function eventRequestItem(): BelongsTo
+    {
+        return $this->belongsTo(EventRequestMenuItem::class, 'event_request_menu_item_id');
+    }
+
+    /** Keep the Event Request menu in step (names / categories / new dishes). */
+    protected static function booted(): void
+    {
+        static::saved(function (self $m) {
+            if (! MenuItemSync::busy() && ($m->wasRecentlyCreated || $m->wasChanged(['item_en', 'category_key']) || ! $m->event_request_menu_item_id)) {
+                app(MenuItemSync::class)->fromMenu($m);
+            }
+        });
+        static::deleting(function (self $m) {
+            // the event-request dish may be on past customer requests: switch it off instead of deleting it
+            if ($m->event_request_menu_item_id && ! MenuItemSync::busy()) {
+                MenuItemSync::quietly(fn () => EventRequestMenuItem::whereKey($m->event_request_menu_item_id)->update(['is_active' => false]));
+            }
+        });
     }
 }

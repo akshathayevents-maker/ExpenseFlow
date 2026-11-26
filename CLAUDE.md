@@ -6,7 +6,7 @@ Follow the phased protocol in PROJECT_KNOWLEDGE.md §40 for every task. The code
 
 ## This repo is not the monorepo described in `../CLAUDE.md`
 ExpenseFlow is one Laravel 13 / PHP 8.3 monolith (Blade + Bootstrap/CDN + committed Vite build, PostgreSQL in production, Pest tests on SQLite).
-There is no Lumen, Livewire, Sanctum, Docker, `event-workflow-app`, JSON API, or queued job code here. Ignore the parent file's guidance for this directory.
+There is no Lumen, Livewire, Sanctum, Docker, `event-workflow-app` or JSON API here. The only queued jobs are the AI recipe generator's (`app/Jobs/*Recipe*`, PROJECT_KNOWLEDGE §15). Ignore the parent file's guidance for this directory.
 
 ## Hard rules
 - **Before touching anything under `deployment/` (or Apache/supervisor/cron/queue setup), you MUST read `deployment/DEPLOYMENT_CHECKLIST.md`, `deployment/legacy-release-based/README.md`, PROJECT_KNOWLEDGE.md §21–§22 and `docs/OPERATIONS_RUNBOOK.md` §3, and run `git status` first: other sessions/people may be editing the same scripts concurrently — never overwrite uncommitted deployment edits you did not make. Ctrl+Z suspends a process (it keeps holding the flock); it is never a successful deploy — use Ctrl+C.

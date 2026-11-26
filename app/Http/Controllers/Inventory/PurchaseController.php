@@ -31,25 +31,84 @@ class PurchaseController extends Controller
         private UnitConversionService $units,
     ) {}
 
+    /** Purchase lifecycle groups shown as tabs (existing statuses only). */
+    public const STAGES = [
+        'approve' => ['To approve', ['submitted']],
+        'awaiting' => ['To receive', ['approved', 'partially_received']],
+        'received' => ['Received', ['received', 'completed']],
+        'draft' => ['Drafts', ['draft']],
+        'closed' => ['Closed',  ['rejected', 'cancelled']],
+    ];
+
     public function index(Request $request): View
     {
         $this->authorize('viewAny', Purchase::class);
         $user = $request->user();
-        $status = $request->input('status');
+        $f = $request->validate([
+            'q' => ['nullable', 'string', 'max:100'],
+            'stage' => ['nullable', 'in:'.implode(',', array_keys(self::STAGES))],
+            'status' => ['nullable', 'in:'.implode(',', array_keys(Purchase::STATUSES))],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date'],
+            'bill' => ['nullable', 'in:with,without'],
+        ]);
+        $status = $f['status'] ?? null;
+        $stage = $f['stage'] ?? null;
+        $search = trim((string) ($f['q'] ?? ''));
+        $own = ! $user->isAdmin() && ! $user->isStorekeeper();
 
-        $purchases = Purchase::with(['vendor', 'creator'])->withCount('items')
-            ->when(! $user->isAdmin() && ! $user->isStorekeeper(), fn ($q) => $q->where('created_by', $user->id))
-            ->when($status, fn ($q, $s) => $q->where('status', $s))
-            ->when($request->filled('from'), fn ($q) => $q->whereDate('purchase_date', '>=', $request->from))
-            ->when($request->filled('to'), fn ($q) => $q->whereDate('purchase_date', '<=', $request->to))
+        // scope + filters shared by the list and the period total (not by the tab counts, which ignore stage/status)
+        $filtered = function ($q, bool $withState = true) use ($own, $user, $f, $status, $stage, $search) {
+            $q->when($own, fn ($q) => $q->where('created_by', $user->id))
+                ->when($search !== '', function ($q) use ($search) {
+                    $like = '%'.mb_strtolower($search).'%';
+                    $id = preg_match('/^(?:po-?)?0*(\d+)$/i', $search, $m) ? (int) $m[1] : null;
+                    $q->where(fn ($w) => $w->whereRaw('LOWER(supplier_name) LIKE ?', [$like])
+                        ->orWhereRaw('LOWER(invoice_number) LIKE ?', [$like])
+                        ->orWhereHas('vendor', fn ($v) => $v->whereRaw('LOWER(name) LIKE ?', [$like]))
+                        ->when($id, fn ($w) => $w->orWhere('id', $id)));
+                })
+                ->when($f['from'] ?? null, fn ($q, $d) => $q->whereDate('purchase_date', '>=', $d))
+                ->when($f['to'] ?? null, fn ($q, $d) => $q->whereDate('purchase_date', '<=', $d))
+                ->when(($f['bill'] ?? null) === 'with', fn ($q) => $q->where(fn ($w) => $w->whereNotNull('inventory_bill_upload_id')->orWhereHas('receipts', fn ($r) => $r->whereNotNull('bill_path'))))
+                ->when(($f['bill'] ?? null) === 'without', fn ($q) => $q->whereNull('inventory_bill_upload_id')->whereDoesntHave('receipts', fn ($r) => $r->whereNotNull('bill_path')));
+            if ($withState) {
+                $q->when($status, fn ($q, $s) => $q->where('status', $s))
+                    ->when(! $status && $stage, fn ($q) => $q->whereIn('status', self::STAGES[$stage][1]));
+            }
+
+            return $q;
+        };
+
+        $purchases = $filtered(Purchase::query())
+            ->with(['vendor:id,name', 'creator:id,name', 'bill:id,status,invoice_number'])
+            ->withCount(['items', 'items as lines_done' => fn ($q) => $q->whereRaw('received_base_quantity + closed_base_quantity >= base_quantity'),
+                'receipts as bills_on_receipts' => fn ($q) => $q->whereNotNull('bill_path')])
             ->latest('purchase_date')->latest('id')
             ->paginate(25)->withQueryString();
 
-        $counts = Purchase::selectRaw('status, COUNT(*) as c')
-            ->when(! $user->isAdmin() && ! $user->isStorekeeper(), fn ($q) => $q->where('created_by', $user->id))
-            ->groupBy('status')->pluck('c', 'status');
+        // tab counts + money per status in one grouped query, respecting search/date/bill filters
+        $byStatus = $filtered(Purchase::query(), false)->selectRaw('status, COUNT(*) AS c, SUM(grand_total) AS t')->groupBy('status')->get()->keyBy('status')->toBase();
+        $counts = $byStatus->map(fn ($r) => (int) $r->c);
+        $stageCounts = collect(self::STAGES)->map(fn ($s) => collect($s[1])->sum(fn ($st) => $counts[$st] ?? 0));
+        // committed spend = everything except drafts / rejected / cancelled
+        $committed = $byStatus->except(['draft', 'rejected', 'cancelled'])->sum(fn ($r) => (float) $r->t);
 
-        return view('inventory.purchases.index', compact('purchases', 'counts', 'status'));
+        $stageTotals = collect(self::STAGES)->map(fn ($s) => collect($s[1])->sum(fn ($st) => (float) ($byStatus[$st]->t ?? 0)));
+
+        // side panel (unfiltered, same visibility scope): money owed to suppliers + top suppliers in the last 30 days
+        $scope = fn () => Purchase::query()->when($own, fn ($q) => $q->where('purchases.created_by', $user->id))
+            ->whereNotIn('purchases.status', ['draft', 'rejected', 'cancelled']);
+        $dues = $scope()->where('payment_status', '!=', 'paid')
+            ->selectRaw('COUNT(*) AS c, SUM(grand_total - amount_paid) AS due')->first();
+        $topSuppliers = $scope()->leftJoin('vendors', 'vendors.id', '=', 'purchases.vendor_id')
+            ->where('purchases.purchase_date', '>=', now('Asia/Kolkata')->subDays(30)->toDateString())
+            ->selectRaw("COALESCE(vendors.name, purchases.supplier_name, '—') AS name, COUNT(*) AS c, SUM(purchases.grand_total) AS t")
+            ->groupByRaw("COALESCE(vendors.name, purchases.supplier_name, '—')")->orderByDesc('t')->take(5)->get();
+
+        $filters = array_filter(['q' => $search, 'from' => $f['from'] ?? null, 'to' => $f['to'] ?? null, 'bill' => $f['bill'] ?? null]);
+
+        return view('inventory.purchases.index', compact('purchases', 'counts', 'status', 'stage', 'stageCounts', 'stageTotals', 'committed', 'filters', 'search', 'dues', 'topSuppliers'));
     }
 
     public function create(Request $request): View|RedirectResponse

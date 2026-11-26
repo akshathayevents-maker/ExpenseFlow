@@ -17,7 +17,7 @@
         </div>
     </div>
     <div class="ef-sop-card-body">
-        <div>
+        <div class="bl-en">
             <label class="ef-label">Step Title <span style="color:var(--ef-danger)">*</span></label>
             <input type="text"
                    name="sops[{{ $index }}][title]"
@@ -26,7 +26,7 @@
                    placeholder="e.g. Heat the oil, Temper mustard seeds" required>
             @error("sops.$index.title")<div class="ef-field-error">{{ $message }}</div>@enderror
         </div>
-        <div>
+        <div class="bl-en">
             <label class="ef-label">Instructions <span style="color:var(--ef-danger)">*</span></label>
             <textarea name="sops[{{ $index }}][instruction]"
                       class="ef-textarea @error("sops.$index.instruction") --error @enderror"
@@ -34,6 +34,7 @@
                       rows="3" required>{{ $data['instruction'] ?? '' }}</textarea>
             @error("sops.$index.instruction")<div class="ef-field-error">{{ $message }}</div>@enderror
         </div>
+        @include('kitchen.recipes._sop-tamil-fields', ['idx' => $index, 'data' => $data])
         <div style="max-width:160px">
             <label class="ef-label">Duration <span style="color:var(--ef-muted);font-weight:400;font-size:.78rem">(optional)</span></label>
             <div style="display:flex;align-items:center;gap:8px">

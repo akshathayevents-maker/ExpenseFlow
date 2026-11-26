@@ -12,26 +12,40 @@ class MenuComposerTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function admin(): User    { return User::factory()->create(['role' => 'admin']); }
-    private function manager(): User  { return User::factory()->create(['role' => 'manager']); }
-    private function employee(): User { return User::factory()->create(['role' => 'employee']); }
+    private function admin(): User
+    {
+        return User::factory()->create(['role' => 'admin']);
+    }
+
+    private function manager(): User
+    {
+        return User::factory()->create(['role' => 'manager']);
+    }
+
+    private function employee(): User
+    {
+        return User::factory()->create(['role' => 'employee']);
+    }
 
     /** New array-of-sections format with one item in Breakfast. */
     private function sampleContent(): array
     {
         return [
             [
-                'key'      => 'breakfast',
+                'key' => 'breakfast',
                 'label_en' => 'Breakfast',
                 'label_ta' => 'காலை உணவு',
-                'items'    => [
+                'items' => [
                     ['id' => 1, 'item_en' => 'Kesari', 'item_ta' => 'கேசரி', 'category_key' => 'sweet', 'category_en' => 'Sweet', 'category_ta' => 'ஸ்வீட்'],
                 ],
             ],
         ];
     }
 
-    private function emptyContent(): array { return []; }
+    private function emptyContent(): array
+    {
+        return [];
+    }
 
     // ── Access: admin only ─────────────────────────────────────────────────
 
@@ -43,43 +57,43 @@ class MenuComposerTest extends TestCase
     public function test_employee_forbidden_from_composer(): void
     {
         $this->actingAs($this->employee())
-             ->get(route('menu.composer.index'))
-             ->assertForbidden();
+            ->get(route('menu.composer.index'))
+            ->assertForbidden();
     }
 
     public function test_manager_forbidden_from_composer_index(): void
     {
         $this->actingAs($this->manager())
-             ->get(route('menu.composer.index'))
-             ->assertForbidden();
+            ->get(route('menu.composer.index'))
+            ->assertForbidden();
     }
 
     public function test_manager_forbidden_from_composer_create(): void
     {
         $this->actingAs($this->manager())
-             ->get(route('menu.composer.create'))
-             ->assertForbidden();
+            ->get(route('menu.composer.create'))
+            ->assertForbidden();
     }
 
     public function test_manager_forbidden_from_saving_draft(): void
     {
         $this->actingAs($this->manager())
-             ->postJson(route('menu.drafts.store'), ['title' => 'Test', 'content' => $this->sampleContent()])
-             ->assertForbidden();
+            ->postJson(route('menu.drafts.store'), ['title' => 'Test', 'content' => $this->sampleContent()])
+            ->assertForbidden();
     }
 
     public function test_manager_forbidden_from_pdf_generation(): void
     {
         $this->actingAs($this->manager())
-             ->postJson(route('menu.pdf.generate'), ['lang' => 'en', 'title' => 'Test', 'content' => $this->sampleContent()])
-             ->assertForbidden();
+            ->postJson(route('menu.pdf.generate'), ['lang' => 'en', 'title' => 'Test', 'content' => $this->sampleContent()])
+            ->assertForbidden();
     }
 
     public function test_manager_cannot_access_templates(): void
     {
         $this->actingAs($this->manager())
-             ->get(route('menu.templates.index'))
-             ->assertForbidden();
+            ->get(route('menu.templates.index'))
+            ->assertForbidden();
     }
 
     // ── Direct URL access tests ────────────────────────────────────────────
@@ -90,8 +104,8 @@ class MenuComposerTest extends TestCase
         $draft = MenuDraft::factory()->create(['created_by' => $admin->id, 'content' => $this->sampleContent()]);
 
         $this->actingAs($this->manager())
-             ->get(route('menu.drafts.edit', $draft))
-             ->assertForbidden();
+            ->get(route('menu.drafts.edit', $draft))
+            ->assertForbidden();
     }
 
     public function test_manager_direct_url_draft_delete_forbidden(): void
@@ -100,8 +114,8 @@ class MenuComposerTest extends TestCase
         $draft = MenuDraft::factory()->create(['created_by' => $admin->id, 'content' => $this->sampleContent()]);
 
         $this->actingAs($this->manager())
-             ->delete(route('menu.drafts.destroy', $draft))
-             ->assertForbidden();
+            ->delete(route('menu.drafts.destroy', $draft))
+            ->assertForbidden();
     }
 
     public function test_manager_direct_url_draft_duplicate_forbidden(): void
@@ -110,8 +124,8 @@ class MenuComposerTest extends TestCase
         $draft = MenuDraft::factory()->create(['created_by' => $admin->id, 'content' => $this->sampleContent()]);
 
         $this->actingAs($this->manager())
-             ->post(route('menu.drafts.duplicate', $draft))
-             ->assertForbidden();
+            ->post(route('menu.drafts.duplicate', $draft))
+            ->assertForbidden();
     }
 
     // ── Admin composer pages ───────────────────────────────────────────────
@@ -119,15 +133,15 @@ class MenuComposerTest extends TestCase
     public function test_admin_composer_index_loads(): void
     {
         $this->actingAs($this->admin())
-             ->get(route('menu.composer.index'))
-             ->assertOk();
+            ->get(route('menu.composer.index'))
+            ->assertOk();
     }
 
     public function test_admin_composer_create_loads(): void
     {
         $this->actingAs($this->admin())
-             ->get(route('menu.composer.create'))
-             ->assertOk();
+            ->get(route('menu.composer.create'))
+            ->assertOk();
     }
 
     // ── Draft CRUD ─────────────────────────────────────────────────────────
@@ -137,12 +151,12 @@ class MenuComposerTest extends TestCase
         $user = $this->admin();
 
         $this->actingAs($user)
-             ->postJson(route('menu.drafts.store'), [
-                 'title'   => 'Wedding Menu',
-                 'content' => $this->sampleContent(),
-             ])
-             ->assertOk()
-             ->assertJsonStructure(['id', 'edit_url']);
+            ->postJson(route('menu.drafts.store'), [
+                'title' => 'Wedding Menu',
+                'content' => $this->sampleContent(),
+            ])
+            ->assertOk()
+            ->assertJsonStructure(['id', 'edit_url']);
 
         $this->assertDatabaseHas('menu_drafts', ['title' => 'Wedding Menu', 'created_by' => $user->id]);
     }
@@ -150,20 +164,20 @@ class MenuComposerTest extends TestCase
     public function test_draft_requires_title(): void
     {
         $this->actingAs($this->admin())
-             ->postJson(route('menu.drafts.store'), ['title' => '', 'content' => $this->sampleContent()])
-             ->assertUnprocessable()
-             ->assertJsonValidationErrors(['title']);
+            ->postJson(route('menu.drafts.store'), ['title' => '', 'content' => $this->sampleContent()])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['title']);
     }
 
     public function test_admin_can_update_own_draft(): void
     {
-        $user  = $this->admin();
+        $user = $this->admin();
         $draft = MenuDraft::factory()->create(['created_by' => $user->id, 'content' => $this->sampleContent()]);
 
         $this->actingAs($user)
-             ->putJson(route('menu.drafts.update', $draft), ['title' => 'Updated Title', 'content' => $this->sampleContent()])
-             ->assertOk()
-             ->assertJson(['ok' => true]);
+            ->putJson(route('menu.drafts.update', $draft), ['title' => 'Updated Title', 'content' => $this->sampleContent()])
+            ->assertOk()
+            ->assertJson(['ok' => true]);
 
         $this->assertDatabaseHas('menu_drafts', ['id' => $draft->id, 'title' => 'Updated Title']);
     }
@@ -175,18 +189,18 @@ class MenuComposerTest extends TestCase
         $draft = MenuDraft::factory()->create(['created_by' => $owner->id, 'content' => $this->sampleContent()]);
 
         $this->actingAs($other)
-             ->putJson(route('menu.drafts.update', $draft), ['title' => 'Hijacked', 'content' => $this->sampleContent()])
-             ->assertForbidden();
+            ->putJson(route('menu.drafts.update', $draft), ['title' => 'Hijacked', 'content' => $this->sampleContent()])
+            ->assertForbidden();
     }
 
     public function test_admin_can_delete_own_draft(): void
     {
-        $user  = $this->admin();
+        $user = $this->admin();
         $draft = MenuDraft::factory()->create(['created_by' => $user->id, 'content' => $this->sampleContent()]);
 
         $this->actingAs($user)
-             ->delete(route('menu.drafts.destroy', $draft))
-             ->assertRedirect(route('menu.composer.index'));
+            ->delete(route('menu.drafts.destroy', $draft))
+            ->assertRedirect(route('menu.composer.index'));
 
         $this->assertDatabaseMissing('menu_drafts', ['id' => $draft->id]);
     }
@@ -195,12 +209,12 @@ class MenuComposerTest extends TestCase
 
     public function test_admin_can_duplicate_draft(): void
     {
-        $user  = $this->admin();
+        $user = $this->admin();
         $draft = MenuDraft::factory()->create(['created_by' => $user->id, 'title' => 'Wedding Menu', 'content' => $this->sampleContent()]);
 
         $this->actingAs($user)
-             ->post(route('menu.drafts.duplicate', $draft))
-             ->assertRedirect();
+            ->post(route('menu.drafts.duplicate', $draft))
+            ->assertRedirect();
 
         $this->assertDatabaseHas('menu_drafts', ['title' => 'Wedding Menu (Copy)', 'created_by' => $user->id]);
         $this->assertDatabaseHas('menu_drafts', ['title' => 'Wedding Menu', 'id' => $draft->id]);
@@ -208,7 +222,7 @@ class MenuComposerTest extends TestCase
 
     public function test_duplicate_increments_copy_number(): void
     {
-        $user  = $this->admin();
+        $user = $this->admin();
         $draft = MenuDraft::factory()->create(['created_by' => $user->id, 'title' => 'Wedding Menu', 'content' => $this->sampleContent()]);
 
         $actor = $this->actingAs($user);
@@ -221,7 +235,7 @@ class MenuComposerTest extends TestCase
 
     public function test_duplicate_copies_content(): void
     {
-        $user  = $this->admin();
+        $user = $this->admin();
         $draft = MenuDraft::factory()->create(['created_by' => $user->id, 'title' => 'Wedding Menu', 'content' => $this->sampleContent()]);
 
         $this->actingAs($user)->post(route('menu.drafts.duplicate', $draft));
@@ -243,15 +257,15 @@ class MenuComposerTest extends TestCase
         $draft = MenuDraft::factory()->create(['created_by' => $admin->id, 'content' => $this->sampleContent()]);
 
         $this->actingAs($this->manager())
-             ->post(route('menu.drafts.duplicate', $draft))
-             ->assertForbidden();
+            ->post(route('menu.drafts.duplicate', $draft))
+            ->assertForbidden();
     }
 
     // ── Dynamic sections ───────────────────────────────────────────────────
 
     public function test_draft_with_multiple_sections_preserved(): void
     {
-        $user    = $this->admin();
+        $user = $this->admin();
         $content = [
             ['key' => 'lunch',   'label_en' => 'Lunch',   'label_ta' => 'மதிய உணவு', 'items' => [
                 ['id' => 1, 'item_en' => 'Rice', 'item_ta' => 'சாதம்', 'category_key' => 'rice', 'category_en' => 'Rice', 'category_ta' => 'சாதம்'],
@@ -262,18 +276,18 @@ class MenuComposerTest extends TestCase
         ];
 
         $this->actingAs($user)
-             ->postJson(route('menu.drafts.store'), ['title' => 'Multi-Section Menu', 'content' => $content])
-             ->assertOk();
+            ->postJson(route('menu.drafts.store'), ['title' => 'Multi-Section Menu', 'content' => $content])
+            ->assertOk();
 
         $draft = MenuDraft::where('title', 'Multi-Section Menu')->first();
         $this->assertCount(2, $draft->normalizedContent());
-        $this->assertEquals('lunch',  $draft->normalizedContent()[0]['key']);
+        $this->assertEquals('lunch', $draft->normalizedContent()[0]['key']);
         $this->assertEquals('dinner', $draft->normalizedContent()[1]['key']);
     }
 
     public function test_custom_section_accepted(): void
     {
-        $user    = $this->admin();
+        $user = $this->admin();
         $content = [
             ['key' => 'custom', 'label_en' => 'VIP Counter', 'label_ta' => 'விஐபி கவுண்டர்', 'items' => [
                 ['id' => 1, 'item_en' => 'Special Dish', 'item_ta' => 'சிறப்பு உணவு', 'category_key' => 'other', 'category_en' => 'Other', 'category_ta' => 'மற்றவை'],
@@ -281,8 +295,8 @@ class MenuComposerTest extends TestCase
         ];
 
         $this->actingAs($user)
-             ->postJson(route('menu.drafts.store'), ['title' => 'VIP Menu', 'content' => $content])
-             ->assertOk();
+            ->postJson(route('menu.drafts.store'), ['title' => 'VIP Menu', 'content' => $content])
+            ->assertOk();
 
         $draft = MenuDraft::where('title', 'VIP Menu')->first();
         $this->assertEquals('VIP Counter', $draft->normalizedContent()[0]['label_en']);
@@ -294,10 +308,10 @@ class MenuComposerTest extends TestCase
         // Simulate a draft stored in old keyed-object format
         $draft = MenuDraft::factory()->create([
             'created_by' => $user->id,
-            'content'    => [
-                'breakfast'      => [['id' => 1, 'item_en' => 'Idly', 'item_ta' => 'இட்லி', 'category_key' => 'main_course', 'category_en' => 'Main Course', 'category_ta' => 'முக்கிய உணவு']],
-                'lunch'          => [],
-                'dinner'         => [],
+            'content' => [
+                'breakfast' => [['id' => 1, 'item_en' => 'Idly', 'item_ta' => 'இட்லி', 'category_key' => 'main_course', 'category_en' => 'Main Course', 'category_ta' => 'முக்கிய உணவு']],
+                'lunch' => [],
+                'dinner' => [],
                 'evening_snacks' => [],
             ],
         ]);
@@ -315,8 +329,8 @@ class MenuComposerTest extends TestCase
     public function test_admin_can_view_templates(): void
     {
         $this->actingAs($this->admin())
-             ->get(route('menu.templates.index'))
-             ->assertOk();
+            ->get(route('menu.templates.index'))
+            ->assertOk();
     }
 
     public function test_admin_can_create_template(): void
@@ -324,12 +338,12 @@ class MenuComposerTest extends TestCase
         $user = $this->admin();
 
         $this->actingAs($user)
-             ->postJson(route('menu.templates.store'), [
-                 'name'    => 'Standard Wedding Lunch',
-                 'content' => $this->sampleContent(),
-             ])
-             ->assertOk()
-             ->assertJsonStructure(['id', 'name']);
+            ->postJson(route('menu.templates.store'), [
+                'name' => 'Standard Wedding Lunch',
+                'content' => $this->sampleContent(),
+            ])
+            ->assertOk()
+            ->assertJsonStructure(['id', 'name']);
 
         $this->assertDatabaseHas('menu_templates', ['name' => 'Standard Wedding Lunch', 'created_by' => $user->id]);
     }
@@ -337,30 +351,30 @@ class MenuComposerTest extends TestCase
     public function test_template_requires_name(): void
     {
         $this->actingAs($this->admin())
-             ->postJson(route('menu.templates.store'), ['name' => '', 'content' => $this->sampleContent()])
-             ->assertUnprocessable()
-             ->assertJsonValidationErrors(['name']);
+            ->postJson(route('menu.templates.store'), ['name' => '', 'content' => $this->sampleContent()])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['name']);
     }
 
     public function test_admin_can_load_template_into_draft(): void
     {
-        $user     = $this->admin();
+        $user = $this->admin();
         $template = MenuTemplate::factory()->create(['created_by' => $user->id]);
 
         $this->actingAs($user)
-             ->post(route('menu.templates.load', $template))
-             ->assertRedirect();
+            ->post(route('menu.templates.load', $template))
+            ->assertRedirect();
 
         $this->assertDatabaseHas('menu_drafts', ['created_by' => $user->id]);
     }
 
     public function test_loaded_template_populates_draft_content(): void
     {
-        $user     = $this->admin();
+        $user = $this->admin();
         $template = MenuTemplate::factory()->create([
             'created_by' => $user->id,
-            'name'       => 'Standard Lunch',
-            'content'    => $this->sampleContent(),
+            'name' => 'Standard Lunch',
+            'content' => $this->sampleContent(),
         ]);
 
         $this->actingAs($user)->post(route('menu.templates.load', $template));
@@ -376,12 +390,12 @@ class MenuComposerTest extends TestCase
 
     public function test_admin_can_delete_template(): void
     {
-        $user     = $this->admin();
+        $user = $this->admin();
         $template = MenuTemplate::factory()->create(['created_by' => $user->id]);
 
         $this->actingAs($user)
-             ->delete(route('menu.templates.destroy', $template))
-             ->assertRedirect(route('menu.templates.index'));
+            ->delete(route('menu.templates.destroy', $template))
+            ->assertRedirect(route('menu.templates.index'));
 
         $this->assertDatabaseMissing('menu_templates', ['id' => $template->id]);
     }
@@ -389,8 +403,8 @@ class MenuComposerTest extends TestCase
     public function test_manager_cannot_create_template(): void
     {
         $this->actingAs($this->manager())
-             ->postJson(route('menu.templates.store'), ['name' => 'X', 'content' => $this->sampleContent()])
-             ->assertForbidden();
+            ->postJson(route('menu.templates.store'), ['name' => 'X', 'content' => $this->sampleContent()])
+            ->assertForbidden();
     }
 
     // ── PDF generation ─────────────────────────────────────────────────────
@@ -398,24 +412,24 @@ class MenuComposerTest extends TestCase
     public function test_pdf_generation_returns_pdf(): void
     {
         $this->actingAs($this->admin())
-             ->postJson(route('menu.pdf.generate'), ['lang' => 'en', 'title' => 'Test Menu', 'content' => $this->sampleContent()])
-             ->assertOk()
-             ->assertHeader('content-type', 'application/pdf');
+            ->postJson(route('menu.pdf.generate'), ['lang' => 'en', 'title' => 'Test Menu', 'content' => $this->sampleContent()])
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
     }
 
     public function test_pdf_rejects_invalid_lang(): void
     {
         $this->actingAs($this->admin())
-             ->postJson(route('menu.pdf.generate'), ['lang' => 'xx', 'title' => 'Test Menu', 'content' => $this->sampleContent()])
-             ->assertUnprocessable()
-             ->assertJsonValidationErrors(['lang']);
+            ->postJson(route('menu.pdf.generate'), ['lang' => 'xx', 'title' => 'Test Menu', 'content' => $this->sampleContent()])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['lang']);
     }
 
     public function test_pdf_rejects_empty_menu(): void
     {
         $this->actingAs($this->admin())
-             ->postJson(route('menu.pdf.generate'), ['lang' => 'en', 'title' => 'Empty Menu', 'content' => []])
-             ->assertStatus(422);
+            ->postJson(route('menu.pdf.generate'), ['lang' => 'en', 'title' => 'Empty Menu', 'content' => []])
+            ->assertStatus(422);
     }
 
     public function test_pdf_rejects_sections_with_no_items(): void
@@ -423,28 +437,28 @@ class MenuComposerTest extends TestCase
         $emptySection = [['key' => 'lunch', 'label_en' => 'Lunch', 'label_ta' => 'மதிய உணவு', 'items' => []]];
 
         $this->actingAs($this->admin())
-             ->postJson(route('menu.pdf.generate'), ['lang' => 'en', 'title' => 'Empty Menu', 'content' => $emptySection])
-             ->assertStatus(422);
+            ->postJson(route('menu.pdf.generate'), ['lang' => 'en', 'title' => 'Empty Menu', 'content' => $emptySection])
+            ->assertStatus(422);
     }
 
     public function test_pdf_title_required(): void
     {
         $this->actingAs($this->admin())
-             ->postJson(route('menu.pdf.generate'), ['lang' => 'en', 'title' => '', 'content' => $this->sampleContent()])
-             ->assertUnprocessable()
-             ->assertJsonValidationErrors(['title']);
+            ->postJson(route('menu.pdf.generate'), ['lang' => 'en', 'title' => '', 'content' => $this->sampleContent()])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['title']);
     }
 
     public function test_pdf_sanitizes_xss_in_title(): void
     {
         $this->actingAs($this->admin())
-             ->postJson(route('menu.pdf.generate'), [
-                 'lang'    => 'en',
-                 'title'   => '<script>alert(1)</script>Wedding Menu',
-                 'content' => $this->sampleContent(),
-             ])
-             ->assertOk()
-             ->assertHeader('content-type', 'application/pdf');
+            ->postJson(route('menu.pdf.generate'), [
+                'lang' => 'en',
+                'title' => '<script>alert(1)</script>Wedding Menu',
+                'content' => $this->sampleContent(),
+            ])
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
     }
 
     public function test_pdf_sanitizes_xss_in_items(): void
@@ -453,29 +467,29 @@ class MenuComposerTest extends TestCase
         $malicious[0]['items'][0]['item_en'] = '<img src=x onerror=alert(1)>Kesari';
 
         $this->actingAs($this->admin())
-             ->postJson(route('menu.pdf.generate'), [
-                 'lang'    => 'en',
-                 'title'   => 'Test Menu',
-                 'content' => $malicious,
-             ])
-             ->assertOk()
-             ->assertHeader('content-type', 'application/pdf');
+            ->postJson(route('menu.pdf.generate'), [
+                'lang' => 'en',
+                'title' => 'Test Menu',
+                'content' => $malicious,
+            ])
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
     }
 
     public function test_tamil_pdf_generates(): void
     {
         $this->actingAs($this->admin())
-             ->postJson(route('menu.pdf.generate'), ['lang' => 'ta', 'title' => 'திருமண மெனு', 'content' => $this->sampleContent()])
-             ->assertOk()
-             ->assertHeader('content-type', 'application/pdf');
+            ->postJson(route('menu.pdf.generate'), ['lang' => 'ta', 'title' => 'திருமண மெனு', 'content' => $this->sampleContent()])
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
     }
 
     public function test_bilingual_pdf_generates(): void
     {
         $this->actingAs($this->admin())
-             ->postJson(route('menu.pdf.generate'), ['lang' => 'bi', 'title' => 'Wedding Menu', 'content' => $this->sampleContent()])
-             ->assertOk()
-             ->assertHeader('content-type', 'application/pdf');
+            ->postJson(route('menu.pdf.generate'), ['lang' => 'bi', 'title' => 'Wedding Menu', 'content' => $this->sampleContent()])
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
     }
 
     public function test_pdf_respects_section_order(): void
@@ -491,9 +505,9 @@ class MenuComposerTest extends TestCase
         ];
 
         $this->actingAs($this->admin())
-             ->postJson(route('menu.pdf.generate'), ['lang' => 'en', 'title' => 'Test', 'content' => $content])
-             ->assertOk()
-             ->assertHeader('content-type', 'application/pdf');
+            ->postJson(route('menu.pdf.generate'), ['lang' => 'en', 'title' => 'Test', 'content' => $content])
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
     }
 
     // ── Audit logging ──────────────────────────────────────────────────────
@@ -501,15 +515,15 @@ class MenuComposerTest extends TestCase
     public function test_creating_draft_writes_audit_log(): void
     {
         $this->actingAs($this->admin())
-             ->postJson(route('menu.drafts.store'), ['title' => 'Audit Test Menu', 'content' => $this->sampleContent()])
-             ->assertOk();
+            ->postJson(route('menu.drafts.store'), ['title' => 'Audit Test Menu', 'content' => $this->sampleContent()])
+            ->assertOk();
 
         $this->assertDatabaseHas('audit_logs', ['module' => 'menu_draft', 'action' => 'created', 'reference_label' => 'Audit Test Menu']);
     }
 
     public function test_duplicating_draft_writes_audit_log(): void
     {
-        $user  = $this->admin();
+        $user = $this->admin();
         $draft = MenuDraft::factory()->create(['created_by' => $user->id, 'title' => 'Original Menu', 'content' => $this->sampleContent()]);
 
         $this->actingAs($user)->post(route('menu.drafts.duplicate', $draft));
@@ -520,15 +534,15 @@ class MenuComposerTest extends TestCase
     public function test_creating_template_writes_audit_log(): void
     {
         $this->actingAs($this->admin())
-             ->postJson(route('menu.templates.store'), ['name' => 'My Template', 'content' => $this->sampleContent()])
-             ->assertOk();
+            ->postJson(route('menu.templates.store'), ['name' => 'My Template', 'content' => $this->sampleContent()])
+            ->assertOk();
 
         $this->assertDatabaseHas('audit_logs', ['module' => 'menu_template', 'action' => 'created', 'reference_label' => 'My Template']);
     }
 
     public function test_deleting_template_writes_audit_log(): void
     {
-        $user     = $this->admin();
+        $user = $this->admin();
         $template = MenuTemplate::factory()->create(['created_by' => $user->id, 'name' => 'My Template']);
 
         $this->actingAs($user)->delete(route('menu.templates.destroy', $template));
@@ -539,8 +553,8 @@ class MenuComposerTest extends TestCase
     public function test_pdf_generation_writes_audit_log(): void
     {
         $this->actingAs($this->admin())
-             ->postJson(route('menu.pdf.generate'), ['lang' => 'en', 'title' => 'Logged PDF', 'content' => $this->sampleContent()])
-             ->assertOk();
+            ->postJson(route('menu.pdf.generate'), ['lang' => 'en', 'title' => 'Logged PDF', 'content' => $this->sampleContent()])
+            ->assertOk();
 
         $this->assertDatabaseHas('audit_logs', ['module' => 'menu_draft', 'action' => 'pdf_generated']);
     }
@@ -573,22 +587,22 @@ class MenuComposerTest extends TestCase
 
     public function test_section_people_count_persists_on_save(): void
     {
-        $user    = $this->admin();
+        $user = $this->admin();
         $content = [
             [
-                'key'          => 'lunch',
-                'label_en'     => 'Lunch',
-                'label_ta'     => 'மதிய உணவு',
+                'key' => 'lunch',
+                'label_en' => 'Lunch',
+                'label_ta' => 'மதிய உணவு',
                 'people_count' => 500,
-                'items'        => [
+                'items' => [
                     ['id' => 1, 'item_en' => 'Rice', 'item_ta' => 'சாதம்', 'category_key' => 'rice', 'category_en' => 'Rice', 'category_ta' => 'சாதம்'],
                 ],
             ],
         ];
 
         $this->actingAs($user)
-             ->postJson(route('menu.drafts.store'), ['title' => 'Pax Test', 'content' => $content])
-             ->assertOk();
+            ->postJson(route('menu.drafts.store'), ['title' => 'Pax Test', 'content' => $content])
+            ->assertOk();
 
         $draft = MenuDraft::where('title', 'Pax Test')->first();
         $this->assertNotNull($draft);
@@ -600,8 +614,8 @@ class MenuComposerTest extends TestCase
         $user = $this->admin();
 
         $this->actingAs($user)
-             ->postJson(route('menu.drafts.store'), ['title' => 'No Pax', 'content' => $this->sampleContent()])
-             ->assertOk();
+            ->postJson(route('menu.drafts.store'), ['title' => 'No Pax', 'content' => $this->sampleContent()])
+            ->assertOk();
 
         $draft = MenuDraft::where('title', 'No Pax')->first();
         $this->assertNull($draft->normalizedContent()[0]['people_count']);
@@ -609,7 +623,7 @@ class MenuComposerTest extends TestCase
 
     public function test_duplicate_preserves_section_people_count(): void
     {
-        $user    = $this->admin();
+        $user = $this->admin();
         $content = [
             ['key' => 'dinner', 'label_en' => 'Dinner', 'label_ta' => '', 'people_count' => 1000, 'items' => [
                 ['id' => 1, 'item_en' => 'Biriyani', 'item_ta' => 'பிரியாணி', 'category_key' => 'rice', 'category_en' => 'Rice', 'category_ta' => 'சாதம்'],
@@ -633,8 +647,8 @@ class MenuComposerTest extends TestCase
         ];
 
         $this->actingAs($this->admin())
-             ->postJson(route('menu.pdf.generate'), ['lang' => 'en', 'title' => 'Pax PDF', 'content' => $content])
-             ->assertOk()
-             ->assertHeader('content-type', 'application/pdf');
+            ->postJson(route('menu.pdf.generate'), ['lang' => 'en', 'title' => 'Pax PDF', 'content' => $content])
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
     }
 }

@@ -1007,6 +1007,10 @@ window.KcCategories = @json($categories);
                     style="flex:1;min-height:48px;border:1.5px solid var(--kc-border);border-radius:var(--kc-radius);background:#fff;font-size:.92rem;font-weight:700;color:var(--kc-ink);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:background .12s;-webkit-tap-highlight-color:transparent">
                 <i class="bi bi-printer"></i> Print Sheet
             </button>
+            <a id="kcTamilPrint" href="#" target="_blank" rel="noopener"
+               style="flex:1;min-height:48px;border:1.5px solid var(--kc-border);border-radius:var(--kc-radius);background:#fff;font-size:.92rem;font-weight:700;color:var(--kc-ink);display:flex;align-items:center;justify-content:center;gap:7px;text-decoration:none">
+                <i class="bi bi-translate"></i> English / தமிழ் sheet
+            </a>
             <button type="button" id="kcResetBtn"
                     style="padding:0 18px;min-height:48px;border:1.5px solid var(--kc-border);border-radius:var(--kc-radius);background:#fff;font-size:.88rem;font-weight:600;color:var(--kc-muted);cursor:pointer;transition:background .12s;-webkit-tap-highlight-color:transparent">
                 <i class="bi bi-arrow-counterclockwise"></i> Reset
@@ -1101,7 +1105,7 @@ window.KcCategories = @json($categories);
                 html += '<li class="kc-combo-item" role="option"'
                       + ' data-idx="' + idx + '" data-id="' + r.id + '"'
                       + ' id="kcCOpt' + idx + '"' + selected + '>'
-                      + '<span>' + nameHtml + '</span>'
+                      + '<span>' + nameHtml + (r.verified ? ' <span style="color:#1f6a48;font-weight:750;font-size:.75em" title="Verified recipe">✓ Verified</span>' : '') + '</span>'
                       + '<span class="kc-combo-item-meta">' + metaTxt + '</span>'
                       + '</li>';
             }
@@ -1372,7 +1376,7 @@ window.KcCategories = @json($categories);
             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
         })
         .then(r => { if (!r.ok) throw new Error('Recipe not found'); return r.json(); })
-        .then(data => { currentRecipe = data; })
+        .then(data => { currentRecipe = data; window.kcCurrentRecipeId = data.id; })
         .catch(() => { currentRecipe = null; showError('Could not load recipe data. Please try again.'); });
     }
 
@@ -1575,7 +1579,7 @@ window.KcCategories = @json($categories);
 
     /* ── Print ─────────────────────────────────────────────── */
     function buildPrintArea(factor, people) {
-        document.getElementById('kcp-recipe').textContent = currentRecipe.name;
+        document.getElementById('kcp-recipe').textContent = currentRecipe.name + (currentRecipe.verified ? '  (Verified ✓)' : '  (not verified)');
         document.getElementById('kcp-people').textContent = people;
         document.getElementById('kcp-time').textContent = new Date().toLocaleString('en-IN', {
             day: '2-digit', month: 'short', year: 'numeric',
@@ -1661,4 +1665,20 @@ window.KcCategories = @json($categories);
 </script>
 @endpush
 
+@push('scripts')
+<script>
+// bilingual printable sheet for the selected recipe and head count (no browser alerts)
+(() => {
+    const link = document.getElementById('kcTamilPrint'); if (!link) return;
+    const base = @json(url('employee/kitchen/calculator'));
+    link.addEventListener('click', e => {
+        const id = window.kcCurrentRecipeId;
+        const people = parseInt(document.getElementById('kcPeopleInput')?.value || '0', 10);
+        if (!id) { e.preventDefault(); link.innerHTML = '<i class="bi bi-exclamation-circle"></i> Choose a recipe first'; return; }
+        let lang = 'both'; try { lang = localStorage.getItem('ef-recipe-lang') || 'both'; } catch (_) {}
+        link.href = base + '/' + id + '/print?lang=' + lang + (people > 0 ? '&people=' + people : '');
+    });
+})();
+</script>
+@endpush
 </x-admin-layout>

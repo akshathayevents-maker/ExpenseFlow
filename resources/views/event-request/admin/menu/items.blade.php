@@ -1,15 +1,18 @@
-<x-admin-layout title="Menu Items">
+<x-admin-layout title="Customer Menu & Prices">
 <x-event-request.admin-responsive-styles />
 <div class="container-fluid py-4" style="max-width:1100px">
     <div class="erm-header">
         <div class="erm-header-text">
             <div class="text-uppercase small fw-bold" style="color:#B8893E;letter-spacing:.08em;font-size:.7rem">Event Request Portal</div>
-            <h1 class="h3 fw-bold mb-0">Menu Items</h1>
+            <h1 class="h3 fw-bold mb-0">Customer Menu &amp; Prices</h1>
         </div>
         <div class="erm-header-actions">
+            <a href="{{ route('menu.items.index') }}" class="btn btn-outline-dark"><i class="bi bi-journal-text"></i> Dishes (Tamil, recipes)</a>
             <a href="{{ route('admin.event-request-menu.categories.index') }}" class="btn btn-outline-dark">Manage Categories</a>
         </div>
     </div>
+    <p class="small text-muted mb-3">What customers see on the event request form: price, veg, popular. These are the same dishes as
+        <a href="{{ route('menu.items.index') }}">Dishes</a> — adding or renaming here updates the Menu Composer too. New dishes added from the Menu Composer arrive here inactive at ₹0.</p>
 
     @if(session('status'))<div class="alert alert-success">{{ session('status') }}</div>@endif
     @if ($errors->any())

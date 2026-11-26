@@ -227,11 +227,11 @@ it('renders the store pages for each role', function () {
     $store = icUser('employee', true);
     icItem('Rava', 'kg', 10);
     $this->actingAs($emp)->get(route('inventory.home'))->assertOk()->assertSee('Request materials')
-        ->assertSee('All clear')->assertDontSee('Needed today');                       // nothing waiting; no store panels
-    $this->actingAs($store)->get(route('inventory.home'))->assertOk()->assertSee('Needed today')->assertSee('Arriving');
+        ->assertSee('All clear')->assertDontSee('Today & tomorrow');                       // nothing waiting; no store panels
+    $this->actingAs($store)->get(route('inventory.home'))->assertOk()->assertSee('Today & tomorrow')->assertSee('Arriving');
     $mr = mrSubmitted($emp, [['inventory_item_id' => \App\Models\InventoryItem::first()->id, 'quantity' => 1, 'unit' => 'kg']]);
     $this->actingAs($admin)->get(route('inventory.home'))->assertOk()
-        ->assertSee('Approve material requests')->assertSee('Scan a bill');
+        ->assertSee('Material requests to approve')->assertSee('Scan bill');
     $this->actingAs($emp)->get(route('inventory.material-requests.create'))->assertOk();
     $this->actingAs($emp)->get(route('inventory.material-requests.index'))->assertOk();
     $this->actingAs($emp)->get(route('inventory.stock'))->assertForbidden();

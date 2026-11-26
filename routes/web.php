@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Controllers\Admin\AdvanceController as AdminAdvanceController;
 use App\Http\Controllers\Admin\AnalyticsController;
+use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
+use App\Http\Controllers\Admin\AttendanceRegularizationController as AdminAttendanceRegularizationController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\DailyClosingController;
@@ -8,18 +11,15 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\EmployeeSalaryController;
 use App\Http\Controllers\Admin\ExpenseRequestController as AdminExpenseRequestController;
-use App\Http\Controllers\Admin\AdvanceController as AdminAdvanceController;
-use App\Http\Controllers\Admin\LeaveController as AdminLeaveController;
-use App\Http\Controllers\Admin\LeavePolicyController as AdminLeavePolicyController;
-use App\Http\Controllers\Admin\LeavePolicyTemplateController as AdminLeavePolicyTemplateController;
-use App\Http\Controllers\Admin\LeaveTypeController as AdminLeaveTypeController;
-use App\Http\Controllers\Admin\AttendanceRegularizationController as AdminAttendanceRegularizationController;
-use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
-use App\Http\Controllers\Admin\OvertimeController as AdminOvertimeController;
 use App\Http\Controllers\Admin\Inventory\InventoryBillController;
 use App\Http\Controllers\Admin\Inventory\InventoryCategoryController;
 use App\Http\Controllers\Admin\Inventory\InventoryItemController;
 use App\Http\Controllers\Admin\Inventory\StockAlertController;
+use App\Http\Controllers\Admin\LeaveController as AdminLeaveController;
+use App\Http\Controllers\Admin\LeavePolicyController as AdminLeavePolicyController;
+use App\Http\Controllers\Admin\LeavePolicyTemplateController as AdminLeavePolicyTemplateController;
+use App\Http\Controllers\Admin\LeaveTypeController as AdminLeaveTypeController;
+use App\Http\Controllers\Admin\OvertimeController as AdminOvertimeController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\PurchasePlanController;
 use App\Http\Controllers\Admin\ReportController;
@@ -31,42 +31,55 @@ use App\Http\Controllers\Employee\AttendanceController as EmployeeAttendanceCont
 use App\Http\Controllers\Employee\AttendanceRegularizationController as EmployeeAttendanceRegularizationController;
 use App\Http\Controllers\Employee\DashboardController as EmployeeDashboardController;
 use App\Http\Controllers\Employee\ExpenseRequestController as EmployeeExpenseRequestController;
+use App\Http\Controllers\Employee\KitchenController as EmployeeKitchenController;
 use App\Http\Controllers\Employee\LeaveController as EmployeeLeaveController;
 use App\Http\Controllers\Employee\OvertimeController as EmployeeOvertimeController;
 use App\Http\Controllers\Employee\WalletController as EmployeeWalletController;
-use App\Http\Controllers\Manager\DashboardController as ManagerDashboardController;
-use App\Http\Controllers\Manager\ExpenseRequestController as ManagerExpenseRequestController;
-use App\Http\Controllers\Manager\AdvanceController as ManagerAdvanceController;
-use App\Http\Controllers\Manager\LeaveController as ManagerLeaveController;
-use App\Http\Controllers\Manager\AttendanceRegularizationController as ManagerAttendanceRegularizationController;
-use App\Http\Controllers\Manager\OvertimeController as ManagerOvertimeController;
 use App\Http\Controllers\Hall\HallBookingController;
+use App\Http\Controllers\Hall\HallBookingMenuController;
 use App\Http\Controllers\Hall\HallDashboardController;
 use App\Http\Controllers\Hall\HallReportController;
 use App\Http\Controllers\Hall\MealPlanController;
+use App\Http\Controllers\Inventory\InventoryHomeController;
+use App\Http\Controllers\Inventory\ItemLookupController;
+use App\Http\Controllers\Inventory\ItemQuickAddController;
+use App\Http\Controllers\Inventory\LossControlController;
+use App\Http\Controllers\Inventory\MaterialRequestController;
+use App\Http\Controllers\Inventory\PurchaseController;
+use App\Http\Controllers\Inventory\RecipeStandardController;
+use App\Http\Controllers\Kitchen\RecipeAiController;
 use App\Http\Controllers\Kitchen\RecipeController;
-use App\Http\Controllers\Employee\KitchenController as EmployeeKitchenController;
-use App\Http\Controllers\Menu\MenuItemController;
-use App\Http\Controllers\Menu\MenuComposerController;
-use App\Http\Controllers\MealRegister\MealClientController;
+use App\Http\Controllers\Manager\AdvanceController as ManagerAdvanceController;
+use App\Http\Controllers\Manager\AttendanceRegularizationController as ManagerAttendanceRegularizationController;
+use App\Http\Controllers\Manager\DashboardController as ManagerDashboardController;
+use App\Http\Controllers\Manager\ExpenseRequestController as ManagerExpenseRequestController;
+use App\Http\Controllers\Manager\LeaveController as ManagerLeaveController;
+use App\Http\Controllers\Manager\OvertimeController as ManagerOvertimeController;
 use App\Http\Controllers\MealRegister\DailyMealEntryController;
+use App\Http\Controllers\MealRegister\MealClientController;
 use App\Http\Controllers\MealRegister\MealRegisterReportController;
+use App\Http\Controllers\Menu\MenuComposerController;
+use App\Http\Controllers\Menu\MenuItemController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaymentRequestController;
 use App\Http\Controllers\ProfileController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     if (auth()->check()) {
         $role = auth()->user()->role ?? 'employee';
-        return redirect()->route($role . '.dashboard');
+
+        return redirect()->route($role.'.dashboard');
     }
+
     return redirect()->route('login');
 });
 
 Route::get('/dashboard', function () {
     $role = auth()->user()->role ?? 'employee';
-    return redirect()->route($role . '.dashboard');
+
+    return redirect()->route($role.'.dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 // ── Admin ─────────────────────────────────────────────────────────────────────
@@ -211,14 +224,14 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'role.ad
         Route::patch('alerts/resolve-all', [StockAlertController::class, 'resolveAll'])->name('alerts.resolve-all');
 
         // Bill uploads (OCR invoice scanning)
-        Route::get('bills',                          [InventoryBillController::class, 'index'])->name('bills.index');
-        Route::post('bills',                         [InventoryBillController::class, 'store'])->name('bills.store');
-        Route::get('bills/{bill}',                   [InventoryBillController::class, 'show'])->name('bills.show');
-        Route::put('bills/{bill}',                   [InventoryBillController::class, 'update'])->name('bills.update');
-        Route::post('bills/{bill}/import',           [InventoryBillController::class, 'import'])->name('bills.import');
-        Route::post('bills/{bill}/rerun-ocr',        [InventoryBillController::class, 'rerunOcr'])->name('bills.rerun-ocr');
-        Route::get('bills/{bill}/file',              [InventoryBillController::class, 'file'])->name('bills.file');
-        Route::delete('bills/{bill}',                [InventoryBillController::class, 'destroy'])->name('bills.destroy');
+        Route::get('bills', [InventoryBillController::class, 'index'])->name('bills.index');
+        Route::post('bills', [InventoryBillController::class, 'store'])->name('bills.store');
+        Route::get('bills/{bill}', [InventoryBillController::class, 'show'])->name('bills.show');
+        Route::put('bills/{bill}', [InventoryBillController::class, 'update'])->name('bills.update');
+        Route::post('bills/{bill}/import', [InventoryBillController::class, 'import'])->name('bills.import');
+        Route::post('bills/{bill}/rerun-ocr', [InventoryBillController::class, 'rerunOcr'])->name('bills.rerun-ocr');
+        Route::get('bills/{bill}/file', [InventoryBillController::class, 'file'])->name('bills.file');
+        Route::delete('bills/{bill}', [InventoryBillController::class, 'destroy'])->name('bills.destroy');
     });
 
     // Purchase Plans
@@ -336,24 +349,41 @@ Route::prefix('employee')->name('employee.')->middleware(['auth', 'verified', 'a
     Route::get('wallet', [EmployeeWalletController::class, 'show'])->name('wallet.show');
 
     // Read-only hall calendar — financial data is stripped server-side for this role
-    Route::get('hall/bookings/calendar',        [HallBookingController::class, 'calendar'])->name('hall.bookings.calendar');
+    Route::get('hall/bookings/calendar', [HallBookingController::class, 'calendar'])->name('hall.bookings.calendar');
     Route::get('hall/bookings/calendar-events', [HallBookingController::class, 'calendarEvents'])->name('hall.bookings.calendar-events');
 
     // Kitchen calculator (read-only — no financial data, calculation is client-side)
     Route::get('kitchen/calculator', [EmployeeKitchenController::class, 'index'])->name('kitchen.calculator');
     Route::get('kitchen/calculator/{recipe}', [EmployeeKitchenController::class, 'recipe'])->name('kitchen.calculator.recipe');
+    Route::get('kitchen/calculator/{recipe}/print', [EmployeeKitchenController::class, 'print'])->name('kitchen.calculator.print');
 });
 
 // ── Kitchen — Recipe Library (admin + manager) ────────────────────────────────
 Route::prefix('kitchen')->name('kitchen.')->middleware(['auth', 'verified', 'role.hall'])->group(function () {
-    Route::get('recipes',                           [RecipeController::class, 'index'])->name('recipes.index');
-    Route::get('recipes/create',                    [RecipeController::class, 'create'])->name('recipes.create');
-    Route::post('recipes',                          [RecipeController::class, 'store'])->name('recipes.store');
-    Route::get('recipes/{recipe}',                  [RecipeController::class, 'show'])->name('recipes.show');
-    Route::get('recipes/{recipe}/edit',             [RecipeController::class, 'edit'])->name('recipes.edit');
-    Route::put('recipes/{recipe}',                  [RecipeController::class, 'update'])->name('recipes.update');
-    Route::delete('recipes/{recipe}',               [RecipeController::class, 'destroy'])->name('recipes.destroy');
-    Route::patch('recipes/{recipe}/toggle-active',  [RecipeController::class, 'toggleActive'])->name('recipes.toggle-active');
+    Route::get('recipes', [RecipeController::class, 'index'])->name('recipes.index');
+    // AI Recipe Generator + review queue (admin-only actions are gated in the controller)
+    Route::get('recipes/ai', [RecipeAiController::class, 'index'])->name('recipes.ai.index');
+    Route::post('recipes/ai', [RecipeAiController::class, 'store'])->middleware('throttle:10,1')->name('recipes.ai.store');
+    Route::post('recipes/ai/starter', [RecipeAiController::class, 'importStarter'])->middleware('throttle:5,1')->name('recipes.ai.starter');
+    Route::post('recipes/ai/initial-plan', [RecipeAiController::class, 'initialPlan'])->middleware('throttle:3,1')->name('recipes.ai.initial-plan');
+    Route::get('recipes/ai/batches/{batch}', [RecipeAiController::class, 'batch'])->name('recipes.ai.batch');
+    Route::get('recipes/ai/batches/{batch}/progress', [RecipeAiController::class, 'progress'])->middleware('throttle:120,1')->name('recipes.ai.progress');
+    Route::post('recipes/ai/batches/{batch}/retry', [RecipeAiController::class, 'retry'])->name('recipes.ai.retry');
+    Route::post('recipes/ai/batches/{batch}/cancel', [RecipeAiController::class, 'cancel'])->name('recipes.ai.cancel');
+    Route::get('recipes/review', [RecipeAiController::class, 'review'])->name('recipes.review');
+    Route::post('recipes/{recipe}/reviewed', [RecipeAiController::class, 'markReviewed'])->name('recipes.reviewed');
+    Route::post('recipes/{recipe}/verify', [RecipeAiController::class, 'verify'])->name('recipes.verify');
+    Route::post('recipes/{recipe}/archive', [RecipeAiController::class, 'archive'])->name('recipes.archive');
+    Route::post('recipes/{recipe}/restore', [RecipeAiController::class, 'restore'])->name('recipes.restore');
+    Route::post('recipes/{recipe}/ingredients/{ingredient}/map', [RecipeAiController::class, 'mapIngredient'])->name('recipes.map-ingredient');
+    Route::get('recipes/create', [RecipeController::class, 'create'])->name('recipes.create');
+    Route::post('recipes', [RecipeController::class, 'store'])->name('recipes.store');
+    Route::get('recipes/{recipe}', [RecipeController::class, 'show'])->name('recipes.show');
+    Route::get('recipes/{recipe}/print', [RecipeController::class, 'print'])->name('recipes.print');
+    Route::get('recipes/{recipe}/edit', [RecipeController::class, 'edit'])->name('recipes.edit');
+    Route::put('recipes/{recipe}', [RecipeController::class, 'update'])->name('recipes.update');
+    Route::delete('recipes/{recipe}', [RecipeController::class, 'destroy'])->name('recipes.destroy');
+    Route::patch('recipes/{recipe}/toggle-active', [RecipeController::class, 'toggleActive'])->name('recipes.toggle-active');
 });
 
 // ── Hall Management (admin + manager) ────────────────────────────────────────
@@ -361,72 +391,72 @@ Route::prefix('hall')->name('hall.')->middleware(['auth', 'verified', 'role.hall
     Route::get('dashboard', [HallDashboardController::class, 'index'])->name('dashboard');
 
     // Bookings
-    Route::get('bookings',                              [HallBookingController::class, 'index'])->name('bookings.index');
-    Route::get('bookings/create',                       [HallBookingController::class, 'create'])->name('bookings.create');
-    Route::post('bookings',                             [HallBookingController::class, 'store'])->name('bookings.store');
-    Route::get('bookings/calendar',                     [HallBookingController::class, 'calendar'])->name('bookings.calendar');
-    Route::get('bookings/calendar-events',              [HallBookingController::class, 'calendarEvents'])->name('bookings.calendar-events');
-    Route::get('bookings/check-availability',           [HallBookingController::class, 'checkAvailability'])->name('bookings.check-availability');
-    Route::get('bookings/kitchen',                      [HallBookingController::class, 'kitchen'])->name('bookings.kitchen');
-    Route::get('bookings/{booking}',                    [HallBookingController::class, 'show'])->name('bookings.show');
-    Route::get('bookings/{booking}/edit',               [HallBookingController::class, 'edit'])->name('bookings.edit');
-    Route::put('bookings/{booking}',                    [HallBookingController::class, 'update'])->name('bookings.update');
-    Route::delete('bookings/{booking}',                 [HallBookingController::class, 'destroy'])->name('bookings.destroy');
-    Route::post('bookings/{booking}/payments',          [HallBookingController::class, 'addPayment'])->name('bookings.payments.add');
-    Route::get('bookings/{booking}/invoice',            [HallBookingController::class, 'invoice'])->name('bookings.invoice');
-    Route::post('bookings/{booking}/invoice',           [HallBookingController::class, 'updateInvoiceDetails'])->name('bookings.invoice.update');
-    Route::get('bookings/{booking}/invoice/pdf',        [HallBookingController::class, 'downloadPdf'])->name('bookings.invoice.pdf');
-    Route::get('bookings/{booking}/menu',               [\App\Http\Controllers\Hall\HallBookingMenuController::class, 'edit'])->name('bookings.menu.edit');
-    Route::put('bookings/{booking}/menu',               [\App\Http\Controllers\Hall\HallBookingMenuController::class, 'update'])->name('bookings.menu.update');
-    Route::post('bookings/{booking}/mark-review',       [HallBookingController::class, 'markReviewRequested'])->name('bookings.mark-review');
+    Route::get('bookings', [HallBookingController::class, 'index'])->name('bookings.index');
+    Route::get('bookings/create', [HallBookingController::class, 'create'])->name('bookings.create');
+    Route::post('bookings', [HallBookingController::class, 'store'])->name('bookings.store');
+    Route::get('bookings/calendar', [HallBookingController::class, 'calendar'])->name('bookings.calendar');
+    Route::get('bookings/calendar-events', [HallBookingController::class, 'calendarEvents'])->name('bookings.calendar-events');
+    Route::get('bookings/check-availability', [HallBookingController::class, 'checkAvailability'])->name('bookings.check-availability');
+    Route::get('bookings/kitchen', [HallBookingController::class, 'kitchen'])->name('bookings.kitchen');
+    Route::get('bookings/{booking}', [HallBookingController::class, 'show'])->name('bookings.show');
+    Route::get('bookings/{booking}/edit', [HallBookingController::class, 'edit'])->name('bookings.edit');
+    Route::put('bookings/{booking}', [HallBookingController::class, 'update'])->name('bookings.update');
+    Route::delete('bookings/{booking}', [HallBookingController::class, 'destroy'])->name('bookings.destroy');
+    Route::post('bookings/{booking}/payments', [HallBookingController::class, 'addPayment'])->name('bookings.payments.add');
+    Route::get('bookings/{booking}/invoice', [HallBookingController::class, 'invoice'])->name('bookings.invoice');
+    Route::post('bookings/{booking}/invoice', [HallBookingController::class, 'updateInvoiceDetails'])->name('bookings.invoice.update');
+    Route::get('bookings/{booking}/invoice/pdf', [HallBookingController::class, 'downloadPdf'])->name('bookings.invoice.pdf');
+    Route::get('bookings/{booking}/menu', [HallBookingMenuController::class, 'edit'])->name('bookings.menu.edit');
+    Route::put('bookings/{booking}/menu', [HallBookingMenuController::class, 'update'])->name('bookings.menu.update');
+    Route::post('bookings/{booking}/mark-review', [HallBookingController::class, 'markReviewRequested'])->name('bookings.mark-review');
 
     // Meal Plans
-    Route::get('meal-plans',                            [MealPlanController::class, 'index'])->name('meal-plans.index');
-    Route::get('meal-plans/create',                     [MealPlanController::class, 'create'])->name('meal-plans.create');
-    Route::post('meal-plans',                           [MealPlanController::class, 'store'])->name('meal-plans.store');
-    Route::get('meal-plans/{mealPlan}/edit',            [MealPlanController::class, 'edit'])->name('meal-plans.edit');
-    Route::put('meal-plans/{mealPlan}',                 [MealPlanController::class, 'update'])->name('meal-plans.update');
-    Route::delete('meal-plans/{mealPlan}',              [MealPlanController::class, 'destroy'])->name('meal-plans.destroy');
+    Route::get('meal-plans', [MealPlanController::class, 'index'])->name('meal-plans.index');
+    Route::get('meal-plans/create', [MealPlanController::class, 'create'])->name('meal-plans.create');
+    Route::post('meal-plans', [MealPlanController::class, 'store'])->name('meal-plans.store');
+    Route::get('meal-plans/{mealPlan}/edit', [MealPlanController::class, 'edit'])->name('meal-plans.edit');
+    Route::put('meal-plans/{mealPlan}', [MealPlanController::class, 'update'])->name('meal-plans.update');
+    Route::delete('meal-plans/{mealPlan}', [MealPlanController::class, 'destroy'])->name('meal-plans.destroy');
     Route::patch('meal-plans/{mealPlan}/toggle-status', [MealPlanController::class, 'toggleStatus'])->name('meal-plans.toggle-status');
 
     // Reports
-    Route::get('reports',                               [HallReportController::class, 'index'])->name('reports.index');
+    Route::get('reports', [HallReportController::class, 'index'])->name('reports.index');
 });
 
 // ── Menu Composer (admin only) ────────────────────────────────────────────────
 Route::prefix('menu')->name('menu.')->middleware(['auth', 'verified', 'role.admin'])->group(function () {
 
     // Menu Item Master
-    Route::get('items',                          [MenuItemController::class, 'index'])->name('items.index');
-    Route::get('items/create',                   [MenuItemController::class, 'create'])->name('items.create');
-    Route::post('items',                         [MenuItemController::class, 'store'])->name('items.store');
-    Route::get('items/search',                   [MenuItemController::class, 'search'])->name('items.search');
-    Route::get('items/translate',                [MenuItemController::class, 'translate'])->name('items.translate');
-    Route::get('items/{item}/edit',              [MenuItemController::class, 'edit'])->name('items.edit');
-    Route::put('items/{item}',                   [MenuItemController::class, 'update'])->name('items.update');
-    Route::patch('items/{item}/toggle',          [MenuItemController::class, 'toggle'])->name('items.toggle');
-    Route::delete('items/{item}',                [MenuItemController::class, 'destroy'])->name('items.destroy');
+    Route::get('items', [MenuItemController::class, 'index'])->name('items.index');
+    Route::get('items/create', [MenuItemController::class, 'create'])->name('items.create');
+    Route::post('items', [MenuItemController::class, 'store'])->name('items.store');
+    Route::get('items/search', [MenuItemController::class, 'search'])->name('items.search');
+    Route::get('items/translate', [MenuItemController::class, 'translate'])->name('items.translate');
+    Route::get('items/{item}/edit', [MenuItemController::class, 'edit'])->name('items.edit');
+    Route::put('items/{item}', [MenuItemController::class, 'update'])->name('items.update');
+    Route::patch('items/{item}/toggle', [MenuItemController::class, 'toggle'])->name('items.toggle');
+    Route::delete('items/{item}', [MenuItemController::class, 'destroy'])->name('items.destroy');
 
     // Menu Composer (draft management)
-    Route::get('composer',                       [MenuComposerController::class, 'index'])->name('composer.index');
-    Route::get('composer/create',                [MenuComposerController::class, 'create'])->name('composer.create');
+    Route::get('composer', [MenuComposerController::class, 'index'])->name('composer.index');
+    Route::get('composer/create', [MenuComposerController::class, 'create'])->name('composer.create');
 
     // Draft CRUD (AJAX + web)
-    Route::post('drafts',                        [MenuComposerController::class, 'storeDraft'])->name('drafts.store');
-    Route::put('drafts/{draft}',                 [MenuComposerController::class, 'updateDraft'])->name('drafts.update');
-    Route::delete('drafts/{draft}',              [MenuComposerController::class, 'destroyDraft'])->name('drafts.destroy');
-    Route::get('drafts/{draft}/edit',            [MenuComposerController::class, 'edit'])->name('drafts.edit');
-    Route::post('drafts/{draft}/duplicate',      [MenuComposerController::class, 'duplicateDraft'])->name('drafts.duplicate');
+    Route::post('drafts', [MenuComposerController::class, 'storeDraft'])->name('drafts.store');
+    Route::put('drafts/{draft}', [MenuComposerController::class, 'updateDraft'])->name('drafts.update');
+    Route::delete('drafts/{draft}', [MenuComposerController::class, 'destroyDraft'])->name('drafts.destroy');
+    Route::get('drafts/{draft}/edit', [MenuComposerController::class, 'edit'])->name('drafts.edit');
+    Route::post('drafts/{draft}/duplicate', [MenuComposerController::class, 'duplicateDraft'])->name('drafts.duplicate');
 
     // Templates
-    Route::get('templates',                      [MenuComposerController::class, 'templatesIndex'])->name('templates.index');
-    Route::post('templates',                     [MenuComposerController::class, 'storeTemplate'])->name('templates.store');
-    Route::put('templates/{template}',           [MenuComposerController::class, 'updateTemplate'])->name('templates.update');
-    Route::delete('templates/{template}',        [MenuComposerController::class, 'destroyTemplate'])->name('templates.destroy');
-    Route::post('templates/{template}/load',     [MenuComposerController::class, 'loadTemplate'])->name('templates.load');
+    Route::get('templates', [MenuComposerController::class, 'templatesIndex'])->name('templates.index');
+    Route::post('templates', [MenuComposerController::class, 'storeTemplate'])->name('templates.store');
+    Route::put('templates/{template}', [MenuComposerController::class, 'updateTemplate'])->name('templates.update');
+    Route::delete('templates/{template}', [MenuComposerController::class, 'destroyTemplate'])->name('templates.destroy');
+    Route::post('templates/{template}/load', [MenuComposerController::class, 'loadTemplate'])->name('templates.load');
 
     // PDF generation — POST returns PDF download stream
-    Route::post('pdf',                           [MenuComposerController::class, 'generatePdf'])->name('pdf.generate');
+    Route::post('pdf', [MenuComposerController::class, 'generatePdf'])->name('pdf.generate');
 });
 
 // ── Notifications (all authenticated users) ───────────────────────────────────
@@ -489,7 +519,7 @@ Route::get('/pay/{id}/proof', [PaymentRequestController::class, 'serveProof'])
 
 // Login-redirect helper: stores the payment URL as url.intended, then
 // redirects to login.  Used by "Login as Staff" button on the payment page.
-Route::get('/pay-login', function (Illuminate\Http\Request $request) {
+Route::get('/pay-login', function (Request $request) {
     $return = $request->query('return', '');
 
     // Only accept same-origin /pay/ URLs — prevent open-redirect abuse
@@ -504,78 +534,78 @@ Route::get('/pay-login', function (Illuminate\Http\Request $request) {
 // Any authenticated user; object-level rules live in PurchasePolicy /
 // MaterialRequestPolicy (approve = admin, receive/handover = storekeeper).
 Route::prefix('inventory')->name('inventory.')->middleware(['auth', 'verified'])->group(function () {
-    Route::get('/',      [\App\Http\Controllers\Inventory\InventoryHomeController::class, 'index'])->name('home');
-    Route::get('stock',  [\App\Http\Controllers\Inventory\InventoryHomeController::class, 'stock'])->name('stock');
-    Route::get('reports',          [\App\Http\Controllers\Inventory\LossControlController::class, 'index'])->name('reports.index');
-    Route::get('reports/{report}', [\App\Http\Controllers\Inventory\LossControlController::class, 'show'])->where('report', '[a-z\-]+')->name('reports.show');
-    Route::get('standards',          [\App\Http\Controllers\Inventory\RecipeStandardController::class, 'index'])->name('standards.index');
-    Route::get('standards/item',     [\App\Http\Controllers\Inventory\RecipeStandardController::class, 'show'])->name('standards.show');
-    Route::post('standards',         [\App\Http\Controllers\Inventory\RecipeStandardController::class, 'store'])->name('standards.store');
-    Route::get('items/search', [\App\Http\Controllers\Inventory\ItemLookupController::class, 'search'])
+    Route::get('/', [InventoryHomeController::class, 'index'])->name('home');
+    Route::get('stock', [InventoryHomeController::class, 'stock'])->name('stock');
+    Route::get('reports', [LossControlController::class, 'index'])->name('reports.index');
+    Route::get('reports/{report}', [LossControlController::class, 'show'])->where('report', '[a-z\-]+')->name('reports.show');
+    Route::get('standards', [RecipeStandardController::class, 'index'])->name('standards.index');
+    Route::get('standards/item', [RecipeStandardController::class, 'show'])->name('standards.show');
+    Route::post('standards', [RecipeStandardController::class, 'store'])->name('standards.store');
+    Route::get('items/search', [ItemLookupController::class, 'search'])
         ->middleware('throttle:180,1')->name('items.search');
-    Route::post('items/quick', [\App\Http\Controllers\Inventory\ItemQuickAddController::class, 'store'])
+    Route::post('items/quick', [ItemQuickAddController::class, 'store'])
         ->middleware('throttle:20,1')->name('items.quick');
-    Route::post('items/match', [\App\Http\Controllers\Inventory\ItemLookupController::class, 'match'])
+    Route::post('items/match', [ItemLookupController::class, 'match'])
         ->middleware('throttle:60,1')->name('items.match');
 
-    Route::get('purchases',                       [\App\Http\Controllers\Inventory\PurchaseController::class, 'index'])->name('purchases.index');
-    Route::get('purchases/create',                [\App\Http\Controllers\Inventory\PurchaseController::class, 'create'])->name('purchases.create');
-    Route::post('purchases',                      [\App\Http\Controllers\Inventory\PurchaseController::class, 'store'])->name('purchases.store');
-    Route::get('purchases/{purchase}',            [\App\Http\Controllers\Inventory\PurchaseController::class, 'show'])->name('purchases.show');
-    Route::get('purchases/{purchase}/edit',       [\App\Http\Controllers\Inventory\PurchaseController::class, 'edit'])->name('purchases.edit');
-    Route::put('purchases/{purchase}',            [\App\Http\Controllers\Inventory\PurchaseController::class, 'update'])->name('purchases.update');
-    Route::post('purchases/{purchase}/submit',    [\App\Http\Controllers\Inventory\PurchaseController::class, 'submit'])->name('purchases.submit');
-    Route::post('purchases/{purchase}/approve',   [\App\Http\Controllers\Inventory\PurchaseController::class, 'approve'])->name('purchases.approve');
-    Route::post('purchases/{purchase}/reject',    [\App\Http\Controllers\Inventory\PurchaseController::class, 'reject'])->name('purchases.reject');
-    Route::post('purchases/{purchase}/cancel',    [\App\Http\Controllers\Inventory\PurchaseController::class, 'cancel'])->name('purchases.cancel');
-    Route::post('purchases/{purchase}/complete',  [\App\Http\Controllers\Inventory\PurchaseController::class, 'complete'])->name('purchases.complete');
-    Route::get('material-requests',                              [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'index'])->name('material-requests.index');
-    Route::get('material-requests/hall-prefill/{booking}',      [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'hallPrefill'])
+    Route::get('purchases', [PurchaseController::class, 'index'])->name('purchases.index');
+    Route::get('purchases/create', [PurchaseController::class, 'create'])->name('purchases.create');
+    Route::post('purchases', [PurchaseController::class, 'store'])->name('purchases.store');
+    Route::get('purchases/{purchase}', [PurchaseController::class, 'show'])->name('purchases.show');
+    Route::get('purchases/{purchase}/edit', [PurchaseController::class, 'edit'])->name('purchases.edit');
+    Route::put('purchases/{purchase}', [PurchaseController::class, 'update'])->name('purchases.update');
+    Route::post('purchases/{purchase}/submit', [PurchaseController::class, 'submit'])->name('purchases.submit');
+    Route::post('purchases/{purchase}/approve', [PurchaseController::class, 'approve'])->name('purchases.approve');
+    Route::post('purchases/{purchase}/reject', [PurchaseController::class, 'reject'])->name('purchases.reject');
+    Route::post('purchases/{purchase}/cancel', [PurchaseController::class, 'cancel'])->name('purchases.cancel');
+    Route::post('purchases/{purchase}/complete', [PurchaseController::class, 'complete'])->name('purchases.complete');
+    Route::get('material-requests', [MaterialRequestController::class, 'index'])->name('material-requests.index');
+    Route::get('material-requests/hall-prefill/{booking}', [MaterialRequestController::class, 'hallPrefill'])
         ->middleware('throttle:60,1')->name('material-requests.hall-prefill');
-    Route::get('material-requests/create',                       [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'create'])->name('material-requests.create');
-    Route::post('material-requests',                             [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'store'])->name('material-requests.store');
-    Route::get('material-requests/{materialRequest}',            [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'show'])->name('material-requests.show');
-    Route::get('material-requests/{materialRequest}/edit',       [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'edit'])->name('material-requests.edit');
-    Route::put('material-requests/{materialRequest}',            [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'update'])->name('material-requests.update');
-    Route::post('material-requests/{materialRequest}/submit',    [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'submit'])->name('material-requests.submit');
-    Route::post('material-requests/{materialRequest}/approve',   [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'approve'])->name('material-requests.approve');
-    Route::post('material-requests/{materialRequest}/reject',    [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'reject'])->name('material-requests.reject');
-    Route::post('material-requests/{materialRequest}/handover',  [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'handover'])->name('material-requests.handover');
-    Route::post('material-requests/{materialRequest}/cancel',    [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'cancel'])->name('material-requests.cancel');
-    Route::post('material-requests/{materialRequest}/returns',   [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'returns'])->name('material-requests.returns');
-    Route::post('material-requests/{materialRequest}/reconcile', [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'reconcile'])->name('material-requests.reconcile');
-    Route::post('material-requests/{materialRequest}/review',    [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'review'])->name('material-requests.review');
-    Route::post('material-requests/{materialRequest}/revise',    [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'revise'])->name('material-requests.revise');
+    Route::get('material-requests/create', [MaterialRequestController::class, 'create'])->name('material-requests.create');
+    Route::post('material-requests', [MaterialRequestController::class, 'store'])->name('material-requests.store');
+    Route::get('material-requests/{materialRequest}', [MaterialRequestController::class, 'show'])->name('material-requests.show');
+    Route::get('material-requests/{materialRequest}/edit', [MaterialRequestController::class, 'edit'])->name('material-requests.edit');
+    Route::put('material-requests/{materialRequest}', [MaterialRequestController::class, 'update'])->name('material-requests.update');
+    Route::post('material-requests/{materialRequest}/submit', [MaterialRequestController::class, 'submit'])->name('material-requests.submit');
+    Route::post('material-requests/{materialRequest}/approve', [MaterialRequestController::class, 'approve'])->name('material-requests.approve');
+    Route::post('material-requests/{materialRequest}/reject', [MaterialRequestController::class, 'reject'])->name('material-requests.reject');
+    Route::post('material-requests/{materialRequest}/handover', [MaterialRequestController::class, 'handover'])->name('material-requests.handover');
+    Route::post('material-requests/{materialRequest}/cancel', [MaterialRequestController::class, 'cancel'])->name('material-requests.cancel');
+    Route::post('material-requests/{materialRequest}/returns', [MaterialRequestController::class, 'returns'])->name('material-requests.returns');
+    Route::post('material-requests/{materialRequest}/reconcile', [MaterialRequestController::class, 'reconcile'])->name('material-requests.reconcile');
+    Route::post('material-requests/{materialRequest}/review', [MaterialRequestController::class, 'review'])->name('material-requests.review');
+    Route::post('material-requests/{materialRequest}/revise', [MaterialRequestController::class, 'revise'])->name('material-requests.revise');
 
-    Route::get('purchases/{purchase}/receive',    [\App\Http\Controllers\Inventory\PurchaseController::class, 'receiveForm'])->name('purchases.receive-form');
-    Route::post('purchases/{purchase}/receive',   [\App\Http\Controllers\Inventory\PurchaseController::class, 'receive'])->name('purchases.receive');
-    Route::get('purchases/{purchase}/receipts/{receipt}/bill', [\App\Http\Controllers\Inventory\PurchaseController::class, 'receiptBill'])->name('purchases.receipt-bill');
+    Route::get('purchases/{purchase}/receive', [PurchaseController::class, 'receiveForm'])->name('purchases.receive-form');
+    Route::post('purchases/{purchase}/receive', [PurchaseController::class, 'receive'])->name('purchases.receive');
+    Route::get('purchases/{purchase}/receipts/{receipt}/bill', [PurchaseController::class, 'receiptBill'])->name('purchases.receipt-bill');
 });
 
 // ── Daily Meal Register (all roles) ──────────────────────────────────────────
 Route::prefix('meal-register')->name('meal-register.')->middleware(['auth', 'verified'])->group(function () {
 
     // Clients — view: all roles; create/edit: admin+manager only
-    Route::get('clients',                   [MealClientController::class, 'index'])->name('clients.index');
-    Route::get('clients/create',            [MealClientController::class, 'create'])->name('clients.create')->middleware('role.hall');
-    Route::post('clients',                  [MealClientController::class, 'store'])->name('clients.store')->middleware('role.hall');
-    Route::get('clients/{client}',          [MealClientController::class, 'show'])->name('clients.show');
-    Route::get('clients/{client}/edit',     [MealClientController::class, 'edit'])->name('clients.edit')->middleware('role.hall');
-    Route::put('clients/{client}',          [MealClientController::class, 'update'])->name('clients.update')->middleware('role.hall');
+    Route::get('clients', [MealClientController::class, 'index'])->name('clients.index');
+    Route::get('clients/create', [MealClientController::class, 'create'])->name('clients.create')->middleware('role.hall');
+    Route::post('clients', [MealClientController::class, 'store'])->name('clients.store')->middleware('role.hall');
+    Route::get('clients/{client}', [MealClientController::class, 'show'])->name('clients.show');
+    Route::get('clients/{client}/edit', [MealClientController::class, 'edit'])->name('clients.edit')->middleware('role.hall');
+    Route::put('clients/{client}', [MealClientController::class, 'update'])->name('clients.update')->middleware('role.hall');
     Route::patch('clients/{client}/toggle', [MealClientController::class, 'toggleActive'])->name('clients.toggle')->middleware('role.hall');
 
     // Daily Entries (Phase 2 — MealEntry model, upsert via save)
-    Route::get('entries',              [DailyMealEntryController::class, 'index'])->name('entries.index');
-    Route::get('entries/create',       [DailyMealEntryController::class, 'create'])->name('entries.create');
-    Route::post('entries/save',        [DailyMealEntryController::class, 'save'])->name('entries.save');
-    Route::get('entries/load',         [DailyMealEntryController::class, 'loadEntry'])->name('entries.load');
+    Route::get('entries', [DailyMealEntryController::class, 'index'])->name('entries.index');
+    Route::get('entries/create', [DailyMealEntryController::class, 'create'])->name('entries.create');
+    Route::post('entries/save', [DailyMealEntryController::class, 'save'])->name('entries.save');
+    Route::get('entries/load', [DailyMealEntryController::class, 'loadEntry'])->name('entries.load');
     Route::get('entries/previous-day', [DailyMealEntryController::class, 'previousDay'])->name('entries.previous-day');
-    Route::get('entries/{entry}',      [DailyMealEntryController::class, 'show'])->name('entries.show');
-    Route::delete('entries/{entry}',   [DailyMealEntryController::class, 'destroy'])->name('entries.destroy')->middleware('role.hall');
+    Route::get('entries/{entry}', [DailyMealEntryController::class, 'show'])->name('entries.show');
+    Route::delete('entries/{entry}', [DailyMealEntryController::class, 'destroy'])->name('entries.destroy')->middleware('role.hall');
 
     // Reports
-    Route::get('reports',                   [MealRegisterReportController::class, 'index'])->name('reports.index');
-    Route::get('reports/export',            [MealRegisterReportController::class, 'export'])->name('reports.export');
+    Route::get('reports', [MealRegisterReportController::class, 'index'])->name('reports.index');
+    Route::get('reports/export', [MealRegisterReportController::class, 'export'])->name('reports.export');
 });
 
 // ── Profile ───────────────────────────────────────────────────────────────────
@@ -585,5 +615,5 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-require __DIR__ . '/auth.php';
-require __DIR__ . '/event_request.php';
+require __DIR__.'/auth.php';
+require __DIR__.'/event_request.php';

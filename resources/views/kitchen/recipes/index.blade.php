@@ -161,9 +161,20 @@
             <div class="ef-rl-title">Recipe Library</div>
             <div class="ef-rl-sub">Manage recipes, ingredients and preparation.</div>
         </div>
-        <a href="{{ route('kitchen.recipes.create') }}" class="ef-rl-new">
-            <i class="bi bi-plus-lg"></i> New Recipe
-        </a>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+            @can('recipes.generate')
+                @php $rq = \App\Models\Recipe::whereIn('verification_status', ['ai_generated', 'needs_review'])->count(); @endphp
+                <a href="{{ route('kitchen.recipes.review') }}" class="ef-rl-new" style="background:var(--ef-surface,#fff);color:var(--ef-ink);border:1px solid var(--ef-border)">
+                    <i class="bi bi-clipboard-check"></i> Review{{ $rq ? ' (' . $rq . ')' : '' }}
+                </a>
+                <a href="{{ route('kitchen.recipes.ai.index') }}" class="ef-rl-new" style="background:var(--ef-surface,#fff);color:var(--ef-ink);border:1px solid var(--ef-border)">
+                    <i class="bi bi-stars"></i> AI Generator
+                </a>
+            @endcan
+            <a href="{{ route('kitchen.recipes.create') }}" class="ef-rl-new">
+                <i class="bi bi-plus-lg"></i> New Recipe
+            </a>
+        </div>
     </div>
 
     {{-- Flash --}}
@@ -191,6 +202,15 @@
                 <option value="active"   @selected($statusVal === 'active')>Status: Active</option>
                 <option value="inactive" @selected($statusVal === 'inactive')>Status: Inactive</option>
             </select>
+            @php $vv = $filters['verification'] ?? ''; @endphp
+            <select name="verification" class="ef-rl-status" onchange="document.getElementById('filterForm').submit()" aria-label="Filter by verification">
+                <option value="">Any verification</option>
+                <option value="verified" @selected($vv === 'verified')>Verified ✓ ({{ $vcounts['verified'] ?? 0 }})</option>
+                <option value="to_review" @selected($vv === 'to_review')>Waiting for review ({{ ($vcounts['ai_generated'] ?? 0) + ($vcounts['needs_review'] ?? 0) }})</option>
+                <option value="reviewed" @selected($vv === 'reviewed')>Reviewed ({{ $vcounts['reviewed'] ?? 0 }})</option>
+                <option value="unverified" @selected($vv === 'unverified')>Manual, not verified ({{ $vcounts['unverified'] ?? 0 }})</option>
+                <option value="archived" @selected($vv === 'archived')>Archived ({{ $vcounts['archived'] ?? 0 }})</option>
+            </select>
             @if($activeFilters)
                 <a href="{{ route('kitchen.recipes.index') }}" class="ef-rl-clear"><i class="bi bi-x-lg"></i> Clear</a>
             @endif
@@ -206,6 +226,29 @@
                class="ef-rl-chip {{ ($filters['category'] ?? '') === $cat ? '--active' : '' }}">{{ $cat }}</a>
         @endforeach
     </div>
+
+    @can('recipes.generate')
+        @php
+            $toReview = ($vcounts['ai_generated'] ?? 0) + ($vcounts['needs_review'] ?? 0);
+            $total = $vcounts->except('archived')->sum();
+        @endphp
+        <div class="rl-flow" aria-label="How to build the recipe library">
+            <a class="rl-step" href="{{ route('kitchen.recipes.ai.index') }}#starter"><b>1</b><span>Add recipes<small>Starter set or AI generator</small></span></a>
+            <a class="rl-step {{ $toReview ? '--hot' : '' }}" href="{{ route('kitchen.recipes.review') }}"><b>2</b><span>Review &amp; link stock items<small>{{ $toReview }} waiting</small></span></a>
+            <a class="rl-step" href="{{ route('kitchen.recipes.index', ['verification' => 'verified']) }}"><b>3</b><span>Verified ✓<small>{{ $vcounts['verified'] ?? 0 }} of {{ $total }} — used by the kitchen</small></span></a>
+        </div>
+        <style>
+        .rl-flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 12px}
+        @media (max-width:640px){.rl-flow{grid-template-columns:1fr}}
+        .rl-step{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--ef-border);border-radius:14px;background:var(--ef-surface,#fff);color:var(--ef-ink);text-decoration:none;min-height:56px}
+        .rl-step:hover{border-color:var(--ef-gold);color:var(--ef-ink)}
+        .rl-step b{flex:0 0 auto;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--ef-ink);color:#fff;font-size:.82rem}
+        .rl-step span{display:flex;flex-direction:column;font-weight:750;font-size:.9rem;min-width:0}
+        .rl-step small{font-weight:500;font-size:.76rem;color:var(--ef-muted)}
+        .rl-step.--hot{border-color:var(--ef-amber);background:rgba(216,154,61,.08)}
+        .rl-step.--hot b{background:var(--ef-amber)}
+        </style>
+    @endcan
 
     {{-- Result summary --}}
     <div class="ef-rl-result">
@@ -236,6 +279,7 @@
                     </div>
 
                     <h2 class="ef-rl-name">{{ $recipe->name }}</h2>
+                    @include('kitchen.recipes._verify-badge', ['recipe' => $recipe])
 
                     <div class="ef-rl-meta">
                         <span class="ef-rl-meta-item" title="Base yield">
@@ -303,7 +347,10 @@
                     <a href="{{ route('kitchen.recipes.index') }}" class="ef-rl-new" style="display:inline-flex">Clear Filters</a>
                 @else
                     <div class="ef-rl-empty-title">No recipes yet</div>
-                    <div class="ef-rl-empty-body">Create your first recipe to start managing kitchen production.</div>
+                    <div class="ef-rl-empty-body">Import the curated starter set, generate recipes with AI, or create one by hand.</div>
+                    @can('recipes.generate')
+                        <a href="{{ route('kitchen.recipes.ai.index') }}#starter" class="ef-rl-new" style="display:inline-flex;margin-bottom:8px"><i class="bi bi-box-seam"></i> Add starter recipes</a>
+                    @endcan
                     <a href="{{ route('kitchen.recipes.create') }}" class="ef-rl-new" style="display:inline-flex">
                         <i class="bi bi-plus-lg"></i> Create Recipe
                     </a>

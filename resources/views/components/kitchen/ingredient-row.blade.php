@@ -60,7 +60,6 @@
                    @checked(!empty($data['is_optional']))>
             Optional
         </label>
-        <input type="hidden" name="ingredients[{{ $index }}][inventory_item_id]"
-               value="{{ $data['inventory_item_id'] ?? '' }}">
+        @include('kitchen.recipes._ingredient-map-field', ['idx' => $index, 'data' => $data])
     </div>
 </div>

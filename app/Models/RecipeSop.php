@@ -8,11 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class RecipeSop extends Model
 {
     protected $fillable = [
-        'recipe_id', 'step_number', 'title', 'instruction', 'duration_minutes',
+        'recipe_id', 'step_number', 'title', 'title_ta', 'instruction', 'instruction_ta', 'note', 'note_ta', 'duration_minutes',
     ];
 
     protected $casts = [
-        'step_number'      => 'integer',
+        'step_number' => 'integer',
         'duration_minutes' => 'integer',
     ];
 

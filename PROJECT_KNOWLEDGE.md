@@ -70,7 +70,7 @@ Per-module capability lists with their code entry points are in §7. Highlights 
 - **Public, unauthenticated surfaces** (only three): the signed payment page `/pay/{id}`, the QR image `/pay/{id}/qr`, and the
   event-request portal `/event-request/{token}`. Everything else needs login.
 - **No outbound integrations at runtime** except a WhatsApp *share link* and browser-loaded CDN assets (§18).
-- **No queued jobs exist in app code** (§15). Workers are provisioned in production but there is nothing to run on them today.
+- **Queued jobs: only the AI recipe generator** (`PlanRecipeBatchJob`, `GenerateRecipeItemJob`, §15). Everything else runs in the request.
 - Notifications are **in-app rows only** (`app_notifications`); no email/SMS/WhatsApp is sent by the app (§20).
 
 ---
@@ -243,7 +243,7 @@ creating a **`food_only` `hall_bookings` row** and setting request status `sched
 
 ### 7.6 Kitchen
 `kitchen.recipes.*` (`RecipeController`, `role.hall`): recipes + `recipe_ingredients` (optionally linked to `inventory_items`) + `recipe_sops`.
-`employee.kitchen.calculator*` (`EmployeeKitchenController`): read-only, calculation is client-side (route comment). `hall.bookings.kitchen`: per-day meal/guest summary.
+`employee.kitchen.calculator*` (`EmployeeKitchenController`): read-only, calculation is client-side (route comment). `hall.bookings.kitchen` (Kitchen Schedule): per-day meal/guest summary; each booking is a tappable `<details>` card that expands to its dish list (`HallMenuService::draftLines` — final menu → event request → meal plan; removed lines hidden), grouped by meal, with a recipe link when a recipe of the same `RecipeLibraryService::nameKey` exists, plus Booking / Final menu / Request materials (prefilled `hall_booking_id`) actions. Invalid `date`/`catering_type` fall back to today/all. Tests: `tests/Feature/Hall/KitchenScheduleTest.php`.
 
 ### 7.7 Menu Composer (`menu.*`, admin only)
 `MenuItemController` (bilingual master items; `items.translate` uses `MenuTranslationService`, a **built-in dictionary**, no external API),
@@ -311,10 +311,86 @@ Approval = issue (2026-11-26): `MaterialRequestController::approve` approves and
 handover via `MaterialRequestService::handover` with `collected_by = requested_by`, `handed_over_by = approver`, so the
 request goes straight to `issued` and the requester is responsible. The separate handover step/tab remains only for
 requests already in `approved` (tab hidden when none). A wrong approval is corrected through returns, not cancel.
-Store home `inventory` (2026-11-26): greeting + 3 main actions, one role-aware "Needs attention" list (only non-zero
-rows; low-stock counts only items with `minimum_stock > 0`), item finder, stock snapshot (in/low/out/arriving, stock value
-for admin/manager), "Needed today & tomorrow" and "My recent requests". Phones: single column ordered by task (CSS `order`).
+Store home `inventory` (redesigned 2026-11-26, operational inbox): compact header + role-aware quick actions (Request materials
+primary; New purchase; Scan bill admin / Stock store-side / My requests kitchen), item finder (shared `IcItemPicker`, English/தமிழ்/
+Tanglish aliases; search API never returns stock/cost), "Needs attention" inbox (count + why + action link, zero rows hidden; low-stock
+counts only `minimum_stock > 0`, links to purchase plan), one tabbed "Material requests" panel (To approve [admin] / To hand over
+[storekeeper] / Today & tomorrow [store-side] / Mine), "Running low" (≤6 items with a reorder level, out first then lowest % of
+minimum, with arriving qty), "Stock health" KPI strip (In stock / Low / Out needing reorder [+ total empty in catalogue] / Arriving / open Requests / Stock value admin+manager; each links to the filtered page), a role-filtered "Go to" shortcut grid,
+"Arriving" purchases (admin/storekeeper only — `PurchasePolicy::view`) and "Recent stock movement" (last 8 `inventory_transactions`,
+direction from `balance_after - balance_before`). No caching — all counts live. Status counts are grouped queries and the stock
+picture is one aggregate query: 19 queries for an admin+storekeeper vs 24 before while showing more. Tests:
+`tests/Feature/Inventory/StoreDashboardTest.php` (incl. query budget ≤ 22).
+Purchases list `inventory.purchases.index` (redesigned 2026-11-26): lifecycle tabs `PurchaseController::STAGES` (To approve = submitted,
+To receive = approved+partially_received, Received = received+completed, Drafts, Closed = rejected+cancelled; legacy `?status=` still
+works and is also an "Exact status" filter), validated search `q` (supplier / vendor / invoice no. / `PO-00012` or id), from/to, bill
+with/without (bill upload or receipt bill). Rows: supplier, ref, date, items, creator, total, status, receipt progress (lines fully
+received or closed / lines), bill indicator, next action by policy (Receive → receive form for storekeepers/admin, Review for approvers,
+Continue for own drafts). Committed spend for current filters excludes draft/rejected/cancelled. Server pagination 25; tab counts +
+spend in one grouped query. Desktop = header-row table (supplier, date, status & receipt, amount, action), phones = cards; insight rail
+(owed to suppliers = Σ grand_total − amount_paid where payment_status ≠ paid, top suppliers 30 days, flow explainer) beside the list ≥1500px,
+below it otherwise. View only — stock changes only in the existing receive flow. Tests: `tests/Feature/Inventory/PurchaseListTest.php`.
+Material requests list `inventory.material-requests.index` (redesigned 2026-11-26): role queues as a coloured strip (Mine / To approve /
+Usage review / Ready for handover / Out / All, same `?tab=` keys), validated search `q` (dish, purpose, requester, `MR-00017` or id) and
+filters (needed from/to, department, status on All). Table ≥1200px (request, needed [overdue red], items, people, requester, status,
+action by policy: Review / Hand over / Record usage / Check), cards below. Header flags open requests past their needed date; rail
+"Coming up" (next 5 open by date, store-side) + flow explainer. Counts: one grouped status query. Tests: `MaterialRequestListTest.php`.
 Sidebar Store & Inventory is grouped Daily / Buying / Setup & reports (9 links).
+AI recipe generator (2026-11-27): Claude via the official `anthropic-ai/sdk` (`App\Services\Ai\ClaudeRecipeAiClient`, bound to
+`RecipeAiClient` in AppServiceProvider; tests bind `FakeRecipeAi` from `tests/Pest.php`). Config `services.anthropic` (`ANTHROPIC_API_KEY`,
+`ANTHROPIC_MODEL` default `claude-opus-5-5`, `ANTHROPIC_EFFORT` default `high`); structured outputs (`output_config.format` JSON schema) +
+server-side refusal fallback (`fallbacks: "default"`, beta `server-side-fallback-2026-07-01`). One request per recipe; batches ≤ 50
+(`config/recipe_generation.php`, which also holds the initial library plan). Output checked by `RecipeOutputValidator` (units normalised,
+implausible per-person quantities / vague steps / wrong food type rejected → retried). `RecipeLibraryService`: duplicates by
+spelling-insensitive name key (exact → item `duplicate`, nothing saved; whole-word/similar → `duplicate_of_id` + needs review),
+ingredients mapped with `ItemMatchingService` (auto only ≥ `inventory.match_auto_select_confidence`, else `needs_mapping`).
+AI recipes are saved `is_active=false`, `verification_status=ai_generated|needs_review`; lifecycle ai_generated → needs_review →
+reviewed → verified (admin only, explicit confirm; activates the recipe and stores a `recipe_versions` snapshot) → archived.
+A material edit (yield, ingredient name/item/qty/unit/note/optional, steps) of a verified recipe stores the old verified snapshot
+(`event=superseded`), bumps `recipes.revision`, clears verification → needs review. Verified recipes/recipes with history cannot be
+deleted (archive). Gates `recipes.generate` / `recipes.verify` = admin. UI: `kitchen.recipes.ai.*` (generator, batch progress
+polling, history), `kitchen.recipes.review` (queue + filters), review panel on the recipe page; "Verified ✓" badge on library,
+recipe page, calculator list and production sheet, material-request recipe picker. Never creates stock transactions.
+Starter set & readiness (2026-11-27): `database/data/starter_recipes.php` = 27 hand-curated (non-AI) recipes for 100 people,
+imported by `StarterRecipeImporter` (`php artisan recipes:import-starter` or the generator page) as `source=starter`,
+`needs_review`, inactive; duplicates skipped (re-runnable). Library `/kitchen/recipes` lists all non-archived recipes with a
+verification badge + `?verification=` filter (verified|to_review|reviewed|unverified|archived) and a 3-step "add → review → verified"
+strip. Generator page shows provider/model, key configured yes/no (never the key), queue connection, worker heartbeat
+(`QueueHealth`, `Queue::looping` writes cache key `queue:worker-heartbeat`; alive = seen < 120 s), pending/failed job counts.
+Batches with items untouched 15+ min are "stuck"; "Retry failed / stuck" re-queues them (jobs are idempotent).
+Tamil recipes (2026-11-28): migration `2026_11_28_100000_add_tamil_to_recipes` adds `recipes.name_ta / kitchen_notes /
+kitchen_notes_ta`, `recipe_ingredients.ingredient_name_ta` (display only; stock mapping stays `inventory_item_id`, fallback
+`InventoryItem.name_ta`, then `database/data/ingredient_tamil.php`), `recipe_sops.title_ta / instruction_ta / note / note_ta`
+(one row per step, so EN/TA stay paired on reorder). Tamil counts only if it contains Tamil script. Step Tamil is part of
+`Recipe::materialPart` (changing it resets verification). `Recipe::languageGaps()`, `scaled($people)`, `batchPlan($people)`.
+Verify is blocked when Tamil name/steps are missing unless `allow_missing_tamil` (recorded in the version summary); English
+steps are always required. Views: `kitchen/recipes/_lang` (EN / தமிழ் / Both, localStorage `ef-recipe-lang`, content only),
+`_edit-lang` + `_sop-tamil-fields` (editor modes hide, never clear), print sheet `kitchen.recipes.print` and
+`employee.kitchen.calculator.print` (active recipes only; `?people=&lang=`, scaled + per-serving + batch split).
+Curated data: `database/data/starter_recipes.php` (+ `starter_recipes_ta.php`) and `database/data/recipes/*.php` = 77
+bilingual recipes for 100. `recipes:import-starter` creates missing ones and fills only EMPTY Tamil on existing source=starter
+recipes whose English steps still match (verified recipes: reported, not changed); manual/AI recipes are never touched.
+Duplicate key keeps dish numbers ("Chicken 65") and ignores lone base words (chicken, paneer, sambar…).
+Menu item master sync (2026-11-29): `menu_items.event_request_menu_item_id` (unique, nullOnDelete) links each Menu Composer
+item to its Event Request dish. `App\Services\MenuItemSync` + model `saved`/`deleting` events keep the two lists identical:
+name and category both ways (ER category name ↔ `config/menu_categories.items` key; "Sweet" → Dessert; missing ER category is
+created). Not synced: price (ER only), Tamil `item_ta` (menu only; new ones use the dictionary only when fully Tamil, else the
+English name = "Tamil needed"), active flags. Dish added on the menu page → ER dish inactive at ₹0. Deleting on one side only
+deactivates/unlinks the other (ER dishes may be on past requests). `php artisan menu:sync-items` (idempotent) did the first sync.
+Menu IA (2026-11-29): admin sidebar "Menu & Kitchen" holds every dish list — Dishes (`menu.items.*`, the hub: Tamil,
+composer status, customer price/offered, recipe status by spelling-insensitive name match, usage = distinct event requests +
+active meal plans; filters recipe=none|unverified, tamil=missing), Customer Menu & Prices (`admin.event-request-menu.items.*`),
+Dish Categories, Meal Plans (moved from Hall for admins; managers' sidebar unchanged), Menu Composer, Recipes. Event Requests
+group keeps only Requests. "Add recipe" links pass `?name=` to the recipe create form.
+Admin navigation (2026-11-29, supersedes the group notes above): admin + manager sidebar is generated from
+`config/admin_navigation.php` by `App\Support\AdminNavigation` (`resources/views/components/admin-nav.blade.php`); the
+employee sidebar is still hand-written in `admin-layout`. Structure: Dashboard · Events & Catering · Menu & Kitchen ·
+Store & Inventory · Finance · People & Payroll · Reports · Settings. Item `access` (admin|manager|hall|store|any) must mirror
+the route's own middleware/controller check; per-role routes via `routes`. Exactly one active item (most specific `active`
+pattern, optional `exclude`) → also drives the breadcrumb above page content (hidden below 768px: menu is off-canvas and the page title already names the page). Create pages are not in the sidebar: they are in
+`quick_actions` (top-bar "+ New" and the Ctrl/⌘K command palette, `components/admin-nav-chrome.blade.php`, which also searches
+stock items via `inventory.items.search`). Desktop rail collapse is remembered in localStorage `ef-sb-collapsed`; the mobile
+drawer closes after a link is tapped. Tests: `tests/Feature/AdminNavigationTest.php` opens every visible link per role.
 Wastage control (2026-11-26): `RecipeStandardService::expectedFor($mr)` = per preparation, recipe standard
 (`quantity_per_guest`) × its people, else median per-person usage of that preparation (3+ reconciled uses). Shown on the
 approval table ("Standard/Usual", "+N% over", button "Approve at standard") and on the usage form. Usage form: wasted is
@@ -578,11 +654,11 @@ Meal entries are unique per client+date; items unique per entry+meal_type (`brea
 
 | Item | Fact |
 |---|---|
-| Job classes | **None.** `grep` for `dispatch(`, `ShouldQueue`, `Mail::`, `Notification::send` finds nothing in `app/` or `routes/`. |
+| Job classes | `App\Jobs\PlanRecipeBatchJob` (AI proposes dish names) and `App\Jobs\GenerateRecipeItemJob` (one recipe per job), default queue, `tries=3`, backoff 60/300 s, `timeout=600`. Idempotent per `recipe_generation_items` row; failures land on the item (and `failed_jobs`). Nothing else is queued. |
 | Queue config | `config/queue.php` default from `QUEUE_CONNECTION` (`database`; `.env.example` says use `redis` in production). Tables `jobs`, `job_batches`, `failed_jobs` exist. `sync` in tests. |
 | Production workers | Supervisor programs named `expenseflow-worker:expenseflow-worker-N_00` exist and run `queue:work` from `/var/www/akshathayexpense` (memory note + `deploy.sh` checks). Exact command line, queue names, timeout, numprocs, user: **REQUIRES-PRODUCTION-VERIFICATION** (`deployment/legacy-release-based/supervisor.conf` is a *retired template*, not proof). |
 | Deploy interaction | `deploy.sh` restarts every `expenseflow*` supervisor program after each deploy and health-check waits for workers restarted since deploy start. |
-| Consequence | Workers are currently idle. Anything slow (OCR, PDF) runs **synchronously in the web request** — `OCR_TIMEOUT` (default 60 s in `config/ocr.php`) must be below Apache/PHP limits. Adding the first queued job requires deciding queue name, retries, timeout, failed-job handling and confirming the production worker command (see §40 Phase 3). |
+| Consequence | Workers run only AI recipe generation (needs a worker `--timeout` ≥ 600 s, REQUIRES-PRODUCTION-VERIFICATION). Anything slow (OCR, PDF) runs **synchronously in the web request** — `OCR_TIMEOUT` (default 60 s in `config/ocr.php`) must be below Apache/PHP limits. Adding the first queued job requires deciding queue name, retries, timeout, failed-job handling and confirming the production worker command (see §40 Phase 3). |
 
 ---
 

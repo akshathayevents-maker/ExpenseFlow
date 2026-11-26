@@ -1,7 +1,7 @@
 <x-admin-layout title="{{ $recipe->name }} — Recipe">
 @php $catSlug = $recipe->category ? Str::slug($recipe->category) : 'none'; @endphp
 
-<div class="ef-recipe-doc">
+<div class="ef-recipe-doc" data-rlang-root data-rlang="both">
 
     {{-- ── Back nav ─────────────────────────────────────────────────────── --}}
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:10px">
@@ -27,6 +27,14 @@
         </div>
     @endif
 
+    @foreach(['warning' => '#d89a3d', 'error' => '#c0392b'] as $k => $c)
+        @if(session($k))
+            <div class="ef-card mb-3" style="border-left:4px solid {{ $c }}"><div class="ef-card-body py-2" style="font-size:.88rem">{{ session($k) }}</div></div>
+        @endif
+    @endforeach
+
+    @include('kitchen.recipes._review-panel')
+
     {{-- ── Hero ──────────────────────────────────────────────────────────── --}}
     <div style="margin-bottom:8px">
         @if($recipe->category)
@@ -44,7 +52,25 @@
         </span>
     </div>
 
-    <h1 class="ef-recipe-doc-name">{{ $recipe->name }}</h1>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;justify-content:space-between;margin:4px 0 8px">
+        @include('kitchen.recipes._lang')
+        <form method="GET" action="{{ route('kitchen.recipes.print', $recipe) }}" target="_blank" style="display:flex;gap:6px;align-items:center;margin:0">
+            <label for="printPeople" style="font-size:.8rem;color:var(--ef-muted)">Print for</label>
+            <input id="printPeople" type="number" name="people" min="1" max="5000" value="{{ (int) $recipe->yield_per_batch }}" class="ef-input" style="width:90px;min-height:40px" inputmode="numeric">
+            <input type="hidden" name="lang" value="both" data-print-lang>
+            <button class="ef-btn" type="submit" style="min-height:40px"><i class="bi bi-printer"></i> Print</button>
+        </form>
+    </div>
+    <h1 class="ef-recipe-doc-name"><span class="l-en">{{ $recipe->name }}</span>
+        @if($recipe->name_ta)<span class="l-ta" lang="ta" style="font-size:.8em">{{ $recipe->name_ta }}</span>@else<span class="l-ta l-missing l-inline" lang="ta">தமிழ் இல்லை · Tamil missing</span>@endif
+        @include('kitchen.recipes._verify-badge', ['recipe' => $recipe])</h1>
+    @if($recipe->kitchen_notes || $recipe->kitchen_notes_ta)
+        <div style="border-left:3px solid var(--ef-amber,#d89a3d);background:rgba(216,154,61,.08);border-radius:10px;padding:10px 12px;margin:0 0 14px;font-size:.9rem">
+            <b><i class="bi bi-lightbulb"></i> Kitchen notes · சமையல் குறிப்பு</b>
+            @if($recipe->kitchen_notes)<div class="l-en"><span class="l-tag">EN</span>{{ $recipe->kitchen_notes }}</div>@endif
+            @if($recipe->kitchen_notes_ta)<div class="l-ta" lang="ta"><span class="l-tag">தமிழ்</span>{{ $recipe->kitchen_notes_ta }}</div>@else<span class="l-ta l-missing" lang="ta">தமிழ் இல்லை · Tamil missing</span>@endif
+        </div>
+    @endif
 
     @if($recipe->description)
         <p style="color:var(--ef-muted);font-size:1rem;margin:0 0 16px;line-height:1.65">{{ $recipe->description }}</p>
@@ -93,7 +119,8 @@
                 <div class="ef-recipe-ing-row">
                     <div>
                         <span class="ef-recipe-ing-name">
-                            {{ $ing->ingredient_name }}
+                            <span class="l-en">{{ $ing->ingredient_name }}</span>
+                            @if($ing->displayNameTa())<span class="l-ta l-inline" lang="ta"> {{ $ing->displayNameTa() }}</span>@else<span class="l-ta l-missing l-inline" lang="ta"> {{ $ing->ingredient_name }} (தமிழ் பெயர் இல்லை)</span>@endif
                             @if($ing->prep_note)
                                 <span class="ef-recipe-ing-note">({{ $ing->prep_note }})</span>
                             @endif
@@ -127,8 +154,10 @@
             <div class="ef-sop-doc-step">
                 <div class="ef-sop-doc-num">{{ $sop->step_number }}</div>
                 <div>
-                    <div class="ef-sop-doc-title">{{ $sop->title }}</div>
-                    <p class="ef-sop-doc-inst">{{ $sop->instruction }}</p>
+                    <div class="ef-sop-doc-title"><span class="l-en">{{ $sop->title }}</span>@if($sop->title_ta)<span class="l-ta l-inline" lang="ta"> · {{ $sop->title_ta }}</span>@endif</div>
+                    <p class="ef-sop-doc-inst l-en"><span class="l-tag">English</span>{{ $sop->instruction }}</p>
+                    @if($sop->instruction_ta)<p class="ef-sop-doc-inst l-ta" lang="ta"><span class="l-tag">தமிழ்</span>{{ $sop->instruction_ta }}</p>@else<p class="l-ta l-missing" lang="ta">தமிழ் விளக்கம் இல்லை · Tamil instruction missing for this step</p>@endif
+                    @if($sop->note || $sop->note_ta)<p style="font-size:.84rem;color:var(--ef-muted);margin:4px 0 0"><i class="bi bi-info-circle"></i> <span class="l-en">{{ $sop->note }}</span> <span class="l-ta l-inline" lang="ta">{{ $sop->note_ta }}</span></p>@endif
                     @if($sop->duration_minutes)
                         <div class="ef-sop-doc-dur">
                             <i class="bi bi-clock me-1"></i>{{ $sop->duration_minutes }} min
@@ -179,5 +208,12 @@
     </div>
 
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('click', e => { const b = e.target.closest('.rl-switch button'); if (b) document.querySelectorAll('[data-print-lang]').forEach(i => i.value = b.dataset.lang); });
+document.addEventListener('DOMContentLoaded', () => { try { const l = localStorage.getItem('ef-recipe-lang'); if (l) document.querySelectorAll('[data-print-lang]').forEach(i => i.value = l); } catch (e) {} });
+</script>
+@endpush
 
 </x-admin-layout>

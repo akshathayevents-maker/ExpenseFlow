@@ -9,6 +9,7 @@ use App\Models\MaterialRequest;
 use App\Models\MaterialRequestItem;
 use App\Models\MealEntry;
 use App\Models\MealEntryItem;
+use App\Models\PurchaseItem;
 use App\Models\Recipe;
 use App\Models\User;
 use App\Services\Inventory\HallOrderPrefillService;
@@ -18,6 +19,7 @@ use App\Services\Inventory\UnitConversionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -49,8 +51,28 @@ class MaterialRequestController extends Controller
             $tabs['all'] = 'All';
         }
         $tab = array_key_exists($request->input('tab'), $tabs) ? $request->input('tab') : array_key_first($tabs);
+        $f = $request->validate([
+            'q' => ['nullable', 'string', 'max:100'],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date'],
+            'department' => ['nullable', 'in:'.implode(',', array_keys(MaterialRequest::DEPARTMENTS))],
+            'status' => ['nullable', 'in:'.implode(',', array_keys(MaterialRequest::STATUSES))],
+        ]);
+        $search = trim((string) ($f['q'] ?? ''));
 
-        $q = MaterialRequest::with(['requester', 'mealEntry.client', 'hallBooking'])->withCount('items');
+        $q = MaterialRequest::with(['requester:id,name', 'mealEntry.client', 'hallBooking'])->withCount('items')
+            ->when($search !== '', function ($q) use ($search) {
+                $like = '%'.mb_strtolower($search).'%';
+                $id = preg_match('/^(?:mr-?)?0*(\d+)$/i', $search, $m) ? (int) $m[1] : null;
+                $q->where(fn ($w) => $w->whereRaw('LOWER(preparation_name) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(purpose) LIKE ?', [$like])
+                    ->orWhereHas('requester', fn ($u) => $u->whereRaw('LOWER(name) LIKE ?', [$like]))
+                    ->when($id, fn ($w) => $w->orWhere('id', $id)));
+            })
+            ->when($f['from'] ?? null, fn ($q, $d) => $q->whereDate('required_date', '>=', $d))
+            ->when($f['to'] ?? null, fn ($q, $d) => $q->whereDate('required_date', '<=', $d))
+            ->when($f['department'] ?? null, fn ($q, $d) => $q->where('department', $d))
+            ->when(($f['status'] ?? null) && $tab === 'all', fn ($q) => $q->where('status', $f['status']));
         match ($tab) {
             'approve' => $q->where('status', 'submitted')->orderBy('required_date'),
             'review' => $q->where('reconciliation_status', 'pending_review')->latest('reconciled_at'),
@@ -61,14 +83,29 @@ class MaterialRequestController extends Controller
         };
         $requests = $q->paginate(25)->withQueryString();
 
+        // queue counts: one grouped status query + review + mine (counts ignore search so tabs stay stable)
+        $byStatus = MaterialRequest::selectRaw('status, COUNT(*) AS c')->groupBy('status')->pluck('c', 'status')->map(fn ($c) => (int) $c);
         $counts = [
-            'approve' => $user->isAdmin() ? MaterialRequest::where('status', 'submitted')->count() : 0,
+            'mine' => MaterialRequest::where('requested_by', $user->id)->whereIn('status', ['draft', 'submitted', 'approved', 'issued'])->count(),
+            'approve' => $user->isAdmin() ? ($byStatus['submitted'] ?? 0) : 0,
             'review' => $user->isAdmin() ? MaterialRequest::where('reconciliation_status', 'pending_review')->count() : 0,
-            'handover' => $user->isStorekeeper() ? MaterialRequest::where('status', 'approved')->count() : 0,
-            'out' => $user->isStorekeeper() ? MaterialRequest::where('status', 'issued')->count() : 0,
+            'handover' => $user->isStorekeeper() ? ($byStatus['approved'] ?? 0) : 0,
+            'out' => $user->isStorekeeper() ? ($byStatus['issued'] ?? 0) : 0,
+            'all' => $byStatus->sum(),
         ];
 
-        return view('inventory.material-requests.index', compact('requests', 'tabs', 'tab', 'counts'));
+        // rail: next open requests by date (store-side only) — what the kitchen needs soon
+        $upcoming = ($user->isAdmin() || $user->isManager() || $user->isStorekeeper())
+            ? MaterialRequest::with('mealEntry.client', 'hallBooking')->whereIn('status', ['submitted', 'approved', 'issued'])
+                // still-open late requests first (they are the most urgent), then everything from today on
+                ->where(fn ($w) => $w->whereDate('required_date', '>=', now('Asia/Kolkata')->toDateString())->orWhereIn('status', ['submitted', 'approved']))
+                ->orderBy('required_date')->orderBy('required_time')->take(5)->get()
+            : collect();
+        $overdue = $user->isAdmin() || $user->isManager() || $user->isStorekeeper()
+            ? MaterialRequest::whereIn('status', ['submitted', 'approved'])->whereDate('required_date', '<', now('Asia/Kolkata')->toDateString())->count() : 0;
+        $filters = array_filter(['q' => $search, 'from' => $f['from'] ?? null, 'to' => $f['to'] ?? null, 'department' => $f['department'] ?? null, 'status' => $tab === 'all' ? ($f['status'] ?? null) : null]);
+
+        return view('inventory.material-requests.index', compact('requests', 'tabs', 'tab', 'counts', 'upcoming', 'overdue', 'filters', 'search'));
     }
 
     public function create(Request $request): View
@@ -150,7 +187,7 @@ class MaterialRequestController extends Controller
 
         // stock still to arrive on approved purchases (shown next to shortages)
         $incoming = in_array($mr->status, ['draft', 'submitted'], true)
-            ? \App\Models\PurchaseItem::whereIn('inventory_item_id', $mr->items->pluck('inventory_item_id'))
+            ? PurchaseItem::whereIn('inventory_item_id', $mr->items->pluck('inventory_item_id'))
                 ->whereHas('purchase', fn ($q) => $q->whereIn('status', ['approved', 'partially_received']))
                 ->selectRaw('inventory_item_id, SUM(base_quantity - received_base_quantity - closed_base_quantity) as q')
                 ->groupBy('inventory_item_id')->pluck('q', 'inventory_item_id')
@@ -204,7 +241,7 @@ class MaterialRequestController extends Controller
 
         // Approval also records the handover: the person who submitted the request is responsible for the
         // materials (collected_by = requester). Returns / usage are reported against them as before.
-        return $this->run(fn () => \Illuminate\Support\Facades\DB::transaction(function () use ($materialRequest, $request, $data) {
+        return $this->run(fn () => DB::transaction(function () use ($materialRequest, $request, $data) {
             $mr = $this->service->approve($materialRequest, $request->user(), $data['lines'] ?? [], $data['remarks'] ?? null);
             if ($mr->fresh()->status === 'approved' && $mr->requested_by) {
                 $mr = $this->service->handover($mr->fresh(), $request->user(), $mr->requested_by, null, [], 'Issued on approval to the requester');

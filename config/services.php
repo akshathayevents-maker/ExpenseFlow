@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+    // Claude (Anthropic) — server-side only. Used by the AI Recipe Generator.
+    // Key comes from the environment; never sent to the browser.
+    'anthropic' => [
+        'api_key' => env('ANTHROPIC_API_KEY'),
+        'model' => env('ANTHROPIC_MODEL', 'claude-opus-5-5'),
+        'effort' => env('ANTHROPIC_EFFORT', 'high'),
+        'timeout' => (int) env('ANTHROPIC_TIMEOUT', 300),
+    ],
+
 ];

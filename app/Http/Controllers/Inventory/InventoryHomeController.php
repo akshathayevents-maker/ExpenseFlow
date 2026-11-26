@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Inventory;
 
 use App\Http\Controllers\Controller;
 use App\Models\InventoryItem;
+use App\Models\InventoryTransaction;
 use App\Models\MaterialRequest;
 use App\Models\MaterialRequestItem;
 use App\Models\Purchase;
@@ -14,62 +15,108 @@ use Illuminate\View\View;
 /** Role-based "Store" home: kitchen staff, storekeeper and admin each see their own tasks. */
 class InventoryHomeController extends Controller
 {
+    /**
+     * Store home — an operational inbox. Counts are always live (no caching: they drive approvals and
+     * stock decisions). Status counts are one grouped query per table; the stock picture is one
+     * aggregate query; lists are small (≤ 6 rows) and eager-loaded.
+     */
     public function index(Request $request): View
     {
         $user = $request->user();
         $today = now('Asia/Kolkata')->toDateString();
+        $tomorrow = now('Asia/Kolkata')->addDay()->toDateString();
+        $isAdmin = $user->isAdmin();
+        $isStorekeeper = $user->isStorekeeper();
+        $storeSide = $isAdmin || $user->isManager() || $isStorekeeper;
+        $withLinks = ['requester:id,name', 'mealEntry.client', 'hallBooking'];
 
+        // my own requests: waiting / issued (usage to record) in one query
+        $mine = MaterialRequest::where('requested_by', $user->id)
+            ->selectRaw("SUM(CASE WHEN status = 'submitted' THEN 1 ELSE 0 END) AS waiting, SUM(CASE WHEN status = 'issued' THEN 1 ELSE 0 END) AS usage_due")
+            ->first();
         $kitchen = [
-            'open' => MaterialRequest::where('requested_by', $user->id)->whereIn('status', ['draft', 'submitted', 'approved', 'issued'])->count(),
-            'waiting' => MaterialRequest::where('requested_by', $user->id)->where('status', 'submitted')->count(),
-            'usage' => MaterialRequest::where('requested_by', $user->id)->where('status', 'issued')->count(),
+            'waiting' => (int) $mine?->waiting,
+            'usage' => (int) $mine?->usage_due,
             'recent' => MaterialRequest::with('mealEntry.client', 'hallBooking')->where('requested_by', $user->id)->latest('id')->take(5)->get(),
         ];
 
-        $store = null;
-        if ($user->isStorekeeper()) {
-            $store = [
-                'handover' => MaterialRequest::where('status', 'approved')->count(),
-                'issuedToday' => MaterialRequest::whereDate('handed_over_at', $today)->count(),
-                'out' => MaterialRequest::where('status', 'issued')->count(),
-                'receive' => Purchase::whereIn('status', ['approved', 'partially_received'])->count(),
-                'queue' => MaterialRequest::with('requester', 'mealEntry.client', 'hallBooking')->where('status', 'approved')
-                    ->orderBy('required_date')->orderBy('required_time')->take(8)->get(),
-            ];
-        }
+        $req = $pur = [];
+        $admin = $store = $snapshot = null;
+        $critical = $arriving = $activity = $upcoming = collect();
+        $incomingFor = collect();
 
-        $admin = null;
-        if ($user->isAdmin()) {
-            $admin = [
-                'purchases' => Purchase::where('status', 'submitted')->count(),
-                'materials' => MaterialRequest::where('status', 'submitted')->count(),
-                'alerts' => InventoryItem::active()->critical()->where('minimum_stock', '>', 0)->count(),   // only items with a reorder level
-                'review' => MaterialRequest::where('reconciliation_status', 'pending_review')->count(),
-                'unreconciled' => MaterialRequest::where('status', 'issued')->whereDate('required_date', '<', $today)->count(),
-            ];
-        }
+        if ($storeSide) {
+            $req = MaterialRequest::selectRaw('status, COUNT(*) AS c')->groupBy('status')->pluck('c', 'status')->map(fn ($c) => (int) $c);
+            $pur = Purchase::selectRaw('status, COUNT(*) AS c')->whereIn('status', ['submitted', 'approved', 'partially_received'])
+                ->groupBy('status')->pluck('c', 'status')->map(fn ($c) => (int) $c);
 
-        // stock snapshot + what is needed soon (store-side roles)
-        $snapshot = null;
-        $upcoming = collect();
-        if ($user->isAdmin() || $user->isManager() || $user->isStorekeeper()) {
-            $active = InventoryItem::active();
+            // one pass over inventory_items: in / low / out / tracked-critical / value
+            $agg = InventoryItem::active()->selectRaw('
+                COUNT(*) AS total,
+                SUM(CASE WHEN current_stock > 0 THEN 1 ELSE 0 END) AS in_stock,
+                SUM(CASE WHEN current_stock > 0 AND current_stock <= minimum_stock THEN 1 ELSE 0 END) AS low,
+                SUM(CASE WHEN current_stock <= 0 THEN 1 ELSE 0 END) AS out_all,
+                SUM(CASE WHEN current_stock <= 0 AND minimum_stock > 0 THEN 1 ELSE 0 END) AS out_tracked,
+                SUM(CASE WHEN current_stock > 0 THEN current_stock * COALESCE(average_cost, 0) ELSE 0 END) AS value')->first();
             $snapshot = [
-                'in' => (clone $active)->where('current_stock', '>', 0)->count(),
-                'low' => (clone $active)->where('current_stock', '>', 0)->whereColumn('current_stock', '<=', 'minimum_stock')->count(),
-                'out' => (clone $active)->where('current_stock', '<=', 0)->count(),
+                'total' => (int) $agg->total,
+                'in' => (int) $agg->in_stock,
+                'low' => (int) $agg->low,
+                'out' => (int) $agg->out_all,
+                'outTracked' => (int) $agg->out_tracked,
                 'incoming' => PurchaseItem::whereHas('purchase', fn ($q) => $q->whereIn('status', ['approved', 'partially_received']))
                     ->whereRaw('base_quantity - received_base_quantity - closed_base_quantity > 0')->distinct()->count('inventory_item_id'),
-                'value' => $user->isAdmin() || $user->isManager()
-                    ? (float) InventoryItem::active()->where('current_stock', '>', 0)->selectRaw('SUM(current_stock * COALESCE(average_cost, 0)) as v')->value('v') : null,
+                'value' => $isAdmin || $user->isManager() ? (float) $agg->value : null,
             ];
-            $upcoming = MaterialRequest::with('requester', 'mealEntry.client', 'hallBooking')
-                ->whereIn('status', ['submitted', 'approved', 'issued'])
-                ->whereBetween('required_date', [$today, now('Asia/Kolkata')->addDay()->toDateString()])
-                ->orderBy('required_date')->orderBy('required_time')->take(8)->get();
+
+            // most critical items that have a reorder level: out first, then lowest % of minimum
+            $critical = InventoryItem::active()->where('minimum_stock', '>', 0)->whereColumn('current_stock', '<=', 'minimum_stock')
+                ->orderByRaw('CASE WHEN current_stock <= 0 THEN 0 ELSE 1 END')->orderByRaw('current_stock / minimum_stock')->orderBy('name')
+                ->take(6)->get(['id', 'name', 'name_ta', 'unit', 'current_stock', 'minimum_stock']);
+            if ($critical->isNotEmpty()) {
+                $incomingFor = PurchaseItem::whereIn('inventory_item_id', $critical->pluck('id'))
+                    ->whereHas('purchase', fn ($q) => $q->whereIn('status', ['approved', 'partially_received']))
+                    ->selectRaw('inventory_item_id, SUM(base_quantity - received_base_quantity - closed_base_quantity) AS q')
+                    ->groupBy('inventory_item_id')->pluck('q', 'inventory_item_id')->map(fn ($q) => (float) $q);
+            }
+
+            $upcoming = MaterialRequest::with($withLinks)->whereIn('status', ['submitted', 'approved', 'issued'])
+                ->whereBetween('required_date', [$today, $tomorrow])
+                ->orderBy('required_date')->orderBy('required_time')->take(6)->get();
+
+            // only people who may open a purchase see the arriving list (PurchasePolicy::view)
+            if ($isAdmin || $isStorekeeper) {
+                $arriving = Purchase::with('vendor:id,name')->withCount('items')->whereIn('status', ['approved', 'partially_received'])
+                    ->orderBy('purchase_date')->take(5)->get();
+            }
+
+            $activity = InventoryTransaction::with('item:id,name,unit', 'creator:id,name')->latest('id')->take(8)
+                ->get(['id', 'inventory_item_id', 'type', 'quantity', 'balance_before', 'balance_after', 'reference_label', 'created_by', 'created_at']);
         }
 
-        return view('inventory.home', compact('kitchen', 'store', 'admin', 'snapshot', 'upcoming'));
+        if ($isAdmin) {
+            $admin = [
+                'purchases' => $pur['submitted'] ?? 0,
+                'materials' => $req['submitted'] ?? 0,
+                'alerts' => $snapshot['low'] + $snapshot['outTracked'],   // only items with a reorder level
+                'review' => MaterialRequest::where('reconciliation_status', 'pending_review')->count(),
+                'unreconciled' => MaterialRequest::where('status', 'issued')->whereDate('required_date', '<', $today)->count(),
+                'queue' => MaterialRequest::with($withLinks)->where('status', 'submitted')
+                    ->orderBy('required_date')->orderBy('required_time')->take(6)->get(),
+            ];
+        }
+        if ($isStorekeeper) {
+            $store = [
+                'handover' => $req['approved'] ?? 0,
+                'out' => $req['issued'] ?? 0,
+                'receive' => ($pur['approved'] ?? 0) + ($pur['partially_received'] ?? 0),
+                'queue' => MaterialRequest::with($withLinks)->where('status', 'approved')
+                    ->orderBy('required_date')->orderBy('required_time')->take(6)->get(),
+            ];
+        }
+
+        return view('inventory.home', compact('kitchen', 'store', 'admin', 'snapshot', 'upcoming', 'critical', 'incomingFor', 'arriving', 'activity')
+            + ['openRequests' => (int) collect($req)->only(['submitted', 'approved', 'issued'])->sum()]);
     }
 
     /** Central store picture: physical, awaiting handover, available, incoming, pending. */

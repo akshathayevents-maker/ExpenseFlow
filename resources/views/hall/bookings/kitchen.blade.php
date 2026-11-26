@@ -483,6 +483,35 @@
     .ef-kit-card-foot { padding: 10px 20px; }
     .ef-kit-cards { gap: 12px; }
 }
+
+/* ── Expandable booking card (details/summary) ── */
+details.ef-kit-card > summary { list-style: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+details.ef-kit-card > summary::-webkit-details-marker { display: none; }
+details.ef-kit-card > summary:focus-visible { outline: 2px solid var(--ef-primary, #c8902a); outline-offset: -2px; border-radius: 12px; }
+.ef-kit-caret { display: block; margin: 6px auto 0; font-size: .8rem; color: #8a827a; transition: transform .2s; }
+details.ef-kit-card[open] .ef-kit-caret { transform: rotate(180deg); }
+details.ef-kit-card[open] { box-shadow: 0 6px 22px rgba(19,17,16,.10); }
+.ef-kit-body { border-top: 1px dashed rgba(100,82,42,.18); padding: 12px 16px 14px; display: grid; gap: 10px; }
+.ef-kit-plan { font-size: .74rem; font-weight: 650; color: #5b5047; }
+.ef-kit-guests { display: flex; flex-wrap: wrap; gap: 6px; }
+.ef-kit-guests span { font-size: .7rem; padding: 3px 9px; border-radius: 20px; background: rgba(100,82,42,.07); color: #5b5047; }
+.ef-kit-dish-head { display: flex; align-items: center; gap: 6px; font-size: .7rem; font-weight: 720; text-transform: uppercase; letter-spacing: .04em; color: #5b5047; margin-bottom: 4px; }
+.ef-kit-dish-head span { margin-left: auto; font-weight: 650; color: #8a827a; }
+.ef-kit-dishes { list-style: none; margin: 0; padding: 0; border: 1px solid rgba(100,82,42,.12); border-radius: 10px; overflow: hidden; }
+.ef-kit-dishes li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 12px; font-size: .82rem; min-height: 44px; }
+.ef-kit-dishes li + li { border-top: 1px solid rgba(100,82,42,.09); }
+.ef-kit-dish-name { min-width: 0; overflow-wrap: anywhere; color: #131110; font-weight: 560; }
+.ef-kit-dish-name small { display: block; color: #8a827a; font-weight: 400; font-size: .7rem; }
+.ef-kit-dish-tag { font-style: normal; font-size: .6rem; text-transform: uppercase; margin-left: 4px; padding: 1px 6px; border-radius: 8px; background: #fdf0d8; color: #9a6a10; }
+.ef-kit-recipe { flex-shrink: 0; font-size: .68rem; font-weight: 650; padding: 4px 9px; border-radius: 14px; text-decoration: none; white-space: nowrap; }
+.ef-kit-recipe.ok { background: #e6f4ea; color: #1e7a3c; }
+.ef-kit-recipe.none { background: rgba(100,82,42,.06); color: #a39a90; }
+.ef-kit-nodish { font-size: .78rem; color: #8a827a; }
+.ef-kit-body .ef-kit-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 420px) {
+    .ef-kit-body { padding: 10px 12px 12px; }
+    .ef-kit-body .ef-kit-actions .ef-kit-btn { flex: 1 1 auto; justify-content: center; }
+}
 </style>
 @endpush
 
@@ -710,16 +739,17 @@
                 $endFmt       = \Carbon\Carbon::parse($b->end_time)->format('h:i A');
                 $evtLabel     = $eventTypes[$b->event_type] ?? ucfirst(str_replace('_',' ',$b->event_type));
             @endphp
-            <div class="ef-kit-card {{ $urgency }}">
-
-                <div class="ef-kit-card-top">
-                    {{-- Time column --}}
+            @php
+                $groups   = $kitchenItems[$b->id] ?? [];
+                $dishCnt  = collect($groups)->flatten(1)->count();
+                $mealMeta = ['breakfast' => ['Breakfast','bi-cup-hot','bf'], 'lunch' => ['Lunch','bi-brightness-high','ln'], 'dinner' => ['Dinner','bi-moon-stars','dn'], 'menu' => ['Menu','bi-list-ul','mp']];
+            @endphp
+            <details class="ef-kit-card {{ $urgency }}" data-kit-card>
+                <summary class="ef-kit-card-top" aria-label="Show items for {{ $b->customer_name }}">
                     <div class="ef-kit-time">
                         <div class="ef-kit-time-val">{{ $startFmt }}</div>
                         <div class="ef-kit-time-end">→ {{ $endFmt }}</div>
                     </div>
-
-                    {{-- Info --}}
                     <div class="ef-kit-info">
                         <div class="ef-kit-customer">
                             {{ $b->customer_name }}
@@ -727,45 +757,72 @@
                         </div>
                         <div class="ef-kit-evt-type">{{ $evtLabel }} · {{ $b->location_label }}</div>
                         <div class="ef-kit-chips">
-                            @if($b->has_breakfast)
-                                <span class="ef-kit-chip bf"><i class="bi bi-cup-hot"></i> BF</span>
-                            @endif
-                            @if($b->has_lunch)
-                                <span class="ef-kit-chip ln"><i class="bi bi-brightness-high"></i> LN</span>
-                            @endif
-                            @if($b->has_dinner)
-                                <span class="ef-kit-chip dn"><i class="bi bi-moon-stars"></i> DN</span>
-                            @endif
-                            @if($b->mealPlan)
-                                <span class="ef-kit-chip mp"><i class="bi bi-grid-3x3-gap" style="font-size:.6rem"></i> {{ $b->mealPlan->name }}</span>
-                            @endif
+                            @if($b->has_breakfast)<span class="ef-kit-chip bf"><i class="bi bi-cup-hot"></i> BF</span>@endif
+                            @if($b->has_lunch)<span class="ef-kit-chip ln"><i class="bi bi-brightness-high"></i> LN</span>@endif
+                            @if($b->has_dinner)<span class="ef-kit-chip dn"><i class="bi bi-moon-stars"></i> DN</span>@endif
+                            <span class="ef-kit-chip mp"><i class="bi bi-egg-fried" style="font-size:.6rem"></i> {{ $dishCnt }} item{{ $dishCnt === 1 ? '' : 's' }}</span>
                         </div>
                     </div>
-
-                    {{-- Pax + countdown --}}
                     <div class="ef-kit-pax">
                         <div class="ef-kit-pax-num">{{ number_format($b->number_of_people) }}</div>
                         <div class="ef-kit-pax-lbl">Covers</div>
                         <span class="ef-kit-countdown {{ $countdownCls }}">{{ $countdown }}</span>
+                        <i class="bi bi-chevron-down ef-kit-caret" aria-hidden="true"></i>
                     </div>
-                </div>
+                </summary>
 
-                <div class="ef-kit-card-foot">
-                    <div class="ef-kit-note">
-                        @if($b->notes)
-                            <i class="bi bi-chat-left-text" style="font-size:.68rem;margin-right:3px"></i>{{ $b->notes }}
-                        @else
-                            <span style="opacity:.45">No kitchen notes</span>
+                <div class="ef-kit-body">
+                    @if($b->mealPlan)
+                        <div class="ef-kit-plan"><i class="bi bi-grid-3x3-gap"></i> {{ $b->mealPlan->name }}</div>
+                    @endif
+                    @if($b->meals->isNotEmpty())
+                        <div class="ef-kit-guests">
+                            @foreach($b->meals as $m)
+                                <span><b>{{ number_format($m->guest_count) }}</b> {{ ucfirst($m->meal_type) }}</span>
+                            @endforeach
+                        </div>
+                    @endif
+
+                    @forelse($groups as $meal => $lines)
+                        @php [$mLabel, $mIcon, $mCls] = $mealMeta[$meal] ?? [ucfirst($meal), 'bi-list-ul', 'mp']; @endphp
+                        <div class="ef-kit-dish-group">
+                            <div class="ef-kit-dish-head {{ $mCls }}"><i class="bi {{ $mIcon }}"></i> {{ $mLabel }} <span>{{ count($lines) }}</span></div>
+                            <ul class="ef-kit-dishes">
+                                @foreach($lines as $line)
+                                    <li>
+                                        <span class="ef-kit-dish-name">
+                                            {{ $line['name'] }}
+                                            @if(in_array($line['change_type'] ?? 'plan', ['added', 'modified'], true))
+                                                <em class="ef-kit-dish-tag">{{ $line['change_type'] }}</em>
+                                            @endif
+                                            @if(! empty($line['notes']))<small>{{ $line['notes'] }}</small>@endif
+                                        </span>
+                                        @if($line['recipe'])
+                                            <a href="{{ route('kitchen.recipes.show', $line['recipe']) }}" class="ef-kit-recipe ok"><i class="bi bi-journal-check"></i> Recipe</a>
+                                        @else
+                                            <span class="ef-kit-recipe none">No recipe</span>
+                                        @endif
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @empty
+                        <div class="ef-kit-nodish"><i class="bi bi-info-circle"></i> No menu items yet — set the final menu.</div>
+                    @endforelse
+
+                    @if($b->notes)
+                        <div class="ef-kit-note"><i class="bi bi-chat-left-text" style="font-size:.68rem;margin-right:3px"></i>{{ $b->notes }}</div>
+                    @endif
+
+                    <div class="ef-kit-actions">
+                        <a href="{{ route('hall.bookings.show', $b) }}" class="ef-kit-btn ef-kit-btn-outline"><i class="bi bi-clipboard-check"></i> Booking</a>
+                        <a href="{{ route('hall.bookings.menu.edit', $b) }}" class="ef-kit-btn ef-kit-btn-outline"><i class="bi bi-pencil-square"></i> Final menu</a>
+                        @if(Route::has('inventory.material-requests.create'))
+                            <a href="{{ route('inventory.material-requests.create', ['hall_booking_id' => $b->id]) }}" class="ef-kit-btn ef-kit-btn-primary"><i class="bi bi-box-seam"></i> Request materials</a>
                         @endif
                     </div>
-                    <div class="ef-kit-actions">
-                        <a href="{{ route('hall.bookings.show', $b) }}" class="ef-kit-btn ef-kit-btn-primary">
-                            <i class="bi bi-clipboard-check"></i> Details
-                        </a>
-                    </div>
                 </div>
-
-            </div>
+            </details>
         @endforeach
     </div>
 

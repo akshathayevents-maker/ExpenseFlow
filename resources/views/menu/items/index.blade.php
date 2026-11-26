@@ -1,4 +1,4 @@
-<x-admin-layout title="Menu Item Master">
+<x-admin-layout title="Dishes">
 @push('styles')
 <style>
 /* ══ MENU ITEM MASTER ═══════════════════════════════════════════ */
@@ -117,7 +117,7 @@
     {{-- Toolbar --}}
     <div class="mi-toolbar">
         <div class="mi-toolbar-title">
-            <i class="bi bi-journal-text me-2" style="color:var(--mi-gold)"></i>Menu Item Master
+            <i class="bi bi-journal-text me-2" style="color:var(--mi-gold)"></i>Dishes
         </div>
 
         <form method="GET" action="{{ route('menu.items.index') }}" class="d-contents" id="filterForm">
@@ -136,8 +136,22 @@
                     </option>
                 @endforeach
             </select>
+            <select name="recipe" class="mi-cat-select" onchange="this.form.submit()" aria-label="Recipe">
+                <option value="">Any recipe status</option>
+                <option value="none" @selected(request('recipe') === 'none')>No recipe yet</option>
+                <option value="unverified" @selected(request('recipe') === 'unverified')>Recipe not verified</option>
+            </select>
+            <select name="tamil" class="mi-cat-select" onchange="this.form.submit()" aria-label="Tamil name">
+                <option value="">All items</option>
+                <option value="missing" @selected(request('tamil') === 'missing')>Tamil needed</option>
+            </select>
         </form>
 
+        @if(auth()->user()->isAdmin())
+        <a href="{{ route('admin.event-request-menu.items.index') }}" class="mi-btn-sm" style="text-decoration:none" title="Same dishes, with prices">
+            <i class="bi bi-link-45deg"></i> Event Request Menu
+        </a>
+        @endif
         <a href="{{ route('menu.items.create') }}" class="mi-add-btn">
             <i class="bi bi-plus-lg"></i> Add Item
         </a>
@@ -163,13 +177,50 @@
                 </a>
             </div>
         @else
-            <table class="mi-table">
+            <div class="dh-stats">
+                <a href="{{ route('menu.items.index') }}"><b>{{ $stats['total'] }}</b><span>dishes</span></a>
+                <a href="{{ route('menu.items.index', ['recipe' => 'none']) }}"><b>{{ $stats['total'] - $stats['with_recipe'] }}</b><span>without recipe</span></a>
+                <a href="{{ route('menu.items.index', ['recipe' => 'unverified']) }}"><b>{{ $stats['with_recipe'] - $stats['verified'] }}</b><span>recipe not verified</span></a>
+                <a href="{{ route('menu.items.index', ['tamil' => 'missing']) }}"><b>{{ $stats['tamil_missing'] }}</b><span>Tamil needed</span></a>
+                <span><b>{{ $stats['used'] }}</b><span>used in requests / plans</span></span>
+            </div>
+            <p style="font-size:.82rem;color:var(--ef-muted);margin:0 0 10px">One list of dishes for the whole app: the same dishes appear on the
+                <b>Customer Menu &amp; Prices</b> (event request form) and in the <b>Menu Composer</b>. Names and categories stay in sync automatically.</p>
+            <style>
+            .dh-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:0 0 10px}
+            @media (max-width:760px){.dh-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+            .dh-stats>*{display:flex;flex-direction:column;padding:8px 12px;border:1px solid var(--ef-border,#e5e0d6);border-radius:12px;background:var(--ef-surface,#fff);color:inherit;text-decoration:none}
+            .dh-stats b{font-size:1.25rem;line-height:1.1}
+            .dh-stats span{font-size:.76rem;color:var(--ef-muted)}
+            .mi-table{min-width:0}
+            .dh-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+            .mi-table td,.mi-table th{padding-left:10px!important;padding-right:10px!important}
+            @media (max-width:760px){
+              .dh-scroll{overflow:visible}
+              .mi-table thead{display:none}
+              .mi-table,.mi-table tbody{display:block;width:100%}
+              .mi-table tr{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;padding:12px 4px;border-bottom:1px solid var(--ef-border,#e5e0d6)}
+              .mi-table td{border:0!important;padding:0!important;min-width:0}
+              .mi-table td:nth-child(2){order:1;grid-column:1/-1;font-size:1rem}
+              .mi-table td:nth-child(3){order:2;grid-column:1/-1;display:block!important;margin-top:-4px}
+              .mi-table td:nth-child(1){order:3}
+              .mi-table td:nth-child(5){order:4;text-align:right}
+              .mi-table td:nth-child(4){order:5}
+              .mi-table td:nth-child(6){order:6;text-align:right}
+              .mi-table td:nth-child(7){order:7}
+              .mi-table td:nth-child(8){order:8;justify-self:end}
+            }
+            </style>
+            <div class="dh-scroll"><table class="mi-table">
                 <thead>
                     <tr>
                         <th>Category</th>
                         <th>English</th>
                         <th>Tamil</th>
-                        <th>Status</th>
+                        <th>Composer</th>
+                        <th>Customer menu</th>
+                        <th>Recipe</th>
+                        <th>Used in</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -182,7 +233,7 @@
                         <td>
                             <strong>{{ $item->item_en }}</strong>
                         </td>
-                        <td class="mi-ta-text">{{ $item->item_ta }}</td>
+                        <td class="mi-ta-text">@if($item->item_ta === $item->item_en)<span style="color:#9a6413;font-size:.78rem;font-weight:700"><i class="bi bi-translate"></i> Tamil needed</span>@else{{ $item->item_ta }}@endif</td>
                         <td>
                             <form method="POST" action="{{ route('menu.items.toggle', $item) }}">
                                 @csrf @method('PATCH')
@@ -191,6 +242,25 @@
                                     {{ $item->is_active ? 'Active' : 'Inactive' }}
                                 </button>
                             </form>
+                        </td>
+                        <td style="font-size:.8rem;white-space:nowrap">
+                            @if($er = $item->eventRequestItem)
+                                ₹{{ rtrim(rtrim(number_format((float) $er->price_per_person, 2), '0'), '.') }}
+                                <span style="color:{{ $er->is_active ? '#1f6a48' : '#9a6413' }};font-weight:700">· {{ $er->is_active ? 'offered' : 'not offered' }}</span>
+                            @else<span style="color:var(--ef-faint)">—</span>@endif
+                        </td>
+                        <td style="font-size:.8rem;white-space:nowrap">
+                            @if($rc = $item->recipe)
+                                <a href="{{ route('kitchen.recipes.show', $rc) }}" style="font-weight:700;color:{{ $rc->isVerified() ? '#1f6a48' : '#9a6413' }};text-decoration:none">
+                                    {{ $rc->isVerified() ? '✓ Verified' : 'Draft' }}</a>
+                            @else
+                                <a href="{{ route('kitchen.recipes.create', ['name' => $item->item_en]) }}" style="color:var(--ef-muted)"><i class="bi bi-plus"></i> Add</a>
+                            @endif
+                        </td>
+                        <td style="font-size:.78rem;color:var(--ef-muted);white-space:nowrap">
+                            @if($item->used_requests)<span title="Customer event requests">{{ $item->used_requests }} req</span>@endif
+                            @if($item->used_plans)<span title="Active meal plans">{{ $item->used_requests ? ' · ' : '' }}{{ $item->used_plans }} plan{{ $item->used_plans > 1 ? 's' : '' }}</span>@endif
+                            @if(! $item->used_requests && ! $item->used_plans)—@endif
                         </td>
                         <td>
                             <div class="mi-actions">
@@ -209,7 +279,7 @@
                     </tr>
                     @endforeach
                 </tbody>
-            </table>
+            </table></div>
         @endif
     </div>
 

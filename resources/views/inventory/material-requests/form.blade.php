@@ -149,7 +149,7 @@
                 <div class="ic-note" style="margin-top:10px">
                     Have a standard recipe? <select class="ic-select" id="recipeSuggest" style="display:inline-block;width:auto;min-height:38px">
                         <option value="">Suggest quantities from…</option>
-                        @foreach($recipes as $rc)<option value="{{ $rc->id }}" @selected(($prefill['recipe_id'] ?? null) == $rc->id)>{{ $rc->name }} (v{{ $rc->version }})</option>@endforeach
+                        @foreach($recipes as $rc)<option value="{{ $rc->id }}" @selected(($prefill['recipe_id'] ?? null) == $rc->id)>{{ $rc->name }} (v{{ $rc->version }}){{ $rc->isVerified() ? ' ✓ Verified' : '' }}</option>@endforeach
                     </select>
                     <span>(you can still change every quantity)</span>
                 </div>

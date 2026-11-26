@@ -293,10 +293,10 @@ it('matches invoice lines written in Tamil or Tanglish through the same search',
 it('consolidates admin navigation into one Store & Inventory entry and keeps old routes working', function () {
     $this->actingAs(icUser('admin'));
     $html = $this->get(route('inventory.home'))->assertOk()->getContent();
-    expect(substr_count($html, 'Store &amp; Inventory</span>'))->toBe(1)
+    expect(substr_count($html, 'sb-grp-label">Store &amp; Inventory</span>'))->toBe(1)
         ->and($html)->not->toContain('Central Store')
         ->and($html)->toContain(route('admin.inventory.items.index'))
-        ->and($html)->toContain('>Daily</div>')->and($html)->toContain('>Buying</div>')->and($html)->toContain('Scan Supplier Bill');
+        ->and($html)->toContain('>Buying</div>')->and($html)->toContain('Supplier Bills');
     // alerts and movements are reached from the Stock page instead of the sidebar
     expect($this->get(route('inventory.stock'))->getContent())
         ->toContain(route('admin.inventory.alerts.index'))->toContain(route('inventory.reports.show', 'movements'));
@@ -307,7 +307,7 @@ it('consolidates admin navigation into one Store & Inventory entry and keeps old
 
     $this->actingAs(icUser('employee', true));      // storekeeper
     $html = $this->get(route('inventory.home'))->assertOk()->getContent();
-    expect(substr_count($html, 'Store &amp; Inventory</span>'))->toBe(1)
+    expect(substr_count($html, 'sb-grp-label">Store &amp; Inventory</span>'))->toBe(1)
         ->and($html)->toContain(route('inventory.stock'))
         ->and($html)->not->toContain(route('admin.inventory.items.index'))
         ->and($html)->not->toContain(route('inventory.reports.index'));
