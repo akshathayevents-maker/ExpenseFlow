@@ -4,56 +4,176 @@
     $u = auth()->user();
     $q = fn ($n) => rtrim(rtrim(number_format((float) $n, 3, '.', ''), '0'), '.');
 @endphp
-<div class="ic-wrap" style="max-width:980px">
-    <div class="ic-head">
-        <a class="ic-back" href="{{ route('inventory.material-requests.index') }}"><i class="bi bi-arrow-left"></i> Requests</a>
-        <h1>{{ $mr->reference() }} · {{ $mr->preparation_name ?: $mr->forLabel() }}</h1>
-        @include('inventory._status', ['label' => $mr->statusLabel(), 'tone' => \App\Models\MaterialRequest::statusTone($mr->status)])
-        @if($mr->reconciliation_status === 'pending_review')
-            <span class="ic-chip ic-chip--warn"><i class="bi bi-eye"></i> Usage needs review</span>
-        @endif
-    </div>
+@push('styles')
+<style>
+/* Request detail — header + progress stepper + facts strip; each workflow section colour-coded (forms unchanged). */
+.mrd{max-width:1240px;margin:0 auto;padding-bottom:90px}
+.mrd-head{display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px 14px;margin-bottom:14px}
+.mrd-head .ic-back{flex-basis:100%;font-size:.82rem}
+.mrd-tt{flex:1 1 260px;min-width:0}
+.mrd-tt h1{margin:0;font-size:1.45rem;font-weight:800;letter-spacing:-.02em;color:var(--ef-ink);overflow-wrap:anywhere}
+.mrd-tt p{margin:3px 0 0;font-size:.84rem;color:var(--ef-muted)}
+.mrd-tt .mrd-ref{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78rem;padding:1px 7px;border-radius:6px;background:var(--ef-bg-subtle);color:var(--ef-ink);margin-right:6px}
+.mrd-chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+@media (max-width:639.98px){.mrd-tt h1{font-size:1.2rem}}
+
+/* stepper */
+.mrd-steps{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));border:1px solid var(--ef-border);border-radius:14px;background:var(--ef-surface);overflow:hidden;margin-bottom:12px;box-shadow:0 1px 2px rgba(19,17,16,.04)}
+.mrd-step{position:relative;display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-right:1px solid var(--ef-border);min-width:0}
+.mrd-step:last-child{border-right:0}
+.mrd-dot{flex:0 0 auto;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:800;border:2px solid var(--ef-border);color:var(--ef-faint);background:var(--ef-surface)}
+.mrd-step.--done .mrd-dot{background:var(--ef-emerald);border-color:var(--ef-emerald);color:#fff}
+.mrd-step.--now{background:rgba(216,154,61,.08)}
+.mrd-step.--now .mrd-dot{border-color:#d89a3d;color:#9a6413}
+.mrd-step.--stop{background:rgba(192,57,43,.06)}
+.mrd-step.--stop .mrd-dot{background:var(--ef-danger);border-color:var(--ef-danger);color:#fff}
+.mrd-step b{display:block;font-size:.84rem;color:var(--ef-ink)}
+.mrd-step span:not(.mrd-dot){display:block;font-size:.74rem;color:var(--ef-muted);overflow-wrap:anywhere}
+.mrd-step>span:not(.mrd-dot){min-width:0}
+.mrd-step.--now b{color:#7D5218}
+.mrd-step::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:transparent}
+.mrd-step.--done::after{background:var(--ef-emerald)}
+.mrd-step.--now::after{background:#d89a3d}
+@media (max-width:719.98px){
+  .mrd-steps{grid-template-columns:1fr}
+  .mrd-step{border-right:0;border-bottom:1px solid var(--ef-border);padding:9px 12px}
+  .mrd-step:last-child{border-bottom:0}
+  .mrd-step::after{left:0;top:0;bottom:0;right:auto;width:3px;height:auto}
+}
+
+/* facts */
+.mrd-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border:1px solid var(--ef-border);border-radius:14px;background:var(--ef-surface);overflow:hidden;margin-bottom:14px}
+@media (min-width:900px){.mrd-facts{grid-template-columns:repeat(var(--n),minmax(0,1fr))}}
+.mrd-fact{padding:11px 14px;border-right:1px solid var(--ef-border);border-bottom:1px solid var(--ef-border);min-width:0}
+@media (min-width:900px){.mrd-fact{border-bottom:0}.mrd-fact:last-child{border-right:0}}
+@media (max-width:899.98px){.mrd-fact:nth-child(2n){border-right:0}}
+.mrd-fact small{display:flex;align-items:center;gap:5px;font-size:.68rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--ef-muted)}
+.mrd-fact small .bi{color:var(--ef-gold)}
+.mrd-fact strong{display:block;margin-top:3px;font-size:.95rem;color:var(--ef-ink);overflow-wrap:anywhere}
+.mrd-fact strong a{color:inherit}
+.mrd-fact.--wide{grid-column:1/-1}
+
+/* section colour coding (targets the existing forms; behaviour unchanged) */
+.mrd .ic-card{border-radius:14px;border-top:3px solid var(--acc,var(--ef-border));box-shadow:0 1px 2px rgba(19,17,16,.04)}
+.mrd .ic-card>h2,.mrd details.ic-card>summary{display:flex;align-items:center;gap:8px;margin:-16px -16px 14px;padding:12px 16px;background:var(--tint,transparent);border-bottom:1px solid var(--ef-border);border-radius:11px 11px 0 0;font-size:.98rem;font-weight:800}
+.mrd details.ic-card:not([open])>summary{margin-bottom:-16px;border-bottom:0;border-radius:11px}
+.mrd details.ic-card>summary{cursor:pointer}
+.mrd .mrd-materials{--acc:#3b6ea5;--tint:rgba(59,110,165,.07)}
+.mrd .mrd-details{--acc:#8a827a;--tint:rgba(100,82,42,.05)}
+.mrd form[action$="/approve"].ic-card{--acc:var(--ef-danger);--tint:rgba(192,57,43,.06)}
+.mrd form[action$="/reject"].ic-card{--acc:var(--ef-danger)}
+.mrd form[action$="/handover"].ic-card{--acc:#3b6ea5;--tint:rgba(59,110,165,.07)}
+.mrd details.ic-card{--acc:var(--ef-emerald);--tint:rgba(30,122,60,.06)}
+.mrd form[action$="/reconcile"].ic-card{--acc:#d89a3d;--tint:rgba(216,154,61,.09)}
+.mrd form[action$="/review"].ic-card{--acc:#6b5bb5}
+.mrd .ic-table th{background:var(--ef-bg-subtle)}
+</style>
+@endpush
+
+@php
+    $prepList = $mr->preparationList();
+    $stopped = in_array($mr->status, ['rejected', 'cancelled'], true);
+    $order = ['draft' => 0, 'submitted' => 1, 'approved' => 2, 'issued' => 3, 'reconciled' => 4];
+    $at = $order[$mr->status] ?? 1;
+    $fmt = fn ($d) => $d?->timezone('Asia/Kolkata')->format('d M, h:i A');
+    $steps = [
+        ['Requested', $mr->requester?->name, $fmt($mr->submitted_at), 1],
+        ['Approved', $mr->approver?->name, $fmt($mr->approved_at), 2],
+        ['Handed over', $mr->handedOverBy ? $mr->handedOverBy->name.' → '.($mr->collector?->name ?? $mr->collected_by_name) : null, $fmt($mr->handed_over_at), 3],
+        ['Usage recorded', $mr->reconciler?->name, $fmt($mr->reconciled_at), 4],
+    ];
+    if ($mr->reconciliation_status === 'pending_review' || $mr->reviewed_at) {
+        $steps[] = ['Reviewed', $mr->reviewer?->name, $fmt($mr->reviewed_at), 5];
+        $at = $mr->reviewed_at ? 5 : $at;
+    }
+    $for = $mr->forLabel();
+    $forLink = $mr->source === 'meal' && $mr->mealEntry ? route('meal-register.entries.show', $mr->mealEntry)
+        : ($mr->source === 'hall' && $mr->hallBooking && ($u->isAdmin() || $u->isManager()) ? route('hall.bookings.show', $mr->hallBooking) : null);
+    $lines = $mr->items->where('line_status', '!=', 'rejected')->count();
+    $showCost = in_array($mr->status, ['approved', 'issued', 'reconciled']) && ($u->isAdmin() || $u->isManager());
+    $facts = array_values(array_filter([
+        ['bi-geo-alt', 'For', $for, $forLink],
+        ['bi-calendar3', 'Needed', $mr->required_date->format('D d M Y').($mr->required_time ? ', '.\Carbon\Carbon::parse($mr->required_time)->format('h:i A') : ''), null],
+        count($prepList) > 1 ? null : ['bi-people', 'People', $mr->guest_count ?: '—', null],
+        ['bi-box', 'Materials', $lines.' '.\Illuminate\Support\Str::plural('item', $lines), null],
+        $showCost ? ['bi-currency-rupee', 'Material cost', '₹'.number_format($mr->issuedCost(), 2).($mr->guest_count ? ' · ₹'.number_format($mr->issuedCost() / max(1, $mr->guest_count), 2).' per person' : ''), null] : null,
+    ]));
+@endphp
+
+<div class="mrd">
+    <header class="mrd-head">
+        <a class="ic-back" href="{{ route('inventory.material-requests.index') }}"><i class="bi bi-arrow-left"></i> Material requests</a>
+        <div class="mrd-tt">
+            <h1>{{ $mr->preparation_name ?: $for }}</h1>
+            <p><span class="mrd-ref">{{ $mr->reference() }}</span>{{ \App\Models\MaterialRequest::DEPARTMENTS[$mr->department] ?? '' }}</p>
+        </div>
+        <div class="mrd-chips">
+            @include('inventory._status', ['label' => $mr->statusLabel(), 'tone' => \App\Models\MaterialRequest::statusTone($mr->status)])
+            @if($mr->reconciliation_status === 'pending_review')
+                <span class="ic-chip ic-chip--warn"><i class="bi bi-eye"></i> Usage needs review</span>
+            @endif
+        </div>
+    </header>
 
     @if($errors->any())
         <div class="ic-err"><ul>@foreach(collect($errors->all())->unique() as $e)<li>{{ $e }}</li>@endforeach</ul></div>
     @endif
 
-    <div class="ic-card">
-        <div class="ic-kv">
-            <div><small>For</small><strong>
-                @if($mr->source === 'meal' && $mr->mealEntry)
-                    <a href="{{ route('meal-register.entries.show', $mr->mealEntry) }}">{{ $mr->forLabel() }}</a>
-                @elseif($mr->source === 'hall' && $mr->hallBooking && ($u->isAdmin() || $u->isManager()))
-                    <a href="{{ route('hall.bookings.show', $mr->hallBooking) }}">{{ $mr->forLabel() }}</a>
-                @else {{ $mr->forLabel() }} @endif
-            </strong></div>
-            <div><small>Needed</small><strong>{{ $mr->required_date->format('D d M Y') }}{{ $mr->required_time ? ', ' . \Carbon\Carbon::parse($mr->required_time)->format('h:i A') : '' }}</strong></div>
-            @php $prepList = $mr->preparationList(); @endphp
-            @if(count($prepList) > 1)
-                <div style="grid-column:1 / -1"><small>Preparations</small>
-                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
-                        @foreach($prepList as $p)
-                            <span class="ic-chip ic-chip--neutral" style="font-size:.84rem">{{ $p['name'] ?: 'Preparation' }}@if($p['people']) · <i class="bi bi-people"></i> {{ $p['people'] }}@endif</span>
-                        @endforeach
-                    </div>
+    {{-- Progress --}}
+    <ol class="mrd-steps" style="--n:{{ count($steps) }};list-style:none;padding:0" aria-label="Progress">
+        @foreach($steps as $i => [$label, $who, $when, $n])
+            @php
+                $state = $stopped && $n === $at + 1 ? '--stop' : ($n <= $at && $mr->status !== 'draft' ? '--done' : ($n === $at + 1 && ! $stopped ? '--now' : ''));
+            @endphp
+            <li class="mrd-step {{ $state }}" @if($state === '--now') aria-current="step" @endif>
+                <span class="mrd-dot">@if($state === '--done')<i class="bi bi-check-lg"></i>@elseif($state === '--stop')<i class="bi bi-x-lg"></i>@else{{ $i + 1 }}@endif</span>
+                <span>
+                    <b>{{ $state === '--stop' ? ucfirst($mr->status) : $label }}</b>
+                    @if($state === '--stop')
+                        <span>{{ $mr->canceller?->name ?? $mr->approver?->name }} {{ $fmt($mr->cancelled_at) }}</span>
+                    @elseif($who || $when)
+                        <span>{{ $who }}@if($when) · {{ $when }}@endif</span>
+                    @elseif($state === '--now')
+                        <span>Waiting</span>
+                    @endif
+                </span>
+            </li>
+        @endforeach
+    </ol>
+
+    {{-- Key facts --}}
+    <div class="mrd-facts" style="--n:{{ count($facts) }}">
+        @foreach($facts as [$icon, $label, $value, $link])
+            <div class="mrd-fact"><small><i class="bi {{ $icon }}"></i> {{ $label }}</small>
+                <strong>@if($link)<a href="{{ $link }}">{{ $value }}</a>@else{{ $value }}@endif</strong></div>
+        @endforeach
+        @if(count($prepList) > 1)
+            <div class="mrd-fact --wide"><small><i class="bi bi-list-ul"></i> Preparations</small>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:5px">
+                    @foreach($prepList as $p)
+                        <span class="ic-chip ic-chip--neutral" style="font-size:.82rem">{{ $p['name'] ?: 'Preparation' }}@if($p['people']) · <i class="bi bi-people"></i> {{ $p['people'] }}@endif</span>
+                    @endforeach
                 </div>
-            @else
-                <div><small>People</small><strong>{{ $mr->guest_count ?: '—' }}</strong></div>
-            @endif
-            <div><small>Requested by</small><strong>{{ $mr->requester?->name }}</strong><span class="ic-note"> {{ $mr->submitted_at?->format('d M, h:i A') }}</span></div>
-            <div><small>Approved by</small><strong>{{ $mr->approver?->name ?? '—' }}</strong><span class="ic-note"> {{ $mr->approved_at?->format('d M, h:i A') }}</span></div>
-            <div><small>Handed over</small><strong>{{ $mr->handedOverBy?->name ?? '—' }}</strong>
-                @if($mr->handed_over_at)<span class="ic-note"> → {{ $mr->collector?->name ?? $mr->collected_by_name }} · {{ $mr->handed_over_at->format('d M, h:i A') }}</span>@endif</div>
-        </div>
-        @if($mr->approval_remarks)<p class="ic-note" style="margin:10px 0 0"><strong>Approver:</strong> {{ $mr->approval_remarks }}</p>@endif
-        @if($mr->cancel_reason)<div class="ic-err" style="margin:10px 0 0">Cancelled by {{ $mr->canceller?->name }}: {{ $mr->cancel_reason }}</div>@endif
-        @if($mr->notes)<p class="ic-note" style="margin:10px 0 0;white-space:pre-line">{{ $mr->notes }}</p>@endif
-        @if($mr->revisionOf)<p class="ic-note" style="margin:10px 0 0">Revision of <a href="{{ route('inventory.material-requests.show', $mr->revisionOf) }}">{{ $mr->revisionOf->reference() }}</a></p>@endif
+            </div>
+        @endif
+    </div>
+
+    @php
+        $hasDetails = $mr->approval_remarks || $mr->cancel_reason || $mr->notes || $mr->revisionOf || $mr->revisions->isNotEmpty()
+            || ($mr->menu_snapshot && (! empty($mr->menu_snapshot['items']) || ! empty($mr->menu_snapshot['plans'] ?? [])));
+    @endphp
+    @if($hasDetails)
+    <div class="ic-card mrd-details">
+        <h2><i class="bi bi-info-circle"></i> Notes &amp; history</h2>
+        @if($mr->approval_remarks)<p class="ic-note" style="margin:0 0 8px"><strong>Approver:</strong> {{ $mr->approval_remarks }}</p>@endif
+        @if($mr->cancel_reason)<div class="ic-err" style="margin:0 0 8px">Cancelled by {{ $mr->canceller?->name }}: {{ $mr->cancel_reason }}</div>@endif
+        @if($mr->notes)<p class="ic-note" style="margin:0 0 8px;white-space:pre-line">{{ $mr->notes }}</p>@endif
+        @if($mr->revisionOf)<p class="ic-note" style="margin:0 0 8px">Revision of <a href="{{ route('inventory.material-requests.show', $mr->revisionOf) }}">{{ $mr->revisionOf->reference() }}</a></p>@endif
         @if($mr->revisions->isNotEmpty())
-            <p class="ic-note" style="margin:10px 0 0">Revisions: @foreach($mr->revisions as $rv)<a href="{{ route('inventory.material-requests.show', $rv) }}">{{ $rv->reference() }}</a> ({{ $rv->statusLabel() }}){{ $loop->last ? '' : ', ' }}@endforeach</p>
+            <p class="ic-note" style="margin:0 0 8px">Revisions: @foreach($mr->revisions as $rv)<a href="{{ route('inventory.material-requests.show', $rv) }}">{{ $rv->reference() }}</a> ({{ $rv->statusLabel() }}){{ $loop->last ? '' : ', ' }}@endforeach</p>
         @endif
         @if($mr->menu_snapshot && ! empty($mr->menu_snapshot['items']) || ! empty($mr->menu_snapshot['plans'] ?? []))
-            <details style="margin-top:10px"><summary class="ic-note" style="cursor:pointer;font-weight:700">Final menu at time of request</summary>
+            <details><summary class="ic-note" style="cursor:pointer;font-weight:700">Final menu at time of request</summary>
                 <div class="ic-note" style="margin-top:6px">
                     @foreach($mr->menu_snapshot['plans'] ?? [] as $p) Plan: <strong>{{ $p['plan'] }}</strong> ({{ $p['guests'] }})@if(! $loop->last), @endif @endforeach
                     <ul style="margin:6px 0 0;padding-left:18px">
@@ -65,6 +185,7 @@
             </details>
         @endif
     </div>
+    @endif
 
     @php
         // stock check per line (only meaningful before approval deducts stock)
@@ -225,10 +346,17 @@
         </form>
     @else
         {{-- ── Lines (all other states) ───────────────────────────── --}}
-        <div class="ic-card">
-            <h2>Materials</h2>
+        <div class="ic-card mrd-materials">
+            <h2><i class="bi bi-box-seam"></i> Materials</h2>
             <table class="ic-table">
-                <thead><tr><th>Material</th><th class="r">Requested</th><th class="r">Approved</th><th class="r">Handed over</th><th class="r">Returned</th><th class="r">Used</th><th class="r">Wasted</th><th class="r">Unexplained</th></tr></thead>
+                @php
+                    // only show the stages that have happened — no columns of dashes
+                    $colFlow = ! in_array($mr->status, ['draft', 'submitted'], true);
+                    $colIssued = $mr->items->contains(fn ($i) => $i->issued_base_quantity !== null);
+                    $colReturn = $mr->items->contains(fn ($i) => $i->returned_base_quantity > 0);
+                    $colUsage = $mr->items->contains(fn ($i) => $i->consumed_base_quantity !== null);
+                @endphp
+                <thead><tr><th>Material</th><th class="r">Requested</th>@if($colFlow)<th class="r">Approved</th>@endif @if($colIssued)<th class="r">Handed over</th>@endif @if($colReturn)<th class="r">Returned</th>@endif @if($colUsage)<th class="r">Used</th><th class="r">Wasted</th><th class="r">Unexplained</th>@endif</tr></thead>
                 <tbody>
                 @foreach($mr->items as $i)
                     @php $unit = $i->item->unit; @endphp
@@ -241,20 +369,18 @@
                             @if($i->variance_reason)<div class="ic-note">Difference: {{ $i->variance_reason }}</div>@endif
                         </td>
                         <td data-l="Requested" class="r">{{ $q($i->requested_quantity) }} {{ $i->requested_unit }}</td>
-                        <td data-l="Approved" class="r">{{ $i->approved_base_quantity !== null ? $q($i->approved_base_quantity) . ' ' . $unit : '—' }}</td>
-                        <td data-l="Handed over" class="r">{{ $i->issued_base_quantity !== null ? $q($i->issued_base_quantity) . ' ' . $unit : '—' }}</td>
-                        <td data-l="Returned" class="r">{{ $i->returned_base_quantity > 0 ? $q($i->returned_base_quantity) . ' ' . $unit : '—' }}</td>
+                        @if($colFlow)<td data-l="Approved" class="r">{{ $i->approved_base_quantity !== null ? $q($i->approved_base_quantity) . ' ' . $unit : '—' }}</td>@endif
+                        @if($colIssued)<td data-l="Handed over" class="r">{{ $i->issued_base_quantity !== null ? $q($i->issued_base_quantity) . ' ' . $unit : '—' }}</td>@endif
+                        @if($colReturn)<td data-l="Returned" class="r">{{ $i->returned_base_quantity > 0 ? $q($i->returned_base_quantity) . ' ' . $unit : '—' }}</td>@endif
+                        @if($colUsage)
                         <td data-l="Used" class="r">{{ $i->consumed_base_quantity !== null ? $q($i->consumed_base_quantity) : '—' }}</td>
                         <td data-l="Wasted" class="r" style="{{ $i->wasted_base_quantity > 0 ? 'color:#9B2C2C;font-weight:700' : '' }}">{{ $i->wasted_base_quantity !== null ? $q($i->wasted_base_quantity) : '—' }}</td>
                         <td data-l="Unexplained" class="r" style="{{ $i->unexplained_base_quantity > 0 ? 'color:#9B2C2C;font-weight:700' : '' }}">{{ $i->unexplained_base_quantity !== null ? $q($i->unexplained_base_quantity) : '—' }}</td>
+                        @endif
                     </tr>
                 @endforeach
                 </tbody>
             </table>
-            @if(in_array($mr->status, ['approved', 'issued', 'reconciled']) && ($u->isAdmin() || $u->isManager()))
-                <p class="ic-note" style="margin:10px 0 0">Material cost (net of returns): <strong>₹{{ number_format($mr->issuedCost(), 2) }}</strong>
-                    @if($mr->guest_count) · ₹{{ number_format($mr->issuedCost() / max(1, $mr->guest_count), 2) }} per person @endif</p>
-            @endif
         </div>
     @endcan
 

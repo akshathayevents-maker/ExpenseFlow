@@ -335,6 +335,10 @@ Usage review / Ready for handover / Out / All, same `?tab=` keys), validated sea
 filters (needed from/to, department, status on All). Table ≥1200px (request, needed [overdue red], items, people, requester, status,
 action by policy: Review / Hand over / Record usage / Check), cards below. Header flags open requests past their needed date; rail
 "Coming up" (next 5 open by date, store-side) + flow explainer. Counts: one grouped status query. Tests: `MaterialRequestListTest.php`.
+Material request detail `inventory.material-requests.show` (2026-11-26): header (dish, MR ref, department, status), progress stepper
+(Requested → Approved → Handed over → Usage recorded [→ Reviewed]; rejected/cancelled shown as a stop), facts strip (for, needed,
+people, items, material cost for admin/manager), "Notes & history" card, Materials table showing only stages that happened. Workflow
+forms are unchanged; each is colour-coded by CSS on its action URL (approve red, handover blue, returns green, usage amber, review violet).
 Sidebar Store & Inventory is grouped Daily / Buying / Setup & reports (9 links).
 AI recipe generator (2026-11-27): Claude via the official `anthropic-ai/sdk` (`App\Services\Ai\ClaudeRecipeAiClient`, bound to
 `RecipeAiClient` in AppServiceProvider; tests bind `FakeRecipeAi` from `tests/Pest.php`). Config `services.anthropic` (`ANTHROPIC_API_KEY`,
