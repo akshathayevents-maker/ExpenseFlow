@@ -10,12 +10,32 @@ class MealPlan extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['name', 'category', 'description', 'price_per_person', 'is_active'];
+    protected $fillable = ['name', 'category', 'description', 'items', 'price_per_person', 'is_active'];
 
     protected $casts = [
         'price_per_person' => 'decimal:2',
         'is_active'        => 'boolean',
+        'items'            => 'array',
     ];
+
+    public const MAX_ITEMS = 100;
+
+    /** Dishes in the plan: the item list, or (plans saved before the list existed) the lines of the description. */
+    public function dishList(): array
+    {
+        if (! empty($this->items)) {
+            return array_values($this->items);
+        }
+        $out = [];
+        foreach (preg_split('/[\r\n,;•]+/u', (string) $this->description) as $name) {
+            $name = trim(preg_replace('/^[\-\*\d\.\)\s]+/u', '', $name));
+            if ($name !== '' && mb_strlen($name) <= 150) {
+                $out[] = $name;
+            }
+        }
+
+        return $out;
+    }
 
     public function bookings(): HasMany
     {

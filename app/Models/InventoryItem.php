@@ -11,7 +11,7 @@ class InventoryItem extends Model
     protected $fillable = [
         'name', 'name_ta', 'sku', 'inventory_category_id', 'unit',
         'current_stock', 'minimum_stock', 'maximum_stock',
-        'average_cost', 'description', 'status',
+        'average_cost', 'description', 'status', 'needs_review', 'created_by',
     ];
 
     protected $casts = [
@@ -19,6 +19,7 @@ class InventoryItem extends Model
         'minimum_stock' => 'float',
         'maximum_stock' => 'float',
         'average_cost'  => 'float',
+        'needs_review'  => 'boolean',
     ];
 
     protected static function booted(): void

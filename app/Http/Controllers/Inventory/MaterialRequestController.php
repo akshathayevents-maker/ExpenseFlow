@@ -11,9 +11,11 @@ use App\Models\MealEntry;
 use App\Models\MealEntryItem;
 use App\Models\Recipe;
 use App\Models\User;
+use App\Services\Inventory\HallOrderPrefillService;
 use App\Services\Inventory\MaterialRequestService;
 use App\Services\Inventory\RecipeStandardService;
 use App\Services\Inventory\UnitConversionService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -38,7 +40,9 @@ class MaterialRequestController extends Controller
             $tabs['review'] = 'Usage review';
         }
         if ($user->isStorekeeper()) {
-            $tabs['handover'] = 'Ready for handover';
+            if (MaterialRequest::where('status', 'approved')->exists()) {   // only older requests approved before auto-issue
+                $tabs['handover'] = 'Ready for handover';
+            }
             $tabs['out'] = 'Out / returns';
         }
         if ($user->isAdmin() || $user->isManager() || $user->isStorekeeper()) {
@@ -88,9 +92,24 @@ class MaterialRequestController extends Controller
                 'source' => 'hall', 'hall_booking_id' => $b->id, 'department' => 'hall',
                 'required_date' => $b->booking_date->toDateString(), 'guest_count' => $b->number_of_people,
             ]);
+            $hall = app(HallOrderPrefillService::class)->forBooking($b);
+            $prefill['required_time'] = $hall['required_time'];
+            if ($hall['preparations']) {
+                $prefill['preparations'] = $hall['preparations'];
+            }
+            $prefill['lines'] = array_map(fn ($l) => $l + ['note' => 'From recipe: '.implode(', ', $l['from'])], $hall['lines']);
         }
 
         return view('inventory.material-requests.form', $this->formData(null, $prefill, $request->user()));
+    }
+
+    /** Pre-fill for a hall order: date, time, preparations from the final menu, materials from matching recipes. */
+    public function hallPrefill(HallBooking $booking, HallOrderPrefillService $prefill): JsonResponse
+    {
+        $this->authorize('create', MaterialRequest::class);
+        abort_if($booking->status === 'cancelled', 404);
+
+        return response()->json($prefill->forBooking($booking));
     }
 
     public function store(Request $request): RedirectResponse
@@ -129,7 +148,18 @@ class MaterialRequestController extends Controller
             ? User::where('is_active', true)->orderBy('name')->get(['id', 'name'])
             : collect();
 
-        return view('inventory.material-requests.show', compact('mr', 'previous', 'staff'));
+        // stock still to arrive on approved purchases (shown next to shortages)
+        $incoming = in_array($mr->status, ['draft', 'submitted'], true)
+            ? \App\Models\PurchaseItem::whereIn('inventory_item_id', $mr->items->pluck('inventory_item_id'))
+                ->whereHas('purchase', fn ($q) => $q->whereIn('status', ['approved', 'partially_received']))
+                ->selectRaw('inventory_item_id, SUM(base_quantity - received_base_quantity - closed_base_quantity) as q')
+                ->groupBy('inventory_item_id')->pluck('q', 'inventory_item_id')
+            : collect();
+
+        // expected quantities (recipe standard × people, or the usual amount) — shown at approval and usage
+        $expected = in_array($mr->status, ['submitted', 'issued'], true) ? app(RecipeStandardService::class)->expectedFor($mr) : [];
+
+        return view('inventory.material-requests.show', compact('mr', 'previous', 'staff', 'incoming', 'expected'));
     }
 
     public function edit(MaterialRequest $materialRequest): View
@@ -172,8 +202,16 @@ class MaterialRequestController extends Controller
             'remarks' => ['nullable', 'string', 'max:500'],
         ]);
 
-        return $this->run(fn () => $this->service->approve($materialRequest, $request->user(), $data['lines'] ?? [], $data['remarks'] ?? null),
-            $materialRequest, 'Approved. Stock has been deducted and the store has been told.');
+        // Approval also records the handover: the person who submitted the request is responsible for the
+        // materials (collected_by = requester). Returns / usage are reported against them as before.
+        return $this->run(fn () => \Illuminate\Support\Facades\DB::transaction(function () use ($materialRequest, $request, $data) {
+            $mr = $this->service->approve($materialRequest, $request->user(), $data['lines'] ?? [], $data['remarks'] ?? null);
+            if ($mr->fresh()->status === 'approved' && $mr->requested_by) {
+                $mr = $this->service->handover($mr->fresh(), $request->user(), $mr->requested_by, null, [], 'Issued on approval to the requester');
+            }
+
+            return $mr;
+        }), $materialRequest, 'Approved and issued. Stock deducted; the requester is responsible for these materials.');
     }
 
     public function reject(Request $request, MaterialRequest $materialRequest): RedirectResponse
@@ -328,7 +366,7 @@ class MaterialRequestController extends Controller
     {
         $lines = old('lines') ?: ($mr ? $mr->items->map(fn ($i) => [
             'inventory_item_id' => $i->inventory_item_id, 'quantity' => $i->requested_quantity, 'unit' => $i->requested_unit,
-        ])->all() : []);
+        ])->all() : ($prefill['lines'] ?? []));
 
         // Suggested quantities from a standard recipe version (never applied silently: shown, editable).
         $suggestion = null;

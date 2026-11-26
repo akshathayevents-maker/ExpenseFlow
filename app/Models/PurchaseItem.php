@@ -10,7 +10,7 @@ class PurchaseItem extends Model
 {
     protected $fillable = [
         'purchase_id', 'inventory_item_id', 'description', 'quantity', 'unit', 'base_quantity',
-        'rate', 'tax_percent', 'amount', 'received_base_quantity', 'sort_order',
+        'rate', 'tax_percent', 'amount', 'received_base_quantity', 'closed_base_quantity', 'sort_order',
     ];
 
     protected $casts = [
@@ -20,6 +20,7 @@ class PurchaseItem extends Model
         'tax_percent' => 'float',
         'amount' => 'float',
         'received_base_quantity' => 'float',
+        'closed_base_quantity' => 'float',
     ];
 
     public function purchase(): BelongsTo
@@ -39,7 +40,7 @@ class PurchaseItem extends Model
 
     public function pendingBaseQuantity(): float
     {
-        return max(0, round($this->base_quantity - $this->received_base_quantity, 3));
+        return max(0, round($this->base_quantity - $this->received_base_quantity - (float) $this->closed_base_quantity, 3));
     }
 
     /** Cost per stock unit incl. tax (used as unit_cost on receipt). */

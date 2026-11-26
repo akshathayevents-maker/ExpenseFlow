@@ -1,7 +1,9 @@
 {{--
     Reusable item search box (English / Tamil / Tanglish) backed by inventory.items.search,
     i.e. App\Services\Inventory\ItemSearchService. Include once per page, then:
-        IcItemPicker.attach(inputEl, { onPick(item), onUnresolved(text, response) })
+        IcItemPicker.attach(inputEl, { onPick(item), onUnresolved(text, response), allowCreate, onCreate(item) })
+    - allowCreate: shows "+ Add “…” as new item" (popup: name, Tamil name, category, unit → inventory.items.quick).
+      onCreate(item) runs before onPick so a page can add the new item to its own catalogue.
     - never auto-selects while typing; Enter / blur picks only a single exact match
     - keyboard: ↑ ↓ Enter Esc · touch: 44px options
 --}}
@@ -21,11 +23,35 @@
 .ic-pick-meta{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:3px;font-size:.74rem;color:var(--ef-muted,#6b6459)}
 .ic-pick-meta b{font-weight:650;color:var(--ef-gold,#b8893e)}
 .ic-pick-empty{padding:12px;font-size:.84rem;color:var(--ef-muted,#6b6459)}
+.ic-pick-add{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:0;border-top:1px solid var(--ef-line,#e5e0d6);background:none;padding:10px;min-height:46px;margin-top:2px;color:var(--ef-gold,#b8893e);font-weight:750;font-size:.9rem;cursor:pointer;border-radius:0 0 9px 9px}
+.ic-pick-add:hover,.ic-pick-add.--active{background:rgba(184,137,62,.12)}
+.ic-qa{border:0;border-radius:16px;padding:0;width:min(440px,calc(100vw - 24px));max-height:calc(100dvh - 24px);box-shadow:0 24px 60px rgba(0,0,0,.28);color:var(--ef-ink,#111);background:var(--ef-card,#fff)}
+.ic-qa::backdrop{background:rgba(17,17,17,.45)}
+.ic-qa form{display:flex;flex-direction:column;gap:12px;padding:18px}
+.ic-qa h3{margin:0;font-size:1.1rem;font-weight:800}
+.ic-qa p{margin:-6px 0 0;font-size:.84rem;color:var(--ef-muted,#6b6459)}
+.ic-qa label{display:flex;flex-direction:column;gap:4px;font-size:.76rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--ef-muted,#6b6459)}
+.ic-qa input,.ic-qa select{min-height:46px;font-size:16px;text-transform:none;letter-spacing:0;font-weight:500}
+.ic-qa-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ic-qa-acts{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.ic-qa-acts .ic-btn{min-height:46px}
+.ic-qa-sim{border:1px solid rgba(216,154,61,.5);background:rgba(216,154,61,.1);border-radius:12px;padding:10px 12px;font-size:.88rem}
+.ic-qa-sim[hidden],.ic-qa-err[hidden]{display:none}
+.ic-qa-sim strong{display:block;margin-bottom:6px;color:#7D5218}
+.ic-qa-sim button{display:block;width:100%;text-align:left;border:1px solid var(--ef-line,#e5e0d6);background:var(--ef-card,#fff);border-radius:10px;padding:8px 10px;margin-bottom:6px;min-height:44px;cursor:pointer;font-weight:650}
+.ic-qa-sim button small{display:block;font-weight:500;color:var(--ef-muted,#6b6459)}
+.ic-qa-err{color:var(--ef-danger,#c0392b);font-size:.86rem;font-weight:600}
 .ic-pick-head{padding:6px 10px 2px;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ef-faint,#8d867a)}
 </style>
 <script>
 window.IcItemPicker = window.IcItemPicker || (function () {
     const URL_ = @json(route('inventory.items.search'));
+    const QA = {
+        url: @json(route('inventory.items.quick')),
+        admin: @json((bool) auth()->user()?->isAdmin()),
+        cats: @json(\App\Models\InventoryCategory::active()->orderBy('name')->get(['id', 'name'])),
+        units: @json(collect(config('inventory.units'))->map(fn ($u, $k) => ['k' => $k, 'l' => $u['label']])->values()),
+    };
     const cache = new Map();
     let seq = 0;
     async function query(q) {
@@ -91,8 +117,10 @@ window.IcItemPicker = window.IcItemPicker || (function () {
         function render(data) {
             last = data;
             if (!data) { list.innerHTML = '<div class="ic-pick-empty">Search is unavailable right now — try again.</div>'; open(true); return; }
+            const addBtn = opts.allowCreate && !data.exact_id
+                ? '<button type="button" class="ic-pick-add" data-add><i class="bi bi-plus-circle"></i> Add “' + esc(input.value.trim()) + '” as new item</button>' : '';
             if (!data.results.length) {
-                list.innerHTML = '<div class="ic-pick-empty">No item matches “' + esc(input.value.trim()) + '”. Check the spelling, try the Tamil name, or ask an admin to add it.</div>';
+                list.innerHTML = '<div class="ic-pick-empty">No item matches “' + esc(input.value.trim()) + '”.' + (opts.allowCreate ? '' : ' Check the spelling, try the Tamil name, or ask an admin to add it.') + '</div>' + addBtn;
                 open(true); return;
             }
             const head = data.results.length > 1 && !data.exact_id ? '<div class="ic-pick-head">' + data.results.length + ' matching items — choose one</div>' : '';
@@ -101,7 +129,7 @@ window.IcItemPicker = window.IcItemPicker || (function () {
                 '<div class="ic-pick-name">' + esc(r.name) + (r.name_ta ? '<span class="ic-pick-ta" lang="ta">' + esc(r.name_ta) + '</span>' : '') + '</div>' +
                 '<div class="ic-pick-meta"><span>' + (r.category ? esc(r.category) + ' · ' : '') + esc(r.unit) + '</span>' +
                 (r.matched ? '<span>Matched: <b>' + esc(r.matched) + '</b></span>' : '') +
-                (r.status !== 'active' ? '<span>Inactive</span>' : '') + '</div></button>').join('');
+                (r.status !== 'active' ? '<span>Inactive</span>' : '') + '</div></button>').join('') + addBtn;
             open(true);
             highlight(data.exact_id ? 0 : -1);
         }
@@ -157,7 +185,16 @@ window.IcItemPicker = window.IcItemPicker || (function () {
             }
         });
         list.addEventListener('mousedown', e => e.preventDefault()); // keep focus so blur does not close first
-        list.addEventListener('click', e => { const b = e.target.closest('.ic-pick-opt'); if (b) choose(+b.dataset.i); });
+        list.addEventListener('click', e => {
+            const b = e.target.closest('.ic-pick-opt'); if (b) { choose(+b.dataset.i); return; }
+            if (e.target.closest('[data-add]')) { open(false); quickAdd(input.value.trim(), created); }
+        });
+        function created(r) {
+            picked = r; input.value = r.name; input.dataset.typed = r.name; syncClear(); open(false);
+            cache.clear();
+            opts.onCreate && opts.onCreate(r);
+            opts.onPick && opts.onPick(r, '');
+        }
         input.addEventListener('blur', () => setTimeout(() => open(false), 120));
 
         return {
@@ -175,6 +212,61 @@ window.IcItemPicker = window.IcItemPicker || (function () {
             setPicked(r) { picked = r; syncClear(); },
         };
     }
+    let dlg = null;
+    function quickAdd(text, done) {
+        if (!dlg) {
+            dlg = document.createElement('dialog');
+            dlg.className = 'ic-qa';
+            dlg.innerHTML =
+                '<form method="dialog" novalidate><h3>Add new item</h3>' +
+                '<p>' + (QA.admin ? 'It goes straight into the item catalogue.' : 'You can use it right away. An admin will check it later.') + '</p>' +
+                '<label>Item name<input class="ic-input" name="name" required maxlength="255" autocomplete="off"></label>' +
+                '<label>Tamil name <span style="text-transform:none;font-weight:500">(optional)</span><input class="ic-input" name="name_ta" maxlength="200" lang="ta" autocomplete="off"></label>' +
+                '<div class="ic-qa-row"><label>Category<select class="ic-select" name="inventory_category_id" required><option value="">Choose…</option>' +
+                QA.cats.map(c => '<option value="' + c.id + '">' + esc(c.name) + '</option>').join('') + '</select></label>' +
+                '<label>Unit<select class="ic-select" name="unit" required><option value="">Choose…</option>' +
+                QA.units.map(u => '<option value="' + u.k + '">' + esc(u.l) + '</option>').join('') + '</select></label></div>' +
+                '<div class="ic-qa-sim" data-sim hidden></div><div class="ic-qa-err" data-err hidden></div>' +
+                '<div class="ic-qa-acts"><button type="button" class="ic-btn" data-cancel>Cancel</button>' +
+                '<button type="submit" class="ic-btn ic-btn--gold" data-save data-no-loading><i class="bi bi-plus-lg"></i> Add item</button></div></form>';
+            document.body.appendChild(dlg);
+            dlg.querySelector('[data-cancel]').onclick = () => dlg.close();
+        }
+        const f = dlg.querySelector('form'), sim = dlg.querySelector('[data-sim]'), err = dlg.querySelector('[data-err]'), save = dlg.querySelector('[data-save]');
+        f.reset(); f.elements.name.value = text; sim.hidden = err.hidden = true; save.disabled = false;
+        let confirm = false;
+        const fail = m => { err.textContent = m; err.hidden = false; };
+        f.onsubmit = async e => {
+            e.preventDefault(); err.hidden = true;
+            const body = Object.fromEntries(new FormData(f));
+            if (!body.name.trim() || !body.inventory_category_id || !body.unit) { fail('Fill in name, category and unit.'); return; }
+            if (confirm) body.confirm = 1;
+            save.disabled = true;
+            try {
+                const r = await fetch(QA.url, {method: 'POST', headers: {'Content-Type': 'application/json', 'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content || ''}, body: JSON.stringify(body)});
+                const d = await r.json().catch(() => ({}));
+                if (r.status === 409 && d.similar) {
+                    sim.innerHTML = '<strong>Is it one of these? Tap to use it.</strong>' + d.similar.map((x, i) =>
+                        '<button type="button" data-i="' + i + '">' + esc(x.name) + (x.name_ta ? ' · <span lang="ta">' + esc(x.name_ta) + '</span>' : '') +
+                        '<small>' + esc((x.category ? x.category + ' · ' : '') + x.unit) + '</small></button>').join('') +
+                        '<div style="font-size:.82rem;margin-top:2px">None of these? Tap <b>Add anyway</b>.</div>';
+                    sim.hidden = false;
+                    sim.querySelectorAll('button').forEach(b => b.onclick = () => { dlg.close(); done(d.similar[+b.dataset.i]); });
+                    confirm = true; save.innerHTML = '<i class="bi bi-plus-lg"></i> Add anyway';
+                } else if (r.ok && d.item) {
+                    dlg.close(); done(d.item);
+                } else {
+                    fail(d.message || (d.errors ? Object.values(d.errors)[0][0] : 'Could not add the item — try again.'));
+                }
+            } catch (_) { fail('No connection — try again.'); }
+            save.disabled = false;
+        };
+        save.innerHTML = '<i class="bi bi-plus-lg"></i> Add item';
+        dlg.showModal();
+        setTimeout(() => f.elements.name_ta.focus(), 50);
+    }
+
     return {attach, query};
 })();
 </script>

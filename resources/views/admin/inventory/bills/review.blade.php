@@ -623,7 +623,7 @@ details.ib-sec>summary small{font-weight:600;color:var(--ef-faint);font-size:.8r
     function initLine(line) {
         const picker = line.querySelector('[data-picker]');
         if (picker && window.IcItemPicker) {
-            window.IcItemPicker.attach(picker, { onPick: r => setMatch(line, {id: r.id, name: r.name, unit: r.unit}) });
+            window.IcItemPicker.attach(picker, { allowCreate: true, onPick: r => setMatch(line, {id: r.id, name: r.name, unit: r.unit}) });
         }
         ['[data-qty]', '[data-rate]', '[data-tax]'].forEach(sel => line.querySelector(sel)?.addEventListener('input', () => {
             const q = parseFloat(line.querySelector('[data-qty]').value) || 0;

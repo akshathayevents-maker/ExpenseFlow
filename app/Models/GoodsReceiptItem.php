@@ -9,10 +9,11 @@ class GoodsReceiptItem extends Model
 {
     protected $fillable = [
         'goods_receipt_id', 'purchase_item_id', 'received_base_quantity',
-        'rejected_base_quantity', 'remarks', 'inventory_transaction_id',
+        'rejected_base_quantity', 'actual_rate', 'closed_base_quantity', 'remarks', 'inventory_transaction_id',
     ];
 
-    protected $casts = ['received_base_quantity' => 'float', 'rejected_base_quantity' => 'float'];
+    protected $casts = ['received_base_quantity' => 'float', 'rejected_base_quantity' => 'float',
+        'actual_rate' => 'float', 'closed_base_quantity' => 'float'];
 
     public function receipt(): BelongsTo
     {

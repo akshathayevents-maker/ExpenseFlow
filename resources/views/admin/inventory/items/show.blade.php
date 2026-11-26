@@ -29,6 +29,17 @@
 </style>
 @endpush
 
+@if($item->needs_review)
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 14px;padding:10px 14px;border:1px solid rgba(216,154,61,.45);background:rgba(216,154,61,.1);border-radius:12px;font-size:.9rem;color:#7D5218;margin-top:8px">
+        <i class="bi bi-person-plus"></i>
+        <span style="flex:1;min-width:200px">Added from a form by {{ \App\Models\User::find($item->created_by)?->name ?? 'staff' }} on {{ $item->created_at->format('d M Y') }}. Check name, category and unit — edit if needed, or confirm.</span>
+        <form method="POST" action="{{ route('admin.inventory.items.reviewed', $item) }}" style="margin:0">@csrf @method('PATCH')
+            <button type="submit" class="btn btn-sm" style="background:var(--ef-ink);color:#fff;border-radius:8px;font-weight:700;min-height:38px"><i class="bi bi-check2"></i> Looks good</button>
+        </form>
+        <a href="{{ route('admin.inventory.items.edit', $item) }}" style="font-weight:700">Edit</a>
+    </div>
+@endif
+
 <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:20px;padding-top:8px">
     <div style="display:flex;align-items:center;gap:12px">
         <a href="{{ route('admin.inventory.items.index') }}" class="ef-back">

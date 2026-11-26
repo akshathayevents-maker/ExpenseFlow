@@ -80,7 +80,7 @@ it('does not overwrite an approved request when the menu changes; a revision is 
 
     $this->actingAs($mgr)->put(route('hall.bookings.menu.update', $b), ['menu' => [['name' => 'Paneer Tikka', 'change_type' => 'added']]])
         ->assertSessionHas('error');
-    expect($mr->fresh()->menu_snapshot)->toBe($snapshot)->and($mr->fresh()->status)->toBe('approved')
+    expect($mr->fresh()->menu_snapshot)->toBe($snapshot)->and($mr->fresh()->status)->toBe('issued')
         ->and($mr->fresh()->items->first()->approved_base_quantity)->toBe(40.0);
     expect(AppNotification::where('user_id', $emp->id)->where('type', 'hall_menu_changed')->exists())->toBeTrue();
 
@@ -88,7 +88,7 @@ it('does not overwrite an approved request when the menu changes; a revision is 
     $rev = MaterialRequest::where('revision_of_id', $mr->id)->first();
     expect($rev->status)->toBe('draft')->and($rev->revision_no)->toBe(2)->and($rev->reference())->toEndWith('-R2')
         ->and(collect($rev->menu_snapshot['items'])->pluck('name')->all())->toBe(['Paneer Tikka'])
-        ->and($mr->fresh()->status)->toBe('approved');
+        ->and($mr->fresh()->status)->toBe('issued');
 });
 
 it('shows material cost per event and per guest on the booking', function () {

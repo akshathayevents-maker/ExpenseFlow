@@ -275,6 +275,52 @@ Saves keep `original_item_name` (the text printed on the bill). The PDF preview 
 largest head count), set in `MaterialRequestController::withPreparationSummary`, so labels, recipe suggestions and
 per-person cost keep working. Meal entry detail and hall booking detail show materials,
 usage and cost (`meal-register/entries/_materials`, `hall/bookings/_materials`); hall final menu editor `hall.bookings.menu.*`.
+Goods receipt variances (2026-11-26): on receive, per line the storekeeper can enter the billed rate (`goods_receipt_items.actual_rate`;
+stock `unit_cost` uses it, approved purchase figures are never changed) and tick "Rest not coming" (short supply →
+`closed_base_quantity` on receipt item + purchase item; `PurchaseItem::pendingBaseQuantity()` and stock "incoming" subtract it;
+remarks required). Each receipt can carry the supplier bill (`goods_receipts.bill_path` on the private disk under
+`goods-receipt-bills/`, jpg/png/pdf ≤10 MB, plus `bill_number`, `bill_amount`), served by `inventory.purchases.receipt-bill`
+(PurchasePolicy::view). Production needs `php artisan migrate`.
+Quick receipt on the purchase page (`purchases/_quick-receive`): `mode=all` receives every due line as ordered; `mode=changes`
+posts only differing qty/rate (blank = as ordered); a short qty is closed automatically unless `more_coming`; `extra[]` adds
+items not on the order as purchase lines with description `GoodsReceiptService::ADDED_ON_RECEIPT` (stock unit, tax 0, approved
+totals unchanged). Bill file is required in quick mode until the purchase has a bill (source upload or an earlier receipt).
+The detailed `receive-form` page stays for rejected/damaged quantities.
+Store stock page (`inventory/stock`, 2026-11-26): renders every active item (stocked / moving items first), status tiles
+(All · In stock · Low/out · Incoming), search (name, Tamil name, SKU, category) and category chips filter instantly in the
+browser; the same `q`/`show`/`cat` query params filter server-side (rows rendered `hidden`), so `?show=low` links still work.
+Quick add item (2026-11-26): `IcItemPicker.attach(input, {allowCreate: true, onCreate})` shows "+ Add “…” as new item" →
+popup (name, Tamil name, category, unit) → `POST inventory/items/quick` (`ItemQuickAddController`, throttle 20/min). Same
+name/alias returns the existing item; similar names return 409 with suggestions unless `confirm`. Admin-created items are
+final; staff-created items are active at once but `inventory_items.needs_review = true` (+ `created_by`); admins see a
+"Review now" banner in the catalogue and a "Looks good" button on the item (`admin.inventory.items.reviewed`); saving the
+item via edit also clears the flag. Enabled in the purchase / material-request grid, bill review and quick receipt.
+Hall order pre-fill (2026-11-26): `HallOrderPrefillService::forBooking()` (JSON at `inventory.material-requests.hall-prefill`,
+also used server-side for `create?hall_booking_id=`) fills date, start time, preparations from the menu
+(`HallMenuService::draftLines`: final menu → event request → meal-plan dishes; people per meal from `hall_booking_meals`,
+else booking head count) and materials from recipes whose name matches a dish (spelling-insensitive, trailing version
+numbers ignored, whole-word containment e.g. "Rava Upma" → "Upma"). Quantity: `quantity_per_guest` (stock unit) or
+`quantity_per_batch / yield_per_batch` when the yield unit means servings (people/unit/serving/plate…), converted to the
+stock unit. Ingredients without `inventory_item_id` are matched by name; unmatched ones and dishes without a recipe are
+listed for manual entry. The form never overwrites typed preparations; existing material rows are replaced only on tap.
+Meal plan dishes (2026-11-26): `meal_plans.items` (JSON list of dish names, edited on hall meal-plan create/edit via
+`hall/meal-plans/_items`: add, edit, remove, move up, Enter = next dish, paste = one dish per line, suggestions from menu
+catalogue / recipes / other plans). `MealPlan::dishList()` returns `items`, or the description lines for plans saved
+before the list existed; `HallMenuService::draftLines` uses it, so final menus and hall-order material pre-fill follow it.
+Approval = issue (2026-11-26): `MaterialRequestController::approve` approves and, in the same DB transaction, records the
+handover via `MaterialRequestService::handover` with `collected_by = requested_by`, `handed_over_by = approver`, so the
+request goes straight to `issued` and the requester is responsible. The separate handover step/tab remains only for
+requests already in `approved` (tab hidden when none). A wrong approval is corrected through returns, not cancel.
+Store home `inventory` (2026-11-26): greeting + 3 main actions, one role-aware "Needs attention" list (only non-zero
+rows; low-stock counts only items with `minimum_stock > 0`), item finder, stock snapshot (in/low/out/arriving, stock value
+for admin/manager), "Needed today & tomorrow" and "My recent requests". Phones: single column ordered by task (CSS `order`).
+Sidebar Store & Inventory is grouped Daily / Buying / Setup & reports (9 links).
+Wastage control (2026-11-26): `RecipeStandardService::expectedFor($mr)` = per preparation, recipe standard
+(`quantity_per_guest`) × its people, else median per-person usage of that preparation (3+ reconciled uses). Shown on the
+approval table ("Standard/Usual", "+N% over", button "Approve at standard") and on the usage form. Usage form: wasted is
+subtracted from "used" automatically, live used/wasted/left-over bar, one-tap waste reasons, left-over asks for a return.
+`reconcile()` sends to admin review when wastage > `inventory.wastage_review_percent` (10), anything is unexplained, or
+used+wasted+unexplained > expected × (1 + `inventory.over_standard_review_percent` (15)); the admin notification lists why.
 
 ### 7.10 HR self-service
 Attendance (`EmployeeAttendanceService`, 974 lines, the largest service), regularizations, leave (`LeaveService`, `LeaveAllocationService`, `LeaveBalanceService`, `LeavePolicyAssignmentService`), overtime (`OvertimeService`, `OvertimeCalculationService`),

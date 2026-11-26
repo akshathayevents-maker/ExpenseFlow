@@ -1,7 +1,7 @@
-<x-admin-layout title="Uploaded Bills">
+<x-admin-layout title="Scan Supplier Bills">
 
-<x-ds.hero eyebrow="Inventory" title="Uploaded Bills"
-    :meta="[['icon' => 'bi-file-earmark-text', 'text' => 'Invoice & bill upload history and import status']]">
+<x-ds.hero eyebrow="Inventory" title="Scan Supplier Bills"
+    :meta="[['icon' => 'bi-file-earmark-text', 'text' => 'Upload a supplier bill (photo or PDF) → items are read automatically → check them → create the purchase in one tap']]">
     <x-slot:actions>
         <a href="{{ route('admin.inventory.items.index') }}" class="ef-btn">
             <i class="bi bi-boxes"></i> Inventory Items

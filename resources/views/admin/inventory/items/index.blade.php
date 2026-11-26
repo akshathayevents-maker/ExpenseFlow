@@ -341,6 +341,18 @@
     </div>
 </div>
 
+@if($stats['needs_review'] > 0)
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 14px;padding:10px 14px;border:1px solid rgba(216,154,61,.45);background:rgba(216,154,61,.1);border-radius:12px;font-size:.9rem;color:#7D5218">
+        <i class="bi bi-person-plus"></i>
+        <span style="flex:1;min-width:200px"><strong>{{ $stats['needs_review'] }} {{ \Illuminate\Support\Str::plural('item', $stats['needs_review']) }}</strong> added by staff from forms — check name, category and unit.</span>
+        @if(request('review'))
+            <a href="{{ route('admin.inventory.items.index') }}" style="font-weight:700">Show all items</a>
+        @else
+            <a href="{{ route('admin.inventory.items.index', ['review' => 1]) }}" style="font-weight:700">Review now</a>
+        @endif
+    </div>
+@endif
+
 {{-- ── Filter bar ──────────────────────────────────────────────── --}}
 <form method="GET" id="invFilterForm" action="{{ route('admin.inventory.items.index') }}">
 <div class="ef-ds-filter-bar">

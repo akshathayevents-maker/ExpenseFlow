@@ -12,6 +12,11 @@
 @endphp
 @push('styles')
 <style>
+.mrh-note{display:flex;flex-direction:column;gap:6px;margin:0 0 12px;padding:10px 12px;border:1px solid rgba(184,137,62,.35);background:rgba(184,137,62,.08);border-radius:12px;font-size:.86rem;line-height:1.4;color:var(--ef-ink)}
+.mrh-note[hidden]{display:none}
+.mrh-note .bi-magic{color:var(--ef-gold)}
+.mrh-note .--warn{color:#7D5218}
+.mrh-note a{font-weight:700}
 .mrp-list{display:grid;gap:8px;margin-bottom:12px}
 .mrp-head,.mrp-row{display:grid;grid-template-columns:minmax(0,1fr) 116px 44px;gap:8px;align-items:start}
 .mrp-head{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:var(--ef-muted)}
@@ -158,6 +163,7 @@
         {{-- Step 3: materials --}}
         <div class="ic-card">
             <h2>3 · Materials</h2>
+            <div class="mrh-note" id="hallNote" hidden aria-live="polite"></div>
             @if(! empty($quickItems['recent']) || ! empty($quickItems['frequent']))
                 <div style="margin-bottom:10px">
                     <span class="ic-label">Tap to add</span>
@@ -225,6 +231,62 @@
     });
     list.addEventListener('input', summarise);
     summarise();
+
+    /* ── Hall order: pre-fill time, preparations (final menu) and materials (matching recipes) ── */
+    const PREFILL_URL = @json(route('inventory.material-requests.hall-prefill', ['booking' => '__B__']));
+    const note = document.getElementById('hallNote');
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+    const prepsEmpty = () => rows().every(r => !r.querySelector('input').value.trim());
+    function setPreps(preps) {
+        list.querySelectorAll('[data-prep]').forEach(r => r.remove());
+        preps.forEach(p => {
+            list.insertAdjacentHTML('beforeend', document.getElementById('mrpTpl').innerHTML.replaceAll('__I__', String(nextPrep++)));
+            const r = list.lastElementChild;
+            r.querySelector('input').value = p.name;
+            r.querySelector('[data-prep-people]').value = p.people || '';
+        });
+        summarise();
+    }
+    function showNote(d, applied) {
+        const parts = [];
+        if (d.recipes.length) parts.push('<i class="bi bi-magic"></i> <b>' + (applied ? 'Filled from recipes' : 'Recipe quantities ready') + ':</b> ' +
+            d.recipes.map(r => esc(r.menu) + (r.menu !== r.recipe ? ' → ' + esc(r.recipe) : '') + ' × ' + r.people).join(', ') + '. Check and edit as needed.');
+        if (d.no_recipe.length) parts.push('<span class="--warn">No recipe yet: ' + esc(d.no_recipe.join(', ')) + ' — add their materials below.</span>');
+        if (d.unlinked.length) parts.push('<span class="--warn">Pick by hand (not matched to a stock item): ' + esc(d.unlinked.join('; ')) + '</span>');
+        if (!d.has_menu) parts.push('<span class="--warn">This order has no final menu yet. <a href="' + esc(d.menu_url) + '" target="_blank" rel="noopener">Add the menu</a> to get preparations and recipe quantities filled in.</span>');
+        note.innerHTML = parts.map(p => '<div>' + p + '</div>').join('');
+        note.hidden = !parts.length;
+    }
+    async function hallPrefill(id) {
+        note.hidden = true;
+        if (!id) return;
+        let d;
+        try {
+            const r = await fetch(PREFILL_URL.replace('__B__', encodeURIComponent(id)), {headers: {Accept: 'application/json'}});
+            if (!r.ok) return;
+            d = await r.json();
+        } catch (_) { return; }
+        if (String(document.getElementById('hall_booking_id').value) !== String(d.booking_id)) return;   // changed meanwhile
+        if (d.required_date) date.value = d.required_date;
+        const time = document.getElementById('required_time');
+        if (d.required_time && !time.value) time.value = d.required_time;
+        if (d.preparations.length && prepsEmpty()) setPreps(d.preparations);
+        else if (d.people) rows().forEach(r => { const p = r.querySelector('[data-prep-people]'); if (!p.value) p.value = d.people; });
+        summarise();
+        const grid = window.icGrids?.request;
+        const lines = d.lines.map(l => ({...l, note: 'From recipe: ' + l.from.join(', ')}));
+        if (lines.length && grid) {
+            if (!grid.filledCount()) { grid.setLines(lines); showNote(d, true); return; }
+            showNote(d, false);
+            const b = document.createElement('div');
+            b.innerHTML = '<button type="button" class="ic-btn ic-btn--sm ic-btn--gold"><i class="bi bi-arrow-repeat"></i> Replace materials with recipe quantities</button>';
+            b.querySelector('button').onclick = () => { grid.setLines(lines); showNote(d, true); };
+            note.appendChild(b);
+            return;
+        }
+        showNote(d, false);
+    }
+    document.getElementById('hall_booking_id')?.addEventListener('change', e => hallPrefill(e.target.value));
 
     ['meal_entry_id', 'hall_booking_id'].forEach(id => document.getElementById(id)?.addEventListener('change', e => {
         const o = e.target.selectedOptions[0];

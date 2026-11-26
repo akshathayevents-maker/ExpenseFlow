@@ -8,9 +8,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class GoodsReceipt extends Model
 {
-    protected $fillable = ['purchase_id', 'received_by', 'received_at', 'notes', 'client_token'];
+    protected $fillable = ['purchase_id', 'received_by', 'received_at', 'notes', 'client_token',
+        'bill_number', 'bill_amount', 'bill_path', 'bill_original_name'];
 
-    protected $casts = ['received_at' => 'datetime'];
+    protected $casts = ['received_at' => 'datetime', 'bill_amount' => 'float'];
+
+    public function billIsPdf(): bool
+    {
+        return str_ends_with(strtolower((string) $this->bill_path), '.pdf');
+    }
 
     public function purchase(): BelongsTo
     {

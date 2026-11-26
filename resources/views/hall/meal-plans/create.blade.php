@@ -307,10 +307,16 @@
                 <label class="ef-mpf-label" for="description">Description</label>
                 <textarea id="description" name="description"
                           class="ef-mpf-textarea @error('description') is-invalid @enderror"
-                          placeholder="Describe what's included — courses, service style, dietary options…">{{ old('description') }}</textarea>
+                          placeholder="Service style, dietary options, notes… (list the dishes under Menu)">{{ old('description') }}</textarea>
                 @error('description')<p class="ef-mpf-error">{{ $message }}</p>@enderror
                 <p class="ef-mpf-hint">Shown to staff during booking — helps choose the right plan for each event.</p>
             </div>
+        </div>
+
+        {{-- Menu: dishes in the plan --}}
+        <div class="ef-mpf-section">
+            <p class="ef-mpf-section-label">Menu</p>
+            @include('hall.meal-plans._items', ['items' => []])
         </div>
 
         {{-- Pricing + Live Preview --}}

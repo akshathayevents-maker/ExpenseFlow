@@ -198,6 +198,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'role.ad
         Route::get('items/{item}/edit', [InventoryItemController::class, 'edit'])->name('items.edit');
         Route::put('items/{item}', [InventoryItemController::class, 'update'])->name('items.update');
         Route::patch('items/{item}/toggle-status', [InventoryItemController::class, 'toggleStatus'])->name('items.toggle-status');
+        Route::patch('items/{item}/reviewed', [InventoryItemController::class, 'markReviewed'])->name('items.reviewed');
         Route::post('items/{item}/transact', [InventoryItemController::class, 'transact'])->name('items.transact');
         Route::post('items/{item}/aliases', [InventoryItemController::class, 'storeAlias'])->name('items.aliases.store');
         Route::delete('items/{item}/aliases/{alias}', [InventoryItemController::class, 'destroyAlias'])->name('items.aliases.destroy');
@@ -512,6 +513,8 @@ Route::prefix('inventory')->name('inventory.')->middleware(['auth', 'verified'])
     Route::post('standards',         [\App\Http\Controllers\Inventory\RecipeStandardController::class, 'store'])->name('standards.store');
     Route::get('items/search', [\App\Http\Controllers\Inventory\ItemLookupController::class, 'search'])
         ->middleware('throttle:180,1')->name('items.search');
+    Route::post('items/quick', [\App\Http\Controllers\Inventory\ItemQuickAddController::class, 'store'])
+        ->middleware('throttle:20,1')->name('items.quick');
     Route::post('items/match', [\App\Http\Controllers\Inventory\ItemLookupController::class, 'match'])
         ->middleware('throttle:60,1')->name('items.match');
 
@@ -527,6 +530,8 @@ Route::prefix('inventory')->name('inventory.')->middleware(['auth', 'verified'])
     Route::post('purchases/{purchase}/cancel',    [\App\Http\Controllers\Inventory\PurchaseController::class, 'cancel'])->name('purchases.cancel');
     Route::post('purchases/{purchase}/complete',  [\App\Http\Controllers\Inventory\PurchaseController::class, 'complete'])->name('purchases.complete');
     Route::get('material-requests',                              [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'index'])->name('material-requests.index');
+    Route::get('material-requests/hall-prefill/{booking}',      [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'hallPrefill'])
+        ->middleware('throttle:60,1')->name('material-requests.hall-prefill');
     Route::get('material-requests/create',                       [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'create'])->name('material-requests.create');
     Route::post('material-requests',                             [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'store'])->name('material-requests.store');
     Route::get('material-requests/{materialRequest}',            [\App\Http\Controllers\Inventory\MaterialRequestController::class, 'show'])->name('material-requests.show');
@@ -544,6 +549,7 @@ Route::prefix('inventory')->name('inventory.')->middleware(['auth', 'verified'])
 
     Route::get('purchases/{purchase}/receive',    [\App\Http\Controllers\Inventory\PurchaseController::class, 'receiveForm'])->name('purchases.receive-form');
     Route::post('purchases/{purchase}/receive',   [\App\Http\Controllers\Inventory\PurchaseController::class, 'receive'])->name('purchases.receive');
+    Route::get('purchases/{purchase}/receipts/{receipt}/bill', [\App\Http\Controllers\Inventory\PurchaseController::class, 'receiptBill'])->name('purchases.receipt-bill');
 });
 
 // ── Daily Meal Register (all roles) ──────────────────────────────────────────

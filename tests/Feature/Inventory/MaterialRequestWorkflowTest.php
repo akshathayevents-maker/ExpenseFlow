@@ -65,7 +65,9 @@ it('deducts stock on approval, supports partial approval and line rejection', fu
     ]])->assertSessionHasNoErrors();
 
     $mr->refresh();
-    expect($mr->status)->toBe('approved')->and($mr->approved_by)->toBe($admin->id)
+    // approval also issues: the requester is responsible for the materials
+    expect($mr->status)->toBe('issued')->and($mr->approved_by)->toBe($admin->id)
+        ->and($mr->collected_by)->toBe($emp->id)->and($mr->handed_over_by)->toBe($admin->id)
         ->and($rava->fresh()->current_stock)->toBe(55.0)
         ->and($oil->fresh()->current_stock)->toBe(10.0)
         ->and($mustard->fresh()->current_stock)->toBe(1.75);
@@ -113,7 +115,7 @@ it('records handover separately without a second deduction; short handover resto
         ['inventory_item_id' => $rava->id, 'quantity' => 50, 'unit' => 'kg'],
         ['inventory_item_id' => $chilli->id, 'quantity' => 1, 'unit' => 'kg'],
     ]);
-    $this->actingAs($admin)->post(route('inventory.material-requests.approve', $mr));
+    app(\App\Services\Inventory\MaterialRequestService::class)->approve($mr, $admin);   // approved, not yet issued (older requests)
     [$lRava, $lChilli] = $mr->items->all();
 
     $this->actingAs($emp)->post(route('inventory.material-requests.handover', $mr), ['collected_by' => $emp->id])->assertForbidden();
@@ -139,7 +141,7 @@ it('restores stock through a reversal when an approved request is cancelled befo
     $admin = icUser('admin');
     $onion = icItem('Onion', 'kg', 20);
     $mr = mrSubmitted($emp, [['inventory_item_id' => $onion->id, 'quantity' => 8, 'unit' => 'kg']]);
-    $this->actingAs($admin)->post(route('inventory.material-requests.approve', $mr));
+    app(\App\Services\Inventory\MaterialRequestService::class)->approve($mr, $admin);   // approved, not yet issued (older requests)
     expect($onion->fresh()->current_stock)->toBe(12.0);
 
     $this->actingAs($emp)->post(route('inventory.material-requests.cancel', $mr), ['reason' => 'Event moved'])->assertForbidden();
@@ -188,7 +190,7 @@ it('sends unexplained differences and high wastage to admin review with mandator
     $store = icUser('employee', true);
     $onion = icItem('Onion', 'kg', 50);
     $mr = mrSubmitted($emp, [['inventory_item_id' => $onion->id, 'quantity' => 8, 'unit' => 'kg']]);
-    $this->actingAs($admin)->post(route('inventory.material-requests.approve', $mr));
+    app(\App\Services\Inventory\MaterialRequestService::class)->approve($mr, $admin);   // approved, not yet issued (older requests)
     $this->actingAs($store)->post(route('inventory.material-requests.handover', $mr), ['collected_by_name' => 'Helper Ravi']);
     $line = $mr->items->first();
 
@@ -224,9 +226,12 @@ it('renders the store pages for each role', function () {
     $admin = icUser('admin');
     $store = icUser('employee', true);
     icItem('Rava', 'kg', 10);
-    $this->actingAs($emp)->get(route('inventory.home'))->assertOk()->assertSee('Request materials')->assertDontSee('Store tasks');
-    $this->actingAs($store)->get(route('inventory.home'))->assertOk()->assertSee('Ready for handover');
-    $this->actingAs($admin)->get(route('inventory.home'))->assertOk()->assertSee('Material approvals');
+    $this->actingAs($emp)->get(route('inventory.home'))->assertOk()->assertSee('Request materials')
+        ->assertSee('All clear')->assertDontSee('Needed today');                       // nothing waiting; no store panels
+    $this->actingAs($store)->get(route('inventory.home'))->assertOk()->assertSee('Needed today')->assertSee('Arriving');
+    $mr = mrSubmitted($emp, [['inventory_item_id' => \App\Models\InventoryItem::first()->id, 'quantity' => 1, 'unit' => 'kg']]);
+    $this->actingAs($admin)->get(route('inventory.home'))->assertOk()
+        ->assertSee('Approve material requests')->assertSee('Scan a bill');
     $this->actingAs($emp)->get(route('inventory.material-requests.create'))->assertOk();
     $this->actingAs($emp)->get(route('inventory.material-requests.index'))->assertOk();
     $this->actingAs($emp)->get(route('inventory.stock'))->assertForbidden();

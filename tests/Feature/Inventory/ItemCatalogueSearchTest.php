@@ -296,8 +296,10 @@ it('consolidates admin navigation into one Store & Inventory entry and keeps old
     expect(substr_count($html, 'Store &amp; Inventory</span>'))->toBe(1)
         ->and($html)->not->toContain('Central Store')
         ->and($html)->toContain(route('admin.inventory.items.index'))
-        ->and($html)->toContain(route('admin.inventory.alerts.index'))
-        ->and($html)->toContain(route('inventory.reports.show', 'movements'));
+        ->and($html)->toContain('>Daily</div>')->and($html)->toContain('>Buying</div>')->and($html)->toContain('Scan Supplier Bill');
+    // alerts and movements are reached from the Stock page instead of the sidebar
+    expect($this->get(route('inventory.stock'))->getContent())
+        ->toContain(route('admin.inventory.alerts.index'))->toContain(route('inventory.reports.show', 'movements'));
     foreach (['admin.inventory.items.index', 'admin.inventory.bills.index', 'admin.inventory.alerts.index', 'admin.inventory.categories.index',
         'admin.purchase-plans.index', 'inventory.stock', 'inventory.purchases.index', 'inventory.material-requests.index', 'inventory.reports.index'] as $r) {
         $this->get(route($r))->assertOk();

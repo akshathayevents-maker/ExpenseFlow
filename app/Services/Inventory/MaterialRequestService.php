@@ -347,6 +347,9 @@ class MaterialRequestService
             $errors = [];
             $needsReview = false;
             $threshold = (float) config('inventory.wastage_review_percent', 10);
+            $overPct = (float) config('inventory.over_standard_review_percent', 15);
+            $expected = app(RecipeStandardService::class)->expectedFor($r);
+            $reasons = [];
 
             foreach ($items as $line) {
                 $in = $lines[$line->id] ?? [];
@@ -377,9 +380,17 @@ class MaterialRequestService
                 }
                 if (($line->issued_base_quantity ?? 0) > 0 && $wasted / $line->issued_base_quantity * 100 > $threshold) {
                     $needsReview = true;
+                    $reasons[] = "{$name}: high wastage";
                 }
                 if (abs($unexplained) > 0.0005) {
                     $needsReview = true;
+                    $reasons[] = "{$name}: {$unexplained} {$line->item->unit} unexplained";
+                }
+                $exp = $expected[$line->inventory_item_id]['qty'] ?? 0;
+                $out = $consumed + $wasted + max(0, $unexplained);
+                if ($exp > 0 && $out > $exp * (1 + $overPct / 100)) {
+                    $needsReview = true;
+                    $reasons[] = "{$name}: used ".round(($out / $exp - 1) * 100)."% more than standard";
                 }
                 $line->update([
                     'consumed_base_quantity' => $consumed,
@@ -398,10 +409,10 @@ class MaterialRequestService
                 'reconciled_at' => now(),
                 'reconciliation_status' => $needsReview ? 'pending_review' : 'accepted',
             ]);
-            $this->audit->log('reconciled', 'material_request', $r->id, $r->reference(), [], ['review' => $needsReview]);
+            $this->audit->log('reconciled', 'material_request', $r->id, $r->reference(), [], ['review' => $needsReview, 'reasons' => $reasons]);
             if ($needsReview) {
                 $this->notifications->sendToAdmins('material_review', "Usage needs review: {$r->reference()}",
-                    'High wastage or unexplained difference recorded for '.$r->forLabel().'.', route('inventory.material-requests.show', $r));
+                    $r->forLabel().' — '.mb_substr(implode('; ', $reasons), 0, 400).'.', route('inventory.material-requests.show', $r));
             }
 
             return $r->fresh('items');

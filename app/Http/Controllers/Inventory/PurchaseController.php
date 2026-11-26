@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Inventory;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Inventory\SavePurchaseRequest;
+use App\Models\GoodsReceipt;
 use App\Models\InventoryBillUpload;
 use App\Models\InventoryItem;
 use App\Models\Purchase;
@@ -15,6 +16,8 @@ use App\Services\Inventory\PurchaseService;
 use App\Services\Inventory\UnitConversionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use RuntimeException;
@@ -153,24 +156,106 @@ class PurchaseController extends Controller
     {
         $this->authorize('receive', $purchase);
         $data = $request->validate([
-            'lines' => ['required', 'array'],
+            // mode: all = everything still due arrived as ordered; changes = only edited figures differ.
+            // Without mode the detailed receive form posts lines as before.
+            'mode' => ['nullable', 'in:all,changes'],
+            'more_coming' => ['nullable', 'boolean'],
+            'extra' => ['nullable', 'array', 'max:30'],
+            'extra.*.inventory_item_id' => ['nullable', 'integer', 'exists:inventory_items,id'],
+            'extra.*.quantity' => ['nullable', 'numeric', 'min:0.001', 'max:9999999', 'required_with:extra.*.inventory_item_id'],
+            'extra.*.rate' => ['nullable', 'numeric', 'min:0', 'max:9999999'],
+            'lines' => ['required_without:mode', 'array'],
             'lines.*.received' => ['nullable', 'numeric', 'min:0', 'max:9999999'],
             'lines.*.rejected' => ['nullable', 'numeric', 'min:0', 'max:9999999'],
+            'lines.*.rate' => ['nullable', 'numeric', 'min:0', 'max:9999999'],
+            'lines.*.close' => ['nullable', 'boolean'],
             'lines.*.remarks' => ['nullable', 'string', 'max:300'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'client_token' => ['nullable', 'uuid'],
+            'bill_file' => [$request->filled('mode') && ! $purchase->bill && ! $purchase->receipts()->whereNotNull('bill_path')->exists() ? 'required' : 'nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:10240'],
+            'bill_number' => ['nullable', 'string', 'max:100'],
+            'bill_amount' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
         ]);
 
+        if (! empty($data['mode'])) {
+            $data['lines'] = $this->quickLines($purchase, $data);
+        }
+        $extra = array_values(array_filter($data['extra'] ?? [], fn ($x) => ! empty($x['inventory_item_id'])));
+
+        $bill = ['bill_number' => $data['bill_number'] ?? null, 'bill_amount' => $data['bill_amount'] ?? null];
+        if ($request->hasFile('bill_file')) {
+            $file = $request->file('bill_file');
+            $bill['bill_path'] = $file->store('goods-receipt-bills', 'private');
+            $bill['bill_original_name'] = mb_substr($file->getClientOriginalName(), 0, 255);
+        }
+
         try {
-            $this->receipts->receive($purchase, $data['lines'], $request->user(), $data['notes'] ?? null, $data['client_token'] ?? null);
-        } catch (RuntimeException $e) {
+            $receipt = $this->receipts->receive($purchase, $data['lines'], $request->user(), $data['notes'] ?? null, $data['client_token'] ?? null, $bill, $extra);
+        } catch (\Throwable $e) {
+            if (! empty($bill['bill_path'])) {
+                Storage::disk('private')->delete($bill['bill_path']);
+            }
+            if (! $e instanceof RuntimeException) {
+                throw $e;
+            }
+
             return back()->withInput()->with('error', $e->getMessage());
+        }
+        // replayed submit (same client_token) returns the earlier receipt — drop the duplicate upload
+        if (! empty($bill['bill_path']) && $receipt->bill_path !== $bill['bill_path']) {
+            Storage::disk('private')->delete($bill['bill_path']);
         }
 
         return redirect()->route('inventory.purchases.show', $purchase)->with('success', 'Goods received and stock updated.');
     }
 
+    public function receiptBill(Purchase $purchase, GoodsReceipt $receipt): Response
+    {
+        $this->authorize('view', $purchase);
+        abort_unless($receipt->purchase_id === $purchase->id && $receipt->bill_path, 404);
+        abort_unless(Storage::disk('private')->exists($receipt->bill_path), 404, 'File not found.');
+
+        $mime = $receipt->billIsPdf() ? 'application/pdf'
+            : (str_ends_with(strtolower($receipt->bill_path), '.png') ? 'image/png' : 'image/jpeg');
+        $name = str_replace(['"', '\\', "\r", "\n"], '', $receipt->bill_original_name ?: basename($receipt->bill_path));
+
+        return response(Storage::disk('private')->get($receipt->bill_path), 200, [
+            'Content-Type' => $mime,
+            'Content-Disposition' => 'inline; filename="'.$name.'"',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
     // ── helpers ────────────────────────────────────────────────────────────
+
+    /**
+     * One-tap receipt from the purchase page. "all": every due line arrives in full.
+     * "changes": a line left blank arrived as ordered; a smaller quantity closes the rest
+     * unless "more_coming" is ticked; a changed rate is recorded as the billed rate.
+     */
+    private function quickLines(Purchase $purchase, array $data): array
+    {
+        $posted = $data['lines'] ?? [];
+        $lines = [];
+        foreach ($purchase->items()->get() as $pi) {
+            $factor = $pi->quantity > 0 ? $pi->base_quantity / $pi->quantity : 1;
+            $due = round($pi->pendingBaseQuantity() / $factor, 3);
+            if ($due <= 0) {
+                continue;
+            }
+            $row = $data['mode'] === 'changes' ? ($posted[$pi->id] ?? []) : [];
+            $got = isset($row['received']) && $row['received'] !== '' ? min((float) $row['received'], $due) : $due;
+            $rate = isset($row['rate']) && $row['rate'] !== '' && abs((float) $row['rate'] - $pi->rate) >= 0.005 ? $row['rate'] : null;
+            $lines[$pi->id] = [
+                'received' => $got,
+                'rate' => $rate,
+                'close' => $got < $due - 0.0005 && empty($data['more_coming']),
+                'remarks' => $got < $due - 0.0005 ? 'Short supply' : null,
+            ];
+        }
+
+        return $lines;
+    }
 
     private function run(callable $fn, Purchase $purchase, string $ok): RedirectResponse
     {

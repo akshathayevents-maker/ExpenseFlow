@@ -71,6 +71,51 @@ class RecipeStandardService
             'guests' => $reqs->pluck('guest_count')->all(), 'current' => $this->currentFor($preparation)];
     }
 
+    /**
+     * Expected quantity per item (stock unit) for a material request, from the recipe standard of each preparation
+     * × its head count, or — when no standard exists — the median per-person usage of that preparation (3+ past uses).
+     * Used to warn at approval and at usage recording. Nothing is enforced silently.
+     *
+     * @return array<int, array{qty: float, source: string, label: string}>
+     */
+    public function expectedFor(MaterialRequest $mr): array
+    {
+        $preps = collect($mr->preparationList())->filter(fn ($p) => trim((string) ($p['name'] ?? '')) !== '' && (int) ($p['people'] ?? 0) > 0);
+        $out = [];
+        foreach ($preps as $p) {
+            $people = (int) $p['people'];
+            $recipe = $this->currentFor($p['name']);
+            if (! $recipe && $preps->count() === 1 && $mr->recipe_id) {
+                $recipe = Recipe::with('ingredients')->find($mr->recipe_id);
+            }
+            if ($recipe) {
+                foreach ($recipe->ingredients as $ing) {
+                    if ($ing->inventory_item_id && $ing->quantity_per_guest > 0) {
+                        $this->addExpected($out, $ing->inventory_item_id, $ing->quantity_per_guest * $people, 'standard', "{$recipe->name} standard × {$people}");
+                    }
+                }
+
+                continue;
+            }
+            foreach ($this->history($p['name'])['rows'] as $row) {
+                if ($row['times'] >= 3 && $row['median'] > 0) {
+                    $this->addExpected($out, $row['item_id'], $row['median'] * $people, 'history', "usual for {$p['name']} × {$people}");
+                }
+            }
+        }
+
+        return $out;
+    }
+
+    private function addExpected(array &$out, int $itemId, float $qty, string $source, string $label): void
+    {
+        $out[$itemId] ??= ['qty' => 0.0, 'source' => $source, 'label' => $label];
+        $out[$itemId]['qty'] = round($out[$itemId]['qty'] + $qty, 3);
+        if ($out[$itemId]['label'] !== $label) {
+            $out[$itemId]['label'] = 'several dishes';
+        }
+    }
+
     public function currentFor(string $name): ?Recipe
     {
         return Recipe::with('ingredients')->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower(trim($name))])

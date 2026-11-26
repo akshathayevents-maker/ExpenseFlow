@@ -42,6 +42,8 @@ return [
 
     // Material request reconciliation: wastage above this % of issued needs admin review.
     'wastage_review_percent' => 10,
+    // usage (used + wasted + unexplained) above the recipe standard / usual amount by more than this % goes to admin review
+    'over_standard_review_percent' => 15,
 
     // Item matching: suggestions below this confidence are never pre-selected.
     'match_auto_select_confidence' => 85,

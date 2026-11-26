@@ -71,6 +71,8 @@
     function attachPicker(row) {
         const input = row.querySelector('.ic-item-input');
         pickers.set(row, window.IcItemPicker.attach(input, {
+            allowCreate: true,
+            onCreate(r) { if (!byId.has(String(r.id))) { CATALOG.push(r); byId.set(String(r.id), r); } },
             onPick(r, typed) {
                 const item = byId.get(String(r.id));
                 if (!item) { pickItem(row, null, false); hint(row, {text: 'This item is not available here (inactive).', cls: 'ic-hint--bad'}); return; }
@@ -122,7 +124,7 @@
         const desc = row.querySelector('[data-f=description]').value;
         const parts = [];
         let cls = '';
-        if (!item && row.querySelector('.ic-item-input').value.trim()) { parts.push('Not in item list — pick a suggestion.'); cls = 'ic-hint--bad'; }
+        if (!item && row.querySelector('.ic-item-input').value.trim()) { parts.push('Not in item list — pick a suggestion or tap “Add as new item”.'); cls = 'ic-hint--bad'; }
         if (item && MODE === 'purchase' && item.rate) parts.push('Last rate ₹' + item.rate);
         if (item && item.name_ta) parts.push(item.name_ta);
         if (item && MODE === 'request') parts.push('Stock unit: ' + item.unit);
@@ -157,7 +159,7 @@
             hint(row, {text: 'Maybe “' + s.name + '” (' + data.confidence + '%) — check and select', cls: 'ic-hint--warn'});
             row.classList.add('--bad');
         } else {
-            hint(row);
+            hint(row, data.note ? {text: data.note} : undefined);
         }
         attachPicker(row);
         if (item) pickers.get(row)?.setPicked({id: item.id, name: item.name});
@@ -337,6 +339,19 @@
     // external hook: quick chips ("recently used") add an item to the first empty row
     window.icGrids = window.icGrids || {};
     window.icGrids[MODE] = {
+        /** rows the user has filled (an item picked or something typed) */
+        filledCount() {
+            return [...rowsEl.children].filter(r => r.querySelector('[data-f=inventory_item_id]').value || r.querySelector('.ic-item-input').value.trim()).length;
+        },
+        /** replace all rows (e.g. pre-fill from a hall order's recipes); rows stay fully editable */
+        setLines(lines) {
+            rowsEl.innerHTML = '';
+            grid.parentElement.querySelector('.ic-banner')?.remove();
+            lines.forEach(l => addRow(l));
+            if (!lines.length) for (let i = 0; i < 3; i++) addRow({});
+            addRow({});
+            renumber();
+        },
         addItem(id) {
             const item = byId.get(String(id));
             if (!item) return;

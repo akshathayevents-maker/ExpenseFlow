@@ -29,7 +29,7 @@ class InventoryItemController extends Controller
 
     public function index(Request $request): View
     {
-        $filters = $request->only(['search', 'category_id', 'status', 'stock_status']);
+        $filters = $request->only(['search', 'category_id', 'status', 'stock_status', 'review']);
 
         $items = InventoryItem::with('category')
             // shared catalogue search (English / Tamil / aliases) + SKU
@@ -37,6 +37,7 @@ class InventoryItemController extends Controller
                 ->whereIn('id', $this->search->matchingIds($v) ?: [0])
                 ->orWhereRaw('LOWER(sku) LIKE ?', ['%' . mb_strtolower($v) . '%'])
             ))
+            ->when($filters['review'] ?? null, fn ($q) => $q->where('needs_review', true))
             ->when($filters['category_id'] ?? null, fn ($q, $v) => $q->where('inventory_category_id', $v))
             ->when($filters['status'] ?? null, fn ($q, $v) => $q->where('status', $v))
             ->when($filters['stock_status'] ?? null, function ($q, $v) {
@@ -58,6 +59,7 @@ class InventoryItemController extends Controller
             'low_stock'      => InventoryItem::active()->lowStock()->count(),
             'out_of_stock'   => InventoryItem::active()->outOfStock()->count(),
             'critical'       => InventoryItem::active()->critical()->count(),
+            'needs_review'   => InventoryItem::where('needs_review', true)->count(),
             'inventory_value' => (float) InventoryItem::active()
                 ->selectRaw('COALESCE(SUM(current_stock * average_cost), 0) as val')
                 ->value('val'),
@@ -116,7 +118,8 @@ class InventoryItemController extends Controller
             return $warn;
         }
         $old = $item->only(['name', 'name_ta', 'minimum_stock', 'status']);
-        $item->update(collect($request->validated())->except('confirm_duplicate')->all());
+        // an admin saving the item counts as reviewing it
+        $item->update(collect($request->validated())->except('confirm_duplicate')->all() + ['needs_review' => false]);
         $this->audit->log('updated', 'inventory_item', $item->id, $item->name, $old, $item->fresh()->only(['name', 'name_ta', 'minimum_stock', 'status']));
         return redirect()->route('admin.inventory.items.show', $item)->with('success', 'Item updated.');
     }
@@ -172,6 +175,14 @@ class InventoryItemController extends Controller
             ->unique('id')->values()->all();
 
         return $similar ? back()->withInput()->with('duplicates', $similar) : null;
+    }
+
+    public function markReviewed(InventoryItem $item): RedirectResponse
+    {
+        $item->update(['needs_review' => false]);
+        $this->audit->log('reviewed', 'inventory_item', $item->id, $item->name);
+
+        return back()->with('success', "“{$item->name}” marked as reviewed.");
     }
 
     public function storeAlias(Request $request, InventoryItem $item): RedirectResponse

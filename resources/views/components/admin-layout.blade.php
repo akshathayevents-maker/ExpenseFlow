@@ -434,6 +434,13 @@
             margin-left: -2px;
         }
 
+        .sidebar-group-body .sb-sub {
+            padding: 10px 0 3px 1.6rem;
+            font-size: .62rem; font-weight: 760; letter-spacing: .14em; text-transform: uppercase;
+            color: rgba(255,255,255,.38);
+        }
+        .sidebar-group-body .sb-sub:first-child { padding-top: 4px; }
+
         /* Divider */
         .sb-divider {
             height: 1px; background: rgba(255,255,255,.05);
@@ -859,8 +866,6 @@
 
         {{-- Store & Inventory (one entry for catalogue, stock, purchasing and issues) ── --}}
         @php
-            $isReceipts = request()->routeIs('inventory.purchases.receive-form') || (request()->routeIs('inventory.purchases.index') && request('status') === 'approved');
-            $isMovements = request()->routeIs('inventory.reports.show') && request()->route('report') === 'movements';
         @endphp
         <button class="sidebar-group-btn {{ $grpInventory ? 'has-active' : '' }}"
                 data-bs-toggle="collapse" data-bs-target="#grp-inventory"
@@ -871,42 +876,48 @@
             <i class="bi bi-chevron-down sidebar-chevron"></i>
         </button>
         <div class="collapse sidebar-group-body {{ $grpInventory ? 'show' : '' }}" data-bs-parent="#admin-nav-accordion" id="grp-inventory">
-            <a href="{{ route('inventory.home') }}" class="nav-link {{ request()->routeIs('inventory.home') ? 'active' : '' }}">
+            {{-- grouped by job; Goods Receipts / Stock Movements / Stock Alerts are reached from Purchases, Reports and Stock --}}
+            <div class="sb-sub">Daily</div>
+            <a href="{{ route('inventory.home') }}" class="nav-link {{ request()->routeIs('inventory.home') ? 'active' : '' }}"
+               title="Today at a glance: what needs approving, receiving or reordering">
                 <i class="bi bi-grid"></i> Overview
             </a>
-            <a href="{{ route('admin.inventory.items.index') }}"
-               class="nav-link {{ request()->routeIs('admin.inventory.items.*', 'admin.inventory.categories.*') ? 'active' : '' }}">
-                <i class="bi bi-journal-text"></i> Item Catalogue
-            </a>
-            <a href="{{ route('inventory.stock') }}" class="nav-link {{ request()->routeIs('inventory.stock') ? 'active' : '' }}">
-                <i class="bi bi-boxes"></i> Stock
-            </a>
-            <a href="{{ route('inventory.reports.show', 'movements') }}" class="nav-link {{ $isMovements ? 'active' : '' }}">
-                <i class="bi bi-arrow-left-right"></i> Stock Movements
-            </a>
-            <a href="{{ route('inventory.purchases.index') }}" class="nav-link {{ request()->routeIs('inventory.purchases.*') && ! $isReceipts ? 'active' : '' }}">
-                <i class="bi bi-bag-check"></i> Purchases
-            </a>
-            <a href="{{ route('inventory.purchases.index', ['status' => 'approved']) }}" class="nav-link {{ $isReceipts ? 'active' : '' }}">
-                <i class="bi bi-box-arrow-in-down"></i> Goods Receipts
-            </a>
-            <a href="{{ route('admin.inventory.bills.index') }}" class="nav-link {{ request()->routeIs('admin.inventory.bills.*') ? 'active' : '' }}">
-                <i class="bi bi-receipt"></i> Supplier Bills
-            </a>
-            <a href="{{ route('admin.purchase-plans.index') }}" class="nav-link {{ request()->routeIs('admin.purchase-plans.*') ? 'active' : '' }}">
-                <i class="bi bi-cart3"></i> Purchase Plans
-            </a>
-            <a href="{{ route('inventory.material-requests.index') }}" class="nav-link {{ request()->routeIs('inventory.material-requests.*') ? 'active' : '' }}">
+            <a href="{{ route('inventory.material-requests.index') }}" class="nav-link {{ request()->routeIs('inventory.material-requests.*') ? 'active' : '' }}"
+               title="Kitchen asks for materials; approve and issue them">
                 <i class="bi bi-list-check"></i> Material Requests
             </a>
-            <a href="{{ route('admin.inventory.alerts.index') }}" class="nav-link {{ request()->routeIs('admin.inventory.alerts.*') ? 'active' : '' }}">
-                <i class="bi bi-exclamation-triangle"></i> Stock Alerts
+            <a href="{{ route('inventory.stock') }}" class="nav-link {{ request()->routeIs('inventory.stock', 'admin.inventory.alerts.*') ? 'active' : '' }}"
+               title="What is in the store, what is low, what is arriving">
+                <i class="bi bi-boxes"></i> Stock
             </a>
-            <a href="{{ route('inventory.reports.index') }}" class="nav-link {{ request()->routeIs('inventory.reports.*') && ! $isMovements ? 'active' : '' }}">
-                <i class="bi bi-shield-check"></i> Reports
+
+            <div class="sb-sub">Buying</div>
+            <a href="{{ route('inventory.purchases.index') }}" class="nav-link {{ request()->routeIs('inventory.purchases.*') ? 'active' : '' }}"
+               title="Create, approve and receive purchases">
+                <i class="bi bi-bag-check"></i> Purchases
             </a>
-            <a href="{{ route('inventory.standards.index') }}" class="nav-link {{ request()->routeIs('inventory.standards.*') ? 'active' : '' }}">
+            <a href="{{ route('admin.inventory.bills.index') }}" class="nav-link {{ request()->routeIs('admin.inventory.bills.*') ? 'active' : '' }}"
+               title="Upload a supplier bill photo/PDF — it is read automatically and turned into a purchase">
+                <i class="bi bi-upc-scan"></i> Scan Supplier Bill
+            </a>
+            <a href="{{ route('admin.purchase-plans.index') }}" class="nav-link {{ request()->routeIs('admin.purchase-plans.*') ? 'active' : '' }}"
+               title="Shopping lists planned ahead of events">
+                <i class="bi bi-cart3"></i> Purchase Plans
+            </a>
+
+            <div class="sb-sub">Setup &amp; reports</div>
+            <a href="{{ route('admin.inventory.items.index') }}"
+               class="nav-link {{ request()->routeIs('admin.inventory.items.*', 'admin.inventory.categories.*') ? 'active' : '' }}"
+               title="All items, units, Tamil names and categories">
+                <i class="bi bi-journal-text"></i> Item Catalogue
+            </a>
+            <a href="{{ route('inventory.standards.index') }}" class="nav-link {{ request()->routeIs('inventory.standards.*') ? 'active' : '' }}"
+               title="Quantity per person for each dish, used to suggest materials">
                 <i class="bi bi-sliders2"></i> Recipe Standards
+            </a>
+            <a href="{{ route('inventory.reports.index') }}" class="nav-link {{ request()->routeIs('inventory.reports.*') ? 'active' : '' }}"
+               title="Stock movements, wastage, losses and costs">
+                <i class="bi bi-shield-check"></i> Reports
             </a>
         </div>
 

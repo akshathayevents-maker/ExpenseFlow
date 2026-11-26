@@ -60,11 +60,8 @@ class HallMenuService
         $plans = $booking->uses_mixed_food ? $booking->foodSplits->pluck('mealPlan')->filter() : collect([$booking->mealPlan])->filter();
         $lines = [];
         foreach ($plans as $plan) {
-            foreach (preg_split('/[\r\n,;•]+/u', (string) $plan->description) as $name) {
-                $name = trim(preg_replace('/^[\-\*\d\.\)\s]+/u', '', $name));
-                if ($name !== '' && mb_strlen($name) <= 150) {
-                    $lines[] = ['name' => $name, 'meal_type' => null, 'change_type' => 'plan', 'is_removed' => false, 'notes' => null];
-                }
+            foreach ($plan->dishList() as $name) {
+                $lines[] = ['name' => $name, 'meal_type' => null, 'change_type' => 'plan', 'is_removed' => false, 'notes' => null];
             }
         }
 
