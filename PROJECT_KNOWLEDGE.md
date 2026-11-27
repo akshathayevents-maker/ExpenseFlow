@@ -339,6 +339,11 @@ Material request detail `inventory.material-requests.show` (2026-11-26): header 
 (Requested → Approved → Handed over → Usage recorded [→ Reviewed]; rejected/cancelled shown as a stop), facts strip (for, needed,
 people, items, material cost for admin/manager), "Notes & history" card, Materials table showing only stages that happened. Workflow
 forms are unchanged; each is colour-coded by CSS on its action URL (approve red, handover blue, returns green, usage amber, review violet).
+Purchase plans list `admin.purchase-plans.index` (2026-11-27): status strip (unknown `?status=` ignored), title search + planned
+date filter, table ≥1100px (plan, planned for [past-date red], items + urgent/high count, creator, status, estimate) / cards below.
+Estimate is an SQL sub-select (Σ estimated_unit_cost × suggested_quantity), counts one grouped query — item models are not loaded.
+Rail "Needs buying" (items with a reorder level at/below it → Suggestions) + flow explainer. Plans never change stock.
+Tests: `PurchasePlanListTest.php`.
 Sidebar Store & Inventory is grouped Daily / Buying / Setup & reports (9 links).
 AI recipe generator (2026-11-27): Claude via the official `anthropic-ai/sdk` (`App\Services\Ai\ClaudeRecipeAiClient`, bound to
 `RecipeAiClient` in AppServiceProvider; tests bind `FakeRecipeAi` from `tests/Pest.php`). Config `services.anthropic` (`ANTHROPIC_API_KEY`,
