@@ -1105,6 +1105,62 @@
     });
 </script>
 <script>
+    /*
+     * iOS KEYBOARD BLANK-AREA FIX (phones, every admin page).
+     *
+     * On phones html/body are locked to 100svh with overflow:hidden and
+     * #main-content is the only scroll container (public/css/mobile.css).
+     * When the on-screen keyboard opens, iOS Safari still scrolls the
+     * *document* up to bring the focused input into view — even though the
+     * document is overflow:hidden. When the keyboard closes it does not
+     * always scroll back, and it may not repaint #main-content's composited
+     * layer: the page is left shifted with a blank band below (seen on the
+     * booking form and elsewhere).
+     *
+     * Heal it after the keyboard goes away: put the document back to 0 and
+     * force one repaint of the scroll container, keeping the user's own
+     * scroll position inside #main-content.
+     */
+    (function () {
+        var main = document.getElementById('main-content');
+        if (!main) return;
+        var phone = window.matchMedia('(max-width: 767.98px)');
+        var timers = [];
+        function heal() {
+            if (!phone.matches) return;
+            var a = document.activeElement;
+            if (a && a.matches && a.matches('input:not([type=checkbox]):not([type=radio]):not([type=button]):not([type=submit]),textarea,select,[contenteditable="true"]')) return; // keyboard still up
+            if (window.scrollY || document.documentElement.scrollTop || document.body.scrollTop) {
+                window.scrollTo(0, 0);
+                document.documentElement.scrollTop = 0;
+                document.body.scrollTop = 0;
+            }
+            var st = main.scrollTop;
+            main.style.transform = 'translateZ(0)';
+            void main.offsetHeight;          // force layout + repaint
+            main.style.transform = '';
+            main.scrollTop = st;
+        }
+        function soon() {
+            timers.forEach(clearTimeout);
+            timers = [setTimeout(heal, 60), setTimeout(heal, 350), setTimeout(heal, 800)];
+        }
+        document.addEventListener('focusout', function (e) {
+            if (e.target && e.target.matches && e.target.matches('input,textarea,select,[contenteditable="true"]')) soon();
+        }, true);
+        if (window.visualViewport) {
+            var lastH = window.visualViewport.height;
+            window.visualViewport.addEventListener('resize', function () {
+                var h = window.visualViewport.height;
+                if (h > lastH + 80) soon();   // viewport grew back = keyboard closed
+                lastH = h;
+            });
+        }
+        window.addEventListener('orientationchange', soon);
+        window.addEventListener('pageshow', soon);
+    })();
+</script>
+<script>
     // Global double-submission guard: disables submit button on form submit.
     // Re-enabled automatically on page reload (validation errors) or back-navigation.
     document.addEventListener('submit', function (e) {
