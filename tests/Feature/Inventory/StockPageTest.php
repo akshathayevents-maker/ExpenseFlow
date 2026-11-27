@@ -18,3 +18,11 @@ it('lists stocked items first and filters by status, search and category without
 
     $this->actingAs(icUser())->get(route('inventory.stock'))->assertForbidden();
 });
+
+it('has an out-of-stock tile and category counts', function () {
+    $store = icUser('employee', true);
+    icItem('Rice', 'kg', 10);
+    icItem('Almonds', 'kg', 0);
+    $this->actingAs($store)->get(route('inventory.stock', ['show' => 'out']))->assertOk()
+        ->assertSee('Out of stock')->assertSee('data-k="out"', false)->assertSee('<span data-count>1</span>', false);
+});

@@ -1,5 +1,6 @@
 <x-admin-layout title="Edit Recipe — {{ $recipe->name }}">
-<div class="ef-recipe-library" style="padding-bottom:96px">
+@include('kitchen.recipes._form-style')
+<div class="ef-recipe-library rc-page" style="padding-bottom:96px">
 
     {{-- ── Hero ──────────────────────────────────────────────────────────── --}}
     <header class="ef-create-hero">
@@ -10,6 +11,11 @@
             <div class="ef-eyebrow">Kitchen · Edit Recipe</div>
             <h1 class="ef-create-title">{{ $recipe->name }}</h1>
             <p class="ef-shell-note">Update recipe details, ingredients, and preparation steps.</p>
+            <nav class="rc-steps" aria-label="Sections">
+                <a href="#rc-info" class="--info"><b>1</b> Details</a>
+                <a href="#rc-ing" class="--ing"><b>2</b> Ingredients</a>
+                <a href="#rc-sop" class="--sop"><b>3</b> Steps</a>
+            </nav>
         </div>
         <div class="ef-create-actions">
             <a href="{{ route('kitchen.recipes.show', $recipe) }}" class="ef-btn">
@@ -41,7 +47,7 @@
             <main class="ef-flow">
 
                 {{-- ─── Section 1: Recipe Information ─── --}}
-                <x-premium.card>
+                <x-premium.card class="rc-sec --info" id="rc-info">
                     <div class="ef-section-intro">
                         <span class="ef-section-number">1</span>
                         <h2 class="ef-section-heading">Recipe Information</h2>
@@ -144,7 +150,7 @@
                 </x-premium.card>
 
                 {{-- ─── Section 2: Ingredients ─── --}}
-                <x-premium.card>
+                <x-premium.card class="rc-sec --ing" id="rc-ing">
                     <div class="ef-section-intro">
                         <span class="ef-section-number">2</span>
                         <h2 class="ef-section-heading">Ingredients</h2>
@@ -179,7 +185,7 @@
                 </x-premium.card>
 
                 {{-- ─── Section 3: SOP Steps ─── --}}
-                <x-premium.card>
+                <x-premium.card class="rc-sec --sop" id="rc-sop">
                     <div class="ef-section-intro">
                         <span class="ef-section-number">3</span>
                         <h2 class="ef-section-heading">Preparation Steps</h2>
@@ -229,6 +235,7 @@
 
     {{-- ── Sticky save bar ──────────────────────────────────────────────── --}}
     <div class="ef-kitchen-save-bar">
+        <span class="rc-save-hint"><i class="bi bi-info-circle"></i> Changing yield, ingredients, quantities or steps makes it <b>not verified</b> again.</span>
         <a href="{{ route('kitchen.recipes.show', $recipe) }}" class="ef-btn">Cancel</a>
         <button type="submit" form="recipeForm" class="ef-btn-dark"
                 style="display:inline-flex;align-items:center;gap:8px;padding:10px 22px;background:var(--ef-ink);color:#fff;border-radius:12px;font-size:.9rem;font-weight:620;border:none;cursor:pointer;">
