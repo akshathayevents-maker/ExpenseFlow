@@ -10,13 +10,24 @@ class MealPlan extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['name', 'category', 'description', 'items', 'price_per_person', 'is_active'];
+    public const MEAL_TIMES = ['breakfast' => 'Breakfast', 'lunch' => 'Lunch', 'dinner' => 'Dinner'];
+
+    protected $fillable = ['name', 'category', 'meal_times', 'description', 'items', 'price_per_person', 'is_active'];
 
     protected $casts = [
         'price_per_person' => 'decimal:2',
         'is_active'        => 'boolean',
         'items'            => 'array',
+        'meal_times'       => 'array',
     ];
+
+    /** "Breakfast + Lunch", or null when the package isn't tagged with meals. */
+    public function mealTimesLabel(): ?string
+    {
+        $t = array_values(array_intersect(array_keys(self::MEAL_TIMES), $this->meal_times ?? []));
+
+        return $t ? implode(' + ', array_map(fn ($k) => self::MEAL_TIMES[$k], $t)) : null;
+    }
 
     public const MAX_ITEMS = 100;
 

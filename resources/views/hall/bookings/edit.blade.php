@@ -304,6 +304,24 @@
                     <input type="number" id="number_of_people" name="number_of_people" class="ef-input @error('number_of_people') --error @enderror"
                            value="{{ old('number_of_people', $booking->number_of_people) }}" min="1" required>
                 </div>
+            {{-- Meal checkboxes --}}
+            <div id="field-meals" style="grid-column:1/-1;display:flex;gap:8px 20px;flex-wrap:wrap;align-items:center"><span class="ef-label" style="width:100%;margin:0">Meals <small style="font-weight:600;text-transform:none;letter-spacing:0;color:var(--ef-muted)">— fills the time and filters packages</small></span>
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.85rem;font-weight:600;color:var(--ef-ink-2)">
+                    <input type="checkbox" id="has_breakfast" name="has_breakfast" value="1" {{ old('has_breakfast', $booking->has_breakfast) ? 'checked' : '' }}
+                           style="width:16px;height:16px;accent-color:var(--ef-emerald)">
+                    <i class="bi bi-cup-hot" style="color:#d97706"></i> Breakfast
+                </label>
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.85rem;font-weight:600;color:var(--ef-ink-2)">
+                    <input type="checkbox" id="has_lunch" name="has_lunch" value="1" {{ old('has_lunch', $booking->has_lunch) ? 'checked' : '' }}
+                           style="width:16px;height:16px;accent-color:var(--ef-emerald)">
+                    <i class="bi bi-sun" style="color:#f59e0b"></i> Lunch
+                </label>
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.85rem;font-weight:600;color:var(--ef-ink-2)">
+                    <input type="checkbox" id="has_dinner" name="has_dinner" value="1" {{ old('has_dinner', $booking->has_dinner) ? 'checked' : '' }}
+                           style="width:16px;height:16px;accent-color:var(--ef-emerald)">
+                    <i class="bi bi-moon-stars" style="color:#6366f1"></i> Dinner
+                </label>
+            </div>
                 <div>
                     <label class="ef-label">Start Time <span style="color:var(--ef-danger)">*</span></label>
                     <input type="time" id="start_time" name="start_time" class="ef-input @error('start_time') --error @enderror"
@@ -334,6 +352,7 @@
             </label>
             <input type="hidden" name="uses_mixed_food" id="uses_mixed_food" value="{{ old('uses_mixed_food', $booking->uses_mixed_food) ? '1' : '0' }}">
 
+            <div class="ef-shell-note" id="planFilterNote" hidden style="font-size:.8rem;color:var(--ef-muted);margin-bottom:8px"></div>
             <div class="ef-eb-meal-grid" id="normalMealPlanField" style="{{ old('uses_mixed_food', $booking->uses_mixed_food) ? 'display:none' : '' }}">
                 {{-- No plan option --}}
                 <div class="ef-eb-meal-card no-plan {{ old('meal_plan_id', $booking->meal_plan_id) == '' ? 'selected' : '' }}"
@@ -348,12 +367,13 @@
                     $selected = old('meal_plan_id', $booking->meal_plan_id) == $mp->id;
                 @endphp
                 <div class="ef-eb-meal-card {{ $selected ? 'selected' : '' }}"
-                     data-id="{{ $mp->id }}" data-price="{{ $mp->price_per_person }}"
+                     data-id="{{ $mp->id }}" data-price="{{ $mp->price_per_person }}" data-meals="{{ implode(',', $mp->meal_times ?? []) }}"
                      onclick="selectMealCard(this)">
                     <div class="ef-eb-meal-check"><i class="bi bi-check"></i></div>
                     <span class="ef-eb-meal-cat {{ $catClass }}">{{ ucfirst($mp->category) }}</span>
                     <div class="ef-eb-meal-name">{{ $mp->name }}</div>
                     <div class="ef-eb-meal-price">₹{{ number_format($mp->price_per_person, 0) }} / guest</div>
+                    @if($mp->mealTimesLabel())<div style="font-size:.68rem;font-weight:700;color:var(--ef-emerald-dk);margin-top:2px">{{ $mp->mealTimesLabel() }}</div>@endif
                     @if($mp->description)
                         <div style="font-size:.7rem;color:var(--ef-muted);margin-top:4px;line-height:1.4">{{ Str::limit($mp->description, 50) }}</div>
                     @endif
@@ -423,24 +443,6 @@
 
             @include('hall.bookings._menu_builder')
 
-            {{-- Meal checkboxes --}}
-            <div style="display:flex;gap:20px;margin-top:16px;flex-wrap:wrap">
-                <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.85rem;font-weight:600;color:var(--ef-ink-2)">
-                    <input type="checkbox" id="has_breakfast" name="has_breakfast" value="1" {{ old('has_breakfast', $booking->has_breakfast) ? 'checked' : '' }}
-                           style="width:16px;height:16px;accent-color:var(--ef-emerald)">
-                    <i class="bi bi-cup-hot" style="color:#d97706"></i> Breakfast
-                </label>
-                <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.85rem;font-weight:600;color:var(--ef-ink-2)">
-                    <input type="checkbox" id="has_lunch" name="has_lunch" value="1" {{ old('has_lunch', $booking->has_lunch) ? 'checked' : '' }}
-                           style="width:16px;height:16px;accent-color:var(--ef-emerald)">
-                    <i class="bi bi-sun" style="color:#f59e0b"></i> Lunch
-                </label>
-                <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.85rem;font-weight:600;color:var(--ef-ink-2)">
-                    <input type="checkbox" id="has_dinner" name="has_dinner" value="1" {{ old('has_dinner', $booking->has_dinner) ? 'checked' : '' }}
-                           style="width:16px;height:16px;accent-color:var(--ef-emerald)">
-                    <i class="bi bi-moon-stars" style="color:#6366f1"></i> Dinner
-                </label>
-            </div>
         </div>
     </div>
 

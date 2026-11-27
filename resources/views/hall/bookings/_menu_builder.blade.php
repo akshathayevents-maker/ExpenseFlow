@@ -77,6 +77,7 @@
 .mb-hint button{border:0;background:none;padding:0;color:var(--ef-gold);font-weight:800;cursor:pointer;text-decoration:underline}
 .mb-rep{grid-column:1/-1;display:flex;gap:6px}
 .mb-rep input{flex:1;min-width:0;min-height:38px;padding:5px 10px;border-radius:9px;border:1px solid var(--ef-gold);font-size:16px}
+.mb-link{border:0;background:none;padding:0;color:var(--ef-gold);font-weight:800;text-decoration:underline;cursor:pointer;font-size:inherit}
 .mb-empty{margin:0;padding:14px;font-size:.84rem;color:var(--ef-faint)}
 .mb-add{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--ef-border)}
 .mb-add-in{position:relative;flex:1;min-width:0;margin:0}
@@ -298,6 +299,41 @@
             });
         });
     });
+
+    // ── Package filter by the ticked meals (Event section) ──────────────────
+    // Packages tagged with exactly the ticked meals (e.g. Breakfast + Lunch) are shown together with
+    // untagged ones; the currently chosen package always stays visible. No exact match → show all.
+    const MEALS = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner' };
+    const note = $('planFilterNote');
+    const allOpts = planSel && planSel.tagName === 'SELECT' ? [...planSel.options].map(o => o.cloneNode(true)) : null;
+    let showAll = false;
+    function ticked() { return Object.keys(MEALS).filter(m => $('has_' + m)?.checked); }
+    function filterPlans() {
+        const S = ticked(), key = S.join(','), cur = planSel ? String(planSel.value) : '';
+        const tags = id => (PLANS[id]?.meal_times || []);
+        const exact = Object.keys(PLANS).filter(id => tags(id).length && tags(id).join(',') === key);
+        const on = S.length > 0 && !showAll && exact.length > 0;
+        const visible = id => !id || !on || !tags(id).length || tags(id).join(',') === key || String(id) === cur;
+        if (allOpts) {
+            planSel.innerHTML = '';
+            allOpts.filter(o => visible(o.value)).forEach(o => planSel.appendChild(o.cloneNode(true)));
+            planSel.value = cur;
+        } else {
+            document.querySelectorAll('.ef-eb-meal-card[data-id]').forEach(c => { c.style.display = visible(c.dataset.id) ? '' : 'none'; });
+        }
+        if (!note) return;
+        const lbl = S.map(m => MEALS[m]).join(' + ');
+        if (!S.length) { note.hidden = true; return; }
+        note.hidden = false;
+        note.innerHTML = on
+            ? `Showing ${exact.length} ${exact.length === 1 ? 'package' : 'packages'} for <b>${lbl}</b> (plus untagged). <button type="button" class="mb-link" data-pf="all">Show all</button>`
+            : (showAll && exact.length
+                ? `Showing all packages. <button type="button" class="mb-link" data-pf="only">Only ${lbl}</button>`
+                : `No package is tagged for <b>${lbl}</b> — showing all.`);
+    }
+    note?.addEventListener('click', e => { const b = e.target.closest('[data-pf]'); if (!b) return; showAll = b.dataset.pf === 'all'; filterPlans(); });
+    ['breakfast', 'lunch', 'dinner'].forEach(m => $('has_' + m)?.addEventListener('change', () => { showAll = false; filterPlans(); }));
+    filterPlans();
 
     // init: saved lines (edit / validation error) or the package dishes
     if (Array.isArray(SAVED)) {

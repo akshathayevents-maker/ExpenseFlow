@@ -189,6 +189,7 @@
                     $nd     = count($dishes);
                     $preview = implode(', ', array_slice($dishes, 0, 4)) . ($nd > 4 ? ' +' . ($nd - 4) . ' more' : '');
                     $catName = $categories[$plan->category] ?? ucfirst((string) $plan->category);
+                    $mtLabel = $plan->mealTimesLabel();
                 @endphp
                 <article class="mp-row {{ $plan->is_active ? '' : '--off' }}" data-plan="{{ $plan->id }}">
                     <a class="mp-what" href="{{ route('hall.meal-plans.edit', $plan) }}">
@@ -198,7 +199,7 @@
                             <span class="mp-s">{{ $preview !== '' ? $preview : 'No dishes listed yet' }}</span>
                         </span>
                     </a>
-                    <span class="mp-c-cat">{{ $catName }}</span>
+                    <span class="mp-c-cat">{{ $catName }}@if($mtLabel)<small style="display:block;font-size:.7rem;color:var(--ef-muted)">{{ $mtLabel }}</small>@endif</span>
                     <span class="mp-c-dish">{{ $nd }} {{ Str::plural('dish', $nd) }}</span>
                     <span class="mp-c-book">{{ $plan->bookings_count }} total
                         @if($plan->upcoming_count)<small class="--up">{{ $plan->upcoming_count }} upcoming</small>@endif
@@ -207,7 +208,7 @@
                     <span class="mp-price">₹{{ number_format($plan->price_per_person, 0) }}<small>per guest</small></span>
                     <div class="mp-mmeta">
                         <span class="mp-chip {{ $plan->is_active ? '--on' : '--off' }}">{{ $plan->is_active ? 'Active' : 'Inactive' }}</span>
-                        <span>{{ $catName }}</span>
+                        <span>{{ $catName }}@if($mtLabel) · {{ $mtLabel }}@endif</span>
                         <span>{{ $nd }} {{ Str::plural('dish', $nd) }}</span>
                         <span>{{ $plan->bookings_count }} {{ Str::plural('booking', $plan->bookings_count) }}</span>
                         @if($plan->upcoming_count)<span class="--up">{{ $plan->upcoming_count }} upcoming</span>@endif

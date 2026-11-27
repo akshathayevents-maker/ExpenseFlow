@@ -277,6 +277,19 @@
             </div>
 
             <div class="ef-mpf-field">
+                <span class="ef-mpf-label">Served for</span>
+                @php $mtSel = (array) old('meal_times', $mealPlan->meal_times ?? []); @endphp
+                <div class="ef-mpf-mt" role="group" aria-label="Served for">
+                    @foreach(\App\Models\MealPlan::MEAL_TIMES as $k => $lab)
+                        <label><input type="checkbox" name="meal_times[]" value="{{ $k }}" @checked(in_array($k, $mtSel, true))> {{ $lab }}</label>
+                    @endforeach
+                </div>
+                <p style="margin:4px 0 0;font-size:.76rem;color:var(--ef-muted)">Tick one or more (e.g. Breakfast + Lunch). Bookings show this package when those meals are selected. Leave all unticked to offer it for any meal.</p>
+                @error('meal_times')<p class="ef-mpf-error">{{ $message }}</p>@enderror
+                <style>.ef-mpf-mt{display:flex;flex-wrap:wrap;gap:8px}.ef-mpf-mt label{display:inline-flex;align-items:center;gap:7px;min-height:42px;padding:6px 14px;border:1px solid var(--ef-border);border-radius:10px;font-weight:700;font-size:.86rem;cursor:pointer;background:var(--ef-surface)}.ef-mpf-mt label:has(input:checked){border-color:var(--ef-emerald);background:rgba(30,122,60,.07)}.ef-mpf-mt input{width:17px;height:17px;accent-color:var(--ef-emerald)}</style>
+            </div>
+
+            <div class="ef-mpf-field">
                 <label class="ef-mpf-label" for="category">Category <span class="req">*</span></label>
                 <select id="category" name="category"
                         class="ef-mpf-select @error('category') is-invalid @enderror" required>

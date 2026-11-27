@@ -13,6 +13,7 @@ return [
     // ── Food category definitions ──────────────────────────────────────────
     'items' => [
         'welcome_drink'  => ['en' => 'Welcome Drink',   'ta' => 'வரவேற்பு பானம்'],
+        'tiffin'         => ['en' => 'Tiffin',           'ta' => 'டிபன்'],
         'sweet'          => ['en' => 'Sweet',            'ta' => 'ஸ்வீட்'],
         'starter'        => ['en' => 'Starter',          'ta' => 'ஸ்டார்டர்'],
         'soup'           => ['en' => 'Soup',             'ta' => 'சூப்'],

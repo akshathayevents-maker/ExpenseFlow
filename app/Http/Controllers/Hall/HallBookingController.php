@@ -428,12 +428,12 @@ class HallBookingController extends Controller
     private function menuBuilderData($mealPlans, ?HallBooking $booking): array
     {
         $plans = $mealPlans->mapWithKeys(fn ($p) => [$p->id => [
-            'name' => $p->name, 'price' => (float) $p->price_per_person, 'category' => $p->category, 'dishes' => array_values($p->dishList()),
+            'name' => $p->name, 'price' => (float) $p->price_per_person, 'category' => $p->category, 'dishes' => array_values($p->dishList()), 'meal_times' => array_values($p->meal_times ?? []),
         ]]);
         // a booking may use a plan that was deactivated since — keep it resolvable
         if ($booking?->mealPlan && ! $plans->has($booking->meal_plan_id)) {
             $p = $booking->mealPlan;
-            $plans[$p->id] = ['name' => $p->name, 'price' => (float) $p->price_per_person, 'category' => $p->category, 'dishes' => array_values($p->dishList())];
+            $plans[$p->id] = ['name' => $p->name, 'price' => (float) $p->price_per_person, 'category' => $p->category, 'dishes' => array_values($p->dishList()), 'meal_times' => array_values($p->meal_times ?? [])];
         }
         $catalogue = \App\Models\MenuItem::where('is_active', true)->with('eventRequestItem:id,price_per_person,is_active')
             ->ordered()->get(['id', 'item_en', 'category_en', 'event_request_menu_item_id'])

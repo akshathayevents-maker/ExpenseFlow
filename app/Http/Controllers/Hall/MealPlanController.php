@@ -66,9 +66,13 @@ class MealPlanController extends Controller
             'items.*'          => ['nullable', 'string', 'max:150'],
             'price_per_person' => ['required', 'numeric', 'min:0'],
             'is_active'        => ['boolean'],
+            'meal_times'       => ['nullable', 'array'],
+            'meal_times.*'     => ['in:breakfast,lunch,dinner'],
         ]);
 
         $data['is_active'] = $request->boolean('is_active', true);
+        // keep breakfast → lunch → dinner order; none ticked = not tagged (shown for any meal)
+        $data['meal_times'] = array_values(array_intersect(array_keys(MealPlan::MEAL_TIMES), $data['meal_times'] ?? [])) ?: null;
         $data['items'] = $this->cleanItems($data['items'] ?? []);
 
         MealPlan::create($data);
@@ -92,9 +96,13 @@ class MealPlanController extends Controller
             'items.*'          => ['nullable', 'string', 'max:150'],
             'price_per_person' => ['required', 'numeric', 'min:0'],
             'is_active'        => ['boolean'],
+            'meal_times'       => ['nullable', 'array'],
+            'meal_times.*'     => ['in:breakfast,lunch,dinner'],
         ]);
 
         $data['is_active'] = $request->boolean('is_active', true);
+        // keep breakfast → lunch → dinner order; none ticked = not tagged (shown for any meal)
+        $data['meal_times'] = array_values(array_intersect(array_keys(MealPlan::MEAL_TIMES), $data['meal_times'] ?? [])) ?: null;
         $data['items'] = $this->cleanItems($data['items'] ?? []);
 
         $mealPlan->update($data);

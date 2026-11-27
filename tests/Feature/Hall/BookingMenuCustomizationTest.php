@@ -178,3 +178,11 @@ it('renders the inline menu builder and food-only switches on the create page', 
         ->assertSee('"dishes":["Upma","Idly","Banana","Payasam"]', false)
         ->assertSee('id="field-hall-cost"', false);
 });
+
+it('puts the meal ticks in the event section and sends package meal tags to the filter', function () {
+    MealPlan::create(['name' => 'Tiffin', 'category' => 'standard', 'price_per_person' => 150, 'is_active' => true, 'meal_times' => ['breakfast'], 'items' => ['Idly']]);
+    $html = $this->actingAs(icUser('manager'))->get(route('hall.bookings.create'))->assertOk()
+        ->assertSee('"meal_times":["breakfast"]', false)->assertSee('id="planFilterNote"', false)->getContent();
+    // meals sit before the start time (event section), not in the catering section
+    expect(strpos($html, 'id="has_breakfast"'))->toBeLessThan(strpos($html, 'id="start_time"'));
+});

@@ -23,7 +23,7 @@ class MenuItemSync
         'welcome drinks' => 'welcome_drink', 'welcome drink' => 'welcome_drink', 'soup' => 'soup', 'starter' => 'starter',
         'starters' => 'starter', 'main course' => 'main_course', 'gravy' => 'gravy', 'rice' => 'rice', 'indian bread' => 'indian_bread',
         'breads' => 'indian_bread', 'dessert' => 'dessert', 'desserts' => 'dessert', 'sweet' => 'sweet', 'sweets' => 'sweet',
-        'ice cream' => 'ice_cream', 'beverage' => 'beverages', 'beverages' => 'beverages', 'salad' => 'salad', 'snacks' => 'evening_snacks',
+        'ice cream' => 'ice_cream', 'beverage' => 'beverages', 'beverages' => 'beverages', 'salad' => 'salad', 'snacks' => 'evening_snacks', 'tiffin' => 'tiffin', 'breakfast' => 'tiffin',
     ];
 
     public function __construct(private MenuTranslationService $translate) {}

@@ -73,6 +73,7 @@ shows "AI is not connected" and nothing is sent. Generation runs on the queue: a
 `--timeout` of at least 600 s. Failed dishes are retried from the batch page ("Retry failed"); `php artisan queue:failed` shows crashes.
 Generated recipes stay hidden from the kitchen until an admin verifies them in Kitchen → Recipes → Review queue.
 Without a key, `php artisan recipes:import-starter` adds 27 curated (non-AI) starter recipes as unverified drafts (safe to re-run).
+`php artisan menu:add-tiffin-dishes` adds the tiffin dishes (dosa varieties, idly, pongal, vada, chutneys…) and cauliflower dishes to /menu/items (use `--dry-run` first; safe to re-run, skips existing names). They appear on Customer Menu & Prices inactive at ₹0 until priced.
 Local development: run `php artisan queue:work --timeout=600 --tries=3` in a second terminal while generating; the generator page
 shows "No worker seen" otherwise.
 

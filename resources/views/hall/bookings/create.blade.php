@@ -178,6 +178,24 @@
                             @error('booking_date')<div class="ef-field-error">{{ $message }}</div>@enderror
                         </div>
 
+                        <div class="ef-span-12" id="field-meals">
+                            <span class="ef-label">Meals <small style="font-weight:600;text-transform:none;letter-spacing:0;color:var(--ef-muted)">— fills the time and filters packages</small></span>
+                            <div class="ef-choice-row">
+                                <label class="ef-choice ef-meal-choice">
+                                    <input type="checkbox" id="has_breakfast" name="has_breakfast" value="1" @checked(old('has_breakfast'))>
+                                    <span class="ef-choice-surface">Breakfast</span>
+                                </label>
+                                <label class="ef-choice ef-meal-choice">
+                                    <input type="checkbox" id="has_lunch" name="has_lunch" value="1" @checked(old('has_lunch'))>
+                                    <span class="ef-choice-surface">Lunch</span>
+                                </label>
+                                <label class="ef-choice ef-meal-choice">
+                                    <input type="checkbox" id="has_dinner" name="has_dinner" value="1" @checked(old('has_dinner'))>
+                                    <span class="ef-choice-surface">Dinner</span>
+                                </label>
+                            </div>
+                        </div>
+
                         <div class="ef-span-4">
                             <label class="ef-label" for="start_time">Start Time</label>
                             <input id="start_time" name="start_time" type="time" class="ef-input" value="{{ old('start_time') }}" required>
@@ -220,11 +238,12 @@
                             <select id="meal_plan_id" name="meal_plan_id" class="ef-select">
                                 <option value="" data-price="0">No meal plan</option>
                                 @foreach($mealPlans as $plan)
-                                    <option value="{{ $plan->id }}" data-price="{{ $plan->price_per_person }}" @selected(old('meal_plan_id') == $plan->id)>
+                                    <option value="{{ $plan->id }}" data-price="{{ $plan->price_per_person }}" data-meals="{{ implode(',', $plan->meal_times ?? []) }}" @selected(old('meal_plan_id') == $plan->id)>
                                         {{ $plan->name }} · ₹{{ number_format($plan->price_per_person, 0) }} per guest
                                     </option>
                                 @endforeach
                             </select>
+                            <div class="ef-shell-note" id="planFilterNote" hidden></div>
                             @error('meal_plan_id')<div class="ef-field-error">{{ $message }}</div>@enderror
                         </div>
 
@@ -288,23 +307,6 @@
                             <div class="ef-shell-note" id="foodSplitSummary" style="margin-top:8px"></div>
                         </div>
 
-                        <div class="ef-span-6">
-                            <span class="ef-label">Meal Selection</span>
-                            <div class="ef-choice-row">
-                                <label class="ef-choice ef-meal-choice">
-                                    <input type="checkbox" id="has_breakfast" name="has_breakfast" value="1" @checked(old('has_breakfast'))>
-                                    <span class="ef-choice-surface">Breakfast</span>
-                                </label>
-                                <label class="ef-choice ef-meal-choice">
-                                    <input type="checkbox" id="has_lunch" name="has_lunch" value="1" @checked(old('has_lunch'))>
-                                    <span class="ef-choice-surface">Lunch</span>
-                                </label>
-                                <label class="ef-choice ef-meal-choice">
-                                    <input type="checkbox" id="has_dinner" name="has_dinner" value="1" @checked(old('has_dinner'))>
-                                    <span class="ef-choice-surface">Dinner</span>
-                                </label>
-                            </div>
-                        </div>
 
                         <div class="ef-span-12">
                             <div class="ef-meal-estimate-box" id="mealEstimateBox" style="display:none">
