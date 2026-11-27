@@ -2,10 +2,10 @@
 @include('inventory.plans._style')
 @php
     $tiles = [
-        'mine' => ['My open plans', 'bi-person', '#2c5784', 'rgba(59,110,165,.06)'],
-        'approve' => ['Waiting approval', 'bi-hourglass-split', '#9a6413', 'rgba(200,144,42,.08)'],
-        'buy' => ['To buy / receive', 'bi-truck', 'var(--ef-emerald)', 'rgba(30,122,60,.05)'],
-        'done' => ['Closed', 'bi-check2-all', '#5f6b5a', 'transparent'],
+        'mine' => ['My open plans', 'bi-person', 'color-mix(in srgb,var(--ef-info) 75%,#000)', 'color-mix(in srgb,var(--ef-info) 6%,transparent)'],
+        'approve' => ['Waiting approval', 'bi-hourglass-split', 'color-mix(in srgb,var(--ef-gold) 75%,#000)', 'color-mix(in srgb,var(--ef-gold) 8%,transparent)'],
+        'buy' => ['To buy / receive', 'bi-truck', 'var(--ef-emerald)', 'color-mix(in srgb,var(--ef-emerald) 5%,transparent)'],
+        'done' => ['Closed', 'bi-check2-all', 'var(--ef-bluegray)', 'transparent'],
         'all' => ['All', 'bi-collection', 'var(--ef-ink)', 'transparent'],
     ];
 @endphp
@@ -21,8 +21,8 @@
 @media (max-width:719.98px){.pl-q{grid-template-columns:repeat(2,minmax(0,1fr))}.pl-qi[data-k=all]{grid-column:1/-1}.pl-qi strong{font-size:1.15rem}}
 .pl-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:12px 14px;border-top:1px solid var(--ef-border);text-decoration:none;color:var(--ef-ink)}
 .pl-row:first-child{border-top:0}
-.pl-row[data-status=submitted]{border-left:3px solid #d66e28}
-.pl-row.--review{background:rgba(214,110,40,.05)}
+.pl-row[data-status=submitted]{border-left:3px solid var(--ef-amber)}
+.pl-row.--review{background:color-mix(in srgb,var(--ef-amber) 5%,transparent)}
 .pl-row[data-status=rejected]{border-left:3px solid var(--ef-danger)}
 .pl-row[data-status=approved]{border-left:3px solid var(--ef-emerald)}
 .pl-qi[data-k=approve]:not(.--zero) small::after{content:"";width:7px;height:7px;border-radius:50%;background:var(--acc);margin-left:auto;animation:plPulse 1.6s ease-in-out infinite}
@@ -39,7 +39,7 @@
         <div style="flex:1 1 280px;min-width:0">
             <h1>Purchase plans</h1>
             <p>List what needs buying, send it for approval, then buy and receive it — stock only changes when goods are received.</p>
-            @if(auth()->user()->isAdmin() && $counts['approve'] && $tab !== 'approve')<p style="margin-top:6px"><a href="{{ route('inventory.plans.index', ['tab' => 'approve']) }}" style="color:#b4531c;font-weight:800"><i class="bi bi-bell-fill"></i> {{ $counts['approve'] }} {{ Str::plural('plan', $counts['approve']) }} waiting for your approval →</a></p>@endif
+            @if(auth()->user()->isAdmin() && $counts['approve'] && $tab !== 'approve')<p style="margin-top:6px"><a href="{{ route('inventory.plans.index', ['tab' => 'approve']) }}" style="color:color-mix(in srgb,var(--ef-amber) 70%,#000);font-weight:800"><i class="bi bi-bell-fill"></i> {{ $counts['approve'] }} {{ Str::plural('plan', $counts['approve']) }} waiting for your approval →</a></p>@endif
         </div>
         <div class="pl-acts">
             @if(auth()->user()->isAdmin())<a href="{{ route('admin.purchase-plans.index') }}" class="pl-btn"><i class="bi bi-graph-down"></i> Low-stock suggestions</a>@endif

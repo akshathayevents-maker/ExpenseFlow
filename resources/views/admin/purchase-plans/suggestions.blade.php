@@ -15,11 +15,11 @@
     $estimate = $toBuy->sum(fn ($i) => (float) ($i->average_cost ?? 0) * (float) $i->suggested_quantity);
     $tiles = [
         'all' => ['To buy', 'bi-cart', 'var(--ef-ink)', 'transparent'],
-        'urgent' => ['Urgent', 'bi-exclamation-octagon', 'var(--ef-danger)', 'rgba(192,57,43,.05)'],
-        'high' => ['High', 'bi-exclamation-triangle', '#b4531c', 'rgba(214,110,40,.07)'],
-        'normal' => ['Below minimum', 'bi-arrow-down-circle', '#9a6413', 'rgba(200,144,42,.08)'],
-        'empty' => ['Out · no minimum', 'bi-box', '#5f6b5a', 'rgba(95,107,90,.06)'],
-        'covered' => ['Already on order', 'bi-truck', '#2c5784', 'rgba(59,110,165,.06)'],
+        'urgent' => ['Urgent', 'bi-exclamation-octagon', 'var(--ef-danger)', 'color-mix(in srgb,var(--ef-danger) 5%,transparent)'],
+        'high' => ['High', 'bi-exclamation-triangle', 'color-mix(in srgb,var(--ef-amber) 70%,#000)', 'color-mix(in srgb,var(--ef-amber) 7%,transparent)'],
+        'normal' => ['Below minimum', 'bi-arrow-down-circle', 'color-mix(in srgb,var(--ef-gold) 75%,#000)', 'color-mix(in srgb,var(--ef-gold) 8%,transparent)'],
+        'empty' => ['Out · no minimum', 'bi-box', 'var(--ef-bluegray)', 'color-mix(in srgb,var(--ef-bluegray) 6%,transparent)'],
+        'covered' => ['Already on order', 'bi-truck', 'color-mix(in srgb,var(--ef-info) 75%,#000)', 'color-mix(in srgb,var(--ef-info) 6%,transparent)'],
     ];
 @endphp
 @push('styles')
@@ -35,7 +35,7 @@
 .sg-btn:hover{border-color:var(--ef-gold);color:var(--ef-ink)}
 .sg-btn .bi{color:var(--ef-gold)}
 .sg-btn.--main{background:var(--ef-ink);border-color:var(--ef-ink);color:#fff}
-.sg-btn.--main .bi{color:#f0c97a}
+.sg-btn.--main .bi{color:var(--ef-gold-hi)}
 .sg-btn:disabled{opacity:.45;cursor:not-allowed}
 @media (max-width:639.98px){.sg-head h1{font-size:1.25rem}.sg-acts{width:100%}.sg-acts .sg-btn{flex:1}}
 .sg-q{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:1px;border:1px solid var(--ef-border);border-radius:14px;background:var(--ef-border);overflow:hidden}
@@ -61,12 +61,12 @@
 .sg-row{border-top:1px solid var(--ef-border);border-left:3px solid var(--tone,transparent);cursor:pointer}
 .sg-row[hidden]{display:none}
 .sg-row:hover{background:var(--ef-bg-subtle)}
-.sg-row.--sel{background:rgba(200,144,42,.07)}
+.sg-row.--sel{background:color-mix(in srgb,var(--ef-gold) 7%,transparent)}
 .sg-row[data-p=urgent]{--tone:var(--ef-danger)}
-.sg-row[data-p=high]{--tone:#d66e28}
-.sg-row[data-p=normal]{--tone:#d89a3d}
+.sg-row[data-p=high]{--tone:var(--ef-amber)}
+.sg-row[data-p=normal]{--tone:var(--ef-amber)}
 .sg-row[data-p=empty]{--tone:var(--ef-border-strong)}
-.sg-row[data-p=low]{--tone:#3b6ea5;opacity:.75}
+.sg-row[data-p=low]{--tone:var(--ef-info);opacity:.75}
 .sg-row input[type=checkbox]{width:20px;height:20px;accent-color:var(--ef-gold)}
 .sg-n b{display:block;font-size:.92rem;font-weight:750}
 .sg-n b a{color:inherit;text-decoration:none}
@@ -79,11 +79,11 @@
 .sg-sug b{font-size:1.05rem;font-weight:800;font-variant-numeric:tabular-nums}
 .sg-sug small{display:block;font-size:.7rem;color:var(--ef-muted)}
 .sg-chip{display:inline-block;padding:1px 7px;border-radius:7px;font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.03em}
-.sg-chip.--urgent{background:rgba(192,57,43,.1);color:var(--ef-danger)}
-.sg-chip.--high{background:rgba(214,110,40,.12);color:#a3480f}
-.sg-chip.--normal{background:rgba(200,144,42,.15);color:#8a5a10}
+.sg-chip.--urgent{background:color-mix(in srgb,var(--ef-danger) 10%,transparent);color:var(--ef-danger)}
+.sg-chip.--high{background:color-mix(in srgb,var(--ef-amber) 12%,transparent);color:color-mix(in srgb,var(--ef-amber) 62%,#000)}
+.sg-chip.--normal{background:color-mix(in srgb,var(--ef-gold) 15%,transparent);color:color-mix(in srgb,var(--ef-gold) 70%,#000)}
 .sg-chip.--empty{background:var(--ef-bg-subtle);color:var(--ef-muted)}
-.sg-chip.--low{background:rgba(59,110,165,.12);color:#2c5784}
+.sg-chip.--low{background:color-mix(in srgb,var(--ef-info) 12%,transparent);color:color-mix(in srgb,var(--ef-info) 75%,#000)}
 .sg-m{grid-column:2/-1;display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.74rem;color:var(--ef-muted)}
 .sg-c-stock,.sg-c-use,.sg-c-coming,.sg-c-cost{display:none}
 @media (min-width:1100px){

@@ -40,6 +40,67 @@
   .pv-tbl td:first-child{display:block;text-align:left}
   .pv-tbl td:first-child::before{display:none}
 }
+.pr-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--ef-border)}
+.pr-find{flex:1 1 200px;min-width:0;min-height:38px;padding:5px 10px;border-radius:9px;border:1px solid var(--ef-border);font-size:16px;background:var(--ef-surface)}
+.pr-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.pr-chips::-webkit-scrollbar{display:none}
+.pr-chip{flex:0 0 auto;min-height:32px;padding:0 11px;border-radius:999px;border:1px solid var(--ef-border);background:var(--ef-surface);font-size:.76rem;font-weight:700;color:var(--ef-ink-2);cursor:pointer;white-space:nowrap}
+.pr-chip.--on{background:var(--ef-ink);border-color:var(--ef-ink);color:#fff}
+/* one dense line per item: # · item · Req → Appr → Bought → Recvd · status */
+.pr-head,.pr{display:grid;grid-template-columns:28px minmax(0,1fr) 72px 88px 104px 96px 128px;gap:10px;align-items:center;padding:0 14px}
+.pr-head{position:sticky;top:0;z-index:2;padding-top:7px;padding-bottom:7px;background:var(--ef-bg-subtle);border-bottom:1px solid var(--ef-border);font-size:.62rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ef-muted)}
+.pr-head .r{text-align:right}
+.pr{position:relative;min-height:52px;padding-top:7px;padding-bottom:9px;border-bottom:1px solid var(--ef-border);border-left:3px solid var(--tone,transparent)}
+.pr:nth-child(even){background:color-mix(in srgb,var(--ef-gold) 2%,transparent)}
+.pr[hidden]{display:none}
+.pr:hover{background:color-mix(in srgb,var(--ef-gold) 5%,transparent)}
+.pr[data-tone=as_planned],.pr[data-tone=approved]{--tone:var(--ef-emerald)}
+.pr[data-tone=short],.pr[data-tone=not_bought]{--tone:var(--ef-amber)}
+.pr[data-tone=over]{--tone:var(--ef-bluegray)}
+.pr[data-tone=awaiting]{--tone:var(--ef-info)}
+.pr[data-tone=submitted],.pr[data-tone=planned]{--tone:var(--ef-gold)}
+.pr[data-tone=dropped]{--tone:var(--ef-border-strong);opacity:.6}
+.pr-no{width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800;background:color-mix(in srgb,var(--tone,#999) 14%,transparent);color:color-mix(in srgb,var(--tone,#666) 75%,#000)}
+.pr-name{min-width:0;line-height:1.25}
+.pr-name b{font-size:.9rem;font-weight:750;color:var(--ef-ink);margin-right:6px}
+.pr-name span[lang=ta]{font-size:.84rem;font-weight:600;color:var(--ef-ink-2)}
+.pr-pri{font-style:normal;font-weight:900;font-size:.7rem;margin-left:5px;padding:0 5px;border-radius:5px;vertical-align:1px}
+.pr-pri.--urgent{background:color-mix(in srgb,var(--ef-danger) 12%,transparent);color:var(--ef-danger)}
+.pr-pri.--high{background:color-mix(in srgb,var(--ef-amber) 12%,transparent);color:color-mix(in srgb,var(--ef-amber) 62%,#000)}
+.pr-name small{display:flex;flex-wrap:wrap;gap:2px 8px;font-size:.72rem;color:var(--ef-muted)}
+.pr-name small:empty{display:none}
+.pr-name em{font-style:normal;font-weight:700}
+.pr-name em.--bad{color:var(--ef-danger)}
+.pr-name em.--info{color:color-mix(in srgb,var(--ef-info) 75%,#000)}
+.pr-q{text-align:right;font-weight:800;font-size:.9rem;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--ef-ink)}
+.pr-q u{text-decoration:none;font-weight:600;font-size:.7rem;color:var(--ef-muted);margin-left:2px}
+.pr-q.--chg{color:color-mix(in srgb,var(--ef-gold) 70%,#000)}
+.pr-q.--chg::after{content:"changed";display:block;font-size:.6rem;font-weight:800;color:color-mix(in srgb,var(--ef-gold) 70%,#000);text-transform:uppercase}
+.pr-q.--x{color:var(--ef-danger);text-decoration:line-through}
+.pr-q.--warn{color:color-mix(in srgb,var(--ef-amber) 62%,#000)}
+/* Received is the figure that matters — larger, with a soft highlight */
+.pr-q[data-k=Recvd]{font-size:1.15rem;font-weight:900;padding:3px 8px;border-radius:8px;background:color-mix(in srgb,var(--tone,var(--ef-emerald)) 10%,transparent)}
+.pr-q[data-k=Recvd] u{font-size:.74rem}
+.pr-q input{width:84px;min-height:34px;padding:3px 7px;border-radius:8px;border:1px solid var(--ef-gold);font-size:16px;font-weight:800;text-align:right;background:#fff}
+.pr-dim{color:var(--ef-faint);font-weight:600}
+.pr-st{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.pr-st small{font-size:.7rem;font-weight:700;color:var(--ef-muted)}
+.pr-bar{position:absolute;left:0;right:0;bottom:0;height:2px;background:linear-gradient(90deg,var(--tone,var(--ef-emerald)) var(--p),transparent var(--p))}
+.pr-none{padding:16px;text-align:center;color:var(--ef-muted);margin:0}
+/* phones: line 1 = # · item · status, line 2 = Req · Appr · Bought · Recvd in four even columns */
+@media (max-width:759.98px){
+  .pr-head{display:none}
+  .pr{grid-template-columns:24px repeat(4,minmax(0,1fr));gap:4px 8px;padding:8px 12px 10px}
+  .pr-no{grid-column:1;grid-row:1}
+  .pr-name{grid-column:2/5;grid-row:1}
+  .pr-st{grid-column:5;grid-row:1}
+  .pr-q{grid-row:2;text-align:left;font-size:.84rem}
+  .pr-q[data-k=Recvd]{font-size:1.05rem}
+  .pr-q[data-k=Req]{grid-column:2}.pr-q[data-k=Appr]{grid-column:3}.pr-q[data-k=Bought]{grid-column:4}.pr-q[data-k=Recvd]{grid-column:5}
+  .pr-q::before{content:attr(data-k);display:block;font-size:.58rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--ef-muted)}
+  .pr-q input{width:100%}
+  .pr-q u{margin-left:2px}
+}
 .pv-purch{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--ef-border);text-decoration:none;color:var(--ef-ink)}
 .pv-purch:first-child{border-top:0}
 .pv-purch:hover{background:var(--ef-bg-subtle);color:var(--ef-ink)}
@@ -92,38 +153,77 @@
     <form method="POST" action="{{ route('inventory.plans.approve', $plan) }}" id="pvApprove">
         @csrf
         <section class="pl-panel" style="--acc:var(--ef-emerald)">
-            <div class="pl-ph" style="--tint:rgba(30,122,60,.05)"><h2><i class="bi bi-basket"></i> Items</h2>
-                <span class="--r">{{ $lines->count() }} items · estimate ₹{{ number_format($plan->items->sum(fn ($i) => (float) $i->estimated_unit_cost * $i->allowedQuantity()), 0) }}</span></div>
-            <div style="overflow-x:auto">
-            <table class="pv-tbl">
-                <thead><tr><th>Item</th><th class="r">Requested</th><th class="r">{{ $approving ? 'Approve qty' : 'Approved' }}</th>
-                    @if($showProgress)<th class="r">Bought</th><th class="r">Received</th><th>Status</th>@else<th class="r">Est. rate</th><th>Priority</th>@endif</tr></thead>
-                <tbody>
-                @foreach($lines as $l)
-                    <tr data-line="{{ $l['id'] }}">
-                        <td><b>{{ $l['name'] }}</b>@if($l['name_ta'])<small>{{ $l['name_ta'] }}</small>@endif @if($l['notes'])<small>{{ $l['notes'] }}</small>@endif</td>
-                        <td data-l="Requested" class="r">{{ $q($l['requested']) }} {{ $l['unit'] }}</td>
-                        <td data-l="{{ $approving ? 'Approve qty' : 'Approved' }}" class="r">
+            <div class="pl-ph" style="--tint:color-mix(in srgb,var(--ef-emerald) 5%,transparent)"><h2><i class="bi bi-basket"></i> Items</h2>
+                @php $estTotal = $plan->items->sum(fn ($i) => (float) $i->estimated_unit_cost * $i->allowedQuantity()); @endphp
+                <span class="--r">{{ $lines->count() }} {{ Str::plural('item', $lines->count()) }} · estimate {{ $estTotal > 0 ? '₹'.number_format($estTotal, 0) : 'not given' }}@if($progress['spent'] > 0) · spent <b style="color:var(--ef-ink)">₹{{ number_format($progress['spent'], 0) }}</b>@endif</span></div>
+            @php
+                $stCounts = $lines->countBy('state');
+                $filters = collect(['short' => 'Short', 'not_bought' => 'Not bought', 'awaiting' => 'Awaiting', 'over' => 'More', 'as_planned' => 'As planned', 'dropped' => 'Not approved'])
+                    ->filter(fn ($l, $k) => ($stCounts[$k] ?? 0) > 0);
+            @endphp
+            @if($lines->count() > 6 || ($showProgress && $filters->count() > 1))
+                <div class="pr-tools">
+                    <input type="search" class="pr-find" placeholder="Find item — English / தமிழ்" data-pr-find aria-label="Find item">
+                    @if($showProgress && $filters->count() > 1)
+                        <div class="pr-chips" role="group" aria-label="Filter by status">
+                            <button type="button" class="pr-chip --on" data-pr-f="">All {{ $lines->count() }}</button>
+                            @foreach($filters as $k => $label)<button type="button" class="pr-chip" data-pr-f="{{ $k }}" data-s="{{ $k }}">{{ $label }} {{ $stCounts[$k] }}</button>@endforeach
+                        </div>
+                    @endif
+                </div>
+            @endif
+            <div class="pr-head" aria-hidden="true"><span>#</span><span>Item</span><span class="r">Req.</span><span class="r">{{ $approving ? 'Approve' : 'Appr.' }}</span><span class="r">Bought</span><span class="r">Recvd</span><span class="r">Status</span></div>
+            <div class="pr-list">
+                @foreach($lines as $n => $l)
+                    @php
+                        $base = max($l['allowed'], 0.001);
+                        $pctRecv = min(100, round($l['received'] / $base * 100));
+                        $spentItem = $l['avg_rate'] !== null ? $l['avg_rate'] * $l['ordered'] : null;
+                        $approvedShown = $plan->approved_at || in_array($st, ['approved', 'ordered', 'completed'], true);
+                        $changed = $approvedShown && abs($l['allowed'] - $l['requested']) > 0.0005;
+                        $tone = $showProgress ? $l['state'] : ($approving ? 'submitted' : ($approvedShown ? 'as_planned' : 'planned'));
+                        $u = $l['unit'];
+                    @endphp
+                    <div class="pr" data-line="{{ $l['id'] }}" data-tone="{{ $tone }}" data-state="{{ $l['state'] }}" data-s="{{ mb_strtolower($l['name'].' '.$l['name_ta']) }}">
+                        <span class="pr-no">{{ $n + 1 }}</span>
+                        <div class="pr-name">
+                            <b>{{ $l['name'] }}</b>@if($l['name_ta'])<span lang="ta">{{ $l['name_ta'] }}</span>@endif
+                            @if(in_array($l['priority'], ['urgent', 'high'], true))<i class="pr-pri --{{ $l['priority'] }}" title="{{ ucfirst($l['priority']) }} priority">{{ $l['priority'] === 'urgent' ? '!!' : '!' }}</i>@endif
+                            <small>
+                                @if($l['notes']){{ $l['notes'] }}@endif
+                                @if($l['rejected'] > 0)<em class="--bad">{{ $q($l['rejected']) }} rejected</em>@endif
+                                @if($l['closed'] > 0)<em class="--bad">{{ $q($l['closed']) }} not coming</em>@endif
+                                @if($l['to_order'] > 0 && in_array($st, ['approved', 'ordered'], true))<em class="--info">{{ $q($l['to_order']) }} still to buy</em>@endif
+                                @if($l['price_diff'])<em class="pv-diff {{ $l['price_diff'] > 0 ? '--up' : '--down' }}">{{ $l['price_diff'] > 0 ? '+' : '' }}{{ $l['price_diff'] }}% vs est.</em>@endif
+                            </small>
+                        </div>
+                        <span class="pr-q" data-k="Req">{{ $q($l['requested']) }}<u>{{ $u }}</u></span>
+                        <span class="pr-q {{ $changed ? '--chg' : '' }} {{ $approvedShown && $l['allowed'] <= 0 ? '--x' : '' }}" data-k="Appr">
                             @if($approving)<input type="number" step="0.001" min="0" name="approved[{{ $l['id'] }}]" value="{{ $q($l['requested']) }}" aria-label="Approve quantity for {{ $l['name'] }}">
-                            @elseif(in_array($st, ['draft', 'submitted', 'rejected', 'cancelled'], true) && ! $plan->approved_at)—
-                            @else<b>{{ $q($l['allowed']) }}</b> {{ $l['unit'] }}@if(abs($l['allowed'] - $l['requested']) > 0.0005)<small>changed by approver</small>@endif @endif
-                        </td>
-                        @if($showProgress)
-                            <td data-l="Bought" class="r">{{ $q($l['ordered']) }}@if($l['avg_rate'])<small>₹{{ number_format($l['avg_rate'], 2) }} @if($l['price_diff'])<span class="pv-diff {{ $l['price_diff'] > 0 ? '--up' : '--down' }}">{{ $l['price_diff'] > 0 ? '+' : '' }}{{ $l['price_diff'] }}% vs est.</span>@endif</small>@endif</td>
-                            <td data-l="Received" class="r"><b>{{ $q($l['received']) }}</b>@if($l['rejected'] > 0)<small>{{ $q($l['rejected']) }} rejected</small>@endif @if($l['closed'] > 0)<small>{{ $q($l['closed']) }} closed short</small>@endif</td>
-                            <td data-l="Status"><span class="pl-chip" data-s="{{ $l['state'] }}">{{ $stateLabel[$l['state']] }}</span>@if($l['to_order'] > 0 && in_array($st, ['approved', 'ordered'], true))<small>{{ $q($l['to_order']) }} left to buy</small>@endif</td>
-                        @else
-                            <td data-l="Est. rate" class="r">{{ $l['estimate'] ? '₹'.number_format($l['estimate'], 2) : '—' }}</td>
-                            <td data-l="Priority">{{ ucfirst($l['priority']) }}</td>
-                        @endif
-                    </tr>
+                            @elseif($approvedShown){{ $q($l['allowed']) }}<u>{{ $u }}</u>
+                            @else<span class="pr-dim">—</span>@endif
+                        </span>
+                        <span class="pr-q" data-k="Bought">@if($l['ordered'] > 0){{ $q($l['ordered']) }}<u>{{ $l['avg_rate'] ? '@₹'.number_format($l['avg_rate'], 2) : $u }}</u>@else<span class="pr-dim">—</span>@endif</span>
+                        <span class="pr-q {{ $l['received'] > 0 && $l['state'] !== 'as_planned' ? '--warn' : '' }}" data-k="Recvd">@if($l['ordered'] > 0 || $l['received'] > 0){{ $q($l['received']) }}<u>{{ $u }}</u>@else<span class="pr-dim">—</span>@endif</span>
+                        <span class="pr-st">
+                            @if($showProgress)<span class="pl-chip" data-s="{{ $l['state'] }}">{{ $stateLabel[$l['state']] }}</span>
+                            @elseif($approving)<span class="pl-chip" data-s="submitted">To approve</span>
+                            @else<span class="pl-chip" data-s="{{ $approvedShown ? 'approved' : 'draft' }}">{{ $approvedShown ? 'Approved' : 'Requested' }}</span>@endif
+                            @if($spentItem)<small>₹{{ number_format($spentItem, 0) }}</small>@endif
+                        </span>
+                        @if($showProgress && $l['allowed'] > 0)<i class="pr-bar" style="--p:{{ $pctRecv }}%" aria-hidden="true"></i>@endif
+                    </div>
                 @endforeach
                 @foreach($progress['extras'] as $x)
-                    <tr><td><b>{{ $x['name'] }}</b><small>not on the plan — added when receiving</small></td><td data-l="Requested" class="r">—</td><td data-l="Approved" class="r">—</td>
-                        @if($showProgress)<td data-l="Bought" class="r">—</td><td data-l="Received" class="r"><b>{{ $q($x['received']) }}</b> {{ $x['unit'] }}</td><td data-l="Status"><span class="pl-chip" data-s="over">Extra</span></td>@else<td></td><td></td>@endif</tr>
+                    <div class="pr" data-tone="over" data-state="over" data-s="{{ mb_strtolower($x['name']) }}">
+                        <span class="pr-no">+</span>
+                        <div class="pr-name"><b>{{ $x['name'] }}</b><small>not on the plan — added when receiving</small></div>
+                        <span class="pr-q" data-k="Req"><span class="pr-dim">—</span></span><span class="pr-q" data-k="Appr"><span class="pr-dim">—</span></span><span class="pr-q" data-k="Bought"><span class="pr-dim">—</span></span>
+                        <span class="pr-q" data-k="Recvd">{{ $q($x['received']) }}<u>{{ $x['unit'] }}</u></span>
+                        <span class="pr-st"><span class="pl-chip" data-s="over">Extra</span></span>
+                    </div>
                 @endforeach
-                </tbody>
-            </table>
+                <p class="pr-none" data-pr-none hidden>No items match.</p>
             </div>
             @if($approving)
                 <div class="pl-pb" style="border-top:1px solid var(--ef-border)">
@@ -153,10 +253,10 @@
 
     @if($showProgress)
         <div class="pv-sum">
-            <div style="--acc:#2c5784"><small>Purchases</small><strong>{{ $plan->purchases->whereNotIn('status', ['cancelled', 'rejected'])->count() }}</strong></div>
-            <div style="--acc:#9a6413"><small>Spent</small><strong>₹{{ number_format($progress['spent'], 0) }}</strong></div>
-            <div style="--acc:{{ $progress['awaiting'] ? '#2c5784' : 'var(--ef-faint)' }}"><small>Items awaiting goods</small><strong>{{ $progress['awaiting'] }}</strong></div>
-            <div style="--acc:{{ $progress['differences'] ? '#a3480f' : 'var(--ef-emerald)' }};--tint:{{ $progress['differences'] ? 'rgba(214,110,40,.06)' : 'rgba(30,122,60,.05)' }}"><small>Differences from plan</small><strong>{{ $progress['differences'] ?: 'None' }}</strong></div>
+            <div style="--acc:color-mix(in srgb,var(--ef-info) 75%,#000)"><small>Purchases</small><strong>{{ $plan->purchases->whereNotIn('status', ['cancelled', 'rejected'])->count() }}</strong></div>
+            <div style="--acc:color-mix(in srgb,var(--ef-gold) 75%,#000)"><small>Spent</small><strong>₹{{ number_format($progress['spent'], 0) }}</strong></div>
+            <div style="--acc:{{ $progress['awaiting'] ? 'color-mix(in srgb,var(--ef-info) 75%,#000)' : 'var(--ef-faint)' }}"><small>Items awaiting goods</small><strong>{{ $progress['awaiting'] }}</strong></div>
+            <div style="--acc:{{ $progress['differences'] ? 'color-mix(in srgb,var(--ef-amber) 62%,#000)' : 'var(--ef-emerald)' }};--tint:{{ $progress['differences'] ? 'color-mix(in srgb,var(--ef-amber) 6%,transparent)' : 'color-mix(in srgb,var(--ef-emerald) 5%,transparent)' }}"><small>Differences from plan</small><strong>{{ $progress['differences'] ?: 'None' }}</strong></div>
         </div>
     @endif
 
@@ -165,8 +265,8 @@
         <form method="POST" action="{{ route('inventory.plans.buy', $plan) }}">
             @csrf
             <input type="hidden" name="client_token" value="{{ Str::uuid() }}">
-            <section class="pl-panel" style="--acc:#2c5784">
-                <div class="pl-ph" style="--tint:rgba(59,110,165,.05)"><h2><i class="bi bi-cart-check"></i> Buy from this plan</h2><span class="--r">one purchase per supplier / shop</span></div>
+            <section class="pl-panel" style="--acc:color-mix(in srgb,var(--ef-info) 75%,#000)">
+                <div class="pl-ph" style="--tint:color-mix(in srgb,var(--ef-info) 5%,transparent)"><h2><i class="bi bi-cart-check"></i> Buy from this plan</h2><span class="--r">one purchase per supplier / shop</span></div>
                 <div class="pl-pb pl-grid">
                     <label class="pl-field">Supplier<select name="vendor_id"><option value="">— type shop name instead —</option>@foreach($vendors as $v)<option value="{{ $v->id }}" @selected(old('vendor_id') == $v->id)>{{ $v->name }}</option>@endforeach</select></label>
                     <label class="pl-field">or shop name<input name="supplier_name" maxlength="150" value="{{ old('supplier_name') }}" placeholder="e.g. Ukkadam market"></label>
@@ -195,8 +295,8 @@
 
     {{-- Purchases made from the plan --}}
     @if($plan->purchases->isNotEmpty())
-        <section class="pl-panel" style="--acc:#9a6413">
-            <div class="pl-ph" style="--tint:rgba(200,144,42,.06)"><h2><i class="bi bi-receipt"></i> Purchases from this plan</h2></div>
+        <section class="pl-panel" style="--acc:color-mix(in srgb,var(--ef-gold) 75%,#000)">
+            <div class="pl-ph" style="--tint:color-mix(in srgb,var(--ef-gold) 6%,transparent)"><h2><i class="bi bi-receipt"></i> Purchases from this plan</h2></div>
             @foreach($plan->purchases as $pu)
                 <a class="pv-purch" href="{{ route('inventory.purchases.show', $pu) }}">
                     <span><b>{{ $pu->reference() }}</b> · {{ $pu->vendor?->name ?? $pu->supplier_name }}<small>{{ $pu->purchase_date?->format('d M Y') }} · {{ $pu->items_count }} items · ₹{{ number_format((float) $pu->grand_total, 0) }}</small></span>
@@ -209,7 +309,7 @@
 
     {{-- Close the plan --}}
     @if(auth()->user()->can('close', $plan) && $plan->purchases->isNotEmpty())
-        <section class="pl-panel" style="--acc:{{ $progress['all_as_planned'] ? 'var(--ef-emerald)' : '#a3480f' }}">
+        <section class="pl-panel" style="--acc:{{ $progress['all_as_planned'] ? 'var(--ef-emerald)' : 'color-mix(in srgb,var(--ef-amber) 62%,#000)' }}">
             <div class="pl-ph"><h2><i class="bi bi-flag"></i> Close the plan</h2></div>
             <div class="pl-pb">
                 @if($progress['open_purchases'])
@@ -240,10 +340,27 @@
     @endif
 
     @if($st === 'completed')
-        <section class="pl-panel" style="--acc:#5f6b5a"><div class="pl-pb">
+        <section class="pl-panel" style="--acc:var(--ef-bluegray)"><div class="pl-pb">
             <p class="pl-note"><b style="color:var(--ef-ink)">Closed</b> {{ $plan->completed_at?->format('d M Y') }} by {{ $plan->closer?->name }}@if($plan->closing_note) — {{ $plan->closing_note }}@endif</p>
             @if($plan->shortfallPlan)<p class="pl-note" style="margin-top:6px">Shortfall moved to <a href="{{ route('inventory.plans.show', $plan->shortfallPlan) }}">{{ $plan->shortfallPlan->reference() }} · {{ $plan->shortfallPlan->title }}</a></p>@endif
         </div></section>
     @endif
 </div>
+@push('scripts')
+<script>
+(() => {
+    const rows = [...document.querySelectorAll('.pr[data-s]')], find = document.querySelector('[data-pr-find]'), none = document.querySelector('[data-pr-none]');
+    if (!rows.length) return;
+    let f = '';
+    function apply() {
+        const t = (find?.value || '').trim().toLowerCase(); let n = 0;
+        rows.forEach(r => { const v = (!f || r.dataset.state === f) && (!t || r.dataset.s.includes(t)); r.hidden = !v; if (v) n++; });
+        if (none) none.hidden = n > 0;
+        document.querySelectorAll('[data-pr-f]').forEach(b => b.classList.toggle('--on', b.dataset.prF === f));
+    }
+    document.querySelectorAll('[data-pr-f]').forEach(b => b.addEventListener('click', () => { f = b.dataset.prF; apply(); }));
+    find?.addEventListener('input', apply);
+})();
+</script>
+@endpush
 </x-admin-layout>
