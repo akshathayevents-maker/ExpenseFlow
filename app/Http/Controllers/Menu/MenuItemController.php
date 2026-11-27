@@ -11,6 +11,7 @@ use App\Services\AuditLogService;
 use App\Services\MenuTranslationService;
 use App\Services\Recipes\RecipeLibraryService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -25,25 +26,20 @@ class MenuItemController extends Controller
 
     public function index(Request $request): View
     {
-        $query = MenuItem::query()->with('eventRequestItem:id,price_per_person,is_active');
-
-        if ($search = $request->input('search')) {
-            $query->where(function ($q) use ($search) {
-                $q->where('item_en', 'like', '%'.$search.'%')
-                    ->orWhere('item_ta', 'like', '%'.$search.'%');
-            });
-        }
-
-        if ($request->input('tamil') === 'missing') {
-            $query->whereColumn('item_ta', 'item_en');
-        }
-
-        if ($cat = $request->input('category')) {
-            $query->where('category_key', $cat);
-        }
-
-        $items = $query->ordered()->get();
         $categories = config('menu_categories.items', []);
+        $f = $request->validate([
+            'search'   => ['nullable', 'string', 'max:100'],
+            'category' => ['nullable', 'string', 'max:60'],
+            'page'     => ['nullable', 'integer', 'min:1'],
+        ]);
+        // Quick filters: unknown values are ignored (show everything), like other list pages.
+        $recipeF = in_array($request->query('recipe'), ['none', 'unverified', 'verified'], true) ? $request->query('recipe') : null;
+        $tamilF  = $request->query('tamil') === 'missing' ? 'missing' : null;
+        $stateF  = $request->query('state') === 'inactive' ? 'inactive' : null;
+        $cat     = isset($categories[$f['category'] ?? '']) ? $f['category'] : null;
+        $search  = trim((string) ($f['search'] ?? ''));
+
+        $all = MenuItem::query()->with('eventRequestItem:id,price_per_person,is_active')->ordered()->get();
 
         // recipe per dish (spelling-insensitive name match) and where each dish is used
         $recipes = Recipe::where('verification_status', '!=', 'archived')->whereNull('superseded_at')
@@ -57,25 +53,49 @@ class MenuItemController extends Controller
                 $planUse[mb_strtolower(trim($d))] = ($planUse[mb_strtolower(trim($d))] ?? 0) + 1;
             }
         }
-        foreach ($items as $it) {
+        foreach ($all as $it) {
             $it->setAttribute('recipe', $recipes[RecipeLibraryService::nameKey($it->item_en)] ?? null);
             $it->setAttribute('used_requests', (int) ($requestUse[$it->event_request_menu_item_id] ?? 0));
             $it->setAttribute('used_plans', (int) ($planUse[mb_strtolower(trim($it->item_en))] ?? 0));
         }
-        $stats = [
-            'total' => $items->count(),
-            'with_recipe' => $items->whereNotNull('recipe')->count(),
-            'verified' => $items->filter(fn ($i) => $i->recipe?->isVerified())->count(),
-            'tamil_missing' => $items->filter(fn ($i) => $i->item_ta === $i->item_en)->count(),
-            'used' => $items->filter(fn ($i) => $i->used_requests || $i->used_plans)->count(),
-        ];
-        if ($request->input('recipe') === 'none') {
-            $items = $items->whereNull('recipe')->values();
-        } elseif ($request->input('recipe') === 'unverified') {
-            $items = $items->filter(fn ($i) => $i->recipe && ! $i->recipe->isVerified())->values();
-        }
 
-        return view('menu.items.index', compact('items', 'categories', 'stats'));
+        // search + category narrow the counts; quick filters (tiles) narrow the list
+        $scope = $all
+            ->when($search !== '', fn ($c) => $c->filter(fn ($i) => mb_stripos($i->item_en, $search) !== false || mb_stripos((string) $i->item_ta, $search) !== false))
+            ->when($cat, fn ($c) => $c->where('category_key', $cat))
+            ->values();
+        $stats = [
+            'total'         => $scope->count(),
+            'with_recipe'   => $scope->whereNotNull('recipe')->count(),
+            'verified'      => $scope->filter(fn ($i) => $i->recipe?->isVerified())->count(),
+            'tamil_missing' => $scope->filter(fn ($i) => $i->item_ta === $i->item_en)->count(),
+            'inactive'      => $scope->where('is_active', false)->count(),
+            'used'          => $scope->filter(fn ($i) => $i->used_requests || $i->used_plans)->count(),
+        ];
+        $stats['no_recipe']  = $stats['total'] - $stats['with_recipe'];
+        $stats['unverified'] = $stats['with_recipe'] - $stats['verified'];
+
+        $catCounts = $all
+            ->when($search !== '', fn ($c) => $c->filter(fn ($i) => mb_stripos($i->item_en, $search) !== false || mb_stripos((string) $i->item_ta, $search) !== false))
+            ->countBy('category_key');
+
+        $list = $scope
+            ->when($recipeF === 'none', fn ($c) => $c->whereNull('recipe'))
+            ->when($recipeF === 'unverified', fn ($c) => $c->filter(fn ($i) => $i->recipe && ! $i->recipe->isVerified()))
+            ->when($recipeF === 'verified', fn ($c) => $c->filter(fn ($i) => $i->recipe?->isVerified()))
+            ->when($tamilF, fn ($c) => $c->filter(fn ($i) => $i->item_ta === $i->item_en))
+            ->when($stateF, fn ($c) => $c->where('is_active', false))
+            ->values();
+
+        $perPage = 50;
+        $page = (int) ($f['page'] ?? 1);
+        $items = new LengthAwarePaginator($list->forPage($page, $perPage)->values(), $list->count(), $perPage, $page, [
+            'path' => $request->url(), 'query' => $request->except('page'),
+        ]);
+        $quick = $recipeF ? 'recipe_'.$recipeF : ($tamilF ? 'tamil' : ($stateF ? 'inactive' : 'all'));
+        $filters = ['search' => $search, 'category' => $cat];
+
+        return view('menu.items.index', compact('items', 'categories', 'stats', 'catCounts', 'quick', 'filters'));
     }
 
     // ── Create ─────────────────────────────────────────────────────────────

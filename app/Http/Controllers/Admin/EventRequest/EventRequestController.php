@@ -54,7 +54,15 @@ class EventRequestController extends Controller
             ->groupBy('status')
             ->pluck('total', 'status');
 
-        return view('event-request.admin.index', compact('requests', 'counts'));
+        $upcoming = EventRequest::query()
+            ->whereIn('status', ['approved', 'scheduled'])
+            ->whereDate('event_date', '>=', now()->toDateString())
+            ->whereDate('event_date', '<=', now()->addDays(14)->toDateString())
+            ->orderBy('event_date')
+            ->limit(6)
+            ->get(['id', 'client_name', 'event_name', 'meal_type', 'event_date', 'guest_count', 'status']);
+
+        return view('event-request.admin.index', compact('requests', 'counts', 'upcoming'));
     }
 
     public function create(): View

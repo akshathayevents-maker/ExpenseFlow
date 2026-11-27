@@ -12,25 +12,43 @@ use Illuminate\View\View;
 
 class MealPlanController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $plans = MealPlan::withCount('bookings')
-            ->orderBy('category')
-            ->orderBy('name')
-            ->paginate(20);
+        $f = $request->validate([
+            'q'        => ['nullable', 'string', 'max:100'],
+            'category' => ['nullable', 'in:'.implode(',', array_keys(MealPlan::categories()))],
+        ]);
+        // Unknown ?status= is ignored (shows all), like the other list pages.
+        $status = in_array($request->query('status'), ['active', 'inactive'], true) ? $request->query('status') : null;
+        $search = trim((string) ($f['q'] ?? ''));
+        $today  = now()->toDateString();
 
-        $topPlan  = MealPlan::withCount('bookings')->orderByDesc('bookings_count')->first();
-        $active   = MealPlan::active()->get();
+        $plans = MealPlan::withCount([
+            'bookings',
+            'bookings as upcoming_count' => fn ($q) => $q->whereDate('booking_date', '>=', $today)->where('status', '!=', 'cancelled'),
+        ])
+            ->when($status, fn ($q) => $q->where('is_active', $status === 'active'))
+            ->when($f['category'] ?? null, fn ($q, $c) => $q->where('category', $c))
+            ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w->where('name', 'like', "%{$search}%")->orWhere('description', 'like', "%{$search}%")))
+            ->orderByDesc('is_active')->orderBy('category')->orderBy('name')
+            ->paginate(20)->withQueryString();
 
+        $byActive = MealPlan::selectRaw('is_active, COUNT(*) as n, AVG(price_per_person) as avg_price')->groupBy('is_active')->get();
+        $activeRow = $byActive->first(fn ($r) => (bool) $r->is_active);
         $stats = [
-            'total'   => MealPlan::count(),
-            'active'  => $active->count(),
-            'premium' => MealPlan::where('category', 'premium')->count(),
-            'avg_price' => (int) round($active->avg('price_per_person') ?? 0),
-            'top_plan'  => $topPlan,
+            'all'       => (int) $byActive->sum('n'),
+            'active'    => (int) ($activeRow->n ?? 0),
+            'inactive'  => (int) $byActive->reject(fn ($r) => (bool) $r->is_active)->sum('n'),
+            'avg_price' => (int) round((float) ($activeRow->avg_price ?? 0)),
         ];
+        $catCounts = MealPlan::selectRaw('category, COUNT(*) as n')->groupBy('category')->pluck('n', 'category');
 
-        return view('hall.meal-plans.index', compact('plans', 'stats'));
+        $topPlans = MealPlan::select(['id', 'name', 'price_per_person', 'is_active'])->withCount('bookings')
+            ->orderByDesc('bookings_count')->orderBy('name')->limit(5)->get()->where('bookings_count', '>', 0)->values();
+
+        $filters = ['q' => $search, 'category' => $f['category'] ?? null];
+
+        return view('hall.meal-plans.index', compact('plans', 'stats', 'status', 'catCounts', 'topPlans', 'filters'));
     }
 
     public function create(): View

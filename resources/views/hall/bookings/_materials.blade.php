@@ -20,8 +20,8 @@
         @if($booking->menuItems->isNotEmpty())
             <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
                 @foreach($booking->menuItems as $m)
-                    <span style="padding:3px 10px;border-radius:999px;font-size:.8rem;border:1px solid var(--ef-border);{{ $m->is_removed ? 'text-decoration:line-through;opacity:.6' : '' }}{{ $m->change_type === 'added' ? 'background:rgba(15,123,95,.1)' : '' }}{{ $m->change_type === 'modified' ? 'background:rgba(216,154,61,.14)' : '' }}">
-                        {{ $m->name }}@if($m->notes) · {{ $m->notes }}@endif
+                    <span style="padding:3px 10px;border-radius:999px;font-size:.8rem;border:1px solid var(--ef-border);{{ $m->is_removed ? 'text-decoration:line-through;opacity:.6' : '' }}{{ $m->change_type === 'added' ? 'background:rgba(15,123,95,.1)' : '' }}{{ in_array($m->change_type, ['modified', 'replaced'], true) ? 'background:rgba(216,154,61,.14)' : '' }}">
+                        @if($m->change_type === 'replaced' && $m->replaces){{ $m->replaces }} → @elseif($m->change_type === 'added')Extra: @endif{{ $m->name }}@if($m->servings) · {{ number_format($m->servings) }} servings @endif @if($m->notes) · {{ $m->notes }}@endif
                     </span>
                 @endforeach
             </div>

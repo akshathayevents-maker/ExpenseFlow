@@ -106,6 +106,12 @@ class InvoiceCalculationService
             ];
         }
 
+        // Charged menu extras agreed for this booking (e.g. Ice Cream ₹40 × 200). Included extras,
+        // replacements and removals never add a line — the package price is not silently changed.
+        foreach (app(\App\Services\Inventory\HallMenuService::class)->chargedExtras($booking) as $extra) {
+            $items[] = $extra;
+        }
+
         foreach ($booking->additionalServices as $service) {
             $items[] = [
                 'label'       => $service->service_name,

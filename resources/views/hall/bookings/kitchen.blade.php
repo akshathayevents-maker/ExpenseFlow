@@ -502,6 +502,10 @@ details.ef-kit-card[open] { box-shadow: 0 6px 22px rgba(19,17,16,.10); }
 .ef-kit-dishes li + li { border-top: 1px solid rgba(100,82,42,.09); }
 .ef-kit-dish-name { min-width: 0; overflow-wrap: anywhere; color: #131110; font-weight: 560; }
 .ef-kit-dish-name small { display: block; color: #8a827a; font-weight: 400; font-size: .7rem; }
+.ef-kit-custom-chip { background: #fdebd9 !important; color: #a3480f !important; font-weight: 750; }
+.ef-kit-custom { margin: 8px 0 10px; padding: 9px 12px; border-radius: 10px; border: 1px solid rgba(214,110,40,.35); background: #fff6ec; font-size: .8rem; color: #5b3a1a; }
+.ef-kit-custom b { display: block; color: #a3480f; font-size: .72rem; letter-spacing: .05em; }
+.ef-kit-custom ul { margin: 4px 0 0; padding-left: 18px; }
 .ef-kit-dish-tag { font-style: normal; font-size: .6rem; text-transform: uppercase; margin-left: 4px; padding: 1px 6px; border-radius: 8px; background: #fdf0d8; color: #9a6a10; }
 .ef-kit-recipe { flex-shrink: 0; font-size: .68rem; font-weight: 650; padding: 4px 9px; border-radius: 14px; text-decoration: none; white-space: nowrap; }
 .ef-kit-recipe.ok { background: #e6f4ea; color: #1e7a3c; }
@@ -741,6 +745,7 @@ details.ef-kit-card[open] { box-shadow: 0 6px 22px rgba(19,17,16,.10); }
             @endphp
             @php
                 $groups   = $kitchenItems[$b->id] ?? [];
+                $custom   = $kitchenCustom[$b->id] ?? [];
                 $dishCnt  = collect($groups)->flatten(1)->count();
                 $mealMeta = ['breakfast' => ['Breakfast','bi-cup-hot','bf'], 'lunch' => ['Lunch','bi-brightness-high','ln'], 'dinner' => ['Dinner','bi-moon-stars','dn'], 'menu' => ['Menu','bi-list-ul','mp']];
             @endphp
@@ -761,6 +766,7 @@ details.ef-kit-card[open] { box-shadow: 0 6px 22px rgba(19,17,16,.10); }
                             @if($b->has_lunch)<span class="ef-kit-chip ln"><i class="bi bi-brightness-high"></i> LN</span>@endif
                             @if($b->has_dinner)<span class="ef-kit-chip dn"><i class="bi bi-moon-stars"></i> DN</span>@endif
                             <span class="ef-kit-chip mp"><i class="bi bi-egg-fried" style="font-size:.6rem"></i> {{ $dishCnt }} item{{ $dishCnt === 1 ? '' : 's' }}</span>
+                            @if($custom)<span class="ef-kit-chip ef-kit-custom-chip" data-customized><i class="bi bi-exclamation-triangle-fill"></i> Customized menu</span>@endif
                         </div>
                     </div>
                     <div class="ef-kit-pax">
@@ -773,7 +779,13 @@ details.ef-kit-card[open] { box-shadow: 0 6px 22px rgba(19,17,16,.10); }
 
                 <div class="ef-kit-body">
                     @if($b->mealPlan)
-                        <div class="ef-kit-plan"><i class="bi bi-grid-3x3-gap"></i> {{ $b->mealPlan->name }}</div>
+                        <div class="ef-kit-plan"><i class="bi bi-grid-3x3-gap"></i> Base menu: {{ $b->mealPlan->name }}</div>
+                    @endif
+                    @if($custom)
+                        <div class="ef-kit-custom" role="note">
+                            <b><i class="bi bi-exclamation-triangle-fill"></i> CUSTOMIZATION</b>
+                            <ul>@foreach($custom as $c)<li>{{ $c }}</li>@endforeach</ul>
+                        </div>
                     @endif
                     @if($b->meals->isNotEmpty())
                         <div class="ef-kit-guests">
@@ -792,9 +804,12 @@ details.ef-kit-card[open] { box-shadow: 0 6px 22px rgba(19,17,16,.10); }
                                     <li>
                                         <span class="ef-kit-dish-name">
                                             {{ $line['name'] }}
-                                            @if(in_array($line['change_type'] ?? 'plan', ['added', 'modified'], true))
-                                                <em class="ef-kit-dish-tag">{{ $line['change_type'] }}</em>
-                                            @endif
+                                            @php $ct = $line['change_type'] ?? 'plan'; @endphp
+                                            @if($ct === 'added')<em class="ef-kit-dish-tag">extra</em>
+                                            @elseif($ct === 'replaced')<em class="ef-kit-dish-tag">replaced</em>
+                                            @elseif($ct === 'modified')<em class="ef-kit-dish-tag">changed</em>@endif
+                                            @if($ct === 'replaced' && ! empty($line['replaces']))<small>instead of {{ $line['replaces'] }}</small>@endif
+                                            @if(! empty($line['servings']))<small>{{ number_format($line['servings']) }} servings</small>@endif
                                             @if(! empty($line['notes']))<small>{{ $line['notes'] }}</small>@endif
                                         </span>
                                         @if($line['recipe'])

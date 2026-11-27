@@ -37,7 +37,8 @@ class HallOrderPrefillService
         $menu = collect($this->menus->draftLines($b))->where('is_removed', false)->values();
         $preparations = $menu->map(fn ($m) => [
             'name' => mb_substr($m['name'], 0, 150),
-            'people' => $mealPeople[$m['meal_type']] ?? $people ?: null,
+            // an explicit serving count on the line (e.g. Ice Cream for 200) wins over the meal / booking head count
+            'people' => ! empty($m['servings']) ? (int) $m['servings'] : ($mealPeople[$m['meal_type']] ?? $people ?: null),
             'meal_type' => $m['meal_type'],
         ])->unique(fn ($p) => mb_strtolower($p['name']))->values();
 

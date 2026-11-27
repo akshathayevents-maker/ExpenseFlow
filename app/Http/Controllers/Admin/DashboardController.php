@@ -6,7 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\EmployeeAdvance;
 use App\Models\EmployeeAttendanceRegularization;
 use App\Models\EmployeeOvertime;
+use App\Models\EventRequest;
 use App\Models\ExpenseRequest;
+use App\Models\HallBooking;
+use App\Models\InventoryItem;
+use App\Models\MaterialRequest;
 use App\Models\LeaveRequest;
 use App\Models\User;
 use App\Models\Wallet;
@@ -171,6 +175,20 @@ class DashboardController extends Controller
             ->limit(6)
             ->get();
 
-        return view('admin.dashboard', compact('stats', 'recentRequests', 'needsAttention', 'needsActionTotal', 'attendanceToday', 'leaveToday'));
+        // Operations snapshot (halls, kitchen, store) — plain counts, same status values the modules use.
+        $todayBookings = HallBooking::with(['hall:id,name', 'mealPlan:id,name'])
+            ->whereDate('booking_date', today())->where('status', '!=', 'cancelled')
+            ->orderBy('start_time')->limit(8)
+            ->get(['id', 'hall_id', 'meal_plan_id', 'booking_type', 'service_location', 'customer_name', 'event_type', 'start_time', 'end_time', 'number_of_people', 'status']);
+        $ops = [
+            'bookings_today'   => HallBooking::whereDate('booking_date', today())->where('status', '!=', 'cancelled')->count(),
+            'guests_today'     => (int) HallBooking::whereDate('booking_date', today())->where('status', '!=', 'cancelled')->sum('number_of_people'),
+            'bookings_week'    => HallBooking::whereBetween('booking_date', [today()->addDay()->toDateString(), today()->addDays(7)->toDateString()])->where('status', '!=', 'cancelled')->count(),
+            'event_requests'   => EventRequest::whereIn('status', ['submitted', 'resubmitted'])->count(),
+            'mr_to_approve'    => MaterialRequest::where('status', 'submitted')->count(),
+            'low_stock'        => InventoryItem::active()->where('minimum_stock', '>', 0)->whereColumn('current_stock', '<=', 'minimum_stock')->count(),
+        ];
+
+        return view('admin.dashboard', compact('stats', 'recentRequests', 'needsAttention', 'needsActionTotal', 'attendanceToday', 'leaveToday', 'todayBookings', 'ops', 'attentionItems'));
     }
 }

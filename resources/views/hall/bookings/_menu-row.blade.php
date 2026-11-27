@@ -7,4 +7,9 @@
     </select>
     <input class="ic-input" name="menu[{{ $i }}][notes]" value="{{ $l['notes'] ?? '' }}" placeholder="Note (e.g. extra paneer)" maxlength="300" aria-label="Note">
     <button type="button" class="ic-del" data-del aria-label="Remove line"><i class="bi bi-x-circle"></i></button>
+    {{-- kept as-is from the booking form's menu builder (replacement source, servings, agreed charge) --}}
+    @foreach(['replaces', 'servings', 'charge_type', 'charge_amount', 'meal_type'] as $k)
+        @if(isset($l[$k]) && $l[$k] !== '' && $l[$k] !== null)<input type="hidden" name="menu[{{ $i }}][{{ $k }}]" value="{{ $l[$k] }}">@endif
+    @endforeach
+    @if(($l['change_type'] ?? '') === 'replaced' && ! empty($l['replaces']))<small style="grid-column:1/-1;font-size:.74rem;color:var(--ef-muted)">Replaces {{ $l['replaces'] }}</small>@endif
 </div>

@@ -320,10 +320,11 @@
                             <div class="ef-shell-note" id="mealEstimateFallback">Select a meal plan and guest count to preview catering value.</div>
                         </div>
                     </div>
+                    @include('hall.bookings._menu_builder')
                 </x-premium.card>
 
                 {{-- ─── Section 4: Additional Services ─── --}}
-                <x-premium.card>
+                <x-premium.card id="section-addons">
                     {{-- Section header --}}
                     <div class="ef-addon-section-header">
                         <div class="ef-addon-icon-orb">
@@ -332,9 +333,10 @@
                         <div class="ef-addon-title-block">
                             <div class="ef-section-intro" style="margin-bottom:4px;padding:0">
                                 <span class="ef-section-number">4</span>
-                                <h2 class="ef-section-heading">Add-On Services</h2>
+                                <h2 class="ef-section-heading" id="addonHeading">Add-On Services</h2>
                             </div>
-                            <p class="ef-section-copy" style="margin:0">Enhance the event with premium extras — decoration, photography, DJ, lighting &amp; more. Each service is itemized separately on the invoice.</p>
+                            <p class="ef-section-copy" style="margin:0" id="addonCopyFood" hidden>Delivery, service staff, crockery or other charges for this food order. Each is itemized on the invoice.</p>
+                            <p class="ef-section-copy" style="margin:0" id="addonCopyHall">Enhance the event with premium extras — decoration, photography, DJ, lighting &amp; more. Each service is itemized separately on the invoice.</p>
                         </div>
                     </div>
 
@@ -464,7 +466,7 @@
                     </div>
 
                     <div class="ef-field-grid">
-                        <div class="ef-span-4">
+                        <div class="ef-span-4" id="field-hall-cost">
                             <label class="ef-label" for="hall_cost">Hall Rental Cost</label>
                             <div class="ef-input-prefix-wrap">
                                 <span class="ef-input-prefix">₹</span>
@@ -580,7 +582,7 @@
                     </div>
 
                     <div class="ef-summary-line">
-                        <span class="ef-muted">Hall</span>
+                        <span class="ef-muted" id="summaryHallLabel">Hall</span>
                         <strong id="summaryHall">Not selected</strong>
                     </div>
                     <div class="ef-summary-line">
@@ -603,13 +605,17 @@
                     <div class="ef-summary-total">
                         <span class="ef-label">Financial Breakdown</span>
 
-                        <div class="ef-summary-line ef-fin-line">
+                        <div class="ef-summary-line ef-fin-line" id="finHallRow">
                             <span class="ef-muted">Hall Rental</span>
                             <strong id="finHallCost">₹0</strong>
                         </div>
                         <div class="ef-summary-line ef-fin-line">
                             <span class="ef-muted">Meals</span>
                             <strong id="finMealCost">₹0</strong>
+                        </div>
+                        <div class="ef-summary-line ef-fin-line" id="finExtrasRow" style="display:none">
+                            <span class="ef-muted">Menu extras</span>
+                            <strong id="finExtras">₹0</strong>
                         </div>
                         <div class="ef-summary-line ef-fin-line" id="finServicesRow" style="display:none">
                             <span class="ef-muted">Add-on Services</span>
@@ -643,9 +649,9 @@
 </div>
 
 <div class="ef-mobile-submit">
-    <div>
-        <span class="ef-label mb-1">Balance</span>
-        <strong id="mobileBalance">₹0</strong>
+    <div style="min-width:0">
+        <span class="ef-label mb-1" id="mobileMeta">Total</span>
+        <strong id="mobileTotal">₹0</strong> <small class="ef-muted" style="font-size:.72rem">bal <span id="mobileBalance">₹0</span></small>
     </div>
     <button type="submit" form="bookingForm" class="ef-btn ef-btn-dark">
         Create Booking
@@ -1125,7 +1131,7 @@
 
     /* ───── Meal-based time autofill ───── */
     const mealTimePresets = {
-        'breakfast':               ['07:00', '09:00'],
+        'breakfast':               ['07:00', '10:00'],
         'lunch':                   ['12:00', '15:00'],
         'dinner':                  ['19:00', '22:00'],
         'breakfast,lunch':         ['07:00', '15:00'],
@@ -1134,7 +1140,11 @@
         'breakfast,lunch,dinner':  ['07:00', '22:00'],
     };
     function autofillMealTimes() {
-        if (fields.start.value || fields.end.value) return; // don't override manual entry
+        // Fill when empty, and keep following the meal ticks while the times are still a preset;
+        // times typed by hand (not a preset) are never overwritten.
+        const cur = (fields.start.value || '').slice(0, 5) + '|' + (fields.end.value || '').slice(0, 5);
+        const isPreset = cur === '07:00|09:00' || Object.values(mealTimePresets).some(p => p[0] + '|' + p[1] === cur); // 07–09 = old breakfast preset
+        if ((fields.start.value || fields.end.value) && !isPreset) return;
         const keys = [];
         if (document.getElementById('has_breakfast').checked) keys.push('breakfast');
         if (document.getElementById('has_lunch').checked)     keys.push('lunch');
@@ -1270,7 +1280,8 @@
         const hallCost = Number(fields.hallCost.value || 0);
         const meal     = mealCost();
         const services = servicesTotal();
-        const subtotal = hallCost + meal + services;
+        const extras   = (document.getElementById('booking_type')?.value || 'hall_food') !== 'hall_only' && window.efMenuExtrasTotal ? window.efMenuExtrasTotal() : 0;
+        const subtotal = hallCost + meal + services + extras;
 
         // Auto-fill total (readonly)
         fields.total.value = subtotal.toFixed(2);
@@ -1278,12 +1289,12 @@
         const advance = Number(fields.advance.value || 0);
         const balance = Math.max(0, subtotal - advance);
 
-        return { hallCost, meal, services, subtotal, advance, balance };
+        return { hallCost, meal, services, extras, subtotal, advance, balance };
     }
 
     /* ───── Update summary sidebar ───── */
     function updateSummary() {
-        const { hallCost, meal, services, subtotal, advance, balance } = recalcFinancials();
+        const { hallCost, meal, services, extras, subtotal, advance, balance } = recalcFinancials();
 
         const name  = fields.customer.value.trim();
         const event = selectedText(fields.event);
@@ -1296,10 +1307,13 @@
         // Identity
         document.getElementById('summaryName').textContent = name || 'New event booking';
         document.getElementById('summaryMeta').textContent =
-            [event || 'Event type', hall || 'Hall', guests ? `${guests} guests` : null].filter(Boolean).join(' · ');
+            [event || 'Event type', (document.getElementById('booking_type')?.value === 'food_only' ? (document.getElementById('service_location')?.value.trim() || 'Food only') : (hall || 'Hall')), guests ? `${guests} guests` : null].filter(Boolean).join(' · ');
 
         // Event details
-        document.getElementById('summaryHall').textContent  = hall || 'Not selected';
+        const foodOnly = (document.getElementById('booking_type')?.value || '') === 'food_only';
+        const loc = document.getElementById('service_location')?.value.trim();
+        document.getElementById('summaryHallLabel').textContent = foodOnly ? 'Deliver to' : 'Hall';
+        document.getElementById('summaryHall').textContent  = foodOnly ? (loc || 'Not entered') : (hall || 'Not selected');
         document.getElementById('summaryDate').textContent  = formatDate(fields.date.value);
         document.getElementById('summaryTime').textContent  = start && end ? `${start} - ${end}` : 'Not selected';
         document.getElementById('summaryGuests').textContent = guests ? guests.toLocaleString('en-IN') : '0';
@@ -1311,6 +1325,8 @@
         document.getElementById('finServicesTotal').textContent = rupee(services);
         document.getElementById('finSubtotal').textContent    = rupee(subtotal);
 
+        document.getElementById('finExtras').textContent = rupee(extras);
+        document.getElementById('finExtrasRow').style.display = extras > 0 ? '' : 'none';
         const servicesRow = document.getElementById('finServicesRow');
         servicesRow.style.display = services > 0 ? '' : 'none';
 
@@ -1319,6 +1335,8 @@
         document.getElementById('summaryAdvance').textContent = rupee(advance);
         document.getElementById('summaryBalance').textContent = rupee(balance);
         document.getElementById('mobileBalance').textContent  = rupee(balance);
+        document.getElementById('mobileTotal').textContent = rupee(subtotal);
+        document.getElementById('mobileMeta').textContent = (guests ? guests.toLocaleString('en-IN') + ' guests · ' : '') + 'Total';
 
         // Meal estimate display
         const mealBox      = document.getElementById('mealEstimateBox');
@@ -1577,8 +1595,16 @@
         // Meals section
         if (sectionMeals) sectionMeals.style.display = hasFood ? '' : 'none';
 
-        // Zero hall_cost when not booking a hall
+        // Zero hall_cost when not booking a hall — and hide everything hall-only for a Food Only order
         if (!needsHall && fields.hallCost) fields.hallCost.value = '0';
+        const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
+        show('field-hall-cost', needsHall);
+        show('finHallRow', needsHall);
+        show('addonChips', needsHall);
+        const ah = document.getElementById('addonHeading');
+        if (ah) ah.textContent = needsHall ? 'Add-On Services' : 'Extra Charges';
+        document.getElementById('addonCopyFood').hidden = needsHall;
+        document.getElementById('addonCopyHall').hidden = !needsHall;
 
         // Update hidden input
         if (bookingTypeInput) bookingTypeInput.value = type;
@@ -1600,6 +1626,9 @@
             applyBookingType(btn.dataset.type);
         });
     });
+
+    document.addEventListener('ef:menu-change', updateSummary);
+    document.getElementById('service_location')?.addEventListener('input', updateSummary);
 
     /* ───── Init ───── */
     restoreDraft();

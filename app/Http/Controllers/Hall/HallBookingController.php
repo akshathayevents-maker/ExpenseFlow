@@ -26,6 +26,7 @@ class HallBookingController extends Controller
 {
     public function __construct(
         private readonly InvoiceCalculationService $invoiceCalc,
+        private readonly HallMenuService $menus,
     ) {}
 
     public function index(Request $request): View|JsonResponse
@@ -106,7 +107,9 @@ class HallBookingController extends Controller
         $halls = Hall::active()->orderBy('name')->get();
         $mealPlans = MealPlan::active()->orderBy('name')->get();
 
-        return view('hall.bookings.create', compact('halls', 'mealPlans'));
+        $menuBuilder = $this->menuBuilderData($mealPlans, null);
+
+        return view('hall.bookings.create', compact('halls', 'mealPlans', 'menuBuilder'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -147,11 +150,12 @@ class HallBookingController extends Controller
             'food_splits' => ['nullable', 'array'],
             'food_splits.*.meal_plan_id' => ['required_with:food_splits.*', 'exists:meal_plans,id'],
             'food_splits.*.guest_count' => ['required_with:food_splits.*', 'integer', 'min:1'],
-        ], []));
+        ], self::MENU_RULES));
 
         if ($error = $this->foodSplitGuestMismatchError($request, $data)) {
             return back()->withInput()->withErrors(['food_splits' => $error]);
         }
+        [$data, $menuRows] = $this->splitMenu($data, $request);
 
         // Hall conflict check — food_only bookings NEVER participate in hall conflict checks.
         // Multiple food-only orders on the same date/time are always allowed.
@@ -171,7 +175,7 @@ class HallBookingController extends Controller
             }
         }
 
-        DB::transaction(function () use ($data, $request) {
+        DB::transaction(function () use ($data, $request, $menuRows) {
             $data['created_by'] = Auth::id();
             $data['has_breakfast'] = $request->boolean('has_breakfast');
             $data['has_lunch'] = $request->boolean('has_lunch');
@@ -197,6 +201,11 @@ class HallBookingController extends Controller
             }
 
             $this->saveFoodSplits($booking, $data['uses_mixed_food'], $foodSplits);
+
+            // Final menu chosen in the form (package dishes + this booking's changes) — the package itself is untouched.
+            if ($menuRows !== null && $booking->includesFood() && $menuRows !== []) {
+                $this->menus->saveMenu($booking, $menuRows, $request->user());
+            }
 
             // Record advance payment if > 0
             if ((float) $data['advance_amount'] > 0) {
@@ -303,7 +312,9 @@ class HallBookingController extends Controller
                 'guest_count' => $s->guest_count,
             ])->toArray());
 
-        return view('hall.bookings.edit', compact('booking', 'halls', 'mealPlans', 'oldServices', 'oldFoodSplits'));
+        $menuBuilder = $this->menuBuilderData($mealPlans, $booking);
+
+        return view('hall.bookings.edit', compact('booking', 'halls', 'mealPlans', 'oldServices', 'oldFoodSplits', 'menuBuilder'));
     }
 
     public function update(Request $request, HallBooking $booking): RedirectResponse
@@ -344,11 +355,12 @@ class HallBookingController extends Controller
             'food_splits' => ['nullable', 'array'],
             'food_splits.*.meal_plan_id' => ['required_with:food_splits.*', 'exists:meal_plans,id'],
             'food_splits.*.guest_count' => ['required_with:food_splits.*', 'integer', 'min:1'],
-        ]);
+        ] + self::MENU_RULES);
 
         if ($error = $this->foodSplitGuestMismatchError($request, $data)) {
             return back()->withInput()->withErrors(['food_splits' => $error]);
         }
+        [$data, $menuRows] = $this->splitMenu($data, $request);
 
         if (in_array($data['booking_type'], ['hall_only', 'hall_food'])) {
             $conflict = HallBooking::needsHall()
@@ -377,8 +389,12 @@ class HallBookingController extends Controller
         $foodSplits = $data['food_splits'] ?? [];
         unset($data['services'], $data['food_splits']);
 
-        DB::transaction(function () use ($booking, $data, $services, $foodSplits) {
+        $stale = [];
+        DB::transaction(function () use ($booking, $data, $services, $foodSplits, $menuRows, $request, &$stale) {
             $booking->update($data);
+            if ($menuRows !== null && $booking->includesFood() && ! $this->menus->sameAsSaved($booking, $menuRows)) {
+                $stale = $this->menus->saveMenu($booking, $menuRows, $request->user());
+            }
 
             // Replace all additional services
             $booking->additionalServices()->delete();
@@ -395,7 +411,75 @@ class HallBookingController extends Controller
             $this->saveFoodSplits($booking, $data['uses_mixed_food'], $foodSplits);
         });
 
+        if ($stale) {
+            $refs = implode(', ', array_map(fn ($r) => $r->reference(), $stale));
+
+            return redirect()->route('hall.bookings.show', $booking)
+                ->with('error', "Booking updated. Material request(s) {$refs} were made for the old menu — they were NOT changed; create a revision if quantities must change.");
+        }
+
         return redirect()->route('hall.bookings.show', $booking)->with('success', 'Booking updated.');
+    }
+
+    /**
+     * Data for the inline menu builder: each package's dishes and price, the dish catalogue
+     * (for "+ Add extra" / "Replace"), and the booking's saved lines (edit) or old input.
+     */
+    private function menuBuilderData($mealPlans, ?HallBooking $booking): array
+    {
+        $plans = $mealPlans->mapWithKeys(fn ($p) => [$p->id => [
+            'name' => $p->name, 'price' => (float) $p->price_per_person, 'category' => $p->category, 'dishes' => array_values($p->dishList()),
+        ]]);
+        // a booking may use a plan that was deactivated since — keep it resolvable
+        if ($booking?->mealPlan && ! $plans->has($booking->meal_plan_id)) {
+            $p = $booking->mealPlan;
+            $plans[$p->id] = ['name' => $p->name, 'price' => (float) $p->price_per_person, 'category' => $p->category, 'dishes' => array_values($p->dishList())];
+        }
+        $catalogue = \App\Models\MenuItem::where('is_active', true)->with('eventRequestItem:id,price_per_person,is_active')
+            ->ordered()->get(['id', 'item_en', 'category_en', 'event_request_menu_item_id'])
+            ->map(fn ($m) => ['name' => $m->item_en, 'cat' => $m->category_en, 'price' => $m->eventRequestItem?->is_active ? (float) $m->eventRequestItem->price_per_person : null])
+            ->unique('name')->values();
+
+        $saved = null;
+        if (old('menu_present')) {
+            $saved = array_values(old('menu', []));
+        } elseif ($booking && ($booking->menuItems()->exists() || \App\Models\EventRequest::where('hall_booking_id', $booking->id)->exists())) {
+            // saved final menu, or the customer's event-request picks — never silently replaced by plan dishes
+            $saved = $this->menus->draftLines($booking);
+        }
+
+        return ['plans' => $plans, 'catalogue' => $catalogue, 'saved' => $saved];
+    }
+
+    /** Booking-specific menu lines posted by the inline menu builder (create + edit). */
+    private const MENU_RULES = [
+        'menu_present' => ['nullable', 'boolean'],
+        'menu' => ['nullable', 'array', 'max:150'],
+        'menu.*.name' => ['required', 'string', 'max:150'],
+        'menu.*.meal_type' => ['nullable', 'string', 'max:20'],
+        'menu.*.change_type' => ['required', 'in:plan,added,replaced,modified,removed'],
+        'menu.*.replaces' => ['nullable', 'required_if:menu.*.change_type,replaced', 'string', 'max:150'],
+        'menu.*.servings' => ['nullable', 'integer', 'min:1', 'max:100000'],
+        'menu.*.charge_type' => ['nullable', 'in:included,per_person,fixed'],
+        'menu.*.charge_amount' => ['nullable', 'numeric', 'min:0', 'max:10000000'],
+        'menu.*.notes' => ['nullable', 'string', 'max:300'],
+    ];
+
+    /**
+     * Pull the menu rows out of the booking data and apply Food-Only rules server-side:
+     * a food-only order never holds a hall or hall rent, whatever the browser sent.
+     * Returns [bookingData, menuRows|null] — null when the form had no menu builder (keep the saved menu).
+     */
+    private function splitMenu(array $data, Request $request): array
+    {
+        $rows = $request->boolean('menu_present') ? array_values($data['menu'] ?? []) : null;
+        unset($data['menu'], $data['menu_present']);
+        if ($data['booking_type'] === 'food_only') {
+            $data['hall_id'] = null;
+            $data['hall_cost'] = 0;
+        }
+
+        return [$data, $rows];
     }
 
     public function destroy(HallBooking $booking): RedirectResponse
@@ -722,6 +806,7 @@ class HallBookingController extends Controller
         $recipes = Recipe::query()->get(['id', 'name'])
             ->keyBy(fn ($r) => RecipeLibraryService::nameKey($r->name));
         $kitchenItems = [];
+        $kitchenCustom = [];
         foreach ($bookings as $b) {
             $groups = [];
             foreach ($menuSvc->draftLines($b) as $line) {
@@ -731,8 +816,10 @@ class HallBookingController extends Controller
                 $groups[$line['meal_type'] ?: 'menu'][] = $line + ['recipe' => $recipes->get(RecipeLibraryService::nameKey($line['name']))];
             }
             $kitchenItems[$b->id] = $groups;
+            $kitchenCustom[$b->id] = $b->menuItems->isNotEmpty()
+                ? $menuSvc->customizations($b->menuItems->sortBy('sort_order')->all(), (int) $b->number_of_people) : [];
         }
 
-        return view('hall.bookings.kitchen', compact('bookings', 'date', 'cateringFilter', 'kitchenItems'));
+        return view('hall.bookings.kitchen', compact('bookings', 'date', 'cateringFilter', 'kitchenItems', 'kitchenCustom'));
     }
 }

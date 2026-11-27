@@ -7,11 +7,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class HallBookingMenuItem extends Model
 {
-    public const CHANGES = ['plan' => 'From plan', 'added' => 'Added', 'modified' => 'Changed', 'removed' => 'Removed'];
+    public const CHANGES = ['plan' => 'From plan', 'added' => 'Added', 'replaced' => 'Replaced', 'modified' => 'Changed', 'removed' => 'Removed'];
 
-    protected $fillable = ['hall_booking_id', 'name', 'meal_type', 'change_type', 'is_removed', 'notes', 'sort_order', 'updated_by'];
+    public const CHARGES = ['included' => 'Included', 'per_person' => 'Per person', 'fixed' => 'Fixed amount'];
 
-    protected $casts = ['is_removed' => 'boolean'];
+    protected $fillable = ['hall_booking_id', 'name', 'meal_type', 'change_type', 'is_removed', 'notes', 'sort_order', 'updated_by',
+        'replaces', 'servings', 'charge_type', 'charge_amount'];
+
+    protected $casts = ['is_removed' => 'boolean', 'servings' => 'integer', 'charge_amount' => 'decimal:2'];
 
     public function booking(): BelongsTo
     {

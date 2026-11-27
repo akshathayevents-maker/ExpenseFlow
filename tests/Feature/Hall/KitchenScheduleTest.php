@@ -39,7 +39,11 @@ it('prefers the final menu and hides removed dishes', function () {
 
     $this->actingAs(icUser('admin'))
         ->get(route('hall.bookings.kitchen', ['date' => '2026-12-05']))
-        ->assertOk()->assertSee('Paneer Butter Masala')->assertDontSee('Rava Upma')->assertSee('Dinner');
+        ->assertOk()->assertSee('Paneer Butter Masala')->assertSee('Dinner')
+        // removed dishes are not in the dish list — only named in the customization note
+        ->assertSee('Removed: Rava Upma')->assertDontSee('instead of Rava Upma');
+    $html = $this->get(route('hall.bookings.kitchen', ['date' => '2026-12-05']))->getContent();
+    expect(substr_count($html, 'Rava Upma'))->toBe(1);
 });
 
 it('falls back to today for an invalid date and blocks employees', function () {

@@ -27,7 +27,11 @@ class HallBookingMenuController extends Controller
             'menu' => ['nullable', 'array', 'max:150'],
             'menu.*.name' => ['nullable', 'string', 'max:150'],
             'menu.*.meal_type' => ['nullable', 'string', 'max:20'],
-            'menu.*.change_type' => ['nullable', 'in:plan,added,modified,removed'],
+            'menu.*.change_type' => ['nullable', 'in:plan,added,replaced,modified,removed'],
+            'menu.*.replaces' => ['nullable', 'string', 'max:150'],
+            'menu.*.servings' => ['nullable', 'integer', 'min:1', 'max:100000'],
+            'menu.*.charge_type' => ['nullable', 'in:included,per_person,fixed'],
+            'menu.*.charge_amount' => ['nullable', 'numeric', 'min:0', 'max:10000000'],
             'menu.*.notes' => ['nullable', 'string', 'max:300'],
         ]);
         $stale = $this->menus->saveMenu($booking, $data['menu'] ?? [], $request->user());

@@ -421,6 +421,8 @@
                 <div class="ef-eb-meal-estimate-amt" id="mealEstimateAmt">₹0</div>
             </div>
 
+            @include('hall.bookings._menu_builder')
+
             {{-- Meal checkboxes --}}
             <div style="display:flex;gap:20px;margin-top:16px;flex-wrap:wrap">
                 <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.85rem;font-weight:600;color:var(--ef-ink-2)">
@@ -448,7 +450,7 @@
             <p class="ef-eb-section-label">Payment & Status</p>
 
             <div class="ef-eb-grid">
-                <div>
+                <div id="field-hall-cost">
                     <label class="ef-label">Hall Rental Cost (₹)</label>
                     <input type="number" id="hall_cost" name="hall_cost" step="0.01" min="0" class="ef-input"
                            value="{{ old('hall_cost', $booking->hall_cost ?? 0) }}" placeholder="0.00"
@@ -490,13 +492,17 @@
 
             {{-- Cost breakdown --}}
             <div class="ef-eb-breakdown" id="costBreakdown">
-                <div class="ef-eb-breakdown-row">
+                <div class="ef-eb-breakdown-row" id="bdHallRow">
                     <span style="color:var(--ef-muted)">Hall Rental</span>
                     <span id="bdHall">₹0</span>
                 </div>
                 <div class="ef-eb-breakdown-row" id="bdMealRow" style="display:none">
                     <span style="color:var(--ef-muted)">Catering</span>
                     <span id="bdMeal" style="color:var(--ef-emerald)">₹0</span>
+                </div>
+                <div class="ef-eb-breakdown-row" id="bdExtrasRow" style="display:none">
+                    <span style="color:var(--ef-muted)">Menu extras</span>
+                    <span id="bdExtras">₹0</span>
                 </div>
                 <div class="ef-eb-breakdown-row" id="bdAddonsRow" style="display:none">
                     <span style="color:var(--ef-muted)">Add-Ons</span>
@@ -682,6 +688,10 @@
         sectionMeals.style.display      = hasFood   ? '' : 'none';
 
         if (!needsHall && hallCostInput) hallCostInput.value = '0';
+        // Food Only: nothing about a hall stays on screen
+        document.getElementById('field-hall-cost').style.display = needsHall ? '' : 'none';
+        const chips = document.getElementById('addonChips');
+        if (chips) chips.style.display = needsHall ? '' : 'none';
         bookingTypeInput.value = type;
 
         if (needsHall) checkAvailability();
@@ -719,7 +729,7 @@
 
     /* ── Meal-based time autofill ── */
     const mealTimePresets = {
-        'breakfast':               ['07:00', '09:00'],
+        'breakfast':               ['07:00', '10:00'],
         'lunch':                   ['12:00', '15:00'],
         'dinner':                  ['19:00', '22:00'],
         'breakfast,lunch':         ['07:00', '15:00'],
@@ -728,7 +738,11 @@
         'breakfast,lunch,dinner':  ['07:00', '22:00'],
     };
     function autofillMealTimes() {
-        if (startFld.value || endFld.value) return; // don't override manual entry
+        // Fill when empty, and keep following the meal ticks while the times are still a preset;
+        // times typed by hand (not a preset) are never overwritten.
+        const cur = (startFld.value || '').slice(0, 5) + '|' + (endFld.value || '').slice(0, 5);
+        const isPreset = cur === '07:00|09:00' || Object.values(mealTimePresets).some(p => p[0] + '|' + p[1] === cur); // 07–09 = old breakfast preset
+        if ((startFld.value || endFld.value) && !isPreset) return;
         const keys = [];
         if (document.getElementById('has_breakfast').checked) keys.push('breakfast');
         if (document.getElementById('has_lunch').checked)     keys.push('lunch');
@@ -747,7 +761,10 @@
     window.selectMealCard = function(card) {
         document.querySelectorAll('.ef-eb-meal-card').forEach(c => c.classList.remove('selected'));
         card.classList.add('selected');
-        document.getElementById('meal_plan_id').value = card.dataset.id || '';
+        const planIn = document.getElementById('meal_plan_id');
+        const changedPlan = planIn.value !== (card.dataset.id || '');
+        planIn.value = card.dataset.id || '';
+        if (changedPlan) planIn.dispatchEvent(new Event('change'));   // menu builder rebases / may revert
         recalcTotal();
     };
 
@@ -953,8 +970,9 @@
 
         let addonTotal = 0;
         document.querySelectorAll('.ef-addon-amount-input').forEach(el => { addonTotal += parseFloat(el.value || 0); });
+        const extras = currentType !== 'hall_only' && window.efMenuExtrasTotal ? window.efMenuExtrasTotal() : 0;
 
-        const total   = rawHall + mealCost + addonTotal;
+        const total   = rawHall + mealCost + addonTotal + extras;
         const balance = Math.max(0, total - advance);
 
         document.getElementById('total_amount').value = total.toFixed(2);
@@ -966,6 +984,9 @@
         document.getElementById('bdBalance').textContent = rupee(balance);
         document.getElementById('bdMealRow').style.display   = mealCost    > 0 ? '' : 'none';
         document.getElementById('bdAddonsRow').style.display = addonTotal  > 0 ? '' : 'none';
+        document.getElementById('bdExtras').textContent = rupee(extras);
+        document.getElementById('bdExtrasRow').style.display = extras > 0 ? '' : 'none';
+        document.getElementById('bdHallRow').style.display = currentType === 'food_only' ? 'none' : '';
 
         const box = document.getElementById('mealEstimateBox');
         const sub = document.getElementById('mealEstimateSub');
@@ -990,6 +1011,8 @@
     document.getElementById('number_of_people').addEventListener('input', recalcTotal);
     if (hallCostInput) hallCostInput.addEventListener('input', recalcTotal);
     document.getElementById('advance_amount').addEventListener('input', recalcTotal);
+
+    document.addEventListener('ef:menu-change', () => window.recalcTotal && window.recalcTotal());
 
     /* ── Init ── */
     applyBookingType(bookingTypeInput ? bookingTypeInput.value : 'hall_food');
