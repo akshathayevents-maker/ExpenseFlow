@@ -530,6 +530,9 @@ details.ef-kit-card[open] { box-shadow: 0 6px 22px rgba(19,17,16,.10); }
     $eventTypes = \App\Models\HallBooking::eventTypes();
     $dateObj    = \Carbon\Carbon::parse($date);
     $isToday    = $dateObj->isToday();
+    // staff (admin/manager) vs employee read-only view of the same schedule
+    $kStaff = ! request()->routeIs('employee.kitchen.schedule');
+    $kRoute = $kStaff ? 'hall.bookings.kitchen' : 'employee.kitchen.schedule';
     $prevDate   = $dateObj->copy()->subDay()->toDateString();
     $nextDate   = $dateObj->copy()->addDay()->toDateString();
     $todayDate  = today()->toDateString();
@@ -631,7 +634,7 @@ details.ef-kit-card[open] { box-shadow: 0 6px 22px rgba(19,17,16,.10); }
      DATE NAVIGATOR — single 44px row
 ═══════════════════════════════════════════════════════════════════ --}}
 <div class="ef-kit-date-row">
-    <a href="{{ route('hall.bookings.kitchen', ['date' => $prevDate]) }}"
+    <a href="{{ route($kRoute, ['date' => $prevDate]) }}"
        class="ef-kit-date-arrow" aria-label="Previous day">
         <i class="bi bi-chevron-left"></i>
     </a>
@@ -641,7 +644,7 @@ details.ef-kit-card[open] { box-shadow: 0 6px 22px rgba(19,17,16,.10); }
             {{ $dateObj->format('d M') }}, {{ $dateObj->format('l') }}
         </span>
         @if(!$isToday)
-            <a href="{{ route('hall.bookings.kitchen', ['date' => $todayDate]) }}"
+            <a href="{{ route($kRoute, ['date' => $todayDate]) }}"
                class="ef-kit-date-today-chip">
                 <i class="bi bi-calendar-check" style="font-size:.65rem"></i> Today
             </a>
@@ -660,7 +663,7 @@ details.ef-kit-card[open] { box-shadow: 0 6px 22px rgba(19,17,16,.10); }
         </button>
     </form>
 
-    <a href="{{ route('hall.bookings.kitchen', ['date' => $nextDate]) }}"
+    <a href="{{ route($kRoute, ['date' => $nextDate]) }}"
        class="ef-kit-date-arrow" aria-label="Next day">
         <i class="bi bi-chevron-right"></i>
     </a>
@@ -672,7 +675,7 @@ details.ef-kit-card[open] { box-shadow: 0 6px 22px rgba(19,17,16,.10); }
 @php $cateringFilter = request('catering_type', 'all'); @endphp
 <div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-bottom:12px;padding-bottom:2px">
     @foreach(['all' => 'All Catering', 'hall' => 'Hall Catering', 'external' => 'External Catering', 'corporate' => 'Corporate Meals'] as $val => $label)
-        <a href="{{ route('hall.bookings.kitchen', ['date' => $date, 'catering_type' => $val === 'all' ? null : $val]) }}"
+        <a href="{{ route($kRoute, ['date' => $date, 'catering_type' => $val === 'all' ? null : $val]) }}"
            style="display:inline-block;flex-shrink:0;padding:5px 13px;border-radius:20px;font-size:.72rem;font-weight:660;text-decoration:none;border:1.5px solid {{ $cateringFilter === $val ? '#131110' : 'rgba(100,82,42,.18)' }};background:{{ $cateringFilter === $val ? '#131110' : 'transparent' }};color:{{ $cateringFilter === $val ? '#fdfaf5' : '#8a827a' }};white-space:nowrap">
             {{ $label }}
         </a>
@@ -729,13 +732,15 @@ details.ef-kit-card[open] { box-shadow: 0 6px 22px rgba(19,17,16,.10); }
             No events or corporate meal entries on {{ $dateObj->format('d F Y') }}.
         </div>
         <div class="ef-kit-empty-actions">
+@if($kStaff)
             <a href="{{ route('hall.bookings.index') }}" class="ef-kit-btn ef-kit-btn-outline">
                 <i class="bi bi-calendar3"></i> View Bookings
             </a>
             <a href="{{ route('hall.bookings.create') }}" class="ef-kit-btn ef-kit-btn-primary">
                 <i class="bi bi-plus-lg"></i> Create Booking
             </a>
-        </div>
+        @endif
+            </div>
     </div>
 
 @else
@@ -826,7 +831,7 @@ details.ef-kit-card[open] { box-shadow: 0 6px 22px rgba(19,17,16,.10); }
                                             @if(! empty($line['notes']))<small>{{ $line['notes'] }}</small>@endif
                                         </span>
                                         @if($line['recipe'])
-                                            <a href="{{ route('kitchen.recipes.show', $line['recipe']) }}" class="ef-kit-recipe ok"><i class="bi bi-journal-check"></i> Recipe</a>
+                                            <a href="{{ $kStaff ? route('kitchen.recipes.show', $line['recipe']) : route('employee.kitchen.calculator', ['recipe' => $line['recipe']->id, 'people' => $b->number_of_people]) }}" class="ef-kit-recipe ok"><i class="bi bi-journal-check"></i> Recipe</a>
                                         @else
                                             <span class="ef-kit-recipe none">No recipe</span>
                                         @endif
@@ -843,8 +848,10 @@ details.ef-kit-card[open] { box-shadow: 0 6px 22px rgba(19,17,16,.10); }
                     @endif
 
                     <div class="ef-kit-actions">
+                        @if($kStaff)
                         <a href="{{ route('hall.bookings.show', $b) }}" class="ef-kit-btn ef-kit-btn-outline"><i class="bi bi-clipboard-check"></i> Booking</a>
                         <a href="{{ route('hall.bookings.menu.edit', $b) }}" class="ef-kit-btn ef-kit-btn-outline"><i class="bi bi-pencil-square"></i> Final menu</a>
+                        @endif
                         @if(Route::has('inventory.material-requests.create'))
                             <a href="{{ route('inventory.material-requests.create', ['hall_booking_id' => $b->id]) }}" class="ef-kit-btn ef-kit-btn-primary"><i class="bi bi-box-seam"></i> Request materials</a>
                         @endif

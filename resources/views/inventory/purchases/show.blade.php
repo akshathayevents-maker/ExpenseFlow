@@ -7,6 +7,10 @@
         <h1>{{ $purchase->reference() }} · {{ $purchase->supplierLabel() }}</h1>
         @include('inventory._status', ['label' => $purchase->statusLabel(), 'tone' => \App\Models\Purchase::statusTone($purchase->status)])
     </div>
+    @if(($u->isAdmin() || $u->isStorekeeper()) && $purchase->items->contains(fn ($i) => (float) $i->rate <= 0 && (float) $i->received_base_quantity > 0))
+        <a class="ic-banner" href="#missing-prices" style="text-decoration:none;color:inherit;border-color:var(--ef-gold)"><i class="bi bi-exclamation-triangle-fill" style="color:var(--ef-gold)"></i>
+            <span><b>Prices missing</b> — goods were received without a rate, so the total shows ₹0. Tap to enter them.</span></a>
+    @endif
 
     <div class="ic-card">
         <div class="ic-kv">
@@ -63,9 +67,10 @@
                         return ($ri->received_base_quantity / $f) * ($ri->actual_rate ?? $pi->rate) * (1 + $pi->tax_percent / 100);
                     });
                 @endphp
-                <div style="padding:10px 0;border-bottom:1px solid var(--ef-border)">
+                <div style="padding:10px 0;border-bottom:1px solid var(--ef-border){{ $r->isReversed() ? ';opacity:.6' : '' }}" data-receipt="{{ $r->id }}">
                     <div style="display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center">
-                        <strong>{{ $r->received_at->format('d M Y, h:i A') }}</strong>
+                        <strong @if($r->isReversed()) style="text-decoration:line-through" @endif>{{ $r->received_at->format('d M Y, h:i A') }}</strong>
+                        @if($r->isReversed())<span class="ic-chip ic-chip--bad">Undone {{ $r->reversed_at->format('d M') }} by {{ $r->reverser?->name }}: {{ $r->reversal_reason }}</span>@endif
                         <span class="ic-note" style="margin:0">received by {{ $r->receiver?->name }}</span>
                         @if($r->bill_path)
                             <a class="ic-btn ic-btn--sm" style="margin-left:auto" target="_blank" rel="noopener" href="{{ route('inventory.purchases.receipt-bill', [$purchase, $r]) }}">
@@ -83,18 +88,62 @@
                                 @if($ri->rejected_base_quantity > 0) · rejected {{ $ri->rejected_base_quantity + 0 }}@endif
                                 @if($ri->closed_base_quantity > 0) · {{ $ri->closed_base_quantity + 0 }} {{ $pi->item->unit }} not coming @endif
                                 @if($ri->remarks) — {{ $ri->remarks }}@endif</li>
-                        @endforeach
+                                    @endforeach
                     </ul>
                     @if($r->notes)<div class="ic-note">{{ $r->notes }}</div>@endif
                 </div>
+            @if(! $r->isReversed() && $u->isAdmin())
+                    <details style="margin:-4px 0 8px">
+                        <summary class="ic-note" style="cursor:pointer;font-weight:700;color:var(--ef-danger);min-height:36px;display:flex;align-items:center;gap:6px"><i class="bi bi-arrow-counterclockwise"></i> Undo this receipt</summary>
+                        <form method="POST" data-ic-form action="{{ route('inventory.purchases.receipts.undo', [$purchase, $r]) }}" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">@csrf
+                            <input class="ic-input" name="reason" required minlength="3" maxlength="500" placeholder="Why? e.g. received without prices" style="flex:1 1 220px">
+                            <button class="ic-btn ic-btn--danger" type="submit"><i class="bi bi-arrow-counterclockwise"></i> Undo receipt</button>
+                        </form>
+                        <p class="ic-note" style="margin:6px 0 0">Takes the received quantity back out of stock and reopens the purchase so it can be received again.</p>
+                    </details>
+                @endif
             @endforeach
         </div>
     @endif
 
+    @php
+        $unpriced = $purchase->items->filter(fn ($i) => (float) $i->rate <= 0 && $i->pendingBaseQuantity() > 0);
+        $u = auth()->user();
+        $hasActions = $u->can('update', $purchase) || $u->can('submit', $purchase) || $u->can('approve', $purchase) || $u->can('complete', $purchase) || $u->can('cancel', $purchase);
+    @endphp
+    @if($unpriced->isNotEmpty() && in_array($purchase->status, ['approved', 'partially_received'], true))
+        <div class="ic-banner" data-unpriced><i class="bi bi-info-circle"></i>
+            <span><b>Prices not entered yet</b> for {{ $unpriced->count() }} {{ Str::plural('item', $unpriced->count()) }} ({{ $unpriced->map(fn ($i) => $i->item?->name)->filter()->join(', ') }}).
+            The storekeeper types the billed rate when receiving the goods — the total updates then.</span></div>
+    @endif
+
+    @php $receivedFree = $purchase->items->filter(fn ($i) => (float) $i->rate <= 0 && (float) $i->received_base_quantity > 0); @endphp
+    @if($receivedFree->isNotEmpty() && ($u->isAdmin() || $u->isStorekeeper()))
+        <form method="POST" class="ic-card" id="missing-prices" data-ic-form action="{{ route('inventory.purchases.prices', $purchase) }}" style="border-left:3px solid var(--ef-gold)" data-missing-prices>
+            @csrf
+            <h2 style="margin:0 0 4px"><i class="bi bi-currency-rupee"></i> Enter missing prices</h2>
+            <p class="ic-note" style="margin:0 0 10px">These items were received without a price, so the purchase total is ₹0. Type the rate from the bill (per unit, before tax).</p>
+            @error('rates')<div class="ic-err">{{ $message }}</div>@enderror
+            <div style="display:grid;gap:8px">
+                @foreach($receivedFree as $i)
+                    <label style="display:grid;grid-template-columns:minmax(0,1fr) 140px;gap:10px;align-items:center;font-weight:650">
+                        <span>{{ $i->item?->name }}<small class="ic-note" style="display:block;font-weight:500">{{ $i->quantity + 0 }} {{ $i->unit }} received · rate per {{ $i->unit }}</small></span>
+                        <input class="ic-input" type="number" step="0.01" min="0.01" inputmode="decimal" name="rates[{{ $i->id }}]" required value="{{ old('rates.'.$i->id) }}" placeholder="₹">
+                    </label>
+                    @error('rates.'.$i->id)<div class="ic-err">{{ $message }}</div>@enderror
+                @endforeach
+            </div>
+            <button class="ic-btn ic-btn--gold" style="margin-top:10px"><i class="bi bi-save"></i> Save prices</button>
+        </form>
+    @endif
+
     @can('receive', $purchase)
         @include('inventory.purchases._quick-receive')
+    @elseif(in_array($purchase->status, ['approved', 'partially_received'], true))
+        <div class="ic-card"><p class="ic-note" style="margin:0"><i class="bi bi-hourglass-split"></i> Waiting for the storekeeper to receive the goods. Stock and the final amount are updated when they do.</p></div>
     @endcan
 
+    @if($hasActions)
     <div class="ic-card" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start">
         @can('update', $purchase)
             <a class="ic-btn" href="{{ route('inventory.purchases.edit', $purchase) }}"><i class="bi bi-pencil"></i> Edit</a>
@@ -119,5 +168,6 @@
                 <button class="ic-btn ic-btn--danger" type="submit"><i class="bi bi-x-circle"></i> Cancel purchase</button></form>
         @endcan
     </div>
+    @endif
 </div>
 </x-admin-layout>

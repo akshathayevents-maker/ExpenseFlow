@@ -96,6 +96,11 @@ class GoodsReceiptService
 
                     continue;
                 }
+                if ($receivedBase > 0 && (float) $pi->rate <= 0 && ($rate === null || $rate <= 0)) {
+                    $errors["lines.{$itemId}"] = "{$pi->item->name}: no price was entered when ordering — type the billed rate.";
+
+                    continue;
+                }
                 $closedBase = $close ? round($pi->pendingBaseQuantity() - $receivedBase, 3) : 0.0;
                 $plan[] = compact('pi', 'received', 'receivedBase', 'rejectedBase', 'closedBase', 'rate') + ['remarks' => $line['remarks'] ?? null];
             }
@@ -149,6 +154,26 @@ class GoodsReceiptService
                 ]);
             }
 
+            // Lines ordered without a price (₹0 — e.g. bought from a purchase plan with no estimate): the rate billed at the
+            // gate becomes the line price and the purchase total is recalculated. Lines that had a price keep their approved
+            // figures (the billed rate is only recorded on the receipt and used to value the stock).
+            $priced = false;
+            foreach ($plan as $row) {
+                if ($row['rate'] !== null && $row['rate'] > 0 && (float) $row['pi']->rate <= 0) {
+                    $row['pi']->update(['rate' => $row['rate'], 'amount' => round($row['rate'] * (float) $row['pi']->quantity, 2)]);
+                    $priced = true;
+                }
+            }
+            if ($priced) {
+                $lines = PurchaseItem::where('purchase_id', $p->id)->get();
+                $sub = round((float) $lines->sum('amount'), 2);
+                $tax = round((float) $lines->sum(fn ($l) => (float) $l->amount * (float) $l->tax_percent / 100), 2);
+                $grand = round(max(0, $sub + $tax - (float) $p->discount_amount), 2);
+                $paid = (float) $p->amount_paid;
+                $p->update(['subtotal' => $sub, 'tax_amount' => $tax, 'grand_total' => $grand,
+                    'payment_status' => $paid <= 0 ? 'unpaid' : ($paid + 0.005 >= $grand ? 'paid' : 'partial')]);
+            }
+
             $pending = PurchaseItem::where('purchase_id', $p->id)->get()->sum(fn ($i) => $i->pendingBaseQuantity());
             $p->update(['status' => $pending <= 0.0005 ? 'received' : 'partially_received']);
 
@@ -161,6 +186,99 @@ class GoodsReceiptService
             ]);
 
             return $receipt->load('items');
+        });
+    }
+
+    /**
+     * Undo a goods receipt (admin): reverses its stock movements, takes the quantities off the purchase lines and
+     * reopens the purchase so the goods can be received again. Refused when the stock was already used (an item's
+     * current stock is below what this receipt added). The receipt stays as a record, marked undone with the reason.
+     */
+    public function undo(GoodsReceipt $receipt, User $admin, string $reason): Purchase
+    {
+        return DB::transaction(function () use ($receipt, $admin, $reason) {
+            $r = GoodsReceipt::with('items.purchaseItem.item')->lockForUpdate()->findOrFail($receipt->id);
+            if ($r->isReversed()) {
+                throw new RuntimeException('This receipt was already undone.');
+            }
+            $p = Purchase::lockForUpdate()->findOrFail($r->purchase_id);
+            if (in_array($p->status, ['cancelled', 'rejected'], true)) {
+                throw new RuntimeException('This purchase is closed.');
+            }
+            foreach ($r->items as $ri) {
+                $item = \App\Models\InventoryItem::lockForUpdate()->find($ri->purchaseItem->inventory_item_id);
+                if ($ri->received_base_quantity > 0 && (float) $item->current_stock + 0.0005 < (float) $ri->received_base_quantity) {
+                    throw new RuntimeException("{$item->name}: only {$item->current_stock} {$item->unit} left in stock — part of this receipt was already used, so it can't be undone. Use a stock correction instead.");
+                }
+            }
+            foreach ($r->items as $ri) {
+                $pi = $ri->purchaseItem;
+                if ($ri->inventory_transaction_id && ($txn = \App\Models\InventoryTransaction::find($ri->inventory_transaction_id))) {
+                    $this->inventory->reverse($txn, $admin, null, "Receipt undone on {$p->reference()}: {$reason}");
+                }
+                $pi->update([
+                    'received_base_quantity' => max(0, round((float) $pi->received_base_quantity - (float) $ri->received_base_quantity, 3)),
+                    'closed_base_quantity' => max(0, round((float) $pi->closed_base_quantity - (float) $ri->closed_base_quantity, 3)),
+                ]);
+            }
+            $r->update(['reversed_at' => now(), 'reversed_by' => $admin->id, 'reversal_reason' => $reason]);
+            $anyReceived = PurchaseItem::where('purchase_id', $p->id)->where('received_base_quantity', '>', 0)->exists();
+            $p->update(['status' => $anyReceived ? 'partially_received' : 'approved', 'completed_at' => null]);
+            $this->audit->log('receipt_undone', 'purchase', $p->id, $p->reference(), [], ['receipt_id' => $r->id, 'reason' => $reason, 'status' => $p->status]);
+
+            return $p->fresh('items');
+        });
+    }
+
+    /**
+     * Enter prices for lines that were ordered AND received at ₹0 (before rates were required at receipt).
+     * Sets the line rate/amount, recalculates the purchase totals, records the rate on the receipt lines, and
+     * adds the value of the already-received quantity to the item's average cost (spread over current stock).
+     * $rates: [purchase_item_id => rate per line unit, before tax]
+     */
+    public function priceUnpricedLines(Purchase $purchase, array $rates, User $user): Purchase
+    {
+        return DB::transaction(function () use ($purchase, $rates, $user) {
+            $p = Purchase::lockForUpdate()->findOrFail($purchase->id);
+            $changes = [];
+            $errors = [];
+            foreach ($p->items()->with('item')->get() as $pi) {
+                $r = $rates[$pi->id] ?? null;
+                if ($r === null || $r === '' || (float) $pi->rate > 0) {
+                    continue;
+                }
+                $r = round((float) $r, 2);
+                if ($r <= 0) {
+                    $errors["rates.{$pi->id}"] = "{$pi->item->name}: enter a rate above 0.";
+
+                    continue;
+                }
+                $pi->update(['rate' => $r, 'amount' => round($r * (float) $pi->quantity, 2)]);
+                \App\Models\GoodsReceiptItem::where('purchase_item_id', $pi->id)->whereNull('actual_rate')->update(['actual_rate' => $r]);
+                $received = (float) $pi->received_base_quantity;
+                $item = \App\Models\InventoryItem::lockForUpdate()->find($pi->inventory_item_id);
+                if ($item && $received > 0 && (float) $item->current_stock > 0) {
+                    $valueAdded = $received * $this->billedBaseCost($pi, $r);
+                    $item->update(['average_cost' => round((float) $item->average_cost + $valueAdded / (float) $item->current_stock, 4)]);
+                }
+                $changes[] = $pi->item->name.': ₹'.$r;
+            }
+            if ($errors) {
+                throw ValidationException::withMessages($errors);
+            }
+            if (! $changes) {
+                throw ValidationException::withMessages(['rates' => 'Enter a rate for at least one item.']);
+            }
+            $lines = PurchaseItem::where('purchase_id', $p->id)->get();
+            $sub = round((float) $lines->sum('amount'), 2);
+            $tax = round((float) $lines->sum(fn ($l) => (float) $l->amount * (float) $l->tax_percent / 100), 2);
+            $grand = round(max(0, $sub + $tax - (float) $p->discount_amount), 2);
+            $paid = (float) $p->amount_paid;
+            $p->update(['subtotal' => $sub, 'tax_amount' => $tax, 'grand_total' => $grand,
+                'payment_status' => $paid <= 0 ? 'unpaid' : ($paid + 0.005 >= $grand ? 'paid' : 'partial')]);
+            $this->audit->log('prices_entered', 'purchase', $p->id, $p->reference(), [], ['rates' => $changes, 'grand_total' => $grand]);
+
+            return $p->fresh('items');
         });
     }
 

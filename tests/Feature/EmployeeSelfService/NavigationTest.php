@@ -128,3 +128,18 @@ test('employee navigation does not expose salary management', function () {
         ->assertDontSee('Employee Salaries')
         ->assertDontSee('Compensation / Payroll');
 });
+
+test('employee sidebar shows the everyday items and keeps store-side tools for storekeepers only', function () {
+    $emp = User::factory()->create(['role' => 'employee']);
+    $html = $this->actingAs($emp->fresh())->get(route('employee.attendance.index'))->assertOk()->getContent();
+    expect($html)->toContain('Kitchen &amp; Events')->toContain(route('employee.kitchen.calculator'))
+        ->toContain(route('meal-register.entries.create'))->toContain(route('employee.wallet.show'))
+        ->toContain(route('inventory.material-requests.create'))->toContain('My Material Requests')
+        ->not->toContain('href="'.route('inventory.stock').'"')
+        ->not->toContain('href="'.route('inventory.purchases.index').'"');
+
+    $store = User::factory()->create(['role' => 'employee', 'is_storekeeper' => true]);
+    $html = $this->actingAs($store->fresh())->get(route('employee.attendance.index'))->assertOk()->getContent();
+    expect($html)->toContain('href="'.route('inventory.stock').'"')->toContain('href="'.route('inventory.purchases.index').'"')
+        ->toContain('Store Overview');
+});

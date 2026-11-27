@@ -35,6 +35,7 @@ class AppServiceProvider extends ServiceProvider
         Queue::looping(fn () => QueueHealth::beat());
         Gate::define('recipes.verify', fn ($user) => $user->isAdmin());
         Gate::policy(EventRequest::class, EventRequestPolicy::class);
+        Gate::policy(\App\Models\PurchasePlan::class, \App\Policies\PurchasePlanPolicy::class);
         Gate::policy(Purchase::class, PurchasePolicy::class);
         Gate::policy(MaterialRequest::class, MaterialRequestPolicy::class);
     }

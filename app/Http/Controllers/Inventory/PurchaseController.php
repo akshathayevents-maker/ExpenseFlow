@@ -292,6 +292,30 @@ class PurchaseController extends Controller
      * "changes": a line left blank arrived as ordered; a smaller quantity closes the rest
      * unless "more_coming" is ticked; a changed rate is recorded as the billed rate.
      */
+    /** Admin: undo a goods receipt (stock reversed, purchase reopened for receiving). */
+    public function undoReceipt(Request $request, Purchase $purchase, \App\Models\GoodsReceipt $receipt): RedirectResponse
+    {
+        abort_unless($request->user()->isAdmin() && $receipt->purchase_id === $purchase->id, 403);
+        $data = $request->validate(['reason' => ['required', 'string', 'min:3', 'max:500']]);
+        try {
+            app(\App\Services\Inventory\GoodsReceiptService::class)->undo($receipt, $request->user(), $data['reason']);
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('inventory.purchases.show', $purchase)->with('success', 'Receipt undone — stock reversed and the purchase is open for receiving again.');
+    }
+
+    /** Admin / storekeeper: enter prices for lines received at ₹0. */
+    public function prices(Request $request, Purchase $purchase): RedirectResponse
+    {
+        abort_unless($request->user()->isAdmin() || $request->user()->isStorekeeper(), 403);
+        $data = $request->validate(['rates' => ['required', 'array'], 'rates.*' => ['nullable', 'numeric', 'min:0', 'max:10000000']]);
+        app(\App\Services\Inventory\GoodsReceiptService::class)->priceUnpricedLines($purchase, $data['rates'], $request->user());
+
+        return redirect()->route('inventory.purchases.show', $purchase)->with('success', 'Prices saved — purchase total updated.');
+    }
+
     private function quickLines(Purchase $purchase, array $data): array
     {
         $posted = $data['lines'] ?? [];
@@ -303,6 +327,9 @@ class PurchaseController extends Controller
                 continue;
             }
             $row = $data['mode'] === 'changes' ? ($posted[$pi->id] ?? []) : [];
+            if ((float) $pi->rate <= 0 && isset($posted[$pi->id]['rate'])) {
+                $row['rate'] = $posted[$pi->id]['rate'];   // unpriced line: the billed rate is always asked for
+            }
             $got = isset($row['received']) && $row['received'] !== '' ? min((float) $row['received'], $due) : $due;
             $rate = isset($row['rate']) && $row['rate'] !== '' && abs((float) $row['rate'] - $pi->rate) >= 0.005 ? $row['rate'] : null;
             $lines[$pi->id] = [

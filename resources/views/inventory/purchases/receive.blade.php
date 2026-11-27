@@ -101,7 +101,7 @@
                     <label class="gr-f"><span class="gr-cap">Rejected / damaged</span>
                         <input class="ic-input" type="number" step="0.001" min="0" name="lines[{{ $i->id }}][rejected]" value="{{ old("$k.rejected") }}" inputmode="decimal" data-rej></label>
                     <label class="gr-f"><span class="gr-cap">Rate on bill ₹</span>
-                        <input class="ic-input" type="number" step="0.01" min="0" name="lines[{{ $i->id }}][rate]" value="{{ old("$k.rate") }}" placeholder="{{ number_format($i->rate, 2, '.', '') }}" inputmode="decimal" data-rate-in></label>
+                        <input class="ic-input" type="number" step="0.01" min="0" name="lines[{{ $i->id }}][rate]" value="{{ old("$k.rate") }}" placeholder="{{ (float) $i->rate > 0 ? number_format($i->rate, 2, '.', '') : 'billed rate — required' }}" inputmode="decimal" data-rate-in @if((float) $i->rate <= 0) style="border-color:var(--ef-gold)" @endif></label>
                 </div>
                 <div class="gr-diff" data-diff hidden></div>
                 <label class="gr-close">

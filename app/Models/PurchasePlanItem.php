@@ -9,11 +9,12 @@ class PurchasePlanItem extends Model
 {
     protected $fillable = [
         'purchase_plan_id', 'inventory_item_id',
-        'suggested_quantity', 'estimated_unit_cost', 'priority', 'notes',
+        'suggested_quantity', 'approved_quantity', 'estimated_unit_cost', 'priority', 'notes',
     ];
 
     protected $casts = [
         'suggested_quantity'  => 'float',
+        'approved_quantity'   => 'float',
         'estimated_unit_cost' => 'float',
     ];
 
@@ -25,6 +26,12 @@ class PurchasePlanItem extends Model
     public function inventoryItem(): BelongsTo
     {
         return $this->belongsTo(InventoryItem::class, 'inventory_item_id');
+    }
+
+    /** Quantity allowed to buy (stock unit): the approver's figure, else what was asked for. */
+    public function allowedQuantity(): float
+    {
+        return (float) ($this->approved_quantity ?? $this->suggested_quantity);
     }
 
     public function estimatedTotal(): float

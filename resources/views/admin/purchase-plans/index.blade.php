@@ -21,7 +21,7 @@
 @media (max-width:639.98px){.pp-acts{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.pp-title h1{font-size:1.25rem}.pp-title p .--long{display:none}}
 
 /* status strip */
-.pp-q{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));border:1px solid var(--ef-border);border-radius:14px;background:var(--ef-surface);overflow:hidden;box-shadow:0 1px 2px rgba(19,17,16,.04)}
+.pp-q{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border:1px solid var(--ef-border);border-radius:14px;background:var(--ef-surface);overflow:hidden;box-shadow:0 1px 2px rgba(19,17,16,.04)}
 .pp-qi{position:relative;display:flex;flex-direction:column;gap:2px;padding:11px 14px;color:var(--ef-ink);text-decoration:none;border-right:1px solid var(--ef-border);min-width:0;background:var(--tint,transparent)}
 .pp-qi:last-child{border-right:0}
 .pp-qi:hover{color:var(--ef-ink);filter:brightness(.98)}
@@ -32,6 +32,9 @@
 .pp-qi.--zero{--tint:transparent}
 .pp-qi.--on::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--acc)}
 .pp-qi[data-k=all]{--acc:var(--ef-ink)}
+.pp-qi[data-k=submitted]{--acc:#b4531c;--tint:rgba(214,110,40,.08)}
+.pp-qi[data-k=submitted]:not(.--zero) small::after{content:"";width:7px;height:7px;border-radius:50%;background:#b4531c;margin-left:auto;animation:ppPulse 1.6s ease-in-out infinite}
+@keyframes ppPulse{0%,100%{opacity:1}50%{opacity:.25}}
 .pp-qi[data-k=draft]{--acc:#6b5bb5;--tint:rgba(107,91,181,.05)}
 .pp-qi[data-k=approved]{--acc:var(--ef-emerald);--tint:rgba(30,122,60,.05)}
 .pp-qi[data-k=ordered]{--acc:#2c5784;--tint:rgba(59,110,165,.06)}
@@ -70,6 +73,7 @@
 .pp-row{border-top:1px solid var(--ef-border);border-left:3px solid var(--tone,transparent)}
 .pp-row:first-child{border-top:0}
 .pp-row:hover{background:var(--ef-bg-subtle)}
+.pp-row[data-tone=warn]{--tone:#d66e28;background:rgba(214,110,40,.05)}
 .pp-row[data-tone=ok]{--tone:var(--ef-emerald)}
 .pp-row[data-tone=info]{--tone:#3b6ea5}
 .pp-row[data-tone=bad]{--tone:var(--ef-danger)}
@@ -138,7 +142,7 @@
 
 @php
     $q = fn ($n) => rtrim(rtrim(number_format((float) $n, 3, '.', ''), '0'), '.');
-    $tabs = ['all' => ['All', 'bi-collection'], 'draft' => ['Draft', 'bi-pencil-square'], 'approved' => ['Approved', 'bi-check2-circle'],
+    $tabs = ['all' => ['All', 'bi-collection'], 'submitted' => ['Waiting approval', 'bi-hourglass-split'], 'draft' => ['Draft', 'bi-pencil-square'], 'approved' => ['Approved', 'bi-check2-circle'],
         'ordered' => ['Ordered', 'bi-truck'], 'completed' => ['Completed', 'bi-box-seam'], 'cancelled' => ['Cancelled', 'bi-x-circle']];
     $tabUrl = fn ($k) => route('admin.purchase-plans.index', array_merge($filters, $k === 'all' ? [] : ['status' => $k]));
     $filterCount = count(array_diff_key($filters, ['q' => 1]));
@@ -194,7 +198,7 @@
                     $est = (float) $plan->est_total;
                 @endphp
                 <div class="pp-row" data-tone="{{ $tone }}" data-plan>
-                    <a class="pp-what" href="{{ route('admin.purchase-plans.show', $plan) }}">
+                    <a class="pp-what" href="{{ route('inventory.plans.show', $plan) }}">
                         <span class="pp-ico" aria-hidden="true"><i class="bi bi-cart-check"></i></span>
                         <span class="pp-what-b"><span class="pp-t">{{ $plan->title }}</span>
                             <span class="pp-s">Created {{ $plan->created_at?->format('d M Y') }}@if($plan->notes) · {{ \Illuminate\Support\Str::limit($plan->notes, 60) }}@endif</span></span>
@@ -207,7 +211,7 @@
                         <span><i class="bi bi-box"></i> {{ $plan->items_count }} {{ \Illuminate\Support\Str::plural('item', $plan->items_count) }}@if($plan->urgent_count)<span class="pp-urg">{{ $plan->urgent_count }} urgent</span>@endif</span>
                         @if($plan->creator)<span><i class="bi bi-person"></i> {{ $plan->creator->name }}</span>@endif
                     </div>
-                    <div class="pp-st">@include('inventory._status', ['label' => ucfirst($plan->status), 'tone' => $tone])</div>
+                    <div class="pp-st">@include('inventory._status', ['label' => $plan->statusLabel(), 'tone' => $tone])</div>
                     <div class="pp-amt {{ $est > 0 ? '' : '--none' }}">{{ $est > 0 ? '₹'.number_format($est, 0) : 'No estimate' }}</div>
                 </div>
             @empty

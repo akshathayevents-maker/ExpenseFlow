@@ -10,6 +10,9 @@
     </div>
 
 
+    <div class="ic-banner"><i class="bi bi-diagram-3"></i> Approve, buy, receive and close this plan on the workflow page.
+        <a href="{{ route('inventory.plans.show', $p) }}" class="ic-btn ic-btn--sm" style="margin-left:auto">Open workflow</a></div>
+
     <div class="ic-card">
         <div class="ic-kv">
             <div><small>Planned date</small><strong>{{ $p->planned_date->format('d M Y') }}</strong></div>

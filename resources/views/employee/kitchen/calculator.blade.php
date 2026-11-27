@@ -1376,7 +1376,7 @@ window.KcCategories = @json($categories);
             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
         })
         .then(r => { if (!r.ok) throw new Error('Recipe not found'); return r.json(); })
-        .then(data => { currentRecipe = data; window.kcCurrentRecipeId = data.id; })
+        .then(data => { currentRecipe = data; window.kcCurrentRecipeId = data.id; if (window.kcAutoCalc) { window.kcAutoCalc = false; calculate(); } })
         .catch(() => { currentRecipe = null; showError('Could not load recipe data. Please try again.'); });
     }
 
@@ -1660,6 +1660,14 @@ window.KcCategories = @json($categories);
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;');
     }
+
+    /* Deep link from the Kitchen Schedule: ?recipe=ID&people=N opens the recipe already calculated */
+    (function () {
+        const qs = new URLSearchParams(location.search), rid = qs.get('recipe'), ppl = parseInt(qs.get('people'), 10);
+        if (!rid || !window.KcRecipes || !window.KcRecipes[rid]) return;
+        if (ppl > 0) { peopleIn.value = ppl; syncPresets(); window.kcAutoCalc = true; }
+        comboSelect(rid);
+    })();
 
 })();
 </script>

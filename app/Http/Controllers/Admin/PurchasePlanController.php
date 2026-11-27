@@ -27,7 +27,7 @@ class PurchasePlanController extends Controller
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date'],
         ]);
-        $status = in_array($request->query('status'), ['draft', 'approved', 'ordered', 'completed', 'cancelled'], true) ? $request->query('status') : null;   // unknown values are ignored (old links)
+        $status = in_array($request->query('status'), ['submitted', 'draft', 'rejected', 'approved', 'ordered', 'completed', 'cancelled'], true) ? $request->query('status') : null;   // unknown values are ignored (old links)
         $search = trim((string) ($f['q'] ?? ''));
 
         // estimated total + priority counts computed in SQL, no item models loaded for the list
@@ -44,7 +44,7 @@ class PurchasePlanController extends Controller
             ->withQueryString();
 
         $byStatus = PurchasePlan::selectRaw('status, COUNT(*) AS c')->groupBy('status')->pluck('c', 'status')->map(fn ($c) => (int) $c);
-        $stats = collect(['draft', 'approved', 'ordered', 'completed', 'cancelled'])->mapWithKeys(fn ($k) => [$k => $byStatus[$k] ?? 0])->all();
+        $stats = collect(['submitted', 'draft', 'rejected', 'approved', 'ordered', 'completed', 'cancelled'])->mapWithKeys(fn ($k) => [$k => $byStatus[$k] ?? 0])->all();
         $stats['total'] = $byStatus->sum();
 
         // what needs buying right now (items with a reorder level at or below it)
@@ -66,9 +66,8 @@ class PurchasePlanController extends Controller
 
     public function create(): View
     {
-        $suggestions = $this->planningService->getSuggestions();
-
-        return view('admin.purchase-plans.create', compact('suggestions'));
+        // one plan form for everyone (the staff workflow page); admins land here from suggestions / the store dashboard
+        return view('inventory.plans.form', ['plan' => null, 'rows' => \App\Http\Controllers\Inventory\PurchasePlanController::formRows(null)]);
     }
 
     public function store(PurchasePlanRequest $request): RedirectResponse

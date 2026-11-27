@@ -101,6 +101,7 @@ class InventoryHomeController extends Controller
             $admin = [
                 'purchases' => $pur['submitted'] ?? 0,
                 'materials' => $req['submitted'] ?? 0,
+                'plans' => \App\Models\PurchasePlan::where('status', 'submitted')->count(),
                 'alerts' => $snapshot['low'] + $snapshot['outTracked'],   // only items with a reorder level
                 'review' => MaterialRequest::where('reconciliation_status', 'pending_review')->count(),
                 'unreconciled' => MaterialRequest::where('status', 'issued')->whereDate('required_date', '<', $today)->count(),

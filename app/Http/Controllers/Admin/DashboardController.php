@@ -155,6 +155,15 @@ class DashboardController extends Controller
                 'cta'   => 'Review Attendance',
             ],
             [
+                'key'   => 'plans',
+                'label' => 'Purchase Plans',
+                'count' => \App\Models\PurchasePlan::where('status', 'submitted')->count(),
+                'desc'  => 'purchase plan(s) waiting for approval.',
+                'icon'  => 'bi-cart3',
+                'url'   => route('inventory.plans.index', ['tab' => 'approve']),
+                'cta'   => 'Review Plans',
+            ],
+            [
                 'key'   => 'wallets',
                 'label' => 'Wallet Alerts',
                 'count' => $lowBalanceCount,

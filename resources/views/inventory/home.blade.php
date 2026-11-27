@@ -194,6 +194,7 @@ a.sd-kpi[data-tone=val]:hover{background:#2a2622;color:#fff}
     // Actionable inbox — highest priority first; zero rows never shown.
     $todo = [];
     if ($admin) {
+        $todo[] = ['n' => $admin['plans'] ?? 0, 'tone' => 'bad', 't' => 'Purchase plans to approve', 's' => 'Staff shopping lists waiting for your OK', 'go' => 'Review', 'href' => route('inventory.plans.index', ['tab' => 'approve'])];
         $todo[] = ['n' => $admin['materials'], 'tone' => 'bad', 't' => 'Material requests to approve', 's' => 'Kitchen is waiting — approve or adjust quantities', 'go' => 'Review', 'href' => route('inventory.material-requests.index', ['tab' => 'approve'])];
         $todo[] = ['n' => $admin['alerts'], 'tone' => 'bad', 't' => 'Items at or below minimum', 's' => ($snapshot['outTracked'] ? $snapshot['outTracked'].' out of stock · ' : '').'reorder before the next event', 'go' => 'Plan purchase', 'href' => route('admin.purchase-plans.create')];
         $todo[] = ['n' => $admin['review'], 'tone' => 'bad', 't' => 'Unusual usage to check', 's' => 'Wastage or unexplained loss reported', 'go' => 'Check', 'href' => route('inventory.material-requests.index', ['tab' => 'review'])];

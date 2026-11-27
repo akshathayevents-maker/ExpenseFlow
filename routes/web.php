@@ -356,6 +356,8 @@ Route::prefix('employee')->name('employee.')->middleware(['auth', 'verified', 'a
     Route::get('kitchen/calculator', [EmployeeKitchenController::class, 'index'])->name('kitchen.calculator');
     Route::get('kitchen/calculator/{recipe}', [EmployeeKitchenController::class, 'recipe'])->name('kitchen.calculator.recipe');
     Route::get('kitchen/calculator/{recipe}/print', [EmployeeKitchenController::class, 'print'])->name('kitchen.calculator.print');
+    // Read-only Kitchen Schedule for kitchen staff (same data as hall.bookings.kitchen; manager-only links hidden)
+    Route::get('kitchen/schedule', [HallBookingController::class, 'kitchen'])->name('kitchen.schedule');
 });
 
 // ── Kitchen — Recipe Library (admin + manager) ────────────────────────────────
@@ -548,6 +550,19 @@ Route::prefix('inventory')->name('inventory.')->middleware(['auth', 'verified'])
     Route::post('items/match', [ItemLookupController::class, 'match'])
         ->middleware('throttle:60,1')->name('items.match');
 
+    // Purchase plans prepared by staff (PurchasePlanPolicy): draft → approval → buy → receive → close
+    Route::get('plans', [\App\Http\Controllers\Inventory\PurchasePlanController::class, 'index'])->name('plans.index');
+    Route::get('plans/create', [\App\Http\Controllers\Inventory\PurchasePlanController::class, 'create'])->name('plans.create');
+    Route::post('plans', [\App\Http\Controllers\Inventory\PurchasePlanController::class, 'store'])->middleware('throttle:30,1')->name('plans.store');
+    Route::get('plans/{plan}', [\App\Http\Controllers\Inventory\PurchasePlanController::class, 'show'])->name('plans.show');
+    Route::get('plans/{plan}/edit', [\App\Http\Controllers\Inventory\PurchasePlanController::class, 'edit'])->name('plans.edit');
+    Route::put('plans/{plan}', [\App\Http\Controllers\Inventory\PurchasePlanController::class, 'update'])->name('plans.update');
+    Route::post('plans/{plan}/submit', [\App\Http\Controllers\Inventory\PurchasePlanController::class, 'submit'])->name('plans.submit');
+    Route::post('plans/{plan}/approve', [\App\Http\Controllers\Inventory\PurchasePlanController::class, 'approve'])->name('plans.approve');
+    Route::post('plans/{plan}/reject', [\App\Http\Controllers\Inventory\PurchasePlanController::class, 'reject'])->name('plans.reject');
+    Route::post('plans/{plan}/cancel', [\App\Http\Controllers\Inventory\PurchasePlanController::class, 'cancel'])->name('plans.cancel');
+    Route::post('plans/{plan}/buy', [\App\Http\Controllers\Inventory\PurchasePlanController::class, 'buy'])->middleware('throttle:30,1')->name('plans.buy');
+    Route::post('plans/{plan}/close', [\App\Http\Controllers\Inventory\PurchasePlanController::class, 'close'])->name('plans.close');
     Route::get('purchases', [PurchaseController::class, 'index'])->name('purchases.index');
     Route::get('purchases/create', [PurchaseController::class, 'create'])->name('purchases.create');
     Route::post('purchases', [PurchaseController::class, 'store'])->name('purchases.store');
@@ -559,6 +574,8 @@ Route::prefix('inventory')->name('inventory.')->middleware(['auth', 'verified'])
     Route::post('purchases/{purchase}/reject', [PurchaseController::class, 'reject'])->name('purchases.reject');
     Route::post('purchases/{purchase}/cancel', [PurchaseController::class, 'cancel'])->name('purchases.cancel');
     Route::post('purchases/{purchase}/complete', [PurchaseController::class, 'complete'])->name('purchases.complete');
+    Route::post('purchases/{purchase}/prices', [PurchaseController::class, 'prices'])->middleware('throttle:30,1')->name('purchases.prices');
+    Route::post('purchases/{purchase}/receipts/{receipt}/undo', [PurchaseController::class, 'undoReceipt'])->middleware('throttle:20,1')->name('purchases.receipts.undo');
     Route::get('material-requests', [MaterialRequestController::class, 'index'])->name('material-requests.index');
     Route::get('material-requests/hall-prefill/{booking}', [MaterialRequestController::class, 'hallPrefill'])
         ->middleware('throttle:60,1')->name('material-requests.hall-prefill');

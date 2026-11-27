@@ -9,9 +9,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class GoodsReceipt extends Model
 {
     protected $fillable = ['purchase_id', 'received_by', 'received_at', 'notes', 'client_token',
-        'bill_number', 'bill_amount', 'bill_path', 'bill_original_name'];
+        'bill_number', 'bill_amount', 'bill_path', 'bill_original_name', 'reversed_at', 'reversed_by', 'reversal_reason'];
 
-    protected $casts = ['received_at' => 'datetime', 'bill_amount' => 'float'];
+    protected $casts = ['received_at' => 'datetime', 'bill_amount' => 'float', 'reversed_at' => 'datetime'];
+
+    public function isReversed(): bool { return $this->reversed_at !== null; }
+    public function reverser(): \Illuminate\Database\Eloquent\Relations\BelongsTo { return $this->belongsTo(User::class, 'reversed_by'); }
 
     public function billIsPdf(): bool
     {

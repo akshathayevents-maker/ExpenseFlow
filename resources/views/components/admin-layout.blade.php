@@ -775,8 +775,9 @@
 
         @php
             $grpEmpMyWork  = request()->routeIs('employee.attendance.*','employee.attendance-regularizations.*','employee.overtime.*','employee.leave.*');
-            $grpEmpFinance = request()->routeIs('employee.advances.*');
-            $grpEmpExpense = request()->routeIs('employee.expense-requests.*','employee.wallet.*');
+            // one money group: wallet, expenses and advances
+            $grpEmpFinance = request()->routeIs('employee.advances.*','employee.expense-requests.*','employee.wallet.*');
+            $grpEmpKitchen = request()->routeIs('employee.hall.*','employee.kitchen.*','meal-register.*');
             // Cheap, employee-only, per-request check — reuses the exact
             // same rule the attendance gate itself enforces (never a
             // second, independently-drifting calculation). Purely a
@@ -833,7 +834,7 @@
             @endif
         </div>
 
-        {{-- My Finances ─────────────────────────────────────────── --}}
+        {{-- My Finances: wallet, expenses, advances ───────────── --}}
         <button class="sidebar-group-btn {{ $grpEmpFinance ? 'has-active' : '' }}"
                 data-bs-toggle="collapse" data-bs-target="#grp-emp-finance"
                 aria-expanded="{{ $grpEmpFinance ? 'true' : 'false' }}">
@@ -842,68 +843,54 @@
             <i class="bi bi-chevron-down sidebar-chevron"></i>
         </button>
         <div class="collapse sidebar-group-body {{ $grpEmpFinance ? 'show' : '' }}" id="grp-emp-finance">
-            <a href="{{ route('employee.advances.index') }}"
-               class="nav-link {{ request()->routeIs('employee.advances.*') && !request()->routeIs('employee.advances.create') ? 'active' : '' }}">
-                <i class="bi bi-cash-stack"></i> My Advances
-            </a>
-            <a href="{{ route('employee.advances.create') }}"
-               class="nav-link {{ request()->routeIs('employee.advances.create') ? 'active' : '' }}">
-                <i class="bi bi-plus-circle"></i> Request Advance
-            </a>
-        </div>
-
-        {{-- Expenses ────────────────────────────────────────────── --}}
-        <button class="sidebar-group-btn {{ $grpEmpExpense ? 'has-active' : '' }}"
-                data-bs-toggle="collapse" data-bs-target="#grp-emp-expenses"
-                aria-expanded="{{ $grpEmpExpense ? 'true' : 'false' }}">
-            <i class="bi bi-file-earmark-text sb-grp-icon"></i>
-            <span class="sb-grp-label">Expenses</span>
-            <i class="bi bi-chevron-down sidebar-chevron"></i>
-        </button>
-        <div class="collapse sidebar-group-body {{ $grpEmpExpense ? 'show' : '' }}" id="grp-emp-expenses">
-            <a href="{{ route('employee.expense-requests.create') }}"
-               class="nav-link {{ request()->routeIs('employee.expense-requests.create') ? 'active' : '' }}">
-                <i class="bi bi-plus-circle"></i> New Request
-            </a>
-            <a href="{{ route('employee.expense-requests.index') }}"
-               class="nav-link {{ request()->routeIs('employee.expense-requests.*') && !request()->routeIs('employee.expense-requests.create') ? 'active' : '' }}">
-                <i class="bi bi-list-ul"></i> My Requests
-            </a>
             <a href="{{ route('employee.wallet.show') }}"
                class="nav-link {{ request()->routeIs('employee.wallet.*') ? 'active' : '' }}">
                 <i class="bi bi-wallet2"></i> My Wallet
             </a>
+            <a href="{{ route('employee.expense-requests.create') }}"
+               class="nav-link {{ request()->routeIs('employee.expense-requests.create') ? 'active' : '' }}">
+                <i class="bi bi-plus-circle"></i> New Expense
+            </a>
+            <a href="{{ route('employee.expense-requests.index') }}"
+               class="nav-link {{ request()->routeIs('employee.expense-requests.*') && !request()->routeIs('employee.expense-requests.create') ? 'active' : '' }}">
+                <i class="bi bi-receipt"></i> My Expenses
+            </a>
+            <a href="{{ route('employee.advances.index') }}"
+               class="nav-link {{ request()->routeIs('employee.advances.*') ? 'active' : '' }}">
+                <i class="bi bi-cash-stack"></i> My Advances
+            </a>
         </div>
 
-        <div class="sidebar-standalone">
-            <a href="{{ route('employee.hall.bookings.calendar') }}"
-               class="nav-link {{ request()->routeIs('employee.hall.bookings.calendar') ? 'active' : '' }}">
-                <i class="bi bi-calendar3"></i> Hall Calendar
-            </a>
-            <a href="{{ route('employee.kitchen.calculator') }}"
-               class="nav-link {{ request()->routeIs('employee.kitchen.*') ? 'active' : '' }}">
-                <i class="bi bi-fire"></i> Kitchen Calculator
-            </a>
-        </div>
-
-        {{-- Corporate Meals ──────────────────────────────────────── --}}
-        <button class="sidebar-group-btn {{ $grpMealReg ? 'has-active' : '' }}"
-                data-bs-toggle="collapse" data-bs-target="#grp-corp-meals-emp"
-                aria-expanded="{{ $grpMealReg ? 'true' : 'false' }}">
-            <i class="bi bi-clipboard-data sb-grp-icon"></i>
-            <span class="sb-grp-label">Corporate Meals</span>
+        {{-- Kitchen & Events ────────────────────────────────────── --}}
+        <button class="sidebar-group-btn {{ $grpEmpKitchen ? 'has-active' : '' }}"
+                data-bs-toggle="collapse" data-bs-target="#grp-emp-kitchen"
+                aria-expanded="{{ $grpEmpKitchen ? 'true' : 'false' }}">
+            <i class="bi bi-fire sb-grp-icon"></i>
+            <span class="sb-grp-label">Kitchen &amp; Events</span>
             <i class="bi bi-chevron-down sidebar-chevron"></i>
         </button>
-        <div class="collapse sidebar-group-body {{ $grpMealReg ? 'show' : '' }}" id="grp-corp-meals-emp">
+        <div class="collapse sidebar-group-body {{ $grpEmpKitchen ? 'show' : '' }}" id="grp-emp-kitchen">
+            <a href="{{ route('employee.hall.bookings.calendar') }}"
+               class="nav-link {{ request()->routeIs('employee.hall.*') ? 'active' : '' }}">
+                <i class="bi bi-calendar3"></i> Hall Calendar
+            </a>
+            <a href="{{ route('employee.kitchen.schedule') }}"
+               class="nav-link {{ request()->routeIs('employee.kitchen.schedule') ? 'active' : '' }}">
+                <i class="bi bi-fire"></i> Kitchen Schedule
+            </a>
+            <a href="{{ route('employee.kitchen.calculator') }}"
+               class="nav-link {{ request()->routeIs('employee.kitchen.calculator*') ? 'active' : '' }}">
+                <i class="bi bi-calculator"></i> Kitchen Calculator
+            </a>
             <a href="{{ route('meal-register.entries.create') }}"
                class="nav-link {{ request()->routeIs('meal-register.entries.*') ? 'active' : '' }}">
-                <i class="bi bi-journal-check"></i> Daily Entry
+                <i class="bi bi-journal-check"></i> Corporate Meals Entry
             </a>
         </div>
 
     @endif
 
-    {{-- ── Store & Inventory for non-admin roles (admins get the full group above) ──── --}}
+    {{-- ── Store for employees: request materials + own requests; store-side tools only for storekeepers ──── --}}
     @if($role === 'employee')
     <button class="sidebar-group-btn {{ $grpStore ? 'has-active' : '' }}"
             data-bs-toggle="collapse" data-bs-target="#grp-store"
@@ -914,26 +901,24 @@
         <i class="bi bi-chevron-down sidebar-chevron"></i>
     </button>
     <div class="collapse sidebar-group-body {{ $grpStore ? 'show' : '' }}" id="grp-store">
-        <a href="{{ route('inventory.home') }}" class="nav-link {{ request()->routeIs('inventory.home') ? 'active' : '' }}">
-            <i class="bi bi-grid"></i> Overview
-        </a>
         <a href="{{ route('inventory.material-requests.create') }}" class="nav-link {{ request()->routeIs('inventory.material-requests.create') ? 'active' : '' }}">
             <i class="bi bi-basket"></i> Request Materials
         </a>
         <a href="{{ route('inventory.material-requests.index') }}" class="nav-link {{ request()->routeIs('inventory.material-requests.*') && ! request()->routeIs('inventory.material-requests.create') ? 'active' : '' }}">
-            <i class="bi bi-list-check"></i> Material Requests
+            <i class="bi bi-list-check"></i> {{ $sbUser->isStorekeeper() ? 'Material Requests' : 'My Material Requests' }}
         </a>
-        <a href="{{ route('inventory.purchases.index') }}" class="nav-link {{ request()->routeIs('inventory.purchases.*') ? 'active' : '' }}">
-            <i class="bi bi-bag-check"></i> Purchases
+        <a href="{{ route('inventory.plans.index') }}" class="nav-link {{ request()->routeIs('inventory.plans.*') ? 'active' : '' }}">
+            <i class="bi bi-cart3"></i> Purchase Plans
         </a>
-        @if($sbUser->isAdmin() || $sbUser->isManager() || $sbUser->isStorekeeper())
+        @if($sbUser->isStorekeeper())
+            <a href="{{ route('inventory.home') }}" class="nav-link {{ request()->routeIs('inventory.home') ? 'active' : '' }}">
+                <i class="bi bi-grid"></i> Store Overview
+            </a>
             <a href="{{ route('inventory.stock') }}" class="nav-link {{ request()->routeIs('inventory.stock') ? 'active' : '' }}">
                 <i class="bi bi-boxes"></i> Stock
             </a>
-        @endif
-        @if($sbUser->isAdmin() || $sbUser->isManager())
-            <a href="{{ route('inventory.reports.index') }}" class="nav-link {{ request()->routeIs('inventory.reports.*') ? 'active' : '' }}">
-                <i class="bi bi-shield-check"></i> Reports
+            <a href="{{ route('inventory.purchases.index') }}" class="nav-link {{ request()->routeIs('inventory.purchases.*') ? 'active' : '' }}">
+                <i class="bi bi-bag-check"></i> Purchases
             </a>
         @endif
     </div>

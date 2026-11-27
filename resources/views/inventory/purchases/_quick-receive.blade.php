@@ -58,6 +58,23 @@
     </label>
     @error('bill_file')<div class="qr-err">{{ $message }}</div>@enderror
     @foreach(['lines', 'extra'] as $f)@error($f)<div class="qr-err">{{ $message }}</div>@enderror @endforeach
+    @php $unpricedDue = $dueLines->filter(fn ($l) => (float) $l['i']->rate <= 0); @endphp
+    @foreach($dueLines as $l)@error('lines.'.$l['i']->id)<div class="qr-err">{{ $message }}</div>@enderror @endforeach
+    @if($unpricedDue->isNotEmpty())
+        <div class="qr-diff" style="margin-top:12px;padding-top:10px" data-prices>
+            <div class="qr-sub" style="margin-bottom:6px"><b>No price was entered when ordering.</b> Type the rate on the bill (per unit, before tax).</div>
+            <div class="qr-row --head"><span>Item</span><span>Due</span><span>Rate ₹</span></div>
+            @foreach($unpricedDue as $l)
+                @php $i = $l['i']; @endphp
+                <div class="qr-row">
+                    <div class="qr-name">{{ $i->item->name }}<small>per {{ $i->unit }}</small></div>
+                    <span>{{ $l['due'] + 0 }} {{ $i->unit }}</span>
+                    <input class="ic-input" type="number" step="0.01" min="0.01" inputmode="decimal" name="lines[{{ $i->id }}][rate]" required
+                           value="{{ old("lines.{$i->id}.rate") }}" placeholder="₹" aria-label="{{ $i->item->name }} billed rate" style="border-color:var(--ef-gold)">
+                </div>
+            @endforeach
+        </div>
+    @endif
 
     <div class="qr-acts" data-acts-all @if($openDiff) hidden @endif>
         <button type="submit" name="mode" value="all" class="ic-btn ic-btn--gold"><i class="bi bi-check2-all"></i> Received as ordered</button>
@@ -73,8 +90,10 @@
                 <div class="qr-name">{{ $i->item->name }}<small data-hint>Due {{ $l['due'] + 0 }} {{ $i->unit }}</small></div>
                 <input class="ic-input" type="number" step="0.001" min="0" max="{{ $l['due'] }}" inputmode="decimal" name="lines[{{ $i->id }}][received]"
                        value="{{ old("lines.{$i->id}.received") }}" placeholder="{{ $l['due'] + 0 }}" aria-label="{{ $i->item->name }} received ({{ $i->unit }})" data-got>
+                @if((float) $i->rate > 0)
                 <input class="ic-input" type="number" step="0.01" min="0" inputmode="decimal" name="lines[{{ $i->id }}][rate]"
                        value="{{ old("lines.{$i->id}.rate") }}" placeholder="{{ $i->rate + 0 }}" aria-label="{{ $i->item->name }} rate">
+                @else<span class="qr-sub" style="margin:0;font-size:.74rem">rate above</span>@endif
             </div>
         @endforeach
 

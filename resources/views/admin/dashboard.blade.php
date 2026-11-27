@@ -33,7 +33,7 @@
 @media (max-width:639.98px){.ad-acts{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.ad-title h1{font-size:1.25rem}}
 
 /* attention strip */
-.ad-q{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:1px;border:1px solid var(--ef-border);border-radius:14px;background:var(--ef-border);overflow:hidden;box-shadow:0 1px 2px rgba(19,17,16,.04)}
+.ad-q{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;border:1px solid var(--ef-border);border-radius:14px;background:var(--ef-border);overflow:hidden;box-shadow:0 1px 2px rgba(19,17,16,.04)}
 .ad-qi{position:relative;display:flex;flex-direction:column;gap:2px;padding:11px 14px;color:var(--ef-ink);text-decoration:none;min-width:0;background:linear-gradient(var(--tint,transparent),var(--tint,transparent)),var(--ef-surface)}
 .ad-qi:hover{color:var(--ef-ink);filter:brightness(.98)}
 .ad-qi small{display:flex;align-items:center;gap:6px;font-size:.72rem;font-weight:700;color:var(--ef-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -42,14 +42,19 @@
 .ad-qi span{font-size:.7rem;color:var(--ef-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ad-qi.--zero strong{color:var(--ef-faint)}
 .ad-qi.--zero{--tint:transparent}
+.ad-qi.--hot small::after{content:"";width:7px;height:7px;border-radius:50%;background:var(--acc);margin-left:auto;flex:0 0 auto;animation:adPulse 1.6s ease-in-out infinite}
+@keyframes adPulse{0%,100%{opacity:1}50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.ad-qi.--hot small::after{animation:none}}
 .ad-qi.--hot::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--acc)}
 .ad-qi[data-k=expenses]{--acc:#9a6413;--tint:rgba(200,144,42,.08)}
 .ad-qi[data-k=overtime]{--acc:#2c5784;--tint:rgba(59,110,165,.06)}
 .ad-qi[data-k=advances]{--acc:#6b5bb5;--tint:rgba(107,91,181,.05)}
 .ad-qi[data-k=leave]{--acc:var(--ef-emerald);--tint:rgba(30,122,60,.05)}
 .ad-qi[data-k=regularizations]{--acc:#1f6f6a;--tint:rgba(31,111,106,.06)}
+.ad-qi[data-k=plans]{--acc:#b4531c;--tint:rgba(214,110,40,.07)}
 .ad-qi[data-k=wallets]{--acc:var(--ef-danger);--tint:rgba(192,57,43,.05)}
 /* all six stay visible (no swipe) — 3 × 2 on tablets and phones */
+@media (max-width:1299.98px){.ad-q{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media (max-width:1099.98px){.ad-q{grid-template-columns:repeat(3,minmax(0,1fr))}.ad-qi{padding:8px 10px}.ad-qi strong{font-size:1.15rem}}
 @media (max-width:399.98px){.ad-qi span{display:none}.ad-qi small{font-size:.68rem}}
 

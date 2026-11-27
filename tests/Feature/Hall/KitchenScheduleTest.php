@@ -72,3 +72,20 @@ it('shows corporate meal-register entries for the day, counted in the meal total
     $this->get(route('hall.bookings.kitchen', ['date' => '2026-12-05', 'catering_type' => 'corporate']))->assertSee('Stan Meds');
     $this->get(route('hall.bookings.kitchen', ['date' => '2026-12-05', 'catering_type' => 'hall']))->assertDontSee('Stan Meds');
 });
+
+it('gives employees a read-only kitchen schedule with recipe links to the calculator', function () {
+    $b = kitchenBooking();
+    $r = Recipe::create(['name' => 'Idly', 'yield_per_batch' => 10, 'yield_unit' => 'kg', 'is_active' => true, 'version' => 1, 'created_by' => icUser('admin')->id]);
+    $emp = icUser('employee');
+    \App\Models\EmployeeAttendance::create(['user_id' => $emp->id, 'attendance_date' => today(), 'status' => 'present', 'marked_by' => $emp->id, 'marked_at' => now(), 'source' => 'self']);
+
+    $res = $this->actingAs($emp)->get(route('employee.kitchen.schedule', ['date' => '2026-12-05']));
+    $res->assertOk()->assertSee('Kumar Family')->assertSee('Idly')
+        ->assertSee(e(route('employee.kitchen.calculator', ['recipe' => $r->id, 'people' => 150])), false)
+        ->assertSee('hall_booking_id='.$b->id, false)
+        ->assertDontSee(route('hall.bookings.show', $b), false)
+        ->assertDontSee(route('hall.bookings.menu.edit', $b), false)
+        ->assertDontSee(route('kitchen.recipes.show', $r), false);
+    // the staff page itself stays manager/admin only
+    $this->get(route('hall.bookings.kitchen'))->assertForbidden();
+});
