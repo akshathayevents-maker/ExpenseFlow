@@ -60,8 +60,10 @@ class PurchasePlanController extends Controller
     public function suggestions(): View
     {
         $suggestions = $this->planningService->getSuggestions();
+        $unconfigured = $this->planningService->unconfiguredEmptyCount();
+        $categories = $suggestions->pluck('category')->filter()->unique('id')->sortBy('name')->values();
 
-        return view('admin.purchase-plans.suggestions', compact('suggestions'));
+        return view('admin.purchase-plans.suggestions', compact('suggestions', 'unconfigured', 'categories'));
     }
 
     public function create(): View

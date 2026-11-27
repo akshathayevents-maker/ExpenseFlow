@@ -59,16 +59,17 @@ class PurchasePlanController extends Controller
             $plan->loadMissing('items.inventoryItem');
             foreach ($plan->items as $it) {
                 $i = $it->inventoryItem;
-                $rows[$it->inventory_item_id] = ['inventory_item_id' => $it->inventory_item_id, 'selected' => true, 'name' => $i?->name, 'unit' => $i?->unit,
+                $rows[$it->inventory_item_id] = ['inventory_item_id' => $it->inventory_item_id, 'selected' => true, 'name' => $i?->name, 'name_ta' => $i?->name_ta, 'unit' => $i?->unit,
                     'stock' => (float) ($i?->current_stock ?? 0), 'min' => (float) ($i?->minimum_stock ?? 0),
                     'quantity' => $it->suggested_quantity, 'unit_cost' => $it->estimated_unit_cost, 'priority' => $it->priority, 'notes' => $it->notes];
             }
         }
+        $pick = array_map('intval', (array) request('pick', []));   // items chosen on the suggestions page
         foreach ($sug as $i) {
-            // suggestions start unticked: the user ticks just what they want to buy
-            $rows[$i->id] ??= ['inventory_item_id' => $i->id, 'selected' => false, 'name' => $i->name, 'unit' => $i->unit,
+            // suggestions start unticked (unless picked on the suggestions page): the user ticks just what they want to buy
+            $rows[$i->id] ??= ['inventory_item_id' => $i->id, 'selected' => in_array($i->id, $pick, true), 'why' => $i->reason, 'name' => $i->name, 'name_ta' => $i->name_ta, 'unit' => $i->unit,
                 'stock' => (float) $i->current_stock, 'min' => (float) $i->minimum_stock, 'quantity' => $i->suggested_quantity,
-                'unit_cost' => $i->average_cost, 'priority' => $i->priority, 'notes' => null, 'suggested' => true];
+                'unit_cost' => $i->average_cost, 'priority' => in_array($i->priority, ['urgent', 'high', 'normal', 'low'], true) ? $i->priority : 'normal', 'notes' => null, 'suggested' => true];
         }
         if ($old = old('items')) {
             $items = \App\Models\InventoryItem::whereIn('id', array_filter(array_column($old, 'inventory_item_id')))->get()->keyBy('id');
@@ -76,7 +77,7 @@ class PurchasePlanController extends Controller
             foreach ($old as $o) {
                 $i = $items[$o['inventory_item_id'] ?? 0] ?? null;
                 if ($i) {
-                    $rows[$i->id] = ['inventory_item_id' => $i->id, 'selected' => ! empty($o['selected']), 'name' => $i->name, 'unit' => $i->unit,
+                    $rows[$i->id] = ['inventory_item_id' => $i->id, 'selected' => ! empty($o['selected']), 'name' => $i->name, 'name_ta' => $i->name_ta, 'unit' => $i->unit,
                         'stock' => (float) $i->current_stock, 'min' => (float) $i->minimum_stock, 'quantity' => $o['quantity'] ?? null,
                         'unit_cost' => $o['unit_cost'] ?? null, 'priority' => $o['priority'] ?? 'normal', 'notes' => $o['notes'] ?? null];
                 }

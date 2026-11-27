@@ -46,7 +46,7 @@
             <p class="ic-note" style="margin:-4px 0 10px">Tick only what you want to buy and adjust the quantity (stock unit). Unticked rows are ignored.</p>
             @if(count($rows) > 8)
                 <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
-                    <input type="search" id="ppFilter" class="ic-input" style="flex:1 1 220px;min-width:0" placeholder="Find in this list…" aria-label="Find in this list" autocomplete="off">
+                    <input type="search" id="ppFilter" class="ic-input" style="flex:1 1 220px;min-width:0" placeholder="Find — English, தமிழ், Tanglish…" aria-label="Find in this list" autocomplete="off">
                     <label class="ic-note" style="display:flex;align-items:center;gap:6px;font-weight:600"><input type="checkbox" id="ppOnlyTicked" style="width:18px;height:18px;accent-color:var(--ef-gold)"> Show ticked only</label>
                 </div>
             @endif
@@ -59,8 +59,8 @@
                             <input type="hidden" name="items[{{ $i }}][inventory_item_id]" value="{{ $r['inventory_item_id'] }}">
                             <input type="checkbox" name="items[{{ $i }}][selected]" value="1" class="item-checkbox" @checked($r['selected']) aria-label="Include {{ $r['name'] }}" style="width:20px;height:20px;accent-color:var(--ef-gold)">
                         </td>
-                        <td data-l="Item"><strong>{{ $r['name'] }}</strong>
-                            <div class="ic-note">Stock {{ rtrim(rtrim(number_format($r['stock'], 3, '.', ''), '0'), '.') ?: '0' }}@if($r['min'] > 0) / min {{ rtrim(rtrim(number_format($r['min'], 3, '.', ''), '0'), '.') }}@endif {{ $r['unit'] }}</div></td>
+                        <td data-l="Item"><strong>{{ $r['name'] }}</strong>@if(! empty($r['name_ta'])) <span lang="ta" style="font-weight:600;color:var(--ef-ink-2)">{{ $r['name_ta'] }}</span>@endif
+                            <div class="ic-note">Stock {{ rtrim(rtrim(number_format($r['stock'], 3, '.', ''), '0'), '.') ?: '0' }}@if($r['min'] > 0) / min {{ rtrim(rtrim(number_format($r['min'], 3, '.', ''), '0'), '.') }}@endif {{ $r['unit'] }}@if(! empty($r['why'])) · {{ $r['why'] }}@endif</div></td>
                         <td data-l="Priority">
                             <select name="items[{{ $i }}][priority]" class="ic-select" style="min-width:110px">
                                 @foreach(['urgent', 'high', 'normal', 'low'] as $p)<option value="{{ $p }}" @selected(($r['priority'] ?? 'normal') === $p)>{{ ucfirst($p) }}</option>@endforeach
@@ -96,7 +96,7 @@
 <template id="ppRowTpl">
     <tr data-row>
         <td data-l="Include"><input type="hidden" data-f="inventory_item_id"><input type="checkbox" data-f="selected" value="1" class="item-checkbox" checked style="width:20px;height:20px;accent-color:var(--ef-gold)"></td>
-        <td data-l="Item"><strong data-name></strong><div class="ic-note" data-stock></div></td>
+        <td data-l="Item"><strong data-name></strong> <span lang="ta" data-name-ta style="font-weight:600;color:var(--ef-ink-2)"></span><div class="ic-note" data-stock></div></td>
         <td data-l="Priority"><select data-f="priority" class="ic-select" style="min-width:110px"><option value="urgent">Urgent</option><option value="high">High</option><option value="normal" selected>Normal</option><option value="low">Low</option></select></td>
         <td data-l="Quantity"><div style="display:flex;align-items:center;gap:6px"><input type="number" data-f="quantity" class="ic-input" style="min-width:100px" min="0" step="0.001" inputmode="decimal"><span class="ic-note" data-unit></span></div></td>
         <td data-l="Unit cost"><input type="number" data-f="unit_cost" class="ic-input" style="min-width:100px" min="0" step="0.01" inputmode="decimal"></td>
@@ -125,11 +125,28 @@
     function filterRows() {
         const t = (flt?.value || '').trim().toLowerCase(), o = only?.checked;
         body.querySelectorAll('[data-row]').forEach(r => {
-            const name = (r.querySelector('strong')?.textContent || '').toLowerCase();
-            r.hidden = (t && !name.includes(t)) || (o && !r.querySelector('.item-checkbox').checked);
+            const name = (r.querySelector('[data-l=Item]')?.textContent || '').toLowerCase();
+            const id = r.querySelector('input[name$="[inventory_item_id]"]')?.value;
+            r.hidden = (t && !name.includes(t) && !(smart && smart.has(String(id)))) || (o && !r.querySelector('.item-checkbox').checked);
         });
     }
-    flt?.addEventListener('input', filterRows); only?.addEventListener('change', filterRows);
+    // Tamil / Tanglish / aliases via the shared item search
+    let smart = null, tm, seq = 0;
+    const searchUrl = @json(route('inventory.items.search'));
+    flt?.addEventListener('input', () => {
+        filterRows(); clearTimeout(tm);
+        const t = flt.value.trim();
+        if (t.length < 2) { smart = null; return filterRows(); }
+        const my = ++seq;
+        tm = setTimeout(async () => {
+            try {
+                const r = await fetch(searchUrl + '?limit=25&q=' + encodeURIComponent(t), { headers: { Accept: 'application/json' } });
+                const d = r.ok ? await r.json() : { results: [] };
+                if (my === seq) { smart = new Set((d.results || []).map(x => String(x.id))); filterRows(); }
+            } catch (e) {}
+        }, 250);
+    });
+    only?.addEventListener('change', filterRows);
     form.addEventListener('input', sum); form.addEventListener('change', sum);
     const addIn = document.getElementById('ppAdd');
     window.IcItemPicker.attach(addIn, {
@@ -140,6 +157,7 @@
             tr.querySelectorAll('[data-f]').forEach(f => f.name = `items[${i}][${f.dataset.f}]`);
             tr.querySelector('[data-f=inventory_item_id]').value = it.id;
             tr.querySelector('[data-name]').textContent = it.name;
+            tr.querySelector('[data-name-ta]').textContent = it.name_ta || '';
             tr.querySelector('[data-unit]').textContent = it.unit;
             tr.querySelector('[data-stock]').textContent = 'Added by you';
             body.appendChild(tr);
