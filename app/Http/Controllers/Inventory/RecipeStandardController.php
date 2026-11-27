@@ -31,8 +31,14 @@ class RecipeStandardController extends Controller
         abort_unless($request->user()->isAdmin(), 403);
         $name = (string) $request->validate(['name' => ['required', 'string', 'max:150']])['name'];
 
+        $h = $this->standards->history($name);
+
         return view('inventory.standards.show', [
-            'h' => $this->standards->history($name),
+            'h' => $h,
+            'versions' => Recipe::whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower(trim($name))])
+                ->whereHas('ingredients', fn ($q) => $q->whereNotNull('quantity_per_guest'))
+                ->with('createdBy:id,name')->orderByDesc('version')->get(['id', 'name', 'version', 'superseded_at', 'created_at', 'created_by', 'description']),
+            'drift' => $h['current'] ? $this->standards->drift($name, $h['current']) : null,
             'items' => InventoryItem::active()->orderBy('name')->get(['id', 'name', 'unit']),
         ]);
     }

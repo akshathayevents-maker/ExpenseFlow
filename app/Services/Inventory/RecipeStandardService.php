@@ -21,16 +21,61 @@ use Illuminate\Validation\ValidationException;
  */
 class RecipeStandardService
 {
+    /** Recorded uses before a preparation is worth standardising (also the bar used for history-based warnings). */
+    public const READY_AFTER = 3;
+
+    /** Largest % gap between the current standard and recent median usage, over items used 2+ times. */
+    public function drift(string $preparation, Recipe $std): ?int
+    {
+        $rows = $this->history($preparation)['rows'];
+        $max = null;
+        foreach ($std->ingredients as $ing) {
+            $r = $rows[$ing->inventory_item_id] ?? null;
+            if (! $r || $r['times'] < 2 || ! $ing->quantity_per_guest) {
+                continue;
+            }
+            $gap = (int) round(abs($r['median'] - $ing->quantity_per_guest) / $ing->quantity_per_guest * 100);
+            $max = max($max ?? 0, $gap);
+        }
+
+        return $max;
+    }
+
     public function __construct(private AuditLogService $audit) {}
 
     /** Preparations with recorded usage (reconciled requests with a guest count). */
     public function preparations(): Collection
     {
-        return MaterialRequest::where('status', 'reconciled')->whereNotNull('preparation_name')->where('guest_count', '>', 0)
-            ->get(['id', 'preparation_name', 'guest_count'])
-            ->groupBy(fn ($r) => mb_strtolower(trim($r->preparation_name)))
-            ->map(fn ($g) => ['name' => trim($g->first()->preparation_name), 'times' => $g->count(),
-                'avg_guests' => (int) round($g->avg('guest_count')), 'standard' => $this->currentFor(trim($g->first()->preparation_name))])
+        $reqs = MaterialRequest::with('items.item:id,average_cost')->where('status', 'reconciled')->whereNotNull('preparation_name')->where('guest_count', '>', 0)
+            ->get(['id', 'preparation_name', 'guest_count', 'required_date']);
+
+        return $reqs->groupBy(fn ($r) => mb_strtolower(trim($r->preparation_name)))
+            ->map(function ($g) {
+                $name = trim($g->first()->preparation_name);
+                $out = $waste = $cost = 0.0;
+                foreach ($g as $r) {
+                    foreach ($r->items as $l) {
+                        if ($l->line_status === 'rejected') {
+                            continue;
+                        }
+                        $o = (float) $l->consumed_base_quantity + (float) $l->wasted_base_quantity + (float) $l->unexplained_base_quantity;
+                        $out += $o;
+                        $waste += (float) $l->wasted_base_quantity + (float) $l->unexplained_base_quantity;
+                        $cost += $o * (float) ($l->item?->average_cost ?? 0);
+                    }
+                }
+                $guests = (int) $g->sum('guest_count');
+                $std = $this->currentFor($name);
+
+                return ['name' => $name, 'times' => $g->count(),
+                    'avg_guests' => (int) round($g->avg('guest_count')), 'standard' => $std,
+                    'last_used' => $g->max('required_date'),
+                    'waste_pct' => $out > 0 ? (int) round($waste / $out * 100) : 0,                 // wasted + unexplained share of what went out
+                    'cost_per_guest' => $guests > 0 ? round($cost / $guests, 2) : 0.0,       // at today's average cost
+                    'drift_pct' => $std ? $this->drift($name, $std) : null,
+                    'state' => $std ? 'standard' : ($g->count() >= self::READY_AFTER ? 'ready' : 'collecting'),
+                ];
+            })
             ->sortByDesc('times')->values();
     }
 
@@ -53,6 +98,8 @@ class RecipeStandardService
                 $perItem[$l->inventory_item_id]['item'] = $l->item;
                 $perItem[$l->inventory_item_id]['per_guest'][] = $out / $r->guest_count;
                 $perItem[$l->inventory_item_id]['consumed_per_guest'][] = (float) $l->consumed_base_quantity / $r->guest_count;
+                $perItem[$l->inventory_item_id]['out'] = ($perItem[$l->inventory_item_id]['out'] ?? 0) + $out;
+                $perItem[$l->inventory_item_id]['waste'] = ($perItem[$l->inventory_item_id]['waste'] ?? 0) + (float) $l->wasted_base_quantity + (float) $l->unexplained_base_quantity;
             }
         }
         $rows = [];
@@ -63,12 +110,30 @@ class RecipeStandardService
                 'item_id' => $id, 'item' => $d['item']->name, 'unit' => $d['item']->unit, 'times' => $v->count(),
                 'avg' => round($v->avg(), 5), 'median' => round($v->median(), 5), 'min' => round($v->min(), 5), 'max' => round($v->max(), 5),
                 'consumed_median' => round($c->median(), 5),
+                'waste_pct' => ($d['out'] ?? 0) > 0 ? (int) round(($d['waste'] ?? 0) / $d['out'] * 100) : 0,
+                'cost' => (float) ($d['item']->average_cost ?? 0),
             ];
         }
         uasort($rows, fn ($a, $b) => strcmp($a['item'], $b['item']));
 
+        $usage = $reqs->map(function ($r) {
+            $out = $waste = $cost = 0.0;
+            foreach ($r->items as $l) {
+                if ($l->line_status === 'rejected') {
+                    continue;
+                }
+                $o = (float) $l->consumed_base_quantity + (float) $l->wasted_base_quantity + (float) $l->unexplained_base_quantity;
+                $out += $o;
+                $waste += (float) $l->wasted_base_quantity + (float) $l->unexplained_base_quantity;
+                $cost += $o * (float) ($l->item?->average_cost ?? 0);
+            }
+
+            return ['id' => $r->id, 'ref' => $r->reference(), 'date' => $r->required_date, 'guests' => (int) $r->guest_count,
+                'cost' => round($cost, 2), 'waste_pct' => $out > 0 ? (int) round($waste / $out * 100) : 0];
+        })->sortByDesc('date')->values()->all();
+
         return ['preparation' => $preparation, 'requests' => $reqs->count(), 'rows' => $rows,
-            'guests' => $reqs->pluck('guest_count')->all(), 'current' => $this->currentFor($preparation)];
+            'guests' => $reqs->pluck('guest_count')->all(), 'current' => $this->currentFor($preparation), 'usage' => $usage];
     }
 
     /**

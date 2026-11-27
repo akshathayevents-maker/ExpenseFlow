@@ -50,3 +50,25 @@ it('falls back to today for an invalid date and blocks employees', function () {
     $this->actingAs(icUser('admin'))->get(route('hall.bookings.kitchen', ['date' => 'bogus']))->assertOk();
     $this->actingAs(icUser('employee'))->get(route('hall.bookings.kitchen'))->assertForbidden();
 });
+
+it('shows corporate meal-register entries for the day, counted in the meal totals', function () {
+    $mgr = icUser('manager');
+    $client = \App\Models\MealClient::create(['name' => 'Stan Meds', 'active' => true, 'created_by' => $mgr->id]);
+    $e = \App\Models\MealEntry::create(['meal_client_id' => $client->id, 'entry_date' => '2026-12-05', 'created_by' => $mgr->id]);
+    $e->items()->createMany([
+        ['meal_type' => 'breakfast', 'planned_count' => 50, 'sort_order' => 1],
+        ['meal_type' => 'lunch', 'planned_count' => 65, 'sort_order' => 2],
+    ]);
+    $other = \App\Models\MealEntry::create(['meal_client_id' => $client->id, 'entry_date' => '2026-12-06', 'created_by' => $mgr->id]);
+    $other->items()->create(['meal_type' => 'dinner', 'planned_count' => 10, 'sort_order' => 1]);
+
+    $html = $this->actingAs($mgr)->get(route('hall.bookings.kitchen', ['date' => '2026-12-05']))->assertOk()
+        ->assertSee('Stan Meds')->assertSee('corporate meal entry')->assertDontSee('Kitchen Schedule Clear')
+        ->assertSee(route('meal-register.entries.show', $e), false)
+        ->assertSee('meal_entry_id='.$e->id, false)->getContent();
+    expect(substr_count($html, 'data-meal-entry='))->toBe(1);
+
+    // only corporate meals / hall-only filters
+    $this->get(route('hall.bookings.kitchen', ['date' => '2026-12-05', 'catering_type' => 'corporate']))->assertSee('Stan Meds');
+    $this->get(route('hall.bookings.kitchen', ['date' => '2026-12-05', 'catering_type' => 'hall']))->assertDontSee('Stan Meds');
+});

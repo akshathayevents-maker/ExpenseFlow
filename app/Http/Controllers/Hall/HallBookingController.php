@@ -781,7 +781,7 @@ class HallBookingController extends Controller
         if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || ! strtotime($date)) {
             $date = today()->toDateString();
         }
-        $cateringFilter = in_array(request('catering_type'), ['hall', 'external'], true) ? request('catering_type') : 'all';
+        $cateringFilter = in_array(request('catering_type'), ['hall', 'external', 'corporate'], true) ? request('catering_type') : 'all';
 
         $query = HallBooking::with(['hall', 'mealPlan', 'meals', 'menuItems'])
             ->whereDate('booking_date', $date)
@@ -798,7 +798,13 @@ class HallBookingController extends Controller
             $query->hasFood(); // both hall_food and food_only
         }
 
-        $bookings = $query->get();
+        $bookings = $cateringFilter === 'corporate' ? collect() : $query->get();
+
+        // Corporate / daily meal-register entries for the same day also need the kitchen (planned head counts per meal).
+        $mealEntries = in_array($cateringFilter, ['all', 'corporate'], true)
+            ? \App\Models\MealEntry::with(['client:id,name', 'items'])->whereDate('entry_date', $date)->orderBy('id')->get()
+                ->filter(fn ($e) => $e->items->sum('planned_count') > 0 || $e->items->sum('actual_count') > 0)->values()
+            : collect();
 
         // Dish lines per booking (final menu → event request → meal plan), grouped by meal,
         // each linked to the recipe of the same name when one exists.
@@ -820,6 +826,6 @@ class HallBookingController extends Controller
                 ? $menuSvc->customizations($b->menuItems->sortBy('sort_order')->all(), (int) $b->number_of_people) : [];
         }
 
-        return view('hall.bookings.kitchen', compact('bookings', 'date', 'cateringFilter', 'kitchenItems', 'kitchenCustom'));
+        return view('hall.bookings.kitchen', compact('bookings', 'date', 'cateringFilter', 'kitchenItems', 'kitchenCustom', 'mealEntries'));
     }
 }

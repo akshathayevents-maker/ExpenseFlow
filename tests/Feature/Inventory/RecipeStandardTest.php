@@ -63,3 +63,30 @@ it('builds per-person history from recorded usage and saves versioned standards'
         ->and($req->fresh()->recipe_version)->toBe(1)
         ->and($req->fresh()->items->first()->suggested_base_quantity)->toBe(50.0);
 });
+
+it('shows readiness, waste, cost and drift insights on both standards pages', function () {
+    $emp = icUser();
+    $admin = icUser('admin');
+    $store = icUser('employee', true);
+    $this->actingAs($admin);
+    $rava = icItem('Rava', 'kg', 1000);
+    $rava->update(['average_cost' => 50]);
+    recordUpma($emp, $admin, $store, $rava, 100, 20, 18);   // 2 kg wasted
+    recordUpma($emp, $admin, $store, $rava, 200, 40, 40);
+    recordUpma($emp, $admin, $store, $rava, 100, 20, 20);
+
+    $p = app(RecipeStandardService::class)->preparations()->firstWhere('name', 'Upma');
+    expect($p['state'])->toBe('ready')->and($p['waste_pct'])->toBe(3)->and($p['cost_per_guest'])->toBe(10.0);
+
+    $this->actingAs($admin)->get(route('inventory.standards.index'))->assertOk()
+        ->assertSee('Ready to standardise')->assertSee('data-state="ready"', false)->assertSee('₹10')->assertSee('Drifted');
+    $this->actingAs($admin)->get(route('inventory.standards.show', ['name' => 'Upma']))->assertOk()
+        ->assertSee('Ready to standardise')->assertSee('Recorded uses')->assertSee('Use usual amounts (median)');
+
+    // a standard far from recent usage is flagged for review
+    $this->post(route('inventory.standards.store'), ['name' => 'Upma', 'lines' => [$rava->id => 0.3]])->assertSessionHasNoErrors();
+    $p = app(RecipeStandardService::class)->preparations()->firstWhere('name', 'Upma');
+    expect($p['state'])->toBe('standard')->and($p['drift_pct'])->toBe(33);
+    $this->get(route('inventory.standards.index'))->assertSee('off by 33%');
+    $this->get(route('inventory.standards.show', ['name' => 'Upma']))->assertSee('Off recent usage by 33%')->assertSee('Back to v1');
+});

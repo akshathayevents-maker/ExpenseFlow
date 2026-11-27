@@ -122,7 +122,7 @@
     $url = fn ($over) => route('inventory.stock', array_filter(array_merge(['q' => $search, 'show' => $show, 'cat' => $cat], $over)));
 @endphp
 
-<div class="st-page" id="stPage">
+<div class="st-page" id="stPage" data-mode="{{ $paged ? 'server' : 'instant' }}">
     <header class="st-head">
         <div style="min-width:0;flex:1 1 260px">
             <h1>Store stock</h1>
@@ -168,7 +168,7 @@
 
     <div class="st-list" data-list>
         <div class="st-head-row" aria-hidden="true"><span>Item</span><span>Level vs minimum</span><span>Status &amp; movement</span><span>Available</span></div>
-        @foreach($items as $i)
+        @foreach($paged ?? $items as $i)
             @php
                 $ref = max((float) $i->maximum_stock, (float) $i->minimum_stock * 2, (float) $i->physical, 0.001);
                 $pct = $i->state === 'out' ? 0 : max(4, min(100, round($i->current_stock / $ref * 100)));
@@ -195,6 +195,7 @@
             </div>
         @endforeach
     </div>
+    @if($paged && $paged->hasPages())<div style="padding:10px 14px;border-top:1px solid var(--ef-border);overflow-x:auto">{{ $paged->onEachSide(1)->links() }}</div>@endif
     <div class="st-empty" data-empty @if($visible > 0) hidden @endif>
         <i class="bi bi-search"></i>
         <p style="margin:6px 0 12px">No items match.</p>
@@ -218,6 +219,14 @@
 <script>
 (() => {
     const page = document.getElementById('stPage'); if (!page) return;
+    if (page.dataset.mode === 'server') {
+        // big catalogue: tiles / chips are plain links; search reloads (debounced) with the filters kept
+        const f = page.querySelector('form.st-tools'), qi = f.querySelector('[data-q]'), cl = f.querySelector('[data-clear]');
+        let tm; qi.addEventListener('input', () => { clearTimeout(tm); tm = setTimeout(() => f.submit(), 450); cl.hidden = !qi.value; });
+        cl.addEventListener('click', () => { qi.value = ''; f.submit(); });
+        if (qi.value) { qi.focus(); const v = qi.value; qi.value = ''; qi.value = v; }
+        return;
+    }
     const qIn = page.querySelector('[data-q]'), clear = page.querySelector('[data-clear]');
     const rows = [...page.querySelectorAll('[data-item]')];
     const st = { q: qIn.value.trim().toLowerCase(), show: page.querySelector('[data-show-in]').value, cat: page.querySelector('[data-cat-in]').value };

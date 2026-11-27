@@ -15,6 +15,9 @@ use Illuminate\View\View;
 /** Role-based "Store" home: kitchen staff, storekeeper and admin each see their own tasks. */
 class InventoryHomeController extends Controller
 {
+    /** Above this many active items the Stock page filters/pages on the server instead of in the browser. */
+    public const STOCK_INSTANT_MAX = 400;
+
     /**
      * Store home — an operational inbox. Counts are always live (no caching: they drive approvals and
      * stock decisions). Status counts are one grouped query per table; the stock picture is one
@@ -170,6 +173,16 @@ class InventoryHomeController extends Controller
         ];
         $categories = $items->pluck('category')->filter()->unique('id')->sortBy('name')->values();
 
-        return view('inventory.stock', compact('items', 'shown', 'search', 'show', 'cat', 'counts', 'categories'));
+        // Large catalogues: filter and page on the server (60 rows) instead of sending every item to the phone.
+        // Small catalogues keep the all-rows page with instant in-browser filtering.
+        $paged = null;
+        if ($items->count() > self::STOCK_INSTANT_MAX) {
+            $matched = $items->filter($match)->values();
+            $page = max(1, $request->integer('page', 1));
+            $paged = new \Illuminate\Pagination\LengthAwarePaginator($matched->forPage($page, 60)->values(), $matched->count(), 60, $page,
+                ['path' => $request->url(), 'query' => $request->except('page')]);
+        }
+
+        return view('inventory.stock', compact('items', 'shown', 'search', 'show', 'cat', 'counts', 'categories', 'paged'));
     }
 }

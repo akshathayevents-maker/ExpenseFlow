@@ -502,6 +502,13 @@ details.ef-kit-card[open] { box-shadow: 0 6px 22px rgba(19,17,16,.10); }
 .ef-kit-dishes li + li { border-top: 1px solid rgba(100,82,42,.09); }
 .ef-kit-dish-name { min-width: 0; overflow-wrap: anywhere; color: #131110; font-weight: 560; }
 .ef-kit-dish-name small { display: block; color: #8a827a; font-weight: 400; font-size: .7rem; }
+.ef-kit-corp-list { display: flex; flex-direction: column; gap: 10px; }
+.ef-kit-corp { border: 1px solid rgba(100,82,42,.14); border-left: 4px solid #2c5784; border-radius: 14px; background: #fff; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.ef-kit-corp-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.ef-kit-corp-meals { display: flex; flex-wrap: wrap; gap: 6px; }
+.ef-kit-corp-meals b { margin-left: 2px; }
+.ef-kit-corp-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.ef-kit-corp-acts .ef-kit-btn { flex: 1 1 140px; justify-content: center; }
 .ef-kit-custom-chip { background: #fdebd9 !important; color: #a3480f !important; font-weight: 750; }
 .ef-kit-custom { margin: 8px 0 10px; padding: 9px 12px; border-radius: 10px; border: 1px solid rgba(214,110,40,.35); background: #fff6ec; font-size: .8rem; color: #5b3a1a; }
 .ef-kit-custom b { display: block; color: #a3480f; font-size: .72rem; letter-spacing: .05em; }
@@ -528,9 +535,12 @@ details.ef-kit-card[open] { box-shadow: 0 6px 22px rgba(19,17,16,.10); }
     $todayDate  = today()->toDateString();
 
     // Meal tallies
-    $bfCount     = $bookings->where('has_breakfast', true)->sum('number_of_people');
-    $lnCount     = $bookings->where('has_lunch',     true)->sum('number_of_people');
-    $dnCount     = $bookings->where('has_dinner',    true)->sum('number_of_people');
+    $mealEntries = $mealEntries ?? collect();
+    $corpMeal    = fn ($type) => (int) $mealEntries->sum(fn ($e) => $e->items->where('meal_type', $type)->sum(fn ($i) => $i->planned_count ?? 0));
+    $bfCount     = $bookings->where('has_breakfast', true)->sum('number_of_people') + $corpMeal('breakfast');
+    $lnCount     = $bookings->where('has_lunch',     true)->sum('number_of_people') + $corpMeal('lunch');
+    $dnCount     = $bookings->where('has_dinner',    true)->sum('number_of_people') + $corpMeal('dinner');
+    $hasAny      = $bookings->isNotEmpty() || $mealEntries->isNotEmpty();
     $totalCovers = $bfCount + $lnCount + $dnCount;
     $maxCovers   = max($bfCount, $lnCount, $dnCount, 1);
     $hasMeals    = $totalCovers > 0;
@@ -589,16 +599,18 @@ details.ef-kit-card[open] { box-shadow: 0 6px 22px rgba(19,17,16,.10); }
     </div>
 
     <div class="ef-kit-bar-right">
-        @if($bookings->isNotEmpty())
+        @if($hasAny)
             <div class="ef-kit-stat">
-                <div class="ef-kit-stat-val">{{ $bookings->count() }}</div>
-                <div class="ef-kit-stat-lbl">Events</div>
+                <div class="ef-kit-stat-val">{{ $bookings->count() + $mealEntries->count() }}</div>
+                <div class="ef-kit-stat-lbl">Orders</div>
             </div>
+            @if($bookings->isNotEmpty())
             <div class="ef-kit-stat-div"></div>
             <div class="ef-kit-stat">
                 <div class="ef-kit-stat-val">{{ number_format($bookings->sum('number_of_people')) }}</div>
                 <div class="ef-kit-stat-lbl">Guests</div>
             </div>
+            @endif
             @if($hasMeals)
                 <div class="ef-kit-stat-div"></div>
                 <div class="ef-kit-stat">
@@ -659,7 +671,7 @@ details.ef-kit-card[open] { box-shadow: 0 6px 22px rgba(19,17,16,.10); }
 ═══════════════════════════════════════════════════════════════════ --}}
 @php $cateringFilter = request('catering_type', 'all'); @endphp
 <div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-bottom:12px;padding-bottom:2px">
-    @foreach(['all' => 'All Catering', 'hall' => 'Hall Catering', 'external' => 'External Catering'] as $val => $label)
+    @foreach(['all' => 'All Catering', 'hall' => 'Hall Catering', 'external' => 'External Catering', 'corporate' => 'Corporate Meals'] as $val => $label)
         <a href="{{ route('hall.bookings.kitchen', ['date' => $date, 'catering_type' => $val === 'all' ? null : $val]) }}"
            style="display:inline-block;flex-shrink:0;padding:5px 13px;border-radius:20px;font-size:.72rem;font-weight:660;text-decoration:none;border:1.5px solid {{ $cateringFilter === $val ? '#131110' : 'rgba(100,82,42,.18)' }};background:{{ $cateringFilter === $val ? '#131110' : 'transparent' }};color:{{ $cateringFilter === $val ? '#fdfaf5' : '#8a827a' }};white-space:nowrap">
             {{ $label }}
@@ -670,7 +682,7 @@ details.ef-kit-card[open] { box-shadow: 0 6px 22px rgba(19,17,16,.10); }
 {{-- ═══════════════════════════════════════════════════════════════
      MEAL STRIP — compact 3-column, hidden when all zero + no events
 ═══════════════════════════════════════════════════════════════════ --}}
-@if($bookings->isNotEmpty() || $hasMeals)
+@if($hasAny || $hasMeals)
 <div class="ef-kit-meal-strip">
     @php
         $bfPct = $maxCovers > 0 ? round(($bfCount / $maxCovers) * 100) : 0;
@@ -707,14 +719,14 @@ details.ef-kit-card[open] { box-shadow: 0 6px 22px rgba(19,17,16,.10); }
 {{-- ═══════════════════════════════════════════════════════════════
      EVENT CARDS / EMPTY STATE
 ═══════════════════════════════════════════════════════════════════ --}}
-@if($bookings->isEmpty())
+@if(! $hasAny)
 
     {{-- Compact actionable empty state --}}
     <div class="ef-kit-empty">
         <div class="ef-kit-empty-icon">🍽</div>
         <div class="ef-kit-empty-title">Kitchen Schedule Clear</div>
         <div class="ef-kit-empty-sub">
-            No events on {{ $dateObj->format('d F Y') }}.
+            No events or corporate meal entries on {{ $dateObj->format('d F Y') }}.
         </div>
         <div class="ef-kit-empty-actions">
             <a href="{{ route('hall.bookings.index') }}" class="ef-kit-btn ef-kit-btn-outline">
@@ -728,6 +740,7 @@ details.ef-kit-card[open] { box-shadow: 0 6px 22px rgba(19,17,16,.10); }
 
 @else
 
+    @if($bookings->isNotEmpty())
     <div class="ef-kit-section">
         <i class="bi bi-list-ul"></i>
         {{ $bookings->count() }} event{{ $bookings->count() === 1 ? '' : 's' }} · sorted by start time
@@ -840,6 +853,41 @@ details.ef-kit-card[open] { box-shadow: 0 6px 22px rgba(19,17,16,.10); }
             </details>
         @endforeach
     </div>
+    @endif
+
+    @if($mealEntries->isNotEmpty())
+    <div class="ef-kit-section" style="margin-top:14px">
+        <i class="bi bi-building"></i>
+        {{ $mealEntries->count() }} corporate meal {{ Str::plural('entry', $mealEntries->count()) }} · from the Daily Meal Register
+    </div>
+    <div class="ef-kit-corp-list">
+        @foreach($mealEntries as $e)
+            @php $its = $e->items->filter(fn ($i) => ($i->planned_count ?? 0) > 0 || ($i->actual_count ?? 0) > 0); @endphp
+            <div class="ef-kit-corp" data-meal-entry="{{ $e->id }}">
+                <div class="ef-kit-corp-head">
+                    <div style="min-width:0">
+                        <div class="ef-kit-customer">{{ $e->client?->name ?? 'Client' }}</div>
+                        <div class="ef-kit-evt-type">Corporate meals @if($e->remarks)· {{ Str::limit($e->remarks, 60) }}@endif</div>
+                    </div>
+                    <div class="ef-kit-pax">
+                        <div class="ef-kit-pax-num">{{ number_format($its->sum(fn ($i) => $i->planned_count ?? 0)) }}</div>
+                        <div class="ef-kit-pax-lbl">Planned</div>
+                    </div>
+                </div>
+                <div class="ef-kit-corp-meals">
+                    @foreach($its as $i)
+                        @php [$ml, $mi, $mc] = ['breakfast' => ['Breakfast', 'bi-cup-hot', 'bf'], 'lunch' => ['Lunch', 'bi-brightness-high', 'ln'], 'dinner' => ['Dinner', 'bi-moon-stars', 'dn']][$i->meal_type] ?? [ucfirst($i->meal_type), 'bi-egg-fried', 'mp']; @endphp
+                        <span class="ef-kit-chip {{ $mc }}"><i class="bi {{ $mi }}"></i> {{ $ml }} <b>{{ number_format($i->planned_count ?? 0) }}</b>@if($i->actual_count !== null) · served {{ number_format($i->actual_count) }}@endif</span>
+                    @endforeach
+                </div>
+                <div class="ef-kit-corp-acts">
+                    <a href="{{ route('meal-register.entries.show', $e) }}" class="ef-kit-btn ef-kit-btn-outline"><i class="bi bi-journal-text"></i> Entry</a>
+                    <a href="{{ route('inventory.material-requests.create', ['meal_entry_id' => $e->id]) }}" class="ef-kit-btn ef-kit-btn-primary"><i class="bi bi-basket"></i> Request materials</a>
+                </div>
+            </div>
+        @endforeach
+    </div>
+    @endif
 
 @endif
 

@@ -29,7 +29,16 @@ class WalletController extends Controller
         $search = $request->get('search', '');
         $health = $request->get('health', '');
 
-        $wallets = Wallet::with(['user'])
+        $since = now()->subDays(30);
+        $wallets = Wallet::with(['user:id,name,email,role'])
+            ->select('wallets.*')
+            // per-wallet activity as sub-selects (one query, no per-card lookups)
+            ->addSelect(['spent_30' => \App\Models\WalletTransaction::selectRaw('COALESCE(SUM(amount), 0)')
+                ->whereColumn('wallet_id', 'wallets.id')->where('type', 'debit')->where('created_at', '>=', $since)])
+            ->addSelect(['added_30' => \App\Models\WalletTransaction::selectRaw('COALESCE(SUM(amount), 0)')
+                ->whereColumn('wallet_id', 'wallets.id')->whereIn('type', ['credit', 'reimbursement'])->where('created_at', '>=', $since)])
+            ->addSelect(['last_txn_at' => \App\Models\WalletTransaction::select('created_at')
+                ->whereColumn('wallet_id', 'wallets.id')->latest('id')->limit(1)])
             ->whereHas('user', fn ($q) => $q
                 ->whereIn('role', ['employee', 'manager'])
                 ->when($search, fn ($q) => $q->where(fn ($q) => $q
@@ -58,6 +67,10 @@ class WalletController extends Controller
             'low_balance_count'   => (clone $baseScope)->where('balance', '<', 500)->where('balance', '>=', 0)->count(),
             'negative_count'      => (clone $baseScope)->where('balance', '<', 0)->count(),
             'pending_reimb_count' => ExpenseRequest::reimbursementPending()->count(),
+            'pending_reimb_amount' => (float) ExpenseRequest::reimbursementPending()->sum('amount'),
+            'healthy_count'       => (clone $baseScope)->where('balance', '>=', 500)->count(),
+            'spent_30'            => (float) \App\Models\WalletTransaction::where('type', 'debit')->where('created_at', '>=', $since)->sum('amount'),
+            'added_30'            => (float) \App\Models\WalletTransaction::whereIn('type', ['credit', 'reimbursement'])->where('created_at', '>=', $since)->sum('amount'),
         ];
 
         return view('admin.wallets.index', compact('wallets', 'stats', 'search', 'health'));
